@@ -1,17 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '@/i18n/config';
 
-// Main platform hostnames — everything else is treated as a store subdomain
-const PLATFORM_HOSTNAMES = ['localhost', 'platform.com', 'www.platform.com'];
+// Main platform hostnames — everything else is treated as a store subdomain.
+// Configurable via NEXT_PUBLIC_PLATFORM_HOSTS (comma-separated list).
+const PLATFORM_HOSTNAMES = (
+  process.env.NEXT_PUBLIC_PLATFORM_HOSTS ||
+  'localhost,iwings-digital.com,www.iwings-digital.com'
+)
+  .split(',')
+  .map((h) => h.trim().toLowerCase())
+  .filter(Boolean);
+
+const PLATFORM_DOMAIN =
+  process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'localhost';
 
 function getStoreSlug(hostname: string): string | null {
   // Remove port if present (e.g. "my-store.localhost:3003" → "my-store.localhost")
-  const host = hostname.split(':')[0]!;
+  const host = hostname.split(':')[0]!.toLowerCase();
 
   // Main platform — not a store
   if (PLATFORM_HOSTNAMES.includes(host)) return null;
 
-  // Subdomain: "my-store.localhost" or "my-store.platform.com"
+  // Subdomain: "my-store.localhost" or "my-store.iwings-digital.com"
   const parts = host.split('.');
   if (parts.length >= 2) return parts[0]!;
 
@@ -79,7 +89,8 @@ export function proxy(request: NextRequest) {
       const slug = match[1];
       const rest = match[2] || '/';
       const port = hostname.split(':')[1];
-      const target = `http://${slug}.localhost${port ? ':' + port : ''}${rest}`;
+      const protocol = PLATFORM_DOMAIN === 'localhost' ? 'http' : 'https';
+      const target = `${protocol}://${slug}.${PLATFORM_DOMAIN}${port ? ':' + port : ''}${rest}`;
       return NextResponse.redirect(target);
     }
   }
