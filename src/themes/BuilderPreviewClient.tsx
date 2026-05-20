@@ -31,6 +31,9 @@ interface UpdateMessage {
   sections?: SectionInstance[];
   locale?: string;
   primaryLocale?: string;
+  // Forwarded from the dashboard so header/footer sections resolve a selected
+  // menu live (kept fresh, including menus created this session).
+  menus?: NonNullable<StoreContext['menus']>;
 }
 
 interface ScrollMessage {
@@ -62,10 +65,21 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           sections: data.sections ?? prev.sections,
           locale: data.locale ?? prev.locale,
           primaryLocale: data.primaryLocale ?? prev.primaryLocale,
-          // Preserve preview-only context the dashboard never sends.
+          // Preserve preview-only context the dashboard never sends — but fold
+          // in fresh menus when provided so chrome sections resolve them.
           product: prev.product,
           currency: prev.currency,
-          storeContext: prev.storeContext,
+          storeContext: data.menus
+            ? {
+                ...(prev.storeContext ?? {
+                  storeName: '',
+                  primaryLocale: data.primaryLocale ?? prev.primaryLocale,
+                  secondaryLocales: [],
+                  pages: [],
+                }),
+                menus: data.menus,
+              }
+            : prev.storeContext,
         }));
       } else if (data.type === 'SCROLL_TO_SECTION') {
         const el = document.querySelector(

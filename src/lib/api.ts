@@ -48,11 +48,13 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
   return json.data;
 }
 
-// Build cache options for a storefront read. Every read is tagged with the
-// store so a single revalidateTag(storeTag(slug)) refreshes the whole store.
-const cached = (slug: string): FetchOptions => ({
-  next: { tags: [storeTag(slug)], revalidate: STOREFRONT_REVALIDATE_SECONDS },
-});
+// Build cache options for a storefront read. In production every read is tagged
+// with the store so a single revalidateTag(storeTag(slug)) refreshes it. In
+// development we never cache — edits must show instantly without revalidation.
+const cached = (slug: string): FetchOptions =>
+  process.env.NODE_ENV === 'production'
+    ? { next: { tags: [storeTag(slug)], revalidate: STOREFRONT_REVALIDATE_SECONDS } }
+    : { cache: 'no-store' };
 
 // Storefront API helpers
 export const storefront = {
