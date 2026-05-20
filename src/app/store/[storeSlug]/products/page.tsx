@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
+import { resolveHero, type StoreHero } from '@/lib/hero';
 
 interface Product {
   id: string;
@@ -53,9 +54,13 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
     storefront.getCategories(storeSlug) as Promise<Category[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-    storefront.getStore(storeSlug) as Promise<{ currency?: string }>,
+    storefront.getStore(storeSlug) as Promise<{ currency?: string; theme?: { hero?: StoreHero } }>,
   ]);
   const currency = storeData?.currency;
+
+  // Hero/banner settings (configurable from store settings → Page Banners).
+  const hero = resolveHero(storeData?.theme?.hero?.products, { height: 'md' });
+  const heroImage = hero.imageUrl ? resolveMediaUrl(hero.imageUrl) : undefined;
 
   // Flatten creator categories one level deep so children can render indented inline
   type FlatCreatorCategory = CreatorCategory & { depth: number };
@@ -82,32 +87,49 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   return (
     <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Page header banner */}
-      <div
-        className="relative overflow-hidden py-12 text-white text-center"
-        style={{
-          background:
-            'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
-        }}
-      >
-        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-        <div className="relative container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-            {t('common.products')}
-          </h1>
-          {products.length > 0 && (
-            <p className="text-white/70 text-sm mt-2">
-              {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
-            </p>
+      {/* Page header banner — toggled and styled from store settings */}
+      {hero.enabled && (
+        <div
+          className={`relative overflow-hidden text-center ${hero.heightClass}`}
+          style={
+            heroImage
+              ? {
+                  backgroundImage: `linear-gradient(rgba(0,0,0,${hero.overlayAlpha}), rgba(0,0,0,${hero.overlayAlpha})), url(${heroImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  color: hero.textColor,
+                }
+              : {
+                  background:
+                    'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
+                  color: hero.textColor,
+                }
+          }
+        >
+          {!heroImage && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }}
+            />
           )}
+          <div className="relative container mx-auto px-4">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+              {t('common.products')}
+            </h1>
+            {hero.showCount && products.length > 0 && (
+              <p className="text-sm mt-2 opacity-70">
+                {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
+              </p>
+            )}
+          </div>
+          {/* Small wave */}
+          <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
+            <svg viewBox="0 0 1440 24" preserveAspectRatio="none" className="w-full h-6">
+              <path d="M0,12 C480,24 960,0 1440,12 L1440,24 L0,24 Z" fill="white" />
+            </svg>
+          </div>
         </div>
-        {/* Small wave */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
-          <svg viewBox="0 0 1440 24" preserveAspectRatio="none" className="w-full h-6">
-            <path d="M0,12 C480,24 960,0 1440,12 L1440,24 L0,24 Z" fill="white" />
-          </svg>
-        </div>
-      </div>
+      )}
 
       <div className="container mx-auto px-4 py-8">
         {/* Search + filter bar */}

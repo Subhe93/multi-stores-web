@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { ProductCard } from '@/components/product/ProductCard';
+import { resolveHero, type StoreHero } from '@/lib/hero';
 
 interface Product {
   id: string;
@@ -72,7 +73,7 @@ export default async function CollectionPage({
   // Fetch the tree first so we can render the hero with the matching collection.
   // We also need the store currency for product prices.
   const [storeData, creatorCategoriesTree] = await Promise.all([
-    storefront.getStore(storeSlug) as Promise<{ currency?: string }>,
+    storefront.getStore(storeSlug) as Promise<{ currency?: string; theme?: { hero?: StoreHero } }>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
   ]);
 
@@ -106,8 +107,15 @@ export default async function CollectionPage({
 
   const isRTL = locale === 'ar';
   const BackChevron = isRTL ? ChevronRight : ChevronLeft;
+
+  // Hero/banner settings (configurable from store settings → Page Banners).
+  // The collection's own thumbnail takes priority as the background; the
+  // store-level hero image is the fallback when a collection has no thumbnail.
+  const hero = resolveHero(storeData?.theme?.hero?.collections, { height: 'lg' });
   const heroImage = collection.thumbnail_url
     ? resolveMediaUrl(collection.thumbnail_url)
+    : hero.imageUrl
+    ? resolveMediaUrl(hero.imageUrl)
     : undefined;
 
   // Helper to build sort URLs that preserve the active search.
@@ -122,61 +130,71 @@ export default async function CollectionPage({
 
   return (
     <div className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Hero banner — uses thumbnail as background image when present */}
-      <div
-        className="relative overflow-hidden text-white"
-        style={
-          heroImage
-            ? {
-                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url(${heroImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }
-            : {
-                background:
-                  'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
-              }
-        }
-      >
-        {!heroImage && <div className="absolute inset-0 bg-black/10 pointer-events-none" />}
-        <div className="relative container mx-auto px-4 py-16 md:py-20">
-          {/* Breadcrumb / back link */}
-          <Link
-            href={`${lp}/products`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-white/85 hover:text-white transition mb-4"
-          >
-            <BackChevron className="w-4 h-4" />
-            {t('store.all_collections')}
-          </Link>
-
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">
-            {collectionName}
-          </h1>
-
-          {collectionDescription && (
+      {/* Hero banner — toggled and styled from store settings; uses the
+          collection thumbnail (or store hero image) as background when present */}
+      {hero.enabled && (
+        <div
+          className="relative overflow-hidden"
+          style={
+            heroImage
+              ? {
+                  backgroundImage: `linear-gradient(rgba(0,0,0,${hero.overlayAlpha}), rgba(0,0,0,${hero.overlayAlpha})), url(${heroImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  color: hero.textColor,
+                }
+              : {
+                  background:
+                    'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
+                  color: hero.textColor,
+                }
+          }
+        >
+          {!heroImage && (
             <div
-              className="mt-3 max-w-2xl text-sm md:text-base text-white/85 leading-relaxed prose prose-invert max-w-none [&_p]:my-1.5"
-              dangerouslySetInnerHTML={{ __html: collectionDescription }}
+              className="absolute inset-0 pointer-events-none"
+              style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }}
             />
           )}
+          <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
+            {/* Breadcrumb / back link */}
+            <Link
+              href={`${lp}/products`}
+              className="inline-flex items-center gap-1 text-xs font-semibold opacity-85 hover:opacity-100 transition mb-4"
+            >
+              <BackChevron className="w-4 h-4" />
+              {t('store.all_collections')}
+            </Link>
 
-          {products.length > 0 && (
-            <p className="mt-4 text-xs font-semibold text-white/70">
-              {products.length}{' '}
-              {products.length === 1
-                ? t('store.productSingular')
-                : t('store.productsCount')}
-            </p>
-          )}
-        </div>
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">
+              {collectionName}
+            </h1>
 
-        {/* Small wave */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
-          <svg viewBox="0 0 1440 24" preserveAspectRatio="none" className="w-full h-6">
-            <path d="M0,12 C480,24 960,0 1440,12 L1440,24 L0,24 Z" fill="white" />
-          </svg>
+            {collectionDescription && (
+              <div
+                className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5"
+                dangerouslySetInnerHTML={{ __html: collectionDescription }}
+              />
+            )}
+
+            {hero.showCount && products.length > 0 && (
+              <p className="mt-4 text-xs font-semibold opacity-70">
+                {products.length}{' '}
+                {products.length === 1
+                  ? t('store.productSingular')
+                  : t('store.productsCount')}
+              </p>
+            )}
+          </div>
+
+          {/* Small wave */}
+          <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
+            <svg viewBox="0 0 1440 24" preserveAspectRatio="none" className="w-full h-6">
+              <path d="M0,12 C480,24 960,0 1440,12 L1440,24 L0,24 Z" fill="white" />
+            </svg>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="container mx-auto px-4 py-8">
         {/* Search form scoped to this collection */}
