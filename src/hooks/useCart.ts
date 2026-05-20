@@ -30,6 +30,12 @@ export interface CartItem {
   customerFile?: string;
   currency?: string;
   customFields?: Record<string, any>;
+  bundleOfferId?: string | null;
+  bundleOriginalUnitPrice?: number | null;
+  bundleTitle?: string | null;
+  bundleLabel?: string | null;
+  bundleStickerText?: string | null;
+  bundleCartQuantity?: number | null;
 }
 
 export interface CartItemMetadata {
@@ -40,6 +46,12 @@ export interface CartItemMetadata {
   customerFile?: string;
   currency?: string;
   customProductId?: string;
+  bundleOfferId?: string | null;
+  bundleOriginalUnitPrice?: number | null;
+  bundleTitle?: string | null;
+  bundleLabel?: string | null;
+  bundleStickerText?: string | null;
+  bundleCartQuantity?: number | null;
 }
 
 interface Coupon {
@@ -64,6 +76,8 @@ interface CartContextValue extends CartState {
     metadata?: CartItemMetadata,
   ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
+  /** Clear the bundle reference on a line, reverting to base price */
+  clearBundle: (itemId: string) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
   applyCoupon: (code: string) => Promise<void>;
@@ -130,6 +144,22 @@ function normalizeCartItem(raw: any): CartItem {
     currency: raw.currency || 'EUR',
     customFields: raw.customFields || raw.custom_fields || undefined,
     customerFile: raw.customerFile || undefined,
+    bundleOfferId: raw.bundleOfferId ?? raw.bundle_offer_id ?? null,
+    bundleOriginalUnitPrice:
+      typeof raw.bundleOriginalUnitPrice === 'number'
+        ? raw.bundleOriginalUnitPrice
+        : typeof raw.bundle_original_unit_price === 'number'
+        ? raw.bundle_original_unit_price
+        : null,
+    bundleTitle: raw.bundleTitle ?? raw.bundle_title ?? null,
+    bundleLabel: raw.bundleLabel ?? raw.bundle_label ?? null,
+    bundleStickerText: raw.bundleStickerText ?? raw.bundle_sticker_text ?? null,
+    bundleCartQuantity:
+      typeof raw.bundleCartQuantity === 'number'
+        ? raw.bundleCartQuantity
+        : typeof raw.bundle_cart_quantity === 'number'
+        ? raw.bundle_cart_quantity
+        : null,
   };
 }
 
@@ -156,9 +186,15 @@ const CartContext = createContext<CartContextValue | null>(null);
 interface CartProviderProps {
   children: ReactNode;
   token?: string | null;
+  /** Active storefront locale — sent to the API so item titles come back in
+   *  the right language (the server defaults to the wrong locale otherwise). */
+  locale?: string;
 }
 
-export function CartProvider({ children, token }: CartProviderProps) {
+export function CartProvider({ children, token, locale }: CartProviderProps) {
+  // Suffix appended to /cart endpoints so the API resolves product titles in
+  // the storefront's active language rather than its default ordering.
+  const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
   const [items, setItems] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,7 +214,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
       const guestItems = wasGuest ? loadLocalCart() : [];
 
       // Fetch server cart
-      api<any>('/cart', { token })
+      api<any>(`/cart${localeQuery}`, { token })
         .then(async (data) => {
           const cart = normalizeCartResponse(data);
 
@@ -194,6 +230,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
                     product_id: isCustom ? null : item.productId,
                     custom_product_id: isCustom ? item.productId : undefined,
                     variant_id: item.variantId || null,
+                    bundle_offer_id: item.bundleOfferId || undefined,
                     quantity: item.quantity,
                     custom_fields: item.customFields,
                   }),
@@ -209,7 +246,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
             // Re-fetch the merged cart from server
             try {
               const refreshed = normalizeCartResponse(
-                await api<any>('/cart', { token })
+                await api<any>(`/cart${localeQuery}`, { token })
               );
               setItems(refreshed.items);
               setCoupon(refreshed.coupon);
@@ -234,7 +271,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
       setCoupon(loadLocalCoupon());
       setLoading(false);
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, localeQuery]);
 
   // ── Add item ───────────────────────────────────────
 
@@ -247,9 +284,10 @@ export function CartProvider({ children, token }: CartProviderProps) {
       metadata?: CartItemMetadata,
     ) => {
       const isCustomProduct = Boolean(metadata?.customProductId);
+      const bundleOfferId = metadata?.bundleOfferId || undefined;
       if (isAuthenticated && token) {
         const data = await api<any>(
-          '/cart/items',
+          `/cart/items${localeQuery}`,
           {
             method: 'POST',
             token,
@@ -257,6 +295,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
               product_id: isCustomProduct ? null : productId,
               custom_product_id: isCustomProduct ? productId : undefined,
               variant_id: variantId,
+              bundle_offer_id: bundleOfferId,
               quantity,
               custom_fields: customFields,
             }),
@@ -268,7 +307,10 @@ export function CartProvider({ children, token }: CartProviderProps) {
       } else {
         setItems((prev) => {
           const idx = prev.findIndex(
-            (i) => i.productId === productId && i.variantId === (variantId ?? undefined)
+            (i) =>
+              i.productId === productId &&
+              i.variantId === (variantId ?? undefined) &&
+              (i.bundleOfferId ?? null) === (bundleOfferId ?? null),
           );
           let next: CartItem[];
           if (idx >= 0) {
@@ -289,6 +331,12 @@ export function CartProvider({ children, token }: CartProviderProps) {
               customerFile: metadata?.customerFile,
               currency: metadata?.currency,
               customFields,
+              bundleOfferId: bundleOfferId ?? null,
+              bundleOriginalUnitPrice: metadata?.bundleOriginalUnitPrice ?? null,
+              bundleTitle: metadata?.bundleTitle ?? null,
+              bundleLabel: metadata?.bundleLabel ?? null,
+              bundleStickerText: metadata?.bundleStickerText ?? null,
+              bundleCartQuantity: metadata?.bundleCartQuantity ?? null,
             };
             next = [...prev, newItem];
           }
@@ -297,7 +345,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
         });
       }
     },
-    [isAuthenticated, token]
+    [isAuthenticated, token, localeQuery]
   );
 
   // ── Update quantity ────────────────────────────────
@@ -306,7 +354,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
     async (itemId: string, quantity: number) => {
       if (isAuthenticated && token) {
         const data = await api<any>(
-          `/cart/items/${itemId}`,
+          `/cart/items/${itemId}${localeQuery}`,
           {
             method: 'PUT',
             token,
@@ -326,7 +374,50 @@ export function CartProvider({ children, token }: CartProviderProps) {
         });
       }
     },
-    [isAuthenticated, token]
+    [isAuthenticated, token, localeQuery]
+  );
+
+  // ── Clear bundle on a line ─────────────────────────
+
+  const clearBundle = useCallback(
+    async (itemId: string) => {
+      if (isAuthenticated && token) {
+        const data = await api<any>(
+          `/cart/items/${itemId}${localeQuery}`,
+          {
+            method: 'PUT',
+            token,
+            body: JSON.stringify({ bundle_offer_id: null }),
+          }
+        );
+        const cart = normalizeCartResponse(data);
+        setItems(cart.items);
+        setCoupon(cart.coupon);
+      } else {
+        setItems((prev) => {
+          const next = prev.map((item) => {
+            if (item.id !== itemId) return item;
+            const restoredPrice =
+              typeof item.bundleOriginalUnitPrice === 'number'
+                ? item.bundleOriginalUnitPrice
+                : item.price;
+            return {
+              ...item,
+              price: restoredPrice,
+              bundleOfferId: null,
+              bundleOriginalUnitPrice: null,
+              bundleTitle: null,
+              bundleLabel: null,
+              bundleStickerText: null,
+              bundleCartQuantity: null,
+            };
+          });
+          saveLocalCart(next);
+          return next;
+        });
+      }
+    },
+    [isAuthenticated, token, localeQuery]
   );
 
   // ── Remove item ────────────────────────────────────
@@ -335,7 +426,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
     async (itemId: string) => {
       if (isAuthenticated && token) {
         const data = await api<any>(
-          `/cart/items/${itemId}`,
+          `/cart/items/${itemId}${localeQuery}`,
           { method: 'DELETE', token }
         );
         const cart = normalizeCartResponse(data);
@@ -349,7 +440,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
         });
       }
     },
-    [isAuthenticated, token]
+    [isAuthenticated, token, localeQuery]
   );
 
   // ── Clear cart ─────────────────────────────────────
@@ -366,7 +457,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
     setCoupon(null);
     saveLocalCart([]);
     saveLocalCoupon(null);
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, localeQuery]);
 
   // ── Apply coupon ───────────────────────────────────
 
@@ -425,7 +516,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
     if (isAuthenticated && token) {
       try {
         const data = await api<any>(
-          '/cart/remove-coupon',
+          `/cart/remove-coupon${localeQuery}`,
           { method: 'DELETE', token }
         );
         const cart = normalizeCartResponse(data);
@@ -439,7 +530,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
       setCoupon(null);
       saveLocalCoupon(null);
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, localeQuery]);
 
   // ── Computed values ────────────────────────────────
 
@@ -482,6 +573,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
             product_id: isCustom ? null : item.productId,
             custom_product_id: isCustom ? item.productId : undefined,
             variant_id: item.variantId || null,
+            bundle_offer_id: item.bundleOfferId || undefined,
             quantity: item.quantity,
             custom_fields: item.customFields,
           }),
@@ -493,14 +585,14 @@ export function CartProvider({ children, token }: CartProviderProps) {
 
     // Refresh cart from server
     try {
-      const data = await api<any>('/cart', { token: authToken });
+      const data = await api<any>(`/cart${localeQuery}`, { token: authToken });
       const cart = normalizeCartResponse(data);
       setItems(cart.items);
       setCoupon(cart.coupon);
     } catch {
       // Keep current state
     }
-  }, []);
+  }, [localeQuery]);
 
   // ── Context value ──────────────────────────────────
 
@@ -510,6 +602,7 @@ export function CartProvider({ children, token }: CartProviderProps) {
     coupon,
     addItem,
     updateQuantity,
+    clearBundle,
     removeItem,
     clearCart,
     applyCoupon,

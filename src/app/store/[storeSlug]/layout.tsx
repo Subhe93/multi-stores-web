@@ -4,9 +4,14 @@ import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { storefront } from '@/lib/api';
-import { StoreHeader } from '@/components/layout/StoreHeader';
+import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { resolveTheme } from '@/themes/registry';
+import { mergeTokens, tokensToCssVars, tokenFonts } from '@/themes/tokens';
+import { SectionRenderer } from '@/themes/SectionRenderer';
+import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/themes/types';
+import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 
 // ---------- Type definitions ----------
 
@@ -32,16 +37,36 @@ interface StoreTranslation {
   metaDescription?: string;
 }
 
+interface TypographyStyle {
+  fontFamily?: string;
+  color?: string;
+  fontSize?: number;
+}
+
 interface Store {
   name: string;
   description?: string;
   logo_url?: string;
   language_config?: LanguageConfig | null;
   pages?: StorePage[];
+  theme_key?: string;
+  theme_customizations?: ThemeCustomizations;
   theme?: {
     primaryColor?: string;
     secondaryColor?: string;
     fontFamily?: string;
+    typography?: {
+      heading?: TypographyStyle;
+      body?: TypographyStyle;
+      button?: TypographyStyle;
+      link?: TypographyStyle;
+      header?: TypographyStyle;
+    };
+    header?: {
+      showStoreName?: boolean;
+      logoSize?: number;
+    };
+    templateId?: string;
     socials?: {
       instagram?: string;
       facebook?: string;
@@ -61,6 +86,51 @@ interface Store {
     };
     translations?: Record<string, StoreTranslation>;
   };
+}
+
+// Escape `</style>` and backslashes when injecting user-supplied values into a <style> block.
+function cssSafe(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/<\/style/gi, '<\\/style');
+}
+
+// Quote a font family name so values like "Playfair Display" survive the CSS parser.
+function quoteFont(name: string): string {
+  const escaped = cssSafe(name).replace(/"/g, '\\"');
+  return `"${escaped}"`;
+}
+
+// Build a scoped <style> rule body for a typography element.
+function typoBlock(selector: string, style?: TypographyStyle): string {
+  if (!style) return '';
+  const parts: string[] = [];
+  if (style.fontFamily) parts.push(`font-family: ${quoteFont(style.fontFamily)}, system-ui, sans-serif;`);
+  if (style.color) parts.push(`color: ${cssSafe(style.color)};`);
+  if (typeof style.fontSize === 'number' && style.fontSize > 0) {
+    // Clamp into a sane range so a stray edit can't break layout.
+    const px = Math.max(8, Math.min(160, style.fontSize));
+    parts.push(`font-size: ${px}px;`);
+  }
+  if (!parts.length) return '';
+  return `${selector} { ${parts.join(' ')} }`;
+}
+
+// Allowlist of fonts we serve from Google Fonts. Anything outside this list is
+// treated as a system font and skipped from the <link> request.
+const GOOGLE_FONTS = new Set([
+  'Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Display', 'Lato', 'Open Sans',
+  'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', 'Noto Sans', 'Noto Serif', 'Merriweather',
+]);
+
+// Build a single Google Fonts CSS2 URL covering every distinct font the store uses.
+function buildGoogleFontsHref(fonts: (string | undefined)[]): string | null {
+  const unique = Array.from(new Set(
+    fonts.filter((f): f is string => !!f && GOOGLE_FONTS.has(f))
+  ));
+  if (!unique.length) return null;
+  const families = unique
+    .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;500;600;700`)
+    .join('&');
+  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
 }
 
 // ---------- Layout props ----------
@@ -83,11 +153,22 @@ export async function generateMetadata({
     const requestHeaders = await headers();
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
     const store = await storefront.getStore(storeSlug) as Store;
-    const lang = urlLocale || store.language_config?.primary_locale || 'en';
+    const primaryLocale = store.language_config?.primary_locale || 'en';
+    const secondaryLocales = store.language_config?.secondary_locales || [];
+    const lang = urlLocale || primaryLocale;
     const trans = store.theme?.translations?.[lang];
+
+    // hreflang for every supported locale + x-default → primary. The path used
+    // here is the store root; per-page metadata can override with deeper paths.
+    const path = `/store/${storeSlug}`;
+    const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
+    const languages: Record<string, string> = {};
+    for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+
     return {
       title: trans?.metaTitle || trans?.name || store.name,
       description: trans?.metaDescription || trans?.description || store.description,
+      alternates: { canonical: path, languages },
     };
   } catch {
     return {};
@@ -114,11 +195,99 @@ export default async function StoreLayout({
     notFound();
   }
 
+  // Published HEADER / FOOTER chrome. Either can be null — that means the
+  // creator hasn't published the chrome yet, so we fall back to the built-in
+  // <StoreHeader> / <StoreFooter> components below. Failing soft so a
+  // chrome-fetch hiccup never blanks out the whole storefront.
+  interface PublishedChromeSnapshot {
+    sections?: SectionInstance[];
+  }
+  interface PublishedChrome {
+    id: string;
+    snapshot: PublishedChromeSnapshot;
+  }
+  let publishedHeader: PublishedChrome | null = null;
+  let publishedFooter: PublishedChrome | null = null;
+  try {
+    publishedHeader = (await storefront.getPublishedHeader(storeSlug)) as PublishedChrome | null;
+  } catch {
+    publishedHeader = null;
+  }
+  try {
+    publishedFooter = (await storefront.getPublishedFooter(storeSlug)) as PublishedChrome | null;
+  } catch {
+    publishedFooter = null;
+  }
+
+  // Navigation menus the creator built — chrome sections resolve a menu key
+  // to its items via storeContext.menus. Soft-fail to an empty list.
+  let storeMenus: StoreContext['menus'] = [];
+  try {
+    storeMenus = (await storefront.getMenus(storeSlug)) as StoreContext['menus'];
+  } catch {
+    storeMenus = [];
+  }
+
+  // Creator collections power the desktop dropdown + mobile section in the header.
+  // Failing softly here keeps the store rendering if the endpoint hiccups.
+  interface RawCreatorCategory {
+    slug: string;
+    is_active?: boolean;
+    thumbnail_url?: string | null;
+    translations: { locale: string; name: string }[];
+    children?: RawCreatorCategory[];
+  }
+  let creatorCategoriesRaw: RawCreatorCategory[] = [];
+  try {
+    creatorCategoriesRaw = (await storefront.getCreatorCategories(
+      storeSlug,
+    )) as RawCreatorCategory[];
+  } catch {
+    creatorCategoriesRaw = [];
+  }
+
   const primaryColor = store.theme?.primaryColor || '#2563eb';
   const secondaryColor = store.theme?.secondaryColor || '#1e40af';
   const fontFamily = store.theme?.fontFamily;
+  const typography = store.theme?.typography || {};
+  const headerCfg = store.theme?.header || {};
+  const showStoreName = headerCfg.showStoreName !== false;
+  const logoSize = typeof headerCfg.logoSize === 'number' && headerCfg.logoSize > 0 ? headerCfg.logoSize : 32;
   const primaryLocale = store.language_config?.primary_locale || 'en';
   const secondaryLocales = store.language_config?.secondary_locales || [];
+
+  // Resolve the active theme from the registry and merge creator customizations
+  // onto its default tokens. Sections rendered inside <main> consume these as
+  // `var(--theme-*)`. Legacy per-element typography rules above still win where
+  // they're set, so existing stores keep their look until they switch themes.
+  const activeTheme = resolveTheme(store.theme_key);
+  const resolvedTokens = mergeTokens(activeTheme.tokens, store.theme_customizations);
+  const themeCssVars = tokensToCssVars(resolvedTokens);
+  const themeFonts = tokenFonts(resolvedTokens);
+
+  // Scope typography under `.store-root main` so colors don't leak into the
+  // dark-bg footer (text-white) or into the dashboard. The header has its own
+  // rule because it lives outside <main>.
+  const typographyCss = [
+    typoBlock('.store-root main h1, .store-root main h2, .store-root main h3, .store-root main h4, .store-root main h5, .store-root main h6', typography.heading),
+    typoBlock('.store-root main p, .store-root main li, .store-root main span', typography.body),
+    typoBlock('.store-root main button', typography.button),
+    typoBlock('.store-root main a', typography.link),
+    typoBlock('.store-root header, .store-root header *', typography.header),
+  ].filter(Boolean).join('\n');
+
+  // Combine every font the user has selected so the browser actually loads them.
+  // Theme fonts come first so they're always loaded; legacy per-element fonts
+  // are appended so existing stores keep their custom typography.
+  const fontsHref = buildGoogleFontsHref([
+    ...themeFonts,
+    fontFamily,
+    typography.heading?.fontFamily,
+    typography.body?.fontFamily,
+    typography.button?.fontFamily,
+    typography.link?.fontFamily,
+    typography.header?.fontFamily,
+  ]);
 
   // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
   const currentLang = urlLocale || primaryLocale;
@@ -132,53 +301,191 @@ export default async function StoreLayout({
   // Published static pages forwarded to header and footer
   const pages = store.pages ?? [];
 
+  // Resolve creator collections for the current locale (header dropdown shape).
+  const resolveCollectionTitle = (
+    translations: { locale: string; name: string }[] | undefined,
+    fallback: string,
+  ) => {
+    if (!translations?.length) return fallback;
+    return (
+      translations.find((t) => t.locale === currentLang)?.name ||
+      translations.find((t) => t.locale === 'en')?.name ||
+      translations[0]?.name ||
+      fallback
+    );
+  };
+  const navCollections: NavCollection[] = creatorCategoriesRaw
+    .filter((c) => c.is_active !== false)
+    .map((c) => ({
+      slug: c.slug,
+      title: resolveCollectionTitle(c.translations, c.slug),
+      thumbnailUrl: c.thumbnail_url ?? null,
+      children: (c.children || [])
+        .filter((ch) => ch.is_active !== false)
+        .map((ch) => ({
+          slug: ch.slug,
+          title: resolveCollectionTitle(ch.translations, ch.slug),
+          thumbnailUrl: ch.thumbnail_url ?? null,
+        })),
+    }));
+
   // Social and contact info from store theme
   const socials = store.theme?.socials;
   const contact = store.theme?.contact;
+
+  // JSON-LD: Organization + WebSite. Embedded at the storefront root so every
+  // page inside this store inherits them (avoids per-page boilerplate). The
+  // url stays relative to the storefront origin.
+  const storefrontOrigin =
+    process.env.NEXT_PUBLIC_WEB_URL ||
+    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
+    '';
+  const storeUrl = `${storefrontOrigin.replace(/\/$/, '')}/store/${storeSlug}`;
+  const sameAs = [socials?.instagram, socials?.facebook, socials?.twitter, socials?.tiktok, socials?.youtube]
+    .filter((u): u is string => !!u && /^https?:\/\//i.test(u));
+  const organizationLd = buildOrganization({
+    name: storeName,
+    url: storeUrl,
+    logo: store.logo_url || undefined,
+    description: typeof storeDescription === 'string' ? storeDescription : undefined,
+    sameAs,
+    email: contact?.email,
+    phone: contact?.phone,
+  });
+  const websiteLd = buildWebSite({
+    name: storeName,
+    url: storeUrl,
+    searchUrlTemplate: `${storeUrl}/products?search={search_term_string}`,
+  });
 
   // Load i18n messages for store pages (locale resolved via request.ts fallback)
   const messages = await getMessages();
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders>
+      <StoreProviders locale={currentLang}>
+        {fontsHref && (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link rel="stylesheet" href={fontsHref} />
+          </>
+        )}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
-          className="min-h-screen flex flex-col bg-white text-gray-900"
+          data-theme={activeTheme.key}
+          className="store-root min-h-screen flex flex-col bg-white text-gray-900"
           style={{
+            ...themeCssVars,
             '--store-primary': primaryColor,
             '--store-secondary': secondaryColor,
-            ...(fontFamily ? { fontFamily } : {}),
+            '--store-logo-size': `${logoSize}px`,
+            ...(fontFamily ? { fontFamily: `"${fontFamily}", system-ui, sans-serif` } : {}),
           } as React.CSSProperties}
         >
-          <div id="store-nav-header">
-            <StoreHeader
-              storeName={storeName}
-              storeSlug={storeSlug}
-              logoUrl={store.logo_url}
-              primaryColor={primaryColor}
-              primaryLocale={primaryLocale}
-              secondaryLocales={secondaryLocales}
-              pages={pages}
-              currentLang={currentLang}
-            />
-          </div>
+          {typographyCss && (
+            <style dangerouslySetInnerHTML={{ __html: typographyCss }} />
+          )}
+          {/* Site-wide structured data: Organization + WebSite. */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(organizationLd) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(websiteLd) }}
+          />
+          {/* Theme.Layout owns the page chrome (container, spacing, decorative
+              strips). Header + footer are either rendered from the creator's
+              published HEADER/FOOTER pages (section-based, fully customizable)
+              or fall back to the built-in <StoreHeader>/<StoreFooter>
+              components — that keeps stores rendering for creators who
+              haven't touched the chrome builder yet. */}
+          {(() => {
+            const storeCtx: StoreContext = {
+              storeName,
+              storeDescription: typeof storeDescription === 'string' ? storeDescription : undefined,
+              logoUrl: store.logo_url,
+              primaryLocale,
+              secondaryLocales,
+              pages: pages as StoreContext['pages'],
+              menus: storeMenus,
+            };
 
-          <main className="flex-1">
-            {children}
-          </main>
+            const headerSections = publishedHeader?.snapshot?.sections;
+            const footerSections = publishedFooter?.snapshot?.sections;
 
-          <div id="store-nav-footer">
-            <StoreFooter
-              storeName={storeName}
-              primaryColor={primaryColor}
-              pages={pages}
-              socials={socials}
-              contact={contact}
-              currentLang={currentLang}
-            />
-          </div>
+            const headerSlot =
+              headerSections && headerSections.length > 0 ? (
+                <div id="store-nav-header" style={{ display: 'contents' }}>
+                  <SectionRenderer
+                    theme={activeTheme}
+                    sections={headerSections}
+                    locale={currentLang}
+                    storeSlug={storeSlug}
+                    primaryLocale={primaryLocale}
+                    storeContext={storeCtx}
+                    chrome
+                  />
+                </div>
+              ) : (
+                <div id="store-nav-header" style={{ display: 'contents' }}>
+                  <StoreHeader
+                    storeName={storeName}
+                    storeSlug={storeSlug}
+                    logoUrl={store.logo_url}
+                    primaryColor={primaryColor}
+                    primaryLocale={primaryLocale}
+                    secondaryLocales={secondaryLocales}
+                    pages={pages}
+                    collections={navCollections}
+                    currentLang={currentLang}
+                    showStoreName={showStoreName}
+                    logoSize={logoSize}
+                  />
+                </div>
+              );
+
+            const footerSlot =
+              footerSections && footerSections.length > 0 ? (
+                <div id="store-nav-footer">
+                  <SectionRenderer
+                    theme={activeTheme}
+                    sections={footerSections}
+                    locale={currentLang}
+                    storeSlug={storeSlug}
+                    primaryLocale={primaryLocale}
+                    storeContext={storeCtx}
+                  />
+                </div>
+              ) : (
+                <div id="store-nav-footer">
+                  <StoreFooter
+                    storeName={storeName}
+                    primaryColor={primaryColor}
+                    pages={pages}
+                    socials={socials}
+                    contact={contact}
+                    currentLang={currentLang}
+                  />
+                </div>
+              );
+
+            return (
+              <activeTheme.Layout
+                storeSlug={storeSlug}
+                locale={currentLang}
+                storeName={storeName}
+                storeDescription={typeof storeDescription === 'string' ? storeDescription : undefined}
+                logoUrl={store.logo_url}
+                headerSlot={headerSlot}
+                footerSlot={footerSlot}
+              >
+                {children}
+              </activeTheme.Layout>
+            );
+          })()}
         </div>
       </StoreProviders>
     </NextIntlClientProvider>

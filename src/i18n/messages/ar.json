@@ -285,6 +285,9 @@
     "securePayment": "دفع آمن",
     "topQuality": "جودة عالية",
     "productsCount": "منتجات",
-    "productSingular": "منتج"
+    "productSingular": "منتج",
+    "store_collections": "تصنيفات المتجر",
+    "all_collections": "كل التصنيفات",
+    "explore_collections": "استكشف تصنيفاتنا"
   }
 }

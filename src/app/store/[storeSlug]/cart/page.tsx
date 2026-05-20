@@ -85,17 +85,27 @@ interface CartItemRowProps {
     variant?: string;
     currency?: string;
     customFields?: Record<string, unknown>;
+    bundleOfferId?: string | null;
+    bundleOriginalUnitPrice?: number | null;
+    bundleTitle?: string | null;
+    bundleLabel?: string | null;
+    bundleStickerText?: string | null;
   };
   onUpdateQuantity: (id: string, qty: number) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
+  onClearBundle: (id: string) => Promise<void>;
 }
 
-function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
+function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
   const [updating, setUpdating] = useState(false);
   const currency = item.currency || 'EUR';
   const title = item.title || item.name || 'Product';
   const img = resolveMediaUrl(item.imageUrl || item.image);
   const lineTotal = item.price * item.quantity;
+  const hasBundle = Boolean(item.bundleOfferId);
+  const originalUnit =
+    typeof item.bundleOriginalUnitPrice === 'number' ? item.bundleOriginalUnitPrice : null;
+  const originalLineTotal = originalUnit !== null ? originalUnit * item.quantity : null;
 
   async function changeQty(qty: number) {
     if (qty < 1) return;
@@ -128,6 +138,26 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
         {item.variant && (
           <p className="text-xs text-gray-500">{item.variant}</p>
         )}
+        {hasBundle && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              <Tag className="w-3 h-3" />
+              {item.bundleTitle || 'Bundle'}
+              {item.bundleLabel ? ` · ${item.bundleLabel}` : ''}
+            </span>
+            {item.bundleStickerText && (
+              <span className="inline-flex items-center rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                {item.bundleStickerText}
+              </span>
+            )}
+            <button
+              onClick={() => onClearBundle(item.id)}
+              className="text-[10px] text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2"
+            >
+              Remove bundle
+            </button>
+          </div>
+        )}
         {item.customFields && Object.keys(item.customFields).length > 0 && (
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {Object.entries(item.customFields).map(([k, v]) => (
@@ -143,7 +173,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
           <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-8">
             <button
               onClick={() => changeQty(item.quantity - 1)}
-              disabled={updating || item.quantity <= 1}
+              disabled={updating || item.quantity <= 1 || hasBundle}
               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label="Decrease quantity"
             >
@@ -154,7 +184,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
             </span>
             <button
               onClick={() => changeQty(item.quantity + 1)}
-              disabled={updating}
+              disabled={updating || hasBundle}
               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label="Increase quantity"
             >
@@ -174,6 +204,11 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
       {/* Line price */}
       <div className="shrink-0 text-right">
         <p className="text-sm font-semibold text-gray-900">{formatPrice(lineTotal, currency)}</p>
+        {originalLineTotal !== null && originalLineTotal > lineTotal && (
+          <p className="text-xs text-gray-400 line-through tabular-nums">
+            {formatPrice(originalLineTotal, currency)}
+          </p>
+        )}
         {item.quantity > 1 && (
           <p className="text-xs text-gray-400 mt-0.5">{formatPrice(item.price, currency)} each</p>
         )}
@@ -188,7 +223,7 @@ export default function StoreCartPage() {
   const lp = useLocalePath();
   const {
     items, loading, subtotal, total, coupon,
-    itemCount, updateQuantity, removeItem, clearCart, applyCoupon, removeCoupon,
+    itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
   } = useCart();
 
   const [couponCode, setCouponCode] = useState('');
@@ -241,6 +276,7 @@ export default function StoreCartPage() {
                   item={item}
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeItem}
+                  onClearBundle={clearBundle}
                 />
               ))}
             </div>

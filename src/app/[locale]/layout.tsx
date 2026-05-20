@@ -22,7 +22,7 @@ export default async function LocaleLayout({
   return (
     <div dir={isRtl(locale) ? 'rtl' : 'ltr'} lang={locale}>
       <NextIntlClientProvider messages={messages}>
-        <StoreProviders>
+        <StoreProviders locale={locale}>
           {children}
         </StoreProviders>
       </NextIntlClientProvider>

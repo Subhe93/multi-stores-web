@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { X, ShoppingCart } from 'lucide-react';
@@ -18,6 +19,15 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = useTranslations();
   const lp = useLocalePath();
   const { items, itemCount, subtotal, total, coupon, updateQuantity, removeItem } = useCart();
+
+  // Portal the drawer to <body> so its `position: fixed` is relative to the
+  // viewport, not a transformed/filtered ancestor. The header uses
+  // `backdrop-blur` which creates a containing block for fixed descendants —
+  // without the portal the drawer would be trapped inside the header box.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -42,7 +52,9 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   const currency = items[0]?.currency || 'EUR'; // currency inherited from platform config via cart API
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* Backdrop overlay */}
       <div
@@ -152,6 +164,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

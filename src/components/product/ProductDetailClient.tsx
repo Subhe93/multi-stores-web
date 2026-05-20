@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
@@ -11,6 +12,7 @@ import { CustomFieldsForm, type CustomField } from '@/components/product/CustomF
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { useCart } from '@/hooks/useCart';
+import { computeBundlePricing } from '@/lib/bundle';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   Shield, RotateCcw, Star, Loader2, Tag, Zap, Gift, Percent, X,
@@ -59,6 +61,11 @@ interface ProductData {
   }[];
   tags?: { tag: string }[];
   category?: { translations: { locale: string; name: string }[] };
+  creator_categories?: {
+    id: string;
+    slug: string;
+    translations: { locale: string; name: string }[];
+  }[];
   faqs?: {
     id: string;
     sort_order: number;
@@ -95,12 +102,39 @@ interface ProductData {
     expires_at?: string;
     translations: { locale: string; title: string; description?: string }[];
   }[];
+  bundles?: {
+    id: string;
+    status: 'ACTIVE' | 'DISABLED';
+    translations: { locale: string; name: string }[];
+    offers: {
+      id: string;
+      quantity: number;
+      discount_type: 'ITEM' | 'PERCENTAGE' | 'FIXED';
+      discount_value: number | string;
+      external_ref?: string | null;
+      sort_order: number;
+      translations: { locale: string; title: string; label?: string | null; sticker_text?: string | null }[];
+    }[];
+  }[];
+}
+
+// Presentation toggles. All default to the full standalone-page behavior so
+// the fallback product route is unaffected; the builder's `product-page`
+// section passes a subset to honor its simple show/hide settings.
+export interface ProductDetailOptions {
+  showTrustBadges?: boolean;
+  showShipping?: boolean;
+  showTabs?: boolean;
+  showTags?: boolean;
+  buttonStyle?: 'solid' | 'outline';
 }
 
 interface ProductDetailClientProps {
   product: ProductData;
   locale?: string;
   currency?: string;
+  langPrefix?: string;
+  options?: ProductDetailOptions;
 }
 
 // ── Tabs component ────────────────────────────────────────
@@ -147,10 +181,18 @@ function ProductTabs({
 
 // ── Main component ────────────────────────────────────────
 
-export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }: ProductDetailClientProps) {
+export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
   const { addItem } = useCart();
   const variants = product.variants || [];
+
+  // Presentation toggles — default to "show everything" so the standalone
+  // product page is unchanged; the builder section overrides per its settings.
+  const showTrustBadges = options?.showTrustBadges ?? true;
+  const showShipping = options?.showShipping ?? true;
+  const showTabs = options?.showTabs ?? true;
+  const showTags = options?.showTags ?? true;
+  const buttonStyle = options?.buttonStyle ?? 'solid';
 
   // ── State ─────────────────────────────────────────────
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
@@ -174,6 +216,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
   const [addToCartError, setAddToCartError] = useState('');
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('description');
+  const [selectedBundleOfferId, setSelectedBundleOfferId] = useState<string | null>(null);
 
   // ── Memos ─────────────────────────────────────────────
 
@@ -216,9 +259,49 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
     }
   }, [selectedVariantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentPrice = useMemo(() => {
+  const baseUnitPrice = useMemo(() => {
     return selectedVariant ? Number(selectedVariant.price) : Number(product.base_price);
   }, [selectedVariant, product.base_price]);
+
+  const selectedBundleOffer = useMemo(() => {
+    if (!selectedBundleOfferId || !product.bundles?.length) return null;
+    for (const bundle of product.bundles) {
+      const offer = bundle.offers.find((o) => o.id === selectedBundleOfferId);
+      if (offer) {
+        const tr =
+          offer.translations.find((t) => t.locale === locale) || offer.translations[0];
+        return { bundle, offer, translation: tr };
+      }
+    }
+    return null;
+  }, [selectedBundleOfferId, product.bundles, locale]);
+
+  const bundlePricing = useMemo(() => {
+    if (!selectedBundleOffer) return null;
+    return computeBundlePricing(baseUnitPrice, {
+      quantity: selectedBundleOffer.offer.quantity,
+      discount_type: selectedBundleOffer.offer.discount_type,
+      discount_value: selectedBundleOffer.offer.discount_value,
+    });
+  }, [selectedBundleOffer, baseUnitPrice]);
+
+  const currentPrice = useMemo(() => {
+    return bundlePricing ? bundlePricing.effectiveUnitPrice : baseUnitPrice;
+  }, [bundlePricing, baseUnitPrice]);
+
+  // When a bundle is selected, force quantity to the bundle's cart quantity
+  useEffect(() => {
+    if (bundlePricing) {
+      setQuantity(bundlePricing.cartQuantity);
+    }
+  }, [bundlePricing]);
+
+  // If the selected offer disappears (e.g. product change), clear the selection
+  useEffect(() => {
+    if (selectedBundleOfferId && !selectedBundleOffer) {
+      setSelectedBundleOfferId(null);
+    }
+  }, [selectedBundleOfferId, selectedBundleOffer]);
 
   const comparePrice = useMemo(() => {
     if (selectedVariant?.compare_at_price) return Number(selectedVariant.compare_at_price);
@@ -277,6 +360,22 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
     setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }, []);
 
+  const handleSelectBundle = useCallback((offerId: string) => {
+    setSelectedBundleOfferId((prev) => (prev === offerId ? null : offerId));
+  }, []);
+
+  const handleQuantityChange = useCallback((next: number) => {
+    setQuantity(next);
+    // Keep the bundle active as long as the new quantity is a positive multiple
+    // of the bundle's cartQuantity (so "buy 2 get 1" applies twice at qty 6).
+    if (selectedBundleOfferId && bundlePricing) {
+      const cq = bundlePricing.cartQuantity;
+      if (cq <= 0 || next % cq !== 0) {
+        setSelectedBundleOfferId(null);
+      }
+    }
+  }, [selectedBundleOfferId, bundlePricing]);
+
   const handleFileSelect = useCallback((file: File) => {
     setCustomerFile(file);
   }, []);
@@ -329,6 +428,12 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
           variant: variantStr,
           customerFile: customerFile ? customerFile.name : undefined,
           customProductId: product._type === 'custom_product' ? product.id : undefined,
+          bundleOfferId: selectedBundleOfferId || undefined,
+          bundleOriginalUnitPrice: selectedBundleOffer ? baseUnitPrice : undefined,
+          bundleTitle: selectedBundleOffer?.translation?.title || undefined,
+          bundleLabel: selectedBundleOffer?.translation?.label || undefined,
+          bundleStickerText: selectedBundleOffer?.translation?.sticker_text || undefined,
+          bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
         },
       );
       setAddedToCart(true);
@@ -342,7 +447,8 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
     addingToCart, isAddDisabled, product.id, product.images,
     selectedVariantId, selectedVariant, quantity, translation,
     currentPrice, galleryImages, customFieldValues, mappedCustomFields,
-    customerFile, addItem,
+    customerFile, addItem, selectedBundleOfferId, selectedBundleOffer,
+    bundlePricing, baseUnitPrice,
   ]);
 
   // ── Helpers ───────────────────────────────────────────
@@ -391,7 +497,19 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
     }
   }, [tabList, activeTab]);
 
-  const savings = comparePrice && comparePrice > currentPrice ? comparePrice - currentPrice : 0;
+  // The headline price is always the line total (unit × quantity). With a
+  // bundle, the original total comes from the un-discounted base price.
+  // Without a bundle, fall back to the variant/product compare_at_price.
+  const displayPrice = currentPrice * quantity;
+  const displayComparePrice = bundlePricing
+    ? baseUnitPrice * quantity
+    : comparePrice !== undefined
+      ? comparePrice * quantity
+      : undefined;
+  const savings =
+    displayComparePrice !== undefined && displayComparePrice > displayPrice
+      ? displayComparePrice - displayPrice
+      : 0;
 
   // ── Render ────────────────────────────────────────────
 
@@ -410,13 +528,24 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
         {/* ─── Right: Product Info ─── */}
         <div className="flex flex-col gap-5">
 
-          {/* Category */}
-          {product.category && (
-            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--store-primary, #2563eb)' }}>
-              {product.category.translations?.find((ct) => ct.locale === locale)?.name
-                || product.category.translations?.[0]?.name}
-            </p>
-          )}
+          {/* Creator collection (above title) */}
+          {product.creator_categories && product.creator_categories.length > 0 && (() => {
+            const collection = product.creator_categories[0];
+            const collectionName =
+              collection.translations?.find((ct) => ct.locale === locale)?.name ||
+              collection.translations?.find((ct) => ct.locale === 'en')?.name ||
+              collection.translations?.[0]?.name ||
+              collection.slug;
+            return (
+              <Link
+                href={`${langPrefix}/collections/${collection.slug}`}
+                className="text-xs font-medium uppercase tracking-widest hover:underline w-fit"
+                style={{ color: 'var(--store-primary, #2563eb)' }}
+              >
+                {collectionName}
+              </Link>
+            );
+          })()}
 
           {/* Title */}
           <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
@@ -425,7 +554,17 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
 
           {/* Price + Savings */}
           <div className="flex flex-col gap-1">
-            <PriceDisplay price={currentPrice} comparePrice={comparePrice} currency={currency} locale={locale} />
+            <PriceDisplay
+              price={displayPrice}
+              comparePrice={displayComparePrice}
+              currency={currency}
+              locale={locale}
+            />
+            {quantity > 1 && (
+              <p className="text-xs text-gray-500">
+                {formatPrice(currentPrice, currency, locale)} × {quantity}
+              </p>
+            )}
             {savings > 0 && (
               <p className="text-sm text-green-600 font-medium">
                 {t('product.savingsAmount', { amount: formatPrice(savings, currency, locale) })}
@@ -493,6 +632,88 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
             </div>
           )}
 
+          {/* Bundles — quantity-tier offers */}
+          {product.bundles && product.bundles.length > 0 && (
+            <div className="space-y-3">
+              {product.bundles.map((bundle) => {
+                const sortedOffers = [...bundle.offers].sort(
+                  (a, b) => a.sort_order - b.sort_order,
+                );
+                if (sortedOffers.length === 0) return null;
+                return (
+                  <div key={bundle.id} className="space-y-2">
+                    {sortedOffers.map((offer) => {
+                      const tr =
+                        offer.translations.find((t) => t.locale === locale) ||
+                        offer.translations[0];
+                      const title = tr?.title || `Buy ${offer.quantity}`;
+                      const label = tr?.label || '';
+                      const sticker = tr?.sticker_text || '';
+                      const pricing = computeBundlePricing(baseUnitPrice, {
+                        quantity: offer.quantity,
+                        discount_type: offer.discount_type,
+                        discount_value: offer.discount_value,
+                      });
+                      const isSelected = selectedBundleOfferId === offer.id;
+                      return (
+                        <button
+                          key={offer.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => handleSelectBundle(offer.id)}
+                          className={`relative flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300'
+                              : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
+                          }`}
+                        >
+                          {sticker && (
+                            <span className="absolute -top-2 right-3 rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                              {sticker}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                                isSelected
+                                  ? 'border-blue-500 bg-blue-500'
+                                  : 'border-gray-300 bg-white'
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                              )}
+                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="truncate text-sm font-medium text-gray-900">
+                                {title}
+                              </span>
+                              {label && (
+                                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
+                                  {label}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end">
+                            <span className="text-sm font-semibold tabular-nums text-gray-900">
+                              {formatPrice(pricing.finalTotal, currency, locale)}
+                            </span>
+                            {pricing.originalTotal > pricing.finalTotal && (
+                              <span className="text-xs text-gray-400 line-through tabular-nums">
+                                {formatPrice(pricing.originalTotal, currency, locale)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Divider */}
           <div className="border-t border-gray-100" />
 
@@ -544,8 +765,31 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
 
           {/* Quantity + Add to Cart */}
           <div className="space-y-4">
+            {selectedBundleOffer && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/50 px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Tag className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="text-xs font-medium text-blue-900 truncate">
+                    {selectedBundleOffer.translation?.title || `Buy ${selectedBundleOffer.offer.quantity}`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedBundleOfferId(null)}
+                  className="text-xs text-blue-700 hover:text-blue-900 underline shrink-0"
+                >
+                  {t('cart.remove')}
+                </button>
+              </div>
+            )}
             <div className="flex items-center gap-3">
-              <QuantitySelector value={quantity} onChange={setQuantity} min={1} max={maxStock} />
+              <QuantitySelector
+                value={quantity}
+                onChange={handleQuantityChange}
+                min={bundlePricing?.cartQuantity ?? 1}
+                max={maxStock}
+                step={bundlePricing?.cartQuantity ?? 1}
+              />
 
               <button
                 type="button"
@@ -557,13 +801,19 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
                     : isAddDisabled
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : addingToCart
-                        ? 'text-white opacity-80'
-                        : 'text-white hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
+                        ? 'opacity-80'
+                        : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
                 }`}
                 style={
-                  !addedToCart && !isAddDisabled
-                    ? { backgroundColor: 'var(--store-primary, #2563eb)' }
-                    : undefined
+                  addedToCart || isAddDisabled
+                    ? undefined
+                    : buttonStyle === 'outline'
+                      ? {
+                          backgroundColor: 'transparent',
+                          color: 'var(--store-primary, #2563eb)',
+                          border: '2px solid var(--store-primary, #2563eb)',
+                        }
+                      : { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }
                 }
               >
                 {addingToCart ? (
@@ -598,6 +848,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
           </div>
 
           {/* Trust badges */}
+          {showTrustBadges && (
           <div className="grid grid-cols-2 gap-3">
             {[
               { icon: Truck, label: t('product.trustFreeShipping') },
@@ -611,9 +862,10 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
               </div>
             ))}
           </div>
+          )}
 
           {/* Shipping & Delivery */}
-          {product.shipping_profile && product.shipping_profile.zones.length > 0 && (
+          {showShipping && product.shipping_profile && product.shipping_profile.zones.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Truck className="w-4 h-4" style={{ color: 'var(--store-primary, #2563eb)' }} />
@@ -657,7 +909,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
           )}
 
           {/* Tags */}
-          {product.tags && product.tags.length > 0 && (
+          {showTags && product.tags && product.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {product.tags.map(({ tag }) => (
                 <span
@@ -673,7 +925,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR' }
       </div>
 
       {/* ─── Bottom Section: Tabs ─── */}
-      {tabList.length > 0 && (
+      {showTabs && tabList.length > 0 && (
         <div className="mt-12 lg:mt-16">
           <ProductTabs tabs={tabList} activeTab={activeTab} onTabChange={setActiveTab} />
 

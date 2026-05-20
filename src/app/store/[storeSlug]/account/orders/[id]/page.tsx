@@ -59,6 +59,7 @@ interface OrderItem {
   id: string;
   quantity: number;
   unit_price: number;
+  original_unit_price?: number | null;
   total_price: number;
   product?: OrderItemProduct | null;
   variant?: OrderItemVariant | null;
@@ -66,6 +67,18 @@ interface OrderItem {
   custom_field_values?: CustomFieldValue[];
   customer_design_url?: string;
   design_notes?: string;
+  bundle_offer_id?: string | null;
+  bundle_offer?: {
+    id: string;
+    quantity: number;
+    discount_type: string;
+    discount_value: number | string;
+    translations?: { locale: string; title: string; label?: string | null }[];
+    bundle?: {
+      id: string;
+      translations?: { locale: string; name: string }[];
+    };
+  } | null;
 }
 
 interface Address {
@@ -259,7 +272,14 @@ export default function StoreOrderDetailPage() {
               item.product?.images?.[0]?.url;
             const variantLabel = buildVariantLabel(item.variant?.options);
             const price = Number(item.unit_price ?? 0);
+            const originalPrice =
+              item.original_unit_price != null ? Number(item.original_unit_price) : null;
+            const lineTotal = price * item.quantity;
+            const originalLineTotal =
+              originalPrice !== null ? originalPrice * item.quantity : null;
             const fieldValues = item.custom_field_values || [];
+            const bundleTr = item.bundle_offer?.translations?.find((tr) => tr.locale === locale)
+              || item.bundle_offer?.translations?.[0];
 
             return (
               <div key={item.id} className="py-3 space-y-1">
@@ -274,11 +294,24 @@ export default function StoreOrderDetailPage() {
                     {variantLabel && (
                       <p className="text-xs text-gray-500">{variantLabel}</p>
                     )}
+                    {item.bundle_offer && (
+                      <span className="inline-flex items-center gap-1 mt-0.5 rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                        {bundleTr?.title || 'Bundle'}
+                        {bundleTr?.label ? ` · ${bundleTr.label}` : ''}
+                      </span>
+                    )}
                     <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 shrink-0">
-                    {fmt(price * item.quantity)}
-                  </p>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {fmt(lineTotal)}
+                    </p>
+                    {originalLineTotal !== null && originalLineTotal > lineTotal && (
+                      <p className="text-[10px] text-gray-400 line-through tabular-nums">
+                        {fmt(originalLineTotal)}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Custom field values */}

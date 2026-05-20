@@ -275,6 +275,9 @@
     "securePayment": "Güvenli Ödeme",
     "topQuality": "Üstün Kalite",
     "productsCount": "ürün",
-    "productSingular": "ürün"
+    "productSingular": "ürün",
+    "store_collections": "Mağaza Koleksiyonları",
+    "all_collections": "Tüm koleksiyonlar",
+    "explore_collections": "Koleksiyonlarımızı keşfedin"
   }
 }

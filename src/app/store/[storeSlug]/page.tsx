@@ -1,8 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight } from 'lucide-react';
+import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTree } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
+import { resolveTheme } from '@/themes/registry';
+import { SectionRenderer } from '@/themes/SectionRenderer';
+import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 
 interface Product {
   id: string;
@@ -21,17 +25,108 @@ interface Store {
   name: string;
   description?: string;
   currency?: string;
+  theme_key?: string;
+  theme_customizations?: ThemeCustomizations;
+  language_config?: {
+    primary_locale?: string;
+    secondary_locales?: string[];
+  } | null;
   theme?: {
     translations?: Record<string, StoreTranslation>;
   };
 }
 
-interface StoreHomeProps {
+interface PublishedHomeSnapshot {
+  page: {
+    type: string;
+    seo?: Record<string, unknown>;
+    translations: Array<{
+      locale: string;
+      title?: string;
+      meta_title?: string;
+      meta_description?: string;
+    }>;
+  };
+  sections: SectionInstance[];
+}
+
+interface PublishedHome {
+  id: string;
+  type: string;
+  seo: { og_image?: string; canonical?: string; robots?: string; twitter_card?: string };
+  snapshot: PublishedHomeSnapshot;
+}
+
+interface HomeProps {
   params: Promise<{ storeSlug: string }>;
   searchParams: Promise<{ lang?: string }>;
 }
 
-export default async function StoreHomePage({ params, searchParams }: StoreHomeProps) {
+// Home page metadata. Takes precedence over the layout's defaults when the
+// creator has published a v2 home with their own meta_title/description/SEO.
+// Falls through to whatever layout sets when there is no v2 page yet.
+export async function generateMetadata({
+  params,
+  searchParams,
+}: HomeProps): Promise<Metadata> {
+  const { storeSlug } = await params;
+  const { lang } = await searchParams;
+  try {
+    const [store, published] = await Promise.all([
+      storefront.getStore(storeSlug) as Promise<{
+        language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+      }>,
+      storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
+    ]);
+    const primaryLocale = store.language_config?.primary_locale || 'en';
+    const secondary = store.language_config?.secondary_locales || [];
+    const locale = lang || primaryLocale;
+
+    if (!published) return {};
+
+    const tr =
+      published.snapshot.page.translations.find((t) => t.locale === locale) ||
+      published.snapshot.page.translations.find((t) => t.locale === primaryLocale) ||
+      published.snapshot.page.translations[0];
+
+    const path = `/store/${storeSlug}`;
+    const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
+    const languages: Record<string, string> = {};
+    for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+
+    return {
+      title: tr?.meta_title || tr?.title,
+      description: tr?.meta_description,
+      alternates: { canonical: published.seo?.canonical || path, languages },
+      openGraph: {
+        title: tr?.meta_title || tr?.title || undefined,
+        description: tr?.meta_description,
+        images: published.seo?.og_image ? [published.seo.og_image] : undefined,
+        type: 'website',
+      },
+      robots: published.seo?.robots,
+    };
+  } catch {
+    return {};
+  }
+}
+
+interface CreatorCategoryTranslation {
+  locale: string;
+  name: string;
+  description?: string | null;
+}
+
+interface CreatorCategory {
+  id: string;
+  slug: string;
+  is_active?: boolean;
+  thumbnail_url?: string | null;
+  translations: CreatorCategoryTranslation[];
+  children?: CreatorCategory[];
+}
+
+export default async function StoreHomePage({ params, searchParams }: HomeProps) {
   const { storeSlug } = await params;
   const { lang } = await searchParams;
   const t = await getTranslations();
@@ -39,10 +134,53 @@ export default async function StoreHomePage({ params, searchParams }: StoreHomeP
   const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
 
-  const [store, products] = await Promise.all([
+  // Pull collections in parallel. Soft-fail to keep the home page rendering if the
+  // endpoint hiccups — collections are decorative on this page, not load-bearing.
+  // publishedHome may be null when the creator hasn't built a v2 home yet — in
+  // that case we fall through to the hardcoded default below.
+  const [store, products, creatorCategoriesResult, publishedHome] = await Promise.all([
     storefront.getStore(storeSlug) as Promise<Store>,
     storefront.getProducts(storeSlug, { featured: 'true', locale }) as Promise<Product[]>,
+    storefront.getCreatorCategories(storeSlug).catch(() => [] as CreatorCategory[]) as Promise<CreatorCategory[]>,
+    storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
   ]);
+
+  // Currency from the store, used by sections that render prices (FeaturedProducts).
+  const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';
+
+  // If the creator has published a v2 home, render it through the active theme.
+  // CSS variables for the theme are already injected by the parent layout.
+  if (publishedHome?.snapshot?.sections?.length) {
+    const theme = resolveTheme(store.theme_key);
+    const primaryLocale = store.language_config?.primary_locale || 'en';
+    return (
+      <SectionRenderer
+        theme={theme}
+        sections={publishedHome.snapshot.sections}
+        locale={locale}
+        primaryLocale={primaryLocale}
+        storeSlug={storeSlug}
+        currency={storeCurrency}
+      />
+    );
+  }
+
+  // Pick the resolved translation for a collection in the active locale.
+  const pickCollectionName = (c: CreatorCategory): string => {
+    const trs = c.translations;
+    if (!trs?.length) return c.slug;
+    return (
+      trs.find((t) => t.locale === locale)?.name ||
+      trs.find((t) => t.locale === 'en')?.name ||
+      trs[0]?.name ||
+      c.slug
+    );
+  };
+
+  // Only active root collections, capped at 6 so the homepage row stays tidy.
+  const featuredCollections = (creatorCategoriesResult || [])
+    .filter((c) => c.is_active !== false)
+    .slice(0, 6);
 
   const trans = store.theme?.translations?.[locale];
   const storeName = trans?.name || store.name;
@@ -133,6 +271,69 @@ export default async function StoreHomePage({ params, searchParams }: StoreHomeP
         </div>
       </section>
 
+      {/* Featured collections — only renders when the creator has any active collections */}
+      {featuredCollections.length > 0 && (
+        <section className="container mx-auto px-4 pb-4">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {t('store.store_collections')}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {t('store.explore_collections')}
+              </p>
+            </div>
+            <Link
+              href={`${lp}/products`}
+              className="inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0"
+              style={{ color: 'var(--store-primary, #2563eb)' }}
+            >
+              {t('common.viewAll')}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {featuredCollections.map((c) => {
+              const title = pickCollectionName(c);
+              const thumb = c.thumbnail_url ? resolveMediaUrl(c.thumbnail_url) : undefined;
+              return (
+                <Link
+                  key={c.id}
+                  href={`${lp}/collections/${c.slug}`}
+                  className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {thumb ? (
+                    <img
+                      src={thumb}
+                      alt={title}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        background:
+                          'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
+                      }}
+                    >
+                      <FolderTree className="w-10 h-10 text-white/70" />
+                    </div>
+                  )}
+                  {/* Gradient + title overlay */}
+                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
+                    <span className="block text-white font-semibold text-sm leading-tight line-clamp-2">
+                      {title}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Featured products */}
       <section className="container mx-auto px-4 pb-24">
         <div className="flex items-center justify-between mb-8">
@@ -189,3 +390,8 @@ export default async function StoreHomePage({ params, searchParams }: StoreHomeP
     </div>
   );
 }
+
+// Render on every request so a fresh publish from the builder is visible
+// immediately. Caching would make creators think publish didn't work because
+// they still see the prior snapshot.
+export const dynamic = 'force-dynamic';

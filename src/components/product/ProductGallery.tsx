@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 
 interface GalleryImage {
   id: string;
@@ -19,6 +19,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
   const [internalIndex, setInternalIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const mainRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -32,6 +33,14 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
     setInternalIndex(idx);
     onIndexChange?.(idx);
   }, [onIndexChange]);
+
+  const goPrev = useCallback(() => {
+    if (selectedIndex > 0) setIndex(selectedIndex - 1);
+  }, [selectedIndex, setIndex]);
+
+  const goNext = useCallback(() => {
+    if (selectedIndex < images.length - 1) setIndex(selectedIndex + 1);
+  }, [selectedIndex, images.length, setIndex]);
 
   // Sync internal index when activeIndex prop changes
   useEffect(() => {
@@ -66,6 +75,23 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
     return () => window.removeEventListener('keydown', handleKey);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Lightbox: lock body scroll while open, and wire Escape / arrow keys.
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightboxOpen(false);
+      else if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === 'ArrowRight') goNext();
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [lightboxOpen, selectedIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!images || images.length === 0) {
     return (
       <div className="aspect-square overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center text-gray-300">
@@ -83,14 +109,6 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
 
   const currentImage = images[selectedIndex] || images[0];
   const hasMultiple = images.length > 1;
-
-  function goPrev() {
-    if (selectedIndex > 0) setIndex(selectedIndex - 1);
-  }
-
-  function goNext() {
-    if (selectedIndex < images.length - 1) setIndex(selectedIndex + 1);
-  }
 
   // Touch swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
@@ -139,6 +157,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onClick={() => setLightboxOpen(true)}
       >
         {/* Product image */}
         <img
@@ -188,6 +207,16 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
           </>
         )}
 
+        {/* Expand to full-screen lightbox */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+          aria-label="View full screen"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </button>
+
         {/* Image counter badge */}
         {hasMultiple && (
           <span className="absolute bottom-3 right-3 z-20 px-2.5 py-1 text-xs font-semibold text-white bg-black/50 rounded-full backdrop-blur-sm">
@@ -202,7 +231,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
               <button
                 key={i}
                 type="button"
-                onClick={() => setIndex(i)}
+                onClick={(e) => { e.stopPropagation(); setIndex(i); }}
                 className={`w-2 h-2 rounded-full transition-all ${
                   i === selectedIndex
                     ? 'bg-white scale-110'
@@ -253,6 +282,62 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Full-screen lightbox */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+          onClick={() => setLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image viewer"
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
+            className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <img
+            src={currentImage.url}
+            alt={currentImage.alt ?? 'Product image'}
+            className="max-h-[90vh] max-w-[92vw] object-contain select-none"
+            onClick={(e) => e.stopPropagation()}
+            draggable={false}
+          />
+
+          {hasMultiple && (
+            <>
+              {selectedIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
+              {selectedIndex < images.length - 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); goNext(); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
+              <span className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1 text-sm font-semibold text-white bg-white/10 rounded-full backdrop-blur-sm">
+                {selectedIndex + 1} / {images.length}
+              </span>
+            </>
+          )}
         </div>
       )}
     </div>

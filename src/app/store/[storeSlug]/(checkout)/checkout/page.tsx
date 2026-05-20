@@ -77,6 +77,11 @@ interface OrderSummaryProps {
   items: Array<{
     id: string; title?: string; name?: string; price: number; quantity: number;
     imageUrl?: string; image?: string; variant?: string; currency?: string;
+    bundleOfferId?: string | null;
+    bundleOriginalUnitPrice?: number | null;
+    bundleTitle?: string | null;
+    bundleLabel?: string | null;
+    bundleStickerText?: string | null;
   }>;
   subtotal: number;
   discount: number;
@@ -111,6 +116,13 @@ function OrderSummary({
         {items.map((item) => {
           const img = resolveMediaUrl(item.imageUrl || item.image);
           const title = item.title || item.name || 'Product';
+          const lineTotal = item.price * item.quantity;
+          const originalUnit =
+            typeof item.bundleOriginalUnitPrice === 'number'
+              ? item.bundleOriginalUnitPrice
+              : null;
+          const originalLineTotal =
+            originalUnit !== null ? originalUnit * item.quantity : null;
           return (
             <div key={item.id} className="flex items-center gap-3">
               <div className="relative w-14 h-14 shrink-0">
@@ -130,10 +142,31 @@ function OrderSummary({
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-800 leading-snug line-clamp-2">{title}</p>
                 {item.variant && <p className="text-xs text-gray-500">{item.variant}</p>}
+                {item.bundleOfferId && (
+                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                      <Tag className="w-2.5 h-2.5" />
+                      {item.bundleTitle || 'Bundle'}
+                      {item.bundleLabel ? ` · ${item.bundleLabel}` : ''}
+                    </span>
+                    {item.bundleStickerText && (
+                      <span className="inline-flex items-center rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {item.bundleStickerText}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <p className="text-sm font-semibold text-gray-900 shrink-0">
-                {formatPrice(item.price * item.quantity, item.currency || 'EUR')}
-              </p>
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-semibold text-gray-900">
+                  {formatPrice(lineTotal, item.currency || 'EUR')}
+                </p>
+                {originalLineTotal !== null && originalLineTotal > lineTotal && (
+                  <p className="text-[10px] text-gray-400 line-through tabular-nums">
+                    {formatPrice(originalLineTotal, item.currency || 'EUR')}
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}

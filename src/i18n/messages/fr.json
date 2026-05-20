@@ -275,6 +275,9 @@
     "securePayment": "Paiement sécurisé",
     "topQuality": "Qualité premium",
     "productsCount": "produits",
-    "productSingular": "produit"
+    "productSingular": "produit",
+    "store_collections": "Collections de la boutique",
+    "all_collections": "Toutes les collections",
+    "explore_collections": "Explorez nos collections"
   }
 }

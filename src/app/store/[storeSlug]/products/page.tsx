@@ -17,14 +17,29 @@ interface Category {
   translations: { locale: string; name: string; slug: string }[];
 }
 
+interface CreatorCategory {
+  id: string;
+  slug: string;
+  is_active?: boolean;
+  thumbnail_url?: string | null;
+  translations: { locale: string; name: string }[];
+  children?: CreatorCategory[];
+}
+
 interface StoreProductsProps {
   params: Promise<{ storeSlug: string }>;
-  searchParams: Promise<{ search?: string; category?: string; lang?: string; sort?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    creator_category?: string;
+    lang?: string;
+    sort?: string;
+  }>;
 }
 
 export default async function StoreProductsPage({ params, searchParams }: StoreProductsProps) {
   const { storeSlug } = await params;
-  const { search, category, lang, sort } = await searchParams;
+  const { search, category, creator_category, lang, sort } = await searchParams;
   const t = await getTranslations();
   const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
@@ -32,13 +47,27 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const queryParams: Record<string, string> = { locale };
   if (search) queryParams.search = search;
   if (category) queryParams.category = category;
+  if (creator_category) queryParams.creator_category = creator_category;
 
-  const [products, categories, storeData] = await Promise.all([
+  const [products, categories, creatorCategories, storeData] = await Promise.all([
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
     storefront.getCategories(storeSlug) as Promise<Category[]>,
+    storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     storefront.getStore(storeSlug) as Promise<{ currency?: string }>,
   ]);
   const currency = storeData?.currency;
+
+  // Flatten creator categories one level deep so children can render indented inline
+  type FlatCreatorCategory = CreatorCategory & { depth: number };
+  const flatCreatorCategories: FlatCreatorCategory[] = [];
+  for (const parent of creatorCategories || []) {
+    if (parent.is_active === false) continue;
+    flatCreatorCategories.push({ ...parent, depth: 0 });
+    for (const child of parent.children || []) {
+      if (child.is_active === false) continue;
+      flatCreatorCategories.push({ ...child, depth: 1 });
+    }
+  }
 
   // Sort products
   if (sort === 'price_asc') {
@@ -49,7 +78,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     products.sort((a, b) => ((b as any).created_at || '').localeCompare((a as any).created_at || ''));
   }
 
-  const isFiltered = !!(search || category);
+  const isFiltered = !!(search || category || creator_category);
 
   return (
     <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
@@ -86,6 +115,9 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           {/* Search */}
           <form method="GET" className="flex-1 max-w-md">
             {category && <input type="hidden" name="category" value={category} />}
+            {creator_category && (
+              <input type="hidden" name="creator_category" value={creator_category} />
+            )}
             {lang && <input type="hidden" name="lang" value={lang} />}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -100,45 +132,137 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             </div>
           </form>
 
-          {/* Category pills */}
-          {categories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
-              <Link
-                href={`${lp}/products${search ? `?search=${search}` : ''}`}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                  !category
-                    ? 'text-white shadow-sm border-transparent'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                }`}
-                style={!category ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
-              >
-                {t('product.all')}
-              </Link>
-              {categories.map((cat) => {
-                const catTranslation =
-                  cat.translations.find((tr) => tr.locale === locale) ||
-                  cat.translations.find((tr) => tr.locale === 'en') ||
-                  cat.translations[0];
-                const isActive = category === catTranslation?.slug;
+          {/* Category pills + Store Collections */}
+          {(() => {
+            // URL builder that preserves the other active filters and the locale
+            const buildFilterUrl = (overrides: {
+              category?: string | null;
+              creator_category?: string | null;
+            }) => {
+              const p = new URLSearchParams();
+              if (search) p.set('search', search);
+              const nextCategory =
+                overrides.category === null
+                  ? undefined
+                  : overrides.category !== undefined
+                  ? overrides.category
+                  : category;
+              const nextCreatorCategory =
+                overrides.creator_category === null
+                  ? undefined
+                  : overrides.creator_category !== undefined
+                  ? overrides.creator_category
+                  : creator_category;
+              if (nextCategory) p.set('category', nextCategory);
+              if (nextCreatorCategory) p.set('creator_category', nextCreatorCategory);
+              if (lang) p.set('lang', lang);
+              if (sort) p.set('sort', sort);
+              const qs = p.toString();
+              return `${lp}/products${qs ? `?${qs}` : ''}`;
+            };
 
-                return (
-                  <Link
-                    key={cat.id}
-                    href={`${lp}/products?category=${catTranslation?.slug || cat.id}${search ? `&search=${search}` : ''}`}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                      isActive
-                        ? 'text-white shadow-sm border-transparent'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}
-                    style={isActive ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
-                  >
-                    {catTranslation?.name || 'Unnamed'}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+            const hasCategories = categories.length > 0;
+            const hasCreatorCategories = flatCreatorCategories.length > 0;
+            if (!hasCategories && !hasCreatorCategories) return null;
+
+            return (
+              <div className="flex flex-col gap-3 md:flex-1">
+                {/* Global admin categories */}
+                {hasCategories && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
+                    <Link
+                      href={buildFilterUrl({ category: null })}
+                      className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                        !category
+                          ? 'text-white shadow-sm border-transparent'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                      style={!category ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
+                    >
+                      {t('product.all')}
+                    </Link>
+                    {categories.map((cat) => {
+                      const catTranslation =
+                        cat.translations.find((tr) => tr.locale === locale) ||
+                        cat.translations.find((tr) => tr.locale === 'en') ||
+                        cat.translations[0];
+                      const slug = catTranslation?.slug || cat.id;
+                      const isActive = category === slug;
+
+                      return (
+                        <Link
+                          key={cat.id}
+                          href={buildFilterUrl({ category: slug })}
+                          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                            isActive
+                              ? 'text-white shadow-sm border-transparent'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                          }`}
+                          style={isActive ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
+                        >
+                          {catTranslation?.name || 'Unnamed'}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Visual separator + Store Collections heading */}
+                {hasCreatorCategories && (
+                  <>
+                    {hasCategories && <div className="h-px bg-gray-200 w-full" />}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500 shrink-0 mr-1">
+                        {t('store.store_collections')}
+                      </span>
+                      <Link
+                        href={buildFilterUrl({ creator_category: null })}
+                        className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                          !creator_category
+                            ? 'text-white shadow-sm border-transparent'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                        style={
+                          !creator_category
+                            ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' }
+                            : {}
+                        }
+                      >
+                        {t('product.all')}
+                      </Link>
+                      {flatCreatorCategories.map((cc) => {
+                        const ccTranslation =
+                          cc.translations.find((tr) => tr.locale === locale) ||
+                          cc.translations.find((tr) => tr.locale === 'en') ||
+                          cc.translations[0];
+                        const isActive = creator_category === cc.slug;
+                        return (
+                          <Link
+                            key={cc.id}
+                            href={buildFilterUrl({ creator_category: cc.slug })}
+                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                              isActive
+                                ? 'text-white shadow-sm border-transparent'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                            } ${cc.depth > 0 ? 'ms-4' : ''}`}
+                            style={
+                              isActive
+                                ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' }
+                                : {}
+                            }
+                          >
+                            {cc.depth > 0 ? '— ' : ''}
+                            {ccTranslation?.name || 'Unnamed'}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sort + count bar */}
@@ -147,6 +271,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             const p = new URLSearchParams();
             if (search) p.set('search', search);
             if (category) p.set('category', category);
+            if (creator_category) p.set('creator_category', creator_category);
             if (lang) p.set('lang', lang);
             if (s) p.set('sort', s);
             const qs = p.toString();

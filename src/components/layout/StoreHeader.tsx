@@ -20,6 +20,14 @@ interface NavPage {
   title: string;
 }
 
+// Resolved collection shape (translation already picked) for the header dropdown.
+export interface NavCollection {
+  slug: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  children?: NavCollection[];
+}
+
 interface StoreHeaderProps {
   storeName?: string;
   storeSlug: string;
@@ -28,7 +36,10 @@ interface StoreHeaderProps {
   primaryLocale?: string;
   secondaryLocales?: string[];
   pages?: { slug: string; translations: { locale: string; title: string }[] }[];
+  collections?: NavCollection[];
   currentLang?: string;
+  showStoreName?: boolean;
+  logoSize?: number;
 }
 
 // Resolve the best available translation for a page
@@ -141,17 +152,114 @@ function UserMenu({ primaryColor }: { primaryColor?: string }) {
   );
 }
 
+// ---------- CollectionsMenu (desktop dropdown) ----------
+interface CollectionsMenuProps {
+  collections: NavCollection[];
+  primaryColor?: string;
+}
+
+function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
+  const t = useTranslations();
+  const lp = useLocalePath();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  if (!collections.length) return null;
+
+  // Two columns above 4 items keeps the panel comfortable without unbounded height.
+  const columnsClass = collections.length > 4 ? 'grid-cols-2' : 'grid-cols-1';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center gap-1"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        {t('store.store_collections')}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[min(560px,90vw)] bg-white rounded-2xl border border-gray-200 shadow-xl py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+        >
+          <div className={`grid ${columnsClass} gap-x-2`}>
+            {collections.map((c) => (
+              <div key={c.slug} className="px-2">
+                <Link
+                  href={lp(`/collections/${c.slug}`)}
+                  onClick={() => setOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+                  style={{ color: primaryColor || undefined }}
+                >
+                  {c.title}
+                </Link>
+                {c.children?.length ? (
+                  <div className="ms-2 mb-1 border-s border-gray-100 ps-2 flex flex-col">
+                    {c.children.map((ch) => (
+                      <Link
+                        key={ch.slug}
+                        href={lp(`/collections/${ch.slug}`)}
+                        onClick={() => setOpen(false)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                      >
+                        {ch.title}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 border-t border-gray-100 pt-2 px-4">
+            <Link
+              href={lp('/products')}
+              onClick={() => setOpen(false)}
+              className="text-xs font-semibold hover:underline"
+              style={{ color: primaryColor || '#2563eb' }}
+            >
+              {t('store.explore_collections')} →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- MobileMenu client sub-component ----------
 interface MobileMenuProps {
   navPages: NavPage[];
+  collections: NavCollection[];
   primaryColor?: string;
   primaryLocale?: string;
   secondaryLocales?: string[];
   currentLang?: string;
 }
 
-function MobileMenu({ navPages, primaryColor, primaryLocale = 'en', secondaryLocales = [], currentLang }: MobileMenuProps) {
+function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en', secondaryLocales = [], currentLang }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const t = useTranslations();
   const lp = useLocalePath();
   const { token, logout } = useAuth();
@@ -188,6 +296,50 @@ function MobileMenu({ navPages, primaryColor, primaryLocale = 'en', secondaryLoc
             >
               {t('common.products')}
             </Link>
+
+            {/* Collections expandable section */}
+            {collections.length > 0 && (
+              <div className="border-b border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setCollectionsOpen((p) => !p)}
+                  className="w-full flex items-center justify-between py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  aria-expanded={collectionsOpen}
+                >
+                  <span>{t('store.store_collections')}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      collectionsOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {collectionsOpen && (
+                  <div className="pb-2 ps-3 flex flex-col">
+                    {collections.map((c) => (
+                      <div key={c.slug} className="flex flex-col">
+                        <Link
+                          href={lp(`/collections/${c.slug}`)}
+                          onClick={() => setOpen(false)}
+                          className="py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
+                        >
+                          {c.title}
+                        </Link>
+                        {c.children?.map((ch) => (
+                          <Link
+                            key={ch.slug}
+                            href={lp(`/collections/${ch.slug}`)}
+                            onClick={() => setOpen(false)}
+                            className="ps-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                          >
+                            — {ch.title}
+                          </Link>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {navPages.map((page) => (
               <Link
@@ -270,7 +422,10 @@ export function StoreHeader({
   primaryLocale = 'en',
   secondaryLocales = [],
   pages,
+  collections = [],
   currentLang = 'en',
+  showStoreName = true,
+  logoSize = 32,
 }: StoreHeaderProps) {
   const t = useTranslations();
   const lp = useLocalePath();
@@ -282,22 +437,32 @@ export function StoreHeader({
   const hoverUnderlineClass =
     'relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:scale-x-0 after:transition-transform hover:after:scale-x-100';
 
+  // Header bar height accommodates the logo plus padding, with a sensible floor.
+  const barHeight = Math.max(64, logoSize + 24);
+  const nameVisible = showStoreName || !logoUrl;
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4 relative">
+      <div
+        className="container mx-auto px-4 flex items-center justify-between gap-4 relative"
+        style={{ height: barHeight }}
+      >
 
-        {/* Left: logo + store name, both link to home */}
+        {/* Left: logo + (optional) store name, both link to home */}
         <Link href={lp('/')} className="flex items-center gap-2 shrink-0">
           {logoUrl && (
             <img
               src={resolveMediaUrl(logoUrl)}
               alt={displayName}
-              className="h-8 w-8 object-contain rounded"
+              style={{ height: logoSize, width: 'auto' }}
+              className="object-contain rounded"
             />
           )}
-          <span className="font-bold text-lg text-gray-900" style={activeLinkStyle}>
-            {displayName}
-          </span>
+          {nameVisible && (
+            <span className="font-bold text-lg text-gray-900" style={activeLinkStyle}>
+              {displayName}
+            </span>
+          )}
         </Link>
 
         {/* Center: desktop navigation */}
@@ -315,6 +480,8 @@ export function StoreHeader({
           >
             {t('common.products')}
           </Link>
+
+          <CollectionsMenu collections={collections} primaryColor={primaryColor} />
 
           {/* Published static pages */}
           {navPages.map((page) => (
@@ -353,6 +520,7 @@ export function StoreHeader({
           {/* Mobile hamburger — handles its own open/close state */}
           <MobileMenu
             navPages={navPages}
+            collections={collections}
             primaryColor={primaryColor}
             primaryLocale={primaryLocale}
             secondaryLocales={secondaryLocales}

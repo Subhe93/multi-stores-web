@@ -83,12 +83,10 @@ function validateField(
 
 async function uploadFile(file: File, folder = 'custom-fields'): Promise<string | null> {
   try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_access_token') : null;
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${API_URL}/uploads?folder=${folder}`, {
+    const res = await fetch(`${API_URL}/uploads/public?folder=${folder}`, {
       method: 'POST',
-      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
       body: formData,
     });
     const json = await res.json();

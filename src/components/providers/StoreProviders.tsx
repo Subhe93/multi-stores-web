@@ -4,15 +4,15 @@ import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { CartProvider } from '@/hooks/useCart';
 
-function CartProviderWithAuth({ children }: { children: ReactNode }) {
+function CartProviderWithAuth({ children, locale }: { children: ReactNode; locale?: string }) {
   const { token } = useAuth();
-  return <CartProvider token={token}>{children}</CartProvider>;
+  return <CartProvider token={token} locale={locale}>{children}</CartProvider>;
 }
 
-export function StoreProviders({ children }: { children: ReactNode }) {
+export function StoreProviders({ children, locale }: { children: ReactNode; locale?: string }) {
   return (
     <AuthProvider>
-      <CartProviderWithAuth>{children}</CartProviderWithAuth>
+      <CartProviderWithAuth locale={locale}>{children}</CartProviderWithAuth>
     </AuthProvider>
   );
 }

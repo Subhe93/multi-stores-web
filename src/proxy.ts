@@ -36,6 +36,7 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/builder-preview') ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
