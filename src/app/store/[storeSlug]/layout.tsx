@@ -465,6 +465,7 @@ export default async function StoreLayout({
                     storeSlug={storeSlug}
                     primaryLocale={primaryLocale}
                     storeContext={storeCtx}
+                    chrome
                   />
                 </div>
               ) : (
