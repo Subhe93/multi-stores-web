@@ -12,7 +12,7 @@ import { resolveMediaUrl } from '@/lib/api';
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen store-page">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="h-7 w-32 bg-gray-200 rounded animate-pulse mb-8" />
         <div className="lg:grid lg:grid-cols-12 lg:gap-12">
@@ -30,7 +30,7 @@ function CartSkeleton() {
             ))}
           </div>
           <div className="lg:col-span-5 mt-10 lg:mt-0">
-            <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+            <div className="store-surface store-bd border rounded-xl p-6 space-y-4">
               <div className="h-5 w-36 bg-gray-200 rounded animate-pulse" />
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -52,7 +52,7 @@ function CartEmpty() {
   const lp = useLocalePath();
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-24">
+    <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-24">
       <div
         className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
         style={{ backgroundColor: 'color-mix(in srgb, var(--store-primary, #2563eb) 10%, white)' }}
@@ -257,7 +257,7 @@ export default function StoreCartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen store-page">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Page title */}
@@ -303,7 +303,7 @@ export default function StoreCartPage() {
 
           {/* ── Right: Order Summary ─────────────────────────── */}
           <div className="lg:col-span-5 mt-10 lg:mt-0">
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 lg:sticky lg:top-6">
+            <div className="store-surface store-bd rounded-xl border p-6 lg:sticky lg:top-6">
 
               <h2 className="text-base font-semibold text-gray-900 mb-4">
                 {t('checkout.orderSummary')}

@@ -126,7 +126,7 @@ export default function StoreAddressesPage() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+      <div className="store-surface store-bd rounded-2xl border p-8">
         <div className="animate-pulse space-y-4">
           {[1, 2].map((i) => <div key={i} className="h-24 bg-gray-100 rounded-lg" />)}
         </div>
@@ -137,7 +137,7 @@ export default function StoreAddressesPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-between">
+      <div className="store-surface store-bd rounded-2xl border p-5 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900">{t('addresses')}</h1>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -157,7 +157,7 @@ export default function StoreAddressesPage() {
 
       {/* Add form */}
       {showForm && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="store-surface store-bd rounded-2xl border p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">{t('addAddress')}</h2>
           <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
@@ -212,13 +212,13 @@ export default function StoreAddressesPage() {
 
       {/* Address cards */}
       {addresses.length === 0 && !showForm ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+        <div className="store-surface store-bd rounded-2xl border p-8 text-center">
           <p className="text-sm text-gray-500">No saved addresses yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {addresses.map((addr) => (
-            <div key={addr.id} className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div key={addr.id} className="store-surface store-bd rounded-2xl border p-5">
               <div className="flex items-start justify-between">
                 <div className="text-sm text-gray-600 space-y-0.5">
                   <p className="font-medium text-gray-900">{addr.full_name}</p>

@@ -124,4 +124,5 @@ export default async function LandingPage({ params, searchParams }: LandingProps
   );
 }
 
-export const dynamic = 'force-dynamic';
+// Cached via store-tagged reads (see lib/api.ts); refreshed on-demand through
+// /api/revalidate when the creator publishes.

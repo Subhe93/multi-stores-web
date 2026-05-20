@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 
 // Classic hero: framed image with serif heading underneath. More editorial-feel
@@ -23,14 +24,21 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
     <section className="py-12 md:py-16">
       {resolvedImage && (
         <div
-          className="overflow-hidden mb-10"
+          className="relative h-105 overflow-hidden mb-10"
           style={{
             borderRadius: 'var(--theme-radius-md)',
             border: '1px solid var(--theme-colors-border)',
             boxShadow: 'var(--theme-shadow-md)',
           }}
         >
-          <img src={resolvedImage} alt="" className="w-full h-105 object-cover" />
+          <StoreImage
+            src={resolvedImage}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
         </div>
       )}
       <div className={align}>

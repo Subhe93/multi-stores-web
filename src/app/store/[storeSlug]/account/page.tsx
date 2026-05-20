@@ -138,7 +138,7 @@ export default function StoreAccountPage() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+      <div className="store-surface store-bd rounded-2xl border p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-100 rounded w-1/3" />
           <div className="h-4 bg-gray-100 rounded w-1/2" />
@@ -154,7 +154,7 @@ export default function StoreAccountPage() {
   return (
     <div className="space-y-6">
       {/* Profile card */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+      <div className="store-surface store-bd rounded-2xl border p-6">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-lg font-semibold text-gray-900">{t('title')}</h1>
           {!editing && (
@@ -243,7 +243,7 @@ export default function StoreAccountPage() {
       </div>
 
       {/* Change password */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+      <div className="store-surface store-bd rounded-2xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Lock className="w-4 h-4 text-gray-500" /> {t('changePassword')}
@@ -330,7 +330,7 @@ export default function StoreAccountPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href={lp('/account/orders')}
-          className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition group"
+          className="store-surface store-bd rounded-2xl border p-5 hover:border-gray-300 hover:shadow-sm transition group"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
@@ -345,7 +345,7 @@ export default function StoreAccountPage() {
 
         <Link
           href={lp('/account/addresses')}
-          className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition group"
+          className="store-surface store-bd rounded-2xl border p-5 hover:border-gray-300 hover:shadow-sm transition group"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">

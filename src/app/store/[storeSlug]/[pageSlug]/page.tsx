@@ -161,5 +161,6 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   );
 }
 
-// Fresh render so v2 publishes / legacy edits appear without a redeploy.
-export const dynamic = 'force-dynamic';
+// Storefront reads are tagged with the store (see lib/api.ts) and refreshed
+// on-demand via /api/revalidate when the creator publishes, so cached data
+// stays fresh without forcing a dynamic render on every request.

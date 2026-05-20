@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
+import { StoreImage } from '@/components/StoreImage';
 
 interface ProductCardProps {
   title: string;
@@ -42,11 +43,12 @@ export function ProductCard({
       {/* Image */}
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
         {imageUrl ? (
-          <img
+          <StoreImage
             src={imageUrl}
             alt={title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-gray-300">

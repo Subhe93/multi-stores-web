@@ -227,6 +227,5 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   );
 }
 
-// Always render fresh so a newly published PRODUCT_TEMPLATE shows up without
-// a manual revalidation step.
-export const dynamic = 'force-dynamic';
+// Cached via store-tagged reads (see lib/api.ts); a newly published
+// PRODUCT_TEMPLATE or product edit refreshes on-demand through /api/revalidate.

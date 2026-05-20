@@ -121,7 +121,7 @@ function UserMenu({ primaryColor }: { primaryColor?: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-48 store-surface store-bd rounded-xl border shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           <Link
             href={lp('/account')}
             onClick={() => setOpen(false)}
@@ -201,7 +201,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
       {open && (
         <div
           role="menu"
-          className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[min(560px,90vw)] bg-white rounded-2xl border border-gray-200 shadow-xl py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[min(560px,90vw)] store-surface store-bd rounded-2xl border shadow-xl py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
         >
           <div className={`grid ${columnsClass} gap-x-2`}>
             {collections.map((c) => (
@@ -279,7 +279,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
 
       {/* Dropdown nav panel */}
       {open && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-md z-40">
+        <div className="absolute top-full left-0 right-0 store-surface store-bd border-b shadow-md z-40">
           <nav className="flex flex-col px-4 py-3 gap-1">
             <Link
               href={lp('/')}
@@ -442,7 +442,7 @@ export function StoreHeader({
   const nameVisible = showStoreName || !logoUrl;
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="store-surface store-bd border-b sticky top-0 z-50">
       <div
         className="container mx-auto px-4 flex items-center justify-between gap-4 relative"
         style={{ height: barHeight }}

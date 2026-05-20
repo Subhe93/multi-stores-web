@@ -216,6 +216,26 @@ html, body {
   }
 }
 
+/* Theme-aware surfaces for storefront chrome and account/cart/checkout pages
+   that were originally built with hard-coded white/gray. Applying these classes
+   makes their backgrounds, borders and text follow the active theme tokens
+   (so they change with the theme like the rest of the storefront). Scoped to
+   .store-root so they never leak into the dashboard. */
+.store-root .store-page {
+  background-color: var(--theme-colors-background);
+  color: var(--theme-colors-text);
+}
+.store-root .store-surface {
+  background-color: var(--theme-colors-surface);
+  color: var(--theme-colors-text);
+}
+.store-root .store-bd {
+  border-color: var(--theme-colors-border);
+}
+.store-root .store-muted {
+  color: var(--theme-colors-muted);
+}
+
 /* Logo marquee: an infinite, auto-scrolling row. The track holds two copies of
    the logos and slides by exactly half its width for a seamless loop. Pauses on
    hover; under reduced motion it stops and wraps onto multiple centered rows. */

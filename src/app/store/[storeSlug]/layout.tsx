@@ -246,8 +246,15 @@ export default async function StoreLayout({
     creatorCategoriesRaw = [];
   }
 
-  const primaryColor = store.theme?.primaryColor || '#2563eb';
-  const secondaryColor = store.theme?.secondaryColor || '#1e40af';
+  // Resolve the active theme up front so brand colours can fall back to its
+  // tokens when the creator hasn't set an explicit colour. This is what makes
+  // "Choose a theme" actually recolour the live storefront (--store-* below),
+  // not just the registry-token sections.
+  const activeTheme = resolveTheme(store.theme_key);
+  const resolvedTokens = mergeTokens(activeTheme.tokens, store.theme_customizations);
+  // Explicit creator colour wins; otherwise follow the chosen theme's tokens.
+  const primaryColor = store.theme?.primaryColor || resolvedTokens.colors.primary;
+  const secondaryColor = store.theme?.secondaryColor || resolvedTokens.colors.secondary;
   const fontFamily = store.theme?.fontFamily;
   const typography = store.theme?.typography || {};
   const headerCfg = store.theme?.header || {};
@@ -256,12 +263,9 @@ export default async function StoreLayout({
   const primaryLocale = store.language_config?.primary_locale || 'en';
   const secondaryLocales = store.language_config?.secondary_locales || [];
 
-  // Resolve the active theme from the registry and merge creator customizations
-  // onto its default tokens. Sections rendered inside <main> consume these as
-  // `var(--theme-*)`. Legacy per-element typography rules above still win where
-  // they're set, so existing stores keep their look until they switch themes.
-  const activeTheme = resolveTheme(store.theme_key);
-  const resolvedTokens = mergeTokens(activeTheme.tokens, store.theme_customizations);
+  // CSS custom properties (`var(--theme-*)`) consumed by sections inside
+  // <main>. `activeTheme` / `resolvedTokens` are resolved above so the legacy
+  // `--store-*` brand colours can share the same source.
   const themeCssVars = tokensToCssVars(resolvedTokens);
   const themeFonts = tokenFonts(resolvedTokens);
 
@@ -375,9 +379,13 @@ export default async function StoreLayout({
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
           data-theme={activeTheme.key}
-          className="store-root min-h-screen flex flex-col bg-white text-gray-900"
+          className="store-root min-h-screen flex flex-col"
           style={{
             ...themeCssVars,
+            // Page background + text follow the active theme (was hard-coded
+            // white/gray, which kept the storefront light on every theme).
+            backgroundColor: 'var(--theme-colors-background)',
+            color: 'var(--theme-colors-text)',
             '--store-primary': primaryColor,
             '--store-secondary': secondaryColor,
             '--store-logo-size': `${logoSize}px`,

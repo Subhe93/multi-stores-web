@@ -174,7 +174,7 @@ export default function StoreOrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+      <div className="store-surface store-bd rounded-2xl border p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-100 rounded w-1/3" />
           <div className="h-4 bg-gray-100 rounded w-full" />
@@ -185,7 +185,7 @@ export default function StoreOrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+      <div className="store-surface store-bd rounded-2xl border p-8 text-center">
         <p className="text-sm text-gray-500 mb-3">Order not found</p>
         <Link href={lp('/account/orders')} className="text-sm font-medium hover:underline"
           style={{ color: 'var(--store-primary, #2563eb)' }}>
@@ -213,7 +213,7 @@ export default function StoreOrderDetailPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div className="store-surface store-bd rounded-2xl border p-5">
         <Link href={lp('/account/orders')} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors mb-3">
           <ArrowLeft className="w-3 h-3" /> {t('account.orders')}
         </Link>
@@ -234,7 +234,7 @@ export default function StoreOrderDetailPage() {
 
       {/* Status timeline */}
       {!isCancelled && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="store-surface store-bd rounded-2xl border p-5">
           <div className="flex items-center justify-between">
             {STATUS_STEPS.map((step, idx) => (
               <div key={step} className="flex-1 flex flex-col items-center relative">
@@ -257,7 +257,7 @@ export default function StoreOrderDetailPage() {
       )}
 
       {/* Items */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div className="store-surface store-bd rounded-2xl border p-5">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">{t('checkout.orderSummary')}</h2>
         <div className="divide-y divide-gray-100">
           {items.map((item) => {
@@ -363,7 +363,7 @@ export default function StoreOrderDetailPage() {
 
       {/* Shipping address */}
       {address && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="store-surface store-bd rounded-2xl border p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-2">{t('checkout.shippingAddress')}</h2>
           <div className="text-sm text-gray-600 space-y-0.5">
             {address.full_name && <p className="font-medium text-gray-800">{address.full_name}</p>}
@@ -381,7 +381,7 @@ export default function StoreOrderDetailPage() {
 
       {/* Order notes */}
       {order.notes && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="store-surface store-bd rounded-2xl border p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-2">{t('checkout.orderNotes')}</h2>
           <p className="text-sm text-gray-600">{order.notes}</p>
         </div>

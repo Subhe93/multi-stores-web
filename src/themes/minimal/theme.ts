@@ -34,6 +34,8 @@ import { spacerSection } from './sections/Spacer';
 import { countdownSection } from './sections/Countdown';
 import { videoEmbedSection } from './sections/VideoEmbed';
 import { layoutColumnsSection } from './sections/LayoutColumns';
+import { embedCodeSection } from './sections/EmbedCode';
+import { mapSection } from './sections/MapSection';
 import { featuredProductsSection } from './sections/FeaturedProducts';
 import { productSliderSection } from './sections/ProductSlider';
 import { collectionProductsSection } from './sections/CollectionProducts';
@@ -79,6 +81,8 @@ export const minimalTheme: Theme = {
     'video': videoEmbedSection,
     'spacer': spacerSection,
     'layout-columns': layoutColumnsSection,
+    'embed-code': embedCodeSection,
+    'map': mapSection,
     'newsletter-signup': newsletterSignupSection,
     'social-icons': socialIconsSection,
     // Curated product list — works on HOME/LANDING (fetches from API).

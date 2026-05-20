@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
@@ -167,10 +168,13 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
         }}
       >
         {resolvedImage && (
-          <img
+          <StoreImage
             src={resolvedImage}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
             style={{ zIndex: 0 }}
           />
         )}

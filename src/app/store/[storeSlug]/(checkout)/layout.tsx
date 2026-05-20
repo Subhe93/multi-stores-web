@@ -5,10 +5,15 @@ import { getMessages } from 'next-intl/server';
 import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { resolveTheme } from '@/themes/registry';
+import { mergeTokens } from '@/themes/tokens';
+import type { ThemeCustomizations } from '@/themes/types';
 
 interface Store {
   name: string;
   logo_url?: string;
+  theme_key?: string;
+  theme_customizations?: ThemeCustomizations;
   language_config?: { primary_locale: string; secondary_locales: string[] } | null;
   theme?: {
     primaryColor?: string;
@@ -40,8 +45,11 @@ export default async function CheckoutLayout({
     notFound();
   }
 
-  const primaryColor = store.theme?.primaryColor || '#2563eb';
-  const secondaryColor = store.theme?.secondaryColor || '#1e40af';
+  // Explicit creator colour wins; otherwise follow the active theme's tokens
+  // (so "Choose a theme" recolours checkout/account/auth pages too).
+  const resolvedTokens = mergeTokens(resolveTheme(store.theme_key).tokens, store.theme_customizations);
+  const primaryColor = store.theme?.primaryColor || resolvedTokens.colors.primary;
+  const secondaryColor = store.theme?.secondaryColor || resolvedTokens.colors.secondary;
   const fontFamily = store.theme?.fontFamily;
   const primaryLocale = store.language_config?.primary_locale || 'en';
   const currentLang = urlLocale || primaryLocale;
@@ -68,7 +76,7 @@ export default async function CheckoutLayout({
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
-          className="min-h-screen flex flex-col bg-white text-gray-900"
+          className="min-h-screen flex flex-col store-page"
           style={{
             '--store-primary': primaryColor,
             '--store-secondary': secondaryColor,
@@ -76,7 +84,7 @@ export default async function CheckoutLayout({
           } as React.CSSProperties}
         >
           {/* ── Shopify-style minimal checkout header ── */}
-          <header className="bg-white border-b border-gray-200">
+          <header className="store-surface store-bd border-b">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
               {/* Store logo + name */}
               <Link
@@ -127,7 +135,7 @@ export default async function CheckoutLayout({
           </main>
 
           {/* ── Minimal footer ── */}
-          <footer className="border-t border-gray-100 py-5">
+          <footer className="border-t store-bd py-5">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
               <span>&copy; {new Date().getFullYear()} {storeName}</span>
               <div className="flex items-center gap-4">

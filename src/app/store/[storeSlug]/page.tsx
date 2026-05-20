@@ -391,7 +391,6 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   );
 }
 
-// Render on every request so a fresh publish from the builder is visible
-// immediately. Caching would make creators think publish didn't work because
-// they still see the prior snapshot.
-export const dynamic = 'force-dynamic';
+// Storefront reads are tagged with the store (see lib/api.ts) and refreshed
+// on-demand via /api/revalidate when the creator publishes, so the cached home
+// reflects a new publish within seconds without rebuilding on every request.

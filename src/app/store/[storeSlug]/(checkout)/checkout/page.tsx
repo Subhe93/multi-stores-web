@@ -584,7 +584,7 @@ function CheckoutForm() {
   // ── Empty cart guard ───────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-20">
+      <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-20">
         <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
@@ -602,7 +602,7 @@ function CheckoutForm() {
   return (
     <>
       {/* ══════ MOBILE: collapsible order summary bar ══════ */}
-      <div className="lg:hidden border-b border-gray-200 bg-gray-50">
+      <div className="lg:hidden border-b store-bd store-surface">
         <button
           type="button"
           onClick={() => setSummaryOpen(!summaryOpen)}
@@ -636,7 +636,7 @@ function CheckoutForm() {
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col lg:flex-row max-w-[1100px] mx-auto w-full">
 
         {/* ── LEFT PANEL — white, form ── */}
-        <div className="flex-1 bg-white">
+        <div className="flex-1 store-page">
           <div className="max-w-[540px] mx-auto px-5 sm:px-8 py-8">
 
             {/* Breadcrumbs */}
@@ -855,7 +855,7 @@ function CheckoutForm() {
         </div>
 
         {/* ── RIGHT PANEL — gray, order summary + payment (desktop) ── */}
-        <div className="hidden lg:block lg:w-[460px] lg:shrink-0 bg-gray-50 border-l border-gray-200">
+        <div className="hidden lg:block lg:w-[460px] lg:shrink-0 store-surface border-l store-bd">
           <div className="pl-10 pr-12 py-8">
             <h2 className="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">
               {t('checkout.orderSummary')}

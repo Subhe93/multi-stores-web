@@ -52,7 +52,7 @@ export default function StoreOrdersPage() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+      <div className="store-surface store-bd rounded-2xl border p-8">
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-gray-100 rounded-xl" />)}
         </div>
@@ -61,7 +61,7 @@ export default function StoreOrdersPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="store-surface store-bd rounded-2xl border overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100">
         <h1 className="text-lg font-semibold text-gray-900">{t('account.orders')}</h1>
       </div>
