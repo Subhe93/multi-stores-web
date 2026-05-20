@@ -113,11 +113,11 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             />
           )}
           <div className="relative container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: hero.textColor }}>
               {t('common.products')}
             </h1>
             {hero.showCount && products.length > 0 && (
-              <p className="text-sm mt-2 opacity-70">
+              <p className="text-sm mt-2 opacity-70" style={{ color: hero.textColor }}>
                 {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
               </p>
             )}

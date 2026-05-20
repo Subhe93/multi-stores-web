@@ -161,24 +161,26 @@ export default async function CollectionPage({
             <Link
               href={`${lp}/products`}
               className="inline-flex items-center gap-1 text-xs font-semibold opacity-85 hover:opacity-100 transition mb-4"
+              style={{ color: hero.textColor }}
             >
               <BackChevron className="w-4 h-4" />
               {t('store.all_collections')}
             </Link>
 
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm" style={{ color: hero.textColor }}>
               {collectionName}
             </h1>
 
             {collectionDescription && (
               <div
-                className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5"
+                className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5 [&_*]:!text-[color:inherit]"
+                style={{ color: hero.textColor }}
                 dangerouslySetInnerHTML={{ __html: collectionDescription }}
               />
             )}
 
             {hero.showCount && products.length > 0 && (
-              <p className="mt-4 text-xs font-semibold opacity-70">
+              <p className="mt-4 text-xs font-semibold opacity-70" style={{ color: hero.textColor }}>
                 {products.length}{' '}
                 {products.length === 1
                   ? t('store.productSingular')
