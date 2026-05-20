@@ -3,6 +3,10 @@ import { minimalTokens } from './tokens';
 import { MinimalLayout } from './Layout';
 import { heroBannerSection } from './sections/HeroBanner';
 import { heroSliderSection } from './sections/HeroSlider';
+import { auroraHeroSection } from './sections/AuroraHero';
+import { bentoGridSection } from './sections/BentoGrid';
+import { animatedFeaturesSection } from './sections/AnimatedFeatures';
+import { marqueeTextSection } from './sections/MarqueeText';
 import { richTextSection } from './sections/RichText';
 import { imageGallerySection } from './sections/ImageGallery';
 import { gallerySliderSection } from './sections/GallerySlider';
@@ -52,6 +56,10 @@ export const minimalTheme: Theme = {
     // Generic content/showcase sections — work on any page type.
     'hero-banner': heroBannerSection,
     'hero-slider': heroSliderSection,
+    'aurora-hero': auroraHeroSection,
+    'bento-grid': bentoGridSection,
+    'animated-features': animatedFeaturesSection,
+    'marquee-text': marqueeTextSection,
     'rich-text': richTextSection,
     'image-gallery': imageGallerySection,
     'gallery-slider': gallerySliderSection,
