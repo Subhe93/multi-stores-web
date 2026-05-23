@@ -8,9 +8,9 @@
 // toggle, but the current minimal experience renders fine without it.
 
 import Link from 'next/link';
-import { Search, User } from 'lucide-react';
+import { Search, User, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import type { SectionDefinition, SectionRenderProps } from '../../../types';
+import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
 import { HeaderBarMobileMenu, type MobileMenuItem } from './HeaderBarMobileMenu.client';
@@ -21,6 +21,41 @@ import { HeaderCartButton } from './HeaderCartButton.client';
 interface NavItem {
   label?: string;
   url?: string;
+}
+
+// A resolved nav entry with localized URL and optional one-level children.
+interface NavNode {
+  label: string;
+  url: string;
+  open_in_new_tab?: boolean;
+  children?: NavNode[];
+}
+
+// Turn a flat, ordered menu item list (with parent_id) into a 1-level tree.
+// Top-level entries keep their order; each item's children are nested under it.
+function buildNavTree(flat: NavMenuItem[], lp: string, locale: string): NavNode[] {
+  const toNode = (it: NavMenuItem): NavNode => ({
+    label: it.label,
+    url: localizeUrl(it.url, lp, locale),
+    open_in_new_tab: it.open_in_new_tab,
+    children: [],
+  });
+  const tops: NavNode[] = [];
+  const byId = new Map<string, NavNode>();
+  for (const it of flat) {
+    if (!it.parent_id) {
+      const node = toNode(it);
+      byId.set(it.id, node);
+      tops.push(node);
+    }
+  }
+  for (const it of flat) {
+    if (it.parent_id) {
+      const parent = byId.get(it.parent_id);
+      (parent ? parent.children! : tops).push(toNode(it));
+    }
+  }
+  return tops;
 }
 
 // Storefront links use the canonical browser scheme enforced by the proxy:
@@ -85,14 +120,13 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const lp = locale !== primaryLocale ? `/${locale}` : '';
 
   const menuKey = (settings.menu_key as string) || '';
-  const menuItems = resolveMenuItems(ctx, menuKey, locale).map((it) => ({
-    label: it.label,
-    url: localizeUrl(it.url, lp, locale),
-  }));
-  const customItems = ((content.items as NavItem[]) || [])
+  // Build a 1-level nav tree from the selected menu: top-level entries plus
+  // their `parent_id` children (rendered as dropdowns / mobile sub-lists).
+  const menuTree = buildNavTree(resolveMenuItems(ctx, menuKey, locale), lp, locale);
+  const customItems: NavNode[] = ((content.items as NavItem[]) || [])
     .filter((i) => i.label && i.url)
-    .map((i) => ({ label: i.label, url: localizeUrl(i.url, lp, locale) }));
-  const fallbackItems: NavItem[] =
+    .map((i) => ({ label: i.label!, url: localizeUrl(i.url, lp, locale) }));
+  const fallbackItems: NavNode[] =
     ctx?.pages?.length
       ? ctx.pages.slice(0, 5).map((p) => ({
           label:
@@ -102,8 +136,8 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
           url: `${lp}/${p.slug}`,
         }))
       : [];
-  const navItems =
-    menuItems.length > 0 ? menuItems : customItems.length > 0 ? customItems : fallbackItems;
+  const navItems: NavNode[] =
+    menuTree.length > 0 ? menuTree : customItems.length > 0 ? customItems : fallbackItems;
 
   const homeUrl = lp || '/';
   const cartUrl = `${lp}/cart`;
@@ -165,17 +199,56 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               link gets the accent colour via the client ActiveLink wrapper. */}
           {navItems.length > 0 && (
             <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item, i) => (
-                <ActiveLink
-                  key={i}
-                  href={item.url || '#'}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
-                  activeStyle={{ color: accent }}
-                  activeClassName="bg-black/5"
-                >
-                  {item.label}
-                </ActiveLink>
-              ))}
+              {navItems.map((item, i) => {
+                const children = item.children ?? [];
+                if (children.length === 0) {
+                  return (
+                    <ActiveLink
+                      key={i}
+                      href={item.url || '#'}
+                      className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
+                      activeStyle={{ color: accent }}
+                      activeClassName="bg-black/5"
+                    >
+                      {item.label}
+                    </ActiveLink>
+                  );
+                }
+                // Item with sub-items: CSS-only dropdown (hover + focus-within),
+                // so the header stays a server component with no JS.
+                return (
+                  <div key={i} className="relative group">
+                    <ActiveLink
+                      href={item.url || '#'}
+                      className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition inline-flex items-center gap-1"
+                      activeStyle={{ color: accent }}
+                      activeClassName="bg-black/5"
+                    >
+                      {item.label}
+                      <ChevronDown className="size-3.5 opacity-60 transition-transform group-hover:rotate-180" />
+                    </ActiveLink>
+                    <div className="absolute inset-s-0 top-full hidden pt-1 group-hover:block group-focus-within:block z-50 min-w-48">
+                      <div
+                        className="rounded-md border py-1 shadow-lg"
+                        style={{ backgroundColor: bg, borderColor }}
+                      >
+                        {children.map((child, ci) => (
+                          <Link
+                            key={ci}
+                            href={child.url || '#'}
+                            {...(child.open_in_new_tab
+                              ? { target: '_blank', rel: 'noopener noreferrer' }
+                              : {})}
+                            className="block px-3 py-2 text-sm hover:bg-black/5 transition whitespace-nowrap"
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </nav>
           )}
 

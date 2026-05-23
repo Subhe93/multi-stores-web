@@ -7,6 +7,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 
 interface Product {
   id: string;
@@ -75,6 +76,7 @@ export async function generateMetadata({
     const [store, published] = await Promise.all([
       storefront.getStore(storeSlug) as Promise<{
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+        custom_domain?: string | null;
       }>,
       storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
     ]);
@@ -89,15 +91,20 @@ export async function generateMetadata({
       published.snapshot.page.translations.find((t) => t.locale === primaryLocale) ||
       published.snapshot.page.translations[0];
 
-    const path = `/store/${storeSlug}`;
+    // Canonical = subdomain root with primary locale (no prefix). Alternates
+    // use path-prefix form `/{locale}` (no query strings).
+    const origin = buildStoreOrigin(storeSlug, store.custom_domain || null);
+    const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, '');
     const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
     const languages: Record<string, string> = {};
-    for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+    for (const l of allLocales) {
+      languages[l] = storeLocalePath(origin, l, primaryLocale, '');
+    }
 
     return {
       title: tr?.meta_title || tr?.title,
       description: tr?.meta_description,
-      alternates: { canonical: published.seo?.canonical || path, languages },
+      alternates: { canonical: published.seo?.canonical || canonical, languages },
       openGraph: {
         title: tr?.meta_title || tr?.title || undefined,
         description: tr?.meta_description,

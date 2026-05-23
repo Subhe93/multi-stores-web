@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Check } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 
@@ -80,6 +81,7 @@ export function VariantSelector({
   outOfStockText = 'Out of Stock',
   optionConfigs,
 }: VariantSelectorProps) {
+  const t = useTranslations('common');
   const optionGroups = useMemo(() => {
     const groups: Record<string, string[]> = {};
     for (const variant of variants) {
@@ -347,7 +349,7 @@ export function VariantSelector({
           className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors w-fit"
         >
           <X className="w-3 h-3" />
-          Clear
+          {t('clear')}
         </button>
       )}
 

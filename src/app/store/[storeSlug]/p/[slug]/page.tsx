@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies, headers } from 'next/headers';
 import { storefront } from '@/lib/api';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
@@ -13,6 +14,7 @@ interface StoreLite {
     primary_locale?: string;
     secondary_locales?: string[];
   } | null;
+  custom_domain?: string | null;
 }
 
 interface PageTranslationRow {
@@ -74,17 +76,20 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
     published.snapshot.page.translations.find((t) => t.locale === primaryLocale) ||
     published.snapshot.page.translations[0];
 
+  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
+  const subpath = `/p/${slug}`;
+  const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, subpath);
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
   const languages: Record<string, string> = {};
   for (const l of allLocales) {
-    languages[l] = `/store/${storeSlug}/p/${slug}?lang=${l}`;
+    languages[l] = storeLocalePath(origin, l, primaryLocale, subpath);
   }
 
   return {
     title: tr?.meta_title || tr?.title,
     description: tr?.meta_description,
     alternates: {
-      canonical: published.seo?.canonical || `/store/${storeSlug}/p/${slug}`,
+      canonical: published.seo?.canonical || canonical,
       languages,
     },
     openGraph: {

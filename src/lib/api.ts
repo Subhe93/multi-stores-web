@@ -44,7 +44,12 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
   const json = await res.json();
 
   if (!res.ok) {
-    throw new Error(json.message || 'API request failed');
+    const err: any = new Error(json.message || 'API request failed');
+    err.status = res.status;
+    // Stable machine-readable error code (when present) for UI translation,
+    // falling back to the English `message` above.
+    err.code = typeof json.code === 'string' ? json.code : undefined;
+    throw err;
   }
 
   return json.data;
@@ -132,3 +137,36 @@ export const storefront = {
   getSitemapData: async (slug: string) =>
     api(`/storefront/${slug}/sitemap-data`, await cacheOpts(slug)),
 };
+
+// Platform-wide legal pages (Privacy / Terms / Refund / Shipping). Public,
+// no auth, served localized by the API with sensible fallbacks. These are
+// the *platform* policies, shared across the marketing site and every store
+// footer, so they live outside the per-store cache namespace.
+export interface LegalPageSummary {
+  slug: string;
+  title: string;
+  updated_at: string;
+}
+
+export interface LegalPage extends LegalPageSummary {
+  content: string;
+}
+
+const LEGAL_REVALIDATE_SECONDS = 3600;
+
+export const legal = {
+  list: async (locale: string) =>
+    api<LegalPageSummary[]>(`/legal?locale=${encodeURIComponent(locale)}`, {
+      next: { tags: ['legal'], revalidate: LEGAL_REVALIDATE_SECONDS },
+    }),
+
+  get: async (slug: string, locale: string) =>
+    api<LegalPage>(`/legal/${encodeURIComponent(slug)}?locale=${encodeURIComponent(locale)}`, {
+      next: { tags: ['legal', `legal:${slug}`], revalidate: LEGAL_REVALIDATE_SECONDS },
+    }),
+};
+
+// Canonical ordering used in footers — keep stable across locales so the
+// link strip looks the same everywhere.
+export const LEGAL_SLUGS = ['privacy', 'terms', 'refund', 'shipping'] as const;
+export type LegalSlug = (typeof LEGAL_SLUGS)[number];

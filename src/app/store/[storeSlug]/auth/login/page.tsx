@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
+import { useApiError } from '@/lib/useApiError';
 
 export default function StoreLoginPage() {
   const t = useTranslations('auth');
   const router = useRouter();
   const lp = useLocalePath();
   const { login } = useAuth();
+  const apiError = useApiError();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +28,7 @@ export default function StoreLoginPage() {
       await login(email, password);
       router.push(lp('/'));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      setError(apiError(err));
     } finally {
       setLoading(false);
     }
@@ -62,9 +64,18 @@ export default function StoreLoginPage() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-            {t('password')}
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              {t('password')}
+            </label>
+            <Link
+              href={lp('/auth/forgot-password')}
+              className="text-sm font-medium hover:underline"
+              style={{ color: 'var(--store-primary, #2563eb)' }}
+            >
+              {t('forgotPassword')}
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

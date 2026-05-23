@@ -2,18 +2,19 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 
-type Role = 'customer' | 'creator' | 'provider';
+type Role = 'creator' | 'provider';
+
+// Dashboard app URL — staff (creator/provider) sign in there after registering.
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
 
+  // Customers register through their store's storefront, not the platform.
   const ROLES: { value: Role; label: string }[] = [
-    { value: 'customer', label: t('customer') },
     { value: 'creator', label: t('creator') },
     { value: 'provider', label: t('provider') },
   ];
@@ -22,7 +23,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<Role>('customer');
+  const [role, setRole] = useState<Role>('creator');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,11 +47,17 @@ export default function RegisterPage() {
     try {
       await api('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, role: role.toUpperCase() }),
+        body: JSON.stringify({
+          email,
+          password,
+          role: role.toUpperCase(),
+          first_name: firstName,
+          last_name: lastName,
+        }),
       });
 
-      // Redirect to login after successful registration
-      router.push('/auth/login');
+      // Creators/providers manage their store in the dashboard app — send them there to sign in.
+      window.location.href = `${DASHBOARD_URL}/auth/login`;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setError(message);

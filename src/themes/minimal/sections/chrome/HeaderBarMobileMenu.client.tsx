@@ -7,11 +7,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { ChevronDown, Menu, X } from 'lucide-react';
 
 export interface MobileMenuItem {
   label: string;
   url: string;
+  open_in_new_tab?: boolean;
+  children?: MobileMenuItem[];
 }
 
 export function HeaderBarMobileMenu({
@@ -103,15 +105,7 @@ export function HeaderBarMobileMenu({
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
               {items.map((item, i) => (
-                <Link
-                  key={i}
-                  href={item.url}
-                  onClick={() => setOpen(false)}
-                  className="block px-5 py-3 text-base font-medium border-b hover:bg-black/5 transition"
-                  style={{ borderColor: 'rgba(0,0,0,0.06)' }}
-                >
-                  {item.label}
-                </Link>
+                <MobileRow key={i} item={item} onNavigate={() => setOpen(false)} />
               ))}
             </nav>
           </div>
@@ -119,5 +113,74 @@ export function HeaderBarMobileMenu({
         portalTarget,
       )}
     </>
+  );
+}
+
+// One drawer row. Leaf items are a plain link; items with children render a
+// collapsible disclosure: tapping the chevron expands the indented sub-links
+// while tapping the label still navigates to the parent.
+function MobileRow({ item, onNavigate }: { item: MobileMenuItem; onNavigate: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const children = item.children ?? [];
+  const external = item.open_in_new_tab
+    ? { target: '_blank', rel: 'noopener noreferrer' }
+    : {};
+
+  if (children.length === 0) {
+    return (
+      <Link
+        href={item.url}
+        onClick={onNavigate}
+        {...external}
+        className="block px-5 py-3 text-base font-medium border-b hover:bg-black/5 transition"
+        style={{ borderColor: 'rgba(0,0,0,0.06)' }}
+      >
+        {item.label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="border-b" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+      <div className="flex items-stretch">
+        <Link
+          href={item.url}
+          onClick={onNavigate}
+          {...external}
+          className="flex-1 px-5 py-3 text-base font-medium hover:bg-black/5 transition"
+        >
+          {item.label}
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse' : 'Expand'}
+          className="px-4 inline-flex items-center justify-center hover:bg-black/5 transition"
+        >
+          <ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+      {expanded && (
+        <div className="pb-1">
+          {children.map((child, i) => {
+            const childExternal = child.open_in_new_tab
+              ? { target: '_blank', rel: 'noopener noreferrer' }
+              : {};
+            return (
+              <Link
+                key={i}
+                href={child.url}
+                onClick={onNavigate}
+                {...childExternal}
+                className="block ps-9 pe-5 py-2.5 text-sm hover:bg-black/5 transition"
+              >
+                {child.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

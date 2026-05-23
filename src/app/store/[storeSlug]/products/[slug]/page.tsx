@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -36,10 +37,15 @@ export async function generateMetadata({
       product.translations?.find((t: any) => t.locale === primaryLocale) ||
       product.translations?.[0];
 
-    const path = `/store/${storeSlug}/products/${productSlug}`;
+    // Canonical = subdomain URL with primary locale; alternates use path-prefix.
+    const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+    const subpath = `/products/${productSlug}`;
+    const path = storeLocalePath(storeOrigin, primaryLocale, primaryLocale, subpath);
     const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
     const languages: Record<string, string> = {};
-    for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+    for (const l of allLocales) {
+      languages[l] = storeLocalePath(storeOrigin, l, primaryLocale, subpath);
+    }
 
     const firstImage = product.images?.[0]?.url
       ? resolveMediaUrl(product.images[0].url)
@@ -96,11 +102,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       product.translations?.find((t: any) => t.locale === locale) ||
       product.translations?.find((t: any) => t.locale === primaryLocale) ||
       product.translations?.[0];
-    const tplOrigin =
-      process.env.NEXT_PUBLIC_WEB_URL ||
-      process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
-      '';
-    const tplStoreBase = `${tplOrigin.replace(/\/$/, '')}/store/${storeSlug}`;
+    const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
     const tplProductUrl = `${tplStoreBase}/products/${productSlug}`;
     const tplProductLd = buildProduct({
       name: tr?.title || 'Product',
@@ -140,13 +142,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     product.translations?.[0];
 
   // JSON-LD: Product + BreadcrumbList. Built from data already in scope so it
-  // costs nothing extra to render.
-  const storefrontOrigin =
-    process.env.NEXT_PUBLIC_WEB_URL ||
-    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
-    '';
-  const storeBase = `${storefrontOrigin.replace(/\/$/, '')}/store/${storeSlug}`;
-  const productUrl = `${storeBase}/products/${productSlug}`;
+  // costs nothing extra to render. URLs use the locale path-prefix form (no
+  // prefix for primary locale, `/{locale}/...` for others).
+  const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const ldPrimary = storeData?.language_config?.primary_locale || 'en';
+  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${productSlug}`);
   const productImages = (product.images || [])
     .map((img: any) => (img.url ? resolveMediaUrl(img.url) : ''))
     .filter((u: string) => !!u);
@@ -170,12 +170,12 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     : undefined;
 
   const breadcrumbLd = buildBreadcrumb([
-    { name: t('common.home'), url: `${storeBase}${lp ? `?lang=${locale}` : ''}` },
-    { name: t('common.products'), url: `${storeBase}/products${lp ? `?lang=${locale}` : ''}` },
+    { name: t('common.home'), url: storeLocalePath(storeBase, locale, ldPrimary, '') },
+    { name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products') },
     ...(primaryCollection && collectionTranslation
       ? [{
           name: collectionTranslation.name || primaryCollection.slug,
-          url: `${storeBase}/collections/${primaryCollection.slug}${lp ? `?lang=${locale}` : ''}`,
+          url: storeLocalePath(storeBase, locale, ldPrimary, `/collections/${primaryCollection.slug}`),
         }]
       : []),
     { name: translation?.title || 'Product', url: productUrl },

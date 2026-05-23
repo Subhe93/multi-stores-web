@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 
 interface GalleryImage {
@@ -16,6 +17,7 @@ interface ProductGalleryProps {
 }
 
 export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGalleryProps) {
+  const t = useTranslations();
   const [internalIndex, setInternalIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
@@ -163,7 +165,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
         <img
           key={currentImage.id}
           src={currentImage.url}
-          alt={currentImage.alt ?? 'Product image'}
+          alt={currentImage.alt ?? t('product.productImage')}
           className="h-full w-full object-cover transition-opacity duration-300"
           draggable={false}
         />
@@ -189,7 +191,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                aria-label="Previous image"
+                aria-label={t('product.previousImage')}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -199,7 +201,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                aria-label="Next image"
+                aria-label={t('product.nextImage')}
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -212,7 +214,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
           type="button"
           onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
           className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
-          aria-label="View full screen"
+          aria-label={t('product.viewFullScreen')}
         >
           <Maximize2 className="w-4 h-4" />
         </button>
@@ -237,7 +239,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                     ? 'bg-white scale-110'
                     : 'bg-white/50'
                 }`}
-                aria-label={`Go to image ${i + 1}`}
+                aria-label={t('product.goToImage', { number: i + 1 })}
               />
             ))}
           </div>
@@ -256,7 +258,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                 key={image.id}
                 type="button"
                 onClick={() => setIndex(index)}
-                aria-label={`View image ${index + 1}`}
+                aria-label={t('product.viewImage', { number: index + 1 })}
                 className={`relative shrink-0 w-[72px] h-[72px] overflow-hidden rounded-xl border-2 transition-all duration-200 ${
                   index === selectedIndex
                     ? 'opacity-100 scale-100 shadow-sm'
@@ -292,20 +294,20 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
           onClick={() => setLightboxOpen(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Image viewer"
+          aria-label={t('product.imageViewer')}
         >
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
             className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
 
           <img
             src={currentImage.url}
-            alt={currentImage.alt ?? 'Product image'}
+            alt={currentImage.alt ?? t('product.productImage')}
             className="max-h-[90vh] max-w-[92vw] object-contain select-none"
             onClick={(e) => e.stopPropagation()}
             draggable={false}
@@ -318,7 +320,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                   type="button"
                   onClick={(e) => { e.stopPropagation(); goPrev(); }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-                  aria-label="Previous image"
+                  aria-label={t('product.previousImage')}
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
@@ -328,7 +330,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
                   type="button"
                   onClick={(e) => { e.stopPropagation(); goNext(); }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-                  aria-label="Next image"
+                  aria-label={t('product.nextImage')}
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>

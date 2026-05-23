@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
+import { useApiError } from '@/lib/useApiError';
 
 export default function StoreRegisterPage() {
   const t = useTranslations('auth');
   const router = useRouter();
   const lp = useLocalePath();
+  const apiError = useApiError();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -25,11 +27,11 @@ export default function StoreRegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('passwordsNoMatch'));
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('passwordMinLength'));
       return;
     }
 
@@ -48,7 +50,7 @@ export default function StoreRegisterPage() {
       });
       router.push(lp('/auth/login'));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      setError(apiError(err));
     } finally {
       setLoading(false);
     }

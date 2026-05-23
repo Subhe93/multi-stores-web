@@ -1,30 +1,38 @@
+import { buildStoreOrigin } from '@/lib/storeUrl';
+import { storefront } from '@/lib/api';
+
 interface RouteCtx {
   params: Promise<{ storeSlug: string }>;
 }
 
 /**
- * Per-store robots.txt. Allows everything by default, blocks the carts/checkout
- * /account/auth paths from indexing, and points crawlers at the store's sitemap.
- * Each store's robots is independent so stores can later opt out.
+ * Per-store robots.txt served from the store's subdomain. Disallow paths and
+ * the sitemap URL are subdomain-rooted (e.g. `/cart`, not `/store/slug/cart`)
+ * — that's the URL form crawlers actually see, because the proxy rewrites
+ * `subdomain/*` → `/store/slug/*` internally.
  */
 export async function GET(_req: Request, ctx: RouteCtx) {
   const { storeSlug } = await ctx.params;
 
-  const origin =
-    process.env.NEXT_PUBLIC_WEB_URL ||
-    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
-    'http://localhost:3003';
-  const sitemap = `${origin.replace(/\/$/, '')}/store/${storeSlug}/sitemap.xml`;
+  // Resolve the store's canonical origin (custom_domain wins, else subdomain).
+  let customDomain: string | null = null;
+  try {
+    const store = (await storefront.getStore(storeSlug)) as { custom_domain?: string | null };
+    customDomain = store?.custom_domain || null;
+  } catch {
+    customDomain = null;
+  }
+  const origin = buildStoreOrigin(storeSlug, customDomain);
 
   const body = [
     'User-agent: *',
     'Allow: /',
-    `Disallow: /store/${storeSlug}/cart`,
-    `Disallow: /store/${storeSlug}/checkout`,
-    `Disallow: /store/${storeSlug}/account`,
-    `Disallow: /store/${storeSlug}/auth`,
+    'Disallow: /cart',
+    'Disallow: /checkout',
+    'Disallow: /account',
+    'Disallow: /auth',
     '',
-    `Sitemap: ${sitemap}`,
+    `Sitemap: ${origin}/sitemap.xml`,
     '',
   ].join('\n');
 

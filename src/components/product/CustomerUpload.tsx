@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Upload, X } from 'lucide-react';
 
 interface CustomerUploadProps {
@@ -20,6 +21,7 @@ export function CustomerUpload({
   label,
   required,
 }: CustomerUploadProps) {
+  const t = useTranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(initialPreviewUrl ?? null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -40,13 +42,13 @@ export function CustomerUpload({
           return file.type === type;
         });
         if (!isValid) {
-          setError(`Invalid file type. Accepted: ${accept}`);
+          setError(t('product.invalidFileType', { accept }));
           return;
         }
       }
 
       if (file.size > maxSizeBytes) {
-        setError(`File too large. Maximum size: ${maxSizeMB}MB`);
+        setError(t('product.fileTooLarge', { maxSizeMB }));
         return;
       }
 
@@ -61,7 +63,7 @@ export function CustomerUpload({
       setFileName(file.name);
       onFileSelect(file);
     },
-    [accept, maxSizeBytes, maxSizeMB, onFileSelect],
+    [accept, maxSizeBytes, maxSizeMB, onFileSelect, t],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -116,7 +118,7 @@ export function CustomerUpload({
             <div className="aspect-video bg-gray-50 p-2">
               <img
                 src={preview}
-                alt="Upload preview"
+                alt={t('product.uploadPreview')}
                 className="w-full h-full object-contain rounded-lg"
               />
             </div>
@@ -139,7 +141,7 @@ export function CustomerUpload({
               onClick={() => inputRef.current?.click()}
               className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Change
+              {t('product.changeFile')}
             </button>
             <button
               type="button"
@@ -169,10 +171,10 @@ export function CustomerUpload({
               <Upload className="w-6 h-6 text-gray-300 shrink-0" />
 
               <p className="text-sm text-gray-500">
-                Drag & Drop Files Here
+                {t('product.dragDropFiles')}
               </p>
 
-              <span className="text-sm text-gray-300">or</span>
+              <span className="text-sm text-gray-300">{t('common.or')}</span>
 
               <button
                 type="button"
@@ -180,7 +182,7 @@ export function CustomerUpload({
                 className="px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
                 style={{ backgroundColor: 'var(--store-primary, #111827)' }}
               >
-                Browse Files
+                {t('product.browseFiles')}
               </button>
             </div>
           </div>

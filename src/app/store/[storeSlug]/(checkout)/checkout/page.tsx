@@ -284,6 +284,10 @@ function CheckoutForm() {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
   const [stripeAvailable, setStripeAvailable] = useState(false);
   const [stripeReady, setStripeReady] = useState(false);
+  // The desktop and mobile layouts each have their own payment panel, but Stripe
+  // allows only one CardElement per Elements provider — so we mount the card in
+  // whichever layout is active for the current viewport.
+  const [isDesktop, setIsDesktop] = useState(true);
   const [storeId, setStoreId] = useState<string | undefined>();
   const [orderNotes, setOrderNotes] = useState('');
   const [wantAccount, setWantAccount] = useState(false);
@@ -385,18 +389,33 @@ function CheckoutForm() {
       .finally(() => setShippingLoading(false));
   }, [selectedAddressId, showNewAddressForm, form.country_code, items.length, subtotal]);
 
+  // Track viewport so only the active layout mounts the CardElement.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   // Fetch store ID + Stripe config
   useEffect(() => {
     async function init() {
+      let storeCardEnabled = true;
       if (storeSlug) {
         try {
-          const store = await storefront.getStore(storeSlug) as { id: string };
+          const store = await storefront.getStore(storeSlug) as { id: string; card_payments_enabled?: boolean };
           setStoreId(store.id);
+          // The creator must have completed Stripe Connect onboarding for this
+          // store to accept card payments.
+          storeCardEnabled = store.card_payments_enabled !== false;
         } catch { /* ignore */ }
       }
       try {
         const config = await api<PaymentConfig>('/payments/config');
-        setStripeAvailable(config.stripeConfigured);
+        // Card is offered only when Stripe is configured platform-wide AND the
+        // store creator can accept charges.
+        setStripeAvailable(config.stripeConfigured && storeCardEnabled);
       } catch {
         setStripeAvailable(false);
       }
@@ -539,25 +558,39 @@ function CheckoutForm() {
           setLoading(false);
           return;
         }
-        const { clientSecret, paymentIntentId } = await api<{ clientSecret: string; paymentIntentId: string }>(
-          '/payments/create-intent',
-          { method: 'POST', token: activeToken, body: JSON.stringify({ amount: Math.round(finalTotal * 100), currency: currency.toUpperCase() }) },
-        );
         const cardElement = elements.getElement(CardElement);
         if (!cardElement) { setError('Card element not found.'); setLoading(false); return; }
-        const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card: cardElement } });
-        if (stripeError) { setError(stripeError.message || t('checkout.paymentFailed')); setLoading(false); return; }
 
+        // Order-first flow: create the order (awaiting payment) so the server
+        // derives the charge amount + Connect destination, then pay for it.
         const order = await api<OrderResponse>('/orders', {
           method: 'POST', token: activeToken,
           body: JSON.stringify({
             address_id: addressId,
             ...(storeId ? { store_id: storeId } : {}),
-            payment_method: 'STRIPE', stripe_payment_intent_id: paymentIntentId,
+            payment_method: 'STRIPE',
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
           }),
         });
+
+        const { clientSecret } = await api<{ clientSecret: string; paymentIntentId: string }>(
+          '/payments/create-intent',
+          { method: 'POST', token: activeToken, body: JSON.stringify({ order_id: order.id }) },
+        );
+
+        const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card: cardElement } });
+        if (stripeError) { setError(stripeError.message || t('checkout.paymentFailed')); setLoading(false); return; }
+
+        // Finalize the order server-side immediately (don't depend on the
+        // webhook arriving). The webhook remains as a backup.
+        try {
+          await api('/payments/confirm', {
+            method: 'POST', token: activeToken,
+            body: JSON.stringify({ order_id: order.id }),
+          });
+        } catch { /* webhook will reconcile as a fallback */ }
+
         await clearCart();
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
       } else {
@@ -897,7 +930,7 @@ function CheckoutForm() {
                         <p className="text-xs text-gray-500 mt-0.5">{t('checkout.stripeDescription')}</p>
                       </div>
                     </label>
-                    {paymentMethod === 'stripe' && (
+                    {paymentMethod === 'stripe' && isDesktop && (
                       <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
                         <CardElement
                           options={{ style: { base: { fontSize: '14px', color: '#1a1a1a', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } } }}
@@ -970,7 +1003,7 @@ function CheckoutForm() {
                       <p className="text-xs text-gray-500 mt-0.5">{t('checkout.stripeDescription')}</p>
                     </div>
                   </label>
-                  {paymentMethod === 'stripe' && (
+                  {paymentMethod === 'stripe' && !isDesktop && (
                     <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
                       <CardElement
                         options={{ style: { base: { fontSize: '14px', color: '#1a1a1a', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } } }}
@@ -1009,8 +1042,16 @@ function CheckoutForm() {
 
 // ── Stripe wrapper ─────────────────────────────────────────────────────────────
 function CheckoutWithStripe() {
-  const [stripePromise, setStripePromise] = useState<ReturnType<typeof getStripe> | null>(null);
-  useEffect(() => { setStripePromise(getStripe()); }, []);
+  const [stripePromise, setStripePromise] = useState<ReturnType<typeof getStripe>>(null);
+  useEffect(() => {
+    // The publishable key is admin-managed and served by the API, so load
+    // Stripe.js with the key returned by /payments/config (not a build-time env).
+    api<PaymentConfig>('/payments/config')
+      .then((cfg) => {
+        if (cfg.publishableKey) setStripePromise(getStripe(cfg.publishableKey));
+      })
+      .catch(() => { /* Stripe stays unavailable; checkout falls back to COD */ });
+  }, []);
   return (
     <Elements stripe={stripePromise}>
       <CheckoutForm />

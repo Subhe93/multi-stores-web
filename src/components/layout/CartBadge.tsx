@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 
 export function CartBadge() {
+  const t = useTranslations('common');
   const { itemCount } = useCart();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -14,7 +16,7 @@ export function CartBadge() {
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
-        aria-label="Cart"
+        aria-label={t('cart')}
         className="relative flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
       >
         <ShoppingCart className="w-5 h-5" />

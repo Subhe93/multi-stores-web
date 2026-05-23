@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 
-interface LoginResponse {
-  token: string;
-}
+// Dashboard app URL — staff (creator/provider/admin) sign in there.
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
+const STAFF_ROLES = ['CREATOR', 'PROVIDER', 'ADMIN'];
 
 export default function LoginPage() {
   const t = useTranslations('auth');
@@ -24,10 +24,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await api<{ access_token: string; refresh_token: string }>('/auth/login', {
+      const data = await api<{
+        user: { role: string };
+        access_token: string;
+        refresh_token: string;
+      }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
+
+      // Creators/providers manage their store in the dashboard app (separate origin —
+      // tokens aren't shared), so send them there to sign in instead of the storefront.
+      if (STAFF_ROLES.includes(data.user.role)) {
+        window.location.href = `${DASHBOARD_URL}/auth/login`;
+        return;
+      }
 
       localStorage.setItem('auth_access_token', data.access_token);
       if (data.refresh_token) localStorage.setItem('auth_refresh_token', data.refresh_token);

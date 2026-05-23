@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { localePath } from '@/lib/locale-path';
 import { HeroBackground } from '@/components/home/HeroBackground';
-import { ThemeToggle } from '@/components/home/ThemeToggle';
 import { Reveal, Parallax, Magnetic, CountUp } from '@/components/home/ScrollAnimations';
+import { MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 
 export default async function Home({
   params,
@@ -16,32 +17,7 @@ export default async function Home({
 
   return (
     <div className="min-h-screen overflow-x-hidden noise relative" style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>
-      {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="absolute inset-0 backdrop-blur-xl" style={{ background: 'var(--bg-nav)' }} />
-        <div className="relative max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href={localePath('/', locale)} className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Multi<span style={{ color: 'var(--text-brand)' }}>Stores</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link
-              href={localePath('/auth/login', locale)}
-              className="text-sm font-medium transition px-4 py-2 hidden sm:block"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {tc('login')}
-            </Link>
-            <Link
-              href={localePath('/auth/register', locale)}
-              className="text-sm font-medium transition px-5 py-2 rounded-full"
-              style={{ background: 'var(--cta-btn-bg)', color: 'var(--cta-btn-text)' }}
-            >
-              {t('getStarted')}
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <MarketingHeader locale={locale} />
 
       {/* =================== HERO =================== */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -310,27 +286,7 @@ export default async function Home({
       </section>
 
       {/* =================== FOOTER =================== */}
-      <footer style={{ borderTop: '1px solid var(--border)' }}>
-        <Reveal animation="fade-up">
-          <div className="max-w-6xl mx-auto px-6 py-12">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              <div>
-                <span className="text-lg font-bold tracking-tight">
-                  Multi<span style={{ color: 'var(--text-brand)' }}>Stores</span>
-                </span>
-                <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--text-muted)' }}>{t('subtitle')}</p>
-              </div>
-              <div className="flex items-center gap-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <Link href={localePath('/auth/login', locale)} className="transition" style={{ color: 'inherit' }}>{tc('login')}</Link>
-                <Link href={localePath('/auth/register', locale)} className="transition" style={{ color: 'inherit' }}>{tc('register')}</Link>
-              </div>
-            </div>
-            <div className="mt-8 pt-8 text-center text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--footer-muted)' }}>
-              &copy; {new Date().getFullYear()} MultiStores. {tc('allRightsReserved')}
-            </div>
-          </div>
-        </Reveal>
-      </footer>
+      <MarketingFooter locale={locale} />
     </div>
   );
 }

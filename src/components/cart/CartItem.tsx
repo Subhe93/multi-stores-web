@@ -81,7 +81,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
               onClick={() => handleQuantity(item.quantity - 1)}
               disabled={updating || item.quantity <= 1}
               className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              aria-label="Decrease"
+              aria-label={t('common.decreaseQuantity')}
             >
               <Minus className="w-3 h-3" />
             </button>
@@ -92,7 +92,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
               onClick={() => handleQuantity(item.quantity + 1)}
               disabled={updating}
               className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              aria-label="Increase"
+              aria-label={t('common.increaseQuantity')}
             >
               <Plus className="w-3 h-3" />
             </button>

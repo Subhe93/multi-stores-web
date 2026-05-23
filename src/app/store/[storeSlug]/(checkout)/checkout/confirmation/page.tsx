@@ -1,9 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 import { CheckCircle2, Package, ArrowRight } from 'lucide-react';
 
 export default function OrderConfirmationPage() {
@@ -11,6 +14,19 @@ export default function OrderConfirmationPage() {
   const lp = useLocalePath();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
+  const { token } = useAuth();
+
+  // Reconcile the payment from the front as a safety net: if the inline confirm
+  // after card payment didn't complete, finalizing here keeps the order status
+  // accurate without waiting for the webhook. Idempotent and a no-op for COD.
+  useEffect(() => {
+    if (!orderId || !token) return;
+    api('/payments/confirm', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ order_id: orderId }),
+    }).catch(() => { /* webhook will reconcile as a fallback */ });
+  }, [orderId, token]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">

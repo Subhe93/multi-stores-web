@@ -97,6 +97,7 @@ interface CartItemRowProps {
 }
 
 function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
+  const t = useTranslations();
   const [updating, setUpdating] = useState(false);
   const currency = item.currency || 'EUR';
   const title = item.title || item.name || 'Product';
@@ -154,7 +155,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
               onClick={() => onClearBundle(item.id)}
               className="text-[10px] text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2"
             >
-              Remove bundle
+              {t('cart.removeBundle')}
             </button>
           </div>
         )}
@@ -175,7 +176,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
               onClick={() => changeQty(item.quantity - 1)}
               disabled={updating || item.quantity <= 1 || hasBundle}
               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              aria-label="Decrease quantity"
+              aria-label={t('common.decreaseQuantity')}
             >
               <Minus className="w-3 h-3" />
             </button>
@@ -186,7 +187,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
               onClick={() => changeQty(item.quantity + 1)}
               disabled={updating || hasBundle}
               className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              aria-label="Increase quantity"
+              aria-label={t('common.increaseQuantity')}
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -196,7 +197,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
             onClick={() => onRemove(item.id)}
             className="text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2"
           >
-            Remove
+            {t('cart.remove')}
           </button>
         </div>
       </div>
@@ -210,7 +211,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           </p>
         )}
         {item.quantity > 1 && (
-          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(item.price, currency)} each</p>
+          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(item.price, currency)} {t('cart.each')}</p>
         )}
       </div>
     </div>

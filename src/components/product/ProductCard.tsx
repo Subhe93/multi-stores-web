@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { StoreImage } from '@/components/StoreImage';
 
 interface ProductCardProps {
@@ -23,6 +26,7 @@ export function ProductCard({
   badge,
   promotionLabel,
 }: ProductCardProps) {
+  const t = useTranslations('product');
   const formatted = new Intl.NumberFormat('en', {
     style: 'currency',
     currency,
@@ -70,7 +74,7 @@ export function ProductCard({
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 text-sm font-semibold rounded-full shadow-lg translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
             <Eye className="w-4 h-4" />
-            View
+            {t('view')}
           </span>
         </div>
 

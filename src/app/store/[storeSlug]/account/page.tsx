@@ -285,7 +285,7 @@ export default function StoreAccountPage() {
                 minLength={8}
                 value={pwdForm.new_password}
                 onChange={(e) => setPwdForm((p) => ({ ...p, new_password: e.target.value }))}
-                placeholder="Min 8 characters"
+                placeholder={t('minPasswordChars')}
                 className={inputCls}
               />
             </div>

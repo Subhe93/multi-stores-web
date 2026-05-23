@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 interface QuantitySelectorProps {
   value: number;
   onChange: (val: number) => void;
@@ -10,6 +12,7 @@ interface QuantitySelectorProps {
 }
 
 export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: QuantitySelectorProps) {
+  const t = useTranslations('common');
   const canDecrement = value - step >= min;
   const canIncrement = max === undefined || value + step <= max;
 
@@ -19,7 +22,7 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         type="button"
         onClick={() => canDecrement && onChange(value - step)}
         disabled={!canDecrement}
-        aria-label="Decrease quantity"
+        aria-label={t('decreaseQuantity')}
         className="w-10 h-10 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         &minus;
@@ -33,7 +36,7 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         type="button"
         onClick={() => canIncrement && onChange(value + step)}
         disabled={!canIncrement}
-        aria-label="Increase quantity"
+        aria-label={t('increaseQuantity')}
         className="w-10 h-10 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         +

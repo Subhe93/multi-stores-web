@@ -1,7 +1,10 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Upload, Loader2, X } from 'lucide-react';
+
+type Translator = ReturnType<typeof useTranslations>;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -39,11 +42,12 @@ function validateField(
   value: any,
   allValues: Record<string, any>,
   allFields: CustomField[],
+  t: Translator,
 ): string | null {
   const strValue = value != null ? String(value) : '';
 
   if (field.required && (value === undefined || value === null || strValue === '')) {
-    return `${field.label} is required`;
+    return t('product.fieldRequired', { label: field.label });
   }
 
   if (!strValue && !field.required) return null;
@@ -53,18 +57,18 @@ function validateField(
 
   if (field.type === 'NUMBER') {
     const num = Number(value);
-    if (v.min !== undefined && num < v.min) return `Minimum value is ${v.min}`;
-    if (v.max !== undefined && num > v.max) return `Maximum value is ${v.max}`;
+    if (v.min !== undefined && num < v.min) return t('product.minimumValue', { min: v.min });
+    if (v.max !== undefined && num > v.max) return t('product.maximumValue', { max: v.max });
   }
 
   if (field.type === 'TEXT' || field.type === 'TEXTAREA') {
-    if (v.min !== undefined && strValue.length < v.min) return `Minimum length is ${v.min} characters`;
-    if (v.max !== undefined && strValue.length > v.max) return `Maximum length is ${v.max} characters`;
+    if (v.min !== undefined && strValue.length < v.min) return t('product.minimumLength', { min: v.min });
+    if (v.max !== undefined && strValue.length > v.max) return t('product.maximumLength', { max: v.max });
   }
 
   if (v.pattern && strValue) {
     try {
-      if (!new RegExp(v.pattern).test(strValue)) return 'Invalid format';
+      if (!new RegExp(v.pattern).test(strValue)) return t('product.invalidFormat');
     } catch { /* skip invalid regex */ }
   }
 
@@ -73,7 +77,7 @@ function validateField(
     const linkedValue = allValues[v.linked_to];
     if (linkedField && linkedValue != null && v.rule === 'equal_length') {
       if (strValue.length !== String(linkedValue).length) {
-        return `Length must match ${linkedField.label} (${String(linkedValue).length} characters)`;
+        return t('product.lengthMustMatch', { label: linkedField.label, length: String(linkedValue).length });
       }
     }
   }
@@ -113,6 +117,7 @@ function FileInput({ accept, multiple, value, onChange }: {
   accept?: string; multiple?: boolean; value: any;
   onChange: (val: any) => void;
 }) {
+  const t = useTranslations('product');
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -179,8 +184,8 @@ function FileInput({ accept, multiple, value, onChange }: {
         className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-4 py-4 text-sm text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-50"
       >
         {uploading
-          ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
-          : <><Upload className="w-4 h-4 text-gray-400" /> {multiple ? 'Choose files...' : 'Choose file...'}</>
+          ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('uploading')}</>
+          : <><Upload className="w-4 h-4 text-gray-400" /> {multiple ? t('chooseFiles') : t('chooseFile')}</>
         }
       </button>
     </div>
@@ -188,13 +193,14 @@ function FileInput({ accept, multiple, value, onChange }: {
 }
 
 export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormProps) {
+  const t = useTranslations();
   const errors = useMemo(() => {
     const result: Record<string, string | null> = {};
     for (const field of fields) {
-      result[field.id] = validateField(field, values[field.id], values, fields);
+      result[field.id] = validateField(field, values[field.id], values, fields, t);
     }
     return result;
-  }, [fields, values]);
+  }, [fields, values, t]);
 
   const inputClass = (hasError: boolean) =>
     `w-full rounded-xl border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 ${
@@ -241,7 +247,7 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
                 <select id={`field-${field.id}`} value={value ?? ''}
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className={`${inputClass(showError)} appearance-none pr-10`}>
-                  <option value="">{field.placeholder || `Choose an option`}</option>
+                  <option value="">{field.placeholder || t('product.chooseOption')}</option>
                   {field.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
@@ -293,7 +299,7 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
                 <select id={`field-${field.id}`} value={value ?? ''}
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className={`${inputClass(showError)} appearance-none pr-10`}>
-                  <option value="">{field.placeholder || 'Select font...'}</option>
+                  <option value="">{field.placeholder || t('product.selectFont')}</option>
                   {(field.options?.length ? field.options : COMMON_FONTS).map((font) => (
                     <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
                   ))}

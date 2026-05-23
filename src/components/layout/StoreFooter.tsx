@@ -9,6 +9,9 @@ interface StoreFooterProps {
   storeName?: string;
   primaryColor?: string;
   pages?: { slug: string; translations: { locale: string; title: string }[] }[];
+  /** Platform legal pages (Privacy / Terms / Refund / Shipping) injected by the
+   *  layout. Pre-localized titles come from the API. */
+  platformLegalPages?: { slug: string; title: string }[];
   socials?: {
     instagram?: string;
     facebook?: string;
@@ -73,6 +76,7 @@ export function StoreFooter({
   storeName = 'Store',
   primaryColor,
   pages,
+  platformLegalPages,
   socials,
   contact,
   currentLang = 'en',
@@ -158,6 +162,16 @@ export function StoreFooter({
                   className="text-sm text-white/70 hover:text-white transition-colors w-fit"
                 >
                   {getPageTitle(page.translations, currentLang)}
+                </Link>
+              ))}
+              {/* Platform-wide legal pages — labels are pre-localized by the API. */}
+              {(platformLegalPages ?? []).map((page) => (
+                <Link
+                  key={`platform-${page.slug}`}
+                  href={lp(`/legal/${page.slug}`)}
+                  className="text-sm text-white/70 hover:text-white transition-colors w-fit"
+                >
+                  {page.title}
                 </Link>
               ))}
             </nav>

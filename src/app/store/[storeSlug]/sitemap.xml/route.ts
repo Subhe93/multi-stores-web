@@ -1,4 +1,5 @@
 import { storefront } from '@/lib/api';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 
 interface SitemapPage {
   slug: string;
@@ -45,27 +46,31 @@ export async function GET(_req: Request, ctx: RouteCtx) {
     return new Response('Not found', { status: 404 });
   }
 
-  // The storefront origin is the request origin, not the API origin. Reading
-  // env keeps this dev-friendly without leaking the api host into XML.
-  const origin =
-    process.env.NEXT_PUBLIC_WEB_URL ||
-    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
-    'http://localhost:3003';
-  const base = `${origin.replace(/\/$/, '')}/store/${storeSlug}`;
+  // Canonical store base = the subdomain origin (custom_domain wins). The
+  // internal `/store/{slug}` path is a routing detail and must never appear
+  // in the sitemap, otherwise Google crawls the proxy redirect instead.
+  let customDomain: string | null = null;
+  try {
+    const store = (await storefront.getStore(storeSlug)) as { custom_domain?: string | null };
+    customDomain = store?.custom_domain || null;
+  } catch {
+    customDomain = null;
+  }
+  const base = buildStoreOrigin(storeSlug, customDomain);
 
   const allLocales = data.locales.length ? data.locales : [data.primaryLocale];
   const primary = data.primaryLocale || allLocales[0];
 
-  // Build one <url> entry. `path` is everything after /store/<slug>; '' for home.
+  // Build one <url> entry. `path` is subdomain-relative ('' for home, `/p/foo`).
+  // Primary locale = no prefix; secondary locales use `/{locale}/...` (Google
+  // prefers path-prefix over query strings for hreflang).
   function urlEntry(path: string, lastmod: string | Date): string {
-    const localized = (loc: string) =>
-      `${base}${path}${path.includes('?') ? '&' : '?'}lang=${loc}`;
-    const canonical = `${base}${path}${path.includes('?') ? '&' : '?'}lang=${primary}`;
+    const canonical = storeLocalePath(base, primary, primary, path);
 
     const alternates = allLocales
       .map(
         (loc) =>
-          `    <xhtml:link rel="alternate" hreflang="${xe(loc)}" href="${xe(localized(loc))}" />`,
+          `    <xhtml:link rel="alternate" hreflang="${xe(loc)}" href="${xe(storeLocalePath(base, loc, primary, path))}" />`,
       )
       .join('\n');
 

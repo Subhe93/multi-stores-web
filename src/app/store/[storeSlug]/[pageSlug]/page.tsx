@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { storefront } from '@/lib/api';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance } from '@/themes/types';
@@ -45,6 +46,7 @@ interface V2Page {
 interface StoreLite {
   theme_key?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+  custom_domain?: string | null;
 }
 
 interface PageProps {
@@ -76,10 +78,16 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const secondary = store?.language_config?.secondary_locales || [];
   const locale = lang || primaryLocale;
 
-  const path = `/store/${storeSlug}/${pageSlug}`;
+  // Canonical = subdomain URL with primary locale (no prefix). Alternates
+  // use path-prefix `/{locale}/...` for secondary locales.
+  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
+  const subpath = `/${pageSlug}`;
+  const path = storeLocalePath(origin, primaryLocale, primaryLocale, subpath);
   const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
   const languages: Record<string, string> = {};
-  for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+  for (const l of allLocales) {
+    languages[l] = storeLocalePath(origin, l, primaryLocale, subpath);
+  }
 
   if (v2) {
     const tr =

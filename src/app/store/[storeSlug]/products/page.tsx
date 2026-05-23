@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -11,11 +11,6 @@ interface Product {
   compare_at_price?: number;
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
-}
-
-interface Category {
-  id: string;
-  translations: { locale: string; name: string; slug: string }[];
 }
 
 interface CreatorCategory {
@@ -50,9 +45,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   if (category) queryParams.category = category;
   if (creator_category) queryParams.creator_category = creator_category;
 
-  const [products, categories, creatorCategories, storeData] = await Promise.all([
+  // Only the creator's own collections are shown on the storefront — admin/provider
+  // taxonomy categories live at the platform level and don't belong on the store page.
+  const [products, creatorCategories, storeData] = await Promise.all([
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
-    storefront.getCategories(storeSlug) as Promise<Category[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     storefront.getStore(storeSlug) as Promise<{ currency?: string; theme?: { hero?: StoreHero } }>,
   ]);
@@ -183,105 +179,59 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
               return `${lp}/products${qs ? `?${qs}` : ''}`;
             };
 
-            const hasCategories = categories.length > 0;
             const hasCreatorCategories = flatCreatorCategories.length > 0;
-            if (!hasCategories && !hasCreatorCategories) return null;
+            if (!hasCreatorCategories) return null;
 
             return (
               <div className="flex flex-col gap-3 md:flex-1">
-                {/* Global admin categories */}
-                {hasCategories && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
-                    <Link
-                      href={buildFilterUrl({ category: null })}
-                      className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                        !category
-                          ? 'text-white shadow-sm border-transparent'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                      }`}
-                      style={!category ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
-                    >
-                      {t('product.all')}
-                    </Link>
-                    {categories.map((cat) => {
-                      const catTranslation =
-                        cat.translations.find((tr) => tr.locale === locale) ||
-                        cat.translations.find((tr) => tr.locale === 'en') ||
-                        cat.translations[0];
-                      const slug = catTranslation?.slug || cat.id;
-                      const isActive = category === slug;
-
-                      return (
-                        <Link
-                          key={cat.id}
-                          href={buildFilterUrl({ category: slug })}
-                          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                            isActive
-                              ? 'text-white shadow-sm border-transparent'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                          }`}
-                          style={isActive ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' } : {}}
-                        >
-                          {catTranslation?.name || 'Unnamed'}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Visual separator + Store Collections heading */}
-                {hasCreatorCategories && (
-                  <>
-                    {hasCategories && <div className="h-px bg-gray-200 w-full" />}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500 shrink-0 mr-1">
-                        {t('store.store_collections')}
-                      </span>
+                {/* Store Collections — the creator's own categories. Admin/provider
+                    taxonomy is intentionally hidden on the storefront. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wide text-gray-500 shrink-0 mr-1">
+                    {t('store.store_collections')}
+                  </span>
+                  <Link
+                    href={buildFilterUrl({ creator_category: null })}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                      !creator_category
+                        ? 'text-white shadow-sm border-transparent'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    }`}
+                    style={
+                      !creator_category
+                        ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' }
+                        : {}
+                    }
+                  >
+                    {t('product.all')}
+                  </Link>
+                  {flatCreatorCategories.map((cc) => {
+                    const ccTranslation =
+                      cc.translations.find((tr) => tr.locale === locale) ||
+                      cc.translations.find((tr) => tr.locale === 'en') ||
+                      cc.translations[0];
+                    const isActive = creator_category === cc.slug;
+                    return (
                       <Link
-                        href={buildFilterUrl({ creator_category: null })}
+                        key={cc.id}
+                        href={buildFilterUrl({ creator_category: cc.slug })}
                         className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                          !creator_category
+                          isActive
                             ? 'text-white shadow-sm border-transparent'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                        }`}
+                        } ${cc.depth > 0 ? 'ms-4' : ''}`}
                         style={
-                          !creator_category
+                          isActive
                             ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' }
                             : {}
                         }
                       >
-                        {t('product.all')}
+                        {cc.depth > 0 ? '— ' : ''}
+                        {ccTranslation?.name || 'Unnamed'}
                       </Link>
-                      {flatCreatorCategories.map((cc) => {
-                        const ccTranslation =
-                          cc.translations.find((tr) => tr.locale === locale) ||
-                          cc.translations.find((tr) => tr.locale === 'en') ||
-                          cc.translations[0];
-                        const isActive = creator_category === cc.slug;
-                        return (
-                          <Link
-                            key={cc.id}
-                            href={buildFilterUrl({ creator_category: cc.slug })}
-                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                              isActive
-                                ? 'text-white shadow-sm border-transparent'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                            } ${cc.depth > 0 ? 'ms-4' : ''}`}
-                            style={
-                              isActive
-                                ? { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' }
-                                : {}
-                            }
-                          >
-                            {cc.depth > 0 ? '— ' : ''}
-                            {ccTranslation?.name || 'Unnamed'}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+                    );
+                  })}
+                </div>
               </div>
             );
           })()}

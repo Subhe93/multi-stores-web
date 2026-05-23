@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import { storefront } from '@/lib/api';
+import { storefront, legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -158,17 +159,21 @@ export async function generateMetadata({
     const lang = urlLocale || primaryLocale;
     const trans = store.theme?.translations?.[lang];
 
-    // hreflang for every supported locale + x-default → primary. The path used
-    // here is the store root; per-page metadata can override with deeper paths.
-    const path = `/store/${storeSlug}`;
+    // hreflang for every supported locale + x-default → primary. Canonical =
+    // the store's subdomain root with primary locale (no prefix). Secondary
+    // locales use `/{locale}/...` path-prefix form (Google-preferred for hreflang).
+    const origin = buildStoreOrigin(storeSlug, (store as { custom_domain?: string | null }).custom_domain || null);
+    const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, '');
     const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
     const languages: Record<string, string> = {};
-    for (const l of allLocales) languages[l] = `${path}?lang=${l}`;
+    for (const l of allLocales) {
+      languages[l] = storeLocalePath(origin, l, primaryLocale, '');
+    }
 
     return {
       title: trans?.metaTitle || trans?.name || store.name,
       description: trans?.metaDescription || trans?.description || store.description,
-      alternates: { canonical: path, languages },
+      alternates: { canonical, languages },
     };
   } catch {
     return {};
@@ -305,6 +310,21 @@ export default async function StoreLayout({
   // Published static pages forwarded to header and footer
   const pages = store.pages ?? [];
 
+  // Platform legal pages (Privacy / Terms / Refund / Shipping). Fetched here
+  // so the footer renders them with the same localized titles the admin
+  // published. Soft-fail to an empty list so a transient API hiccup never
+  // blanks the storefront.
+  let platformLegalPages: LegalPageSummary[] = [];
+  try {
+    const all = await legal.list(currentLang);
+    const bySlug = new Map(all.map((p) => [p.slug, p] as const));
+    platformLegalPages = LEGAL_SLUGS
+      .map((slug) => bySlug.get(slug))
+      .filter((p): p is LegalPageSummary => !!p);
+  } catch {
+    platformLegalPages = [];
+  }
+
   // Resolve creator collections for the current locale (header dropdown shape).
   const resolveCollectionTitle = (
     translations: { locale: string; name: string }[] | undefined,
@@ -338,13 +358,9 @@ export default async function StoreLayout({
   const contact = store.theme?.contact;
 
   // JSON-LD: Organization + WebSite. Embedded at the storefront root so every
-  // page inside this store inherits them (avoids per-page boilerplate). The
-  // url stays relative to the storefront origin.
-  const storefrontOrigin =
-    process.env.NEXT_PUBLIC_WEB_URL ||
-    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
-    '';
-  const storeUrl = `${storefrontOrigin.replace(/\/$/, '')}/store/${storeSlug}`;
+  // page inside this store inherits them. The url is the store's subdomain
+  // (custom_domain wins) — never the internal /store/{slug} path.
+  const storeUrl = buildStoreOrigin(storeSlug, (store as { custom_domain?: string | null }).custom_domain || null);
   const sameAs = [socials?.instagram, socials?.facebook, socials?.twitter, socials?.tiktok, socials?.youtube]
     .filter((u): u is string => !!u && /^https?:\/\//i.test(u));
   const organizationLd = buildOrganization({
@@ -474,6 +490,7 @@ export default async function StoreLayout({
                     storeName={storeName}
                     primaryColor={primaryColor}
                     pages={pages}
+                    platformLegalPages={platformLegalPages}
                     socials={socials}
                     contact={contact}
                     currentLang={currentLang}
