@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies, headers } from 'next/headers';
-import { storefront } from '@/lib/api';
+import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -95,7 +95,10 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
     openGraph: {
       title: tr?.meta_title || tr?.title || undefined,
       description: tr?.meta_description,
-      images: published.seo?.og_image ? [published.seo.og_image] : undefined,
+      // Absolutize: API stores og_image as a relative `/uploads/...` path. Without
+      // this, external crawlers resolve the URL against the storefront origin
+      // (where the file doesn't exist) and the OG image breaks.
+      images: published.seo?.og_image ? [resolveMediaUrl(published.seo.og_image)] : undefined,
       type: 'website',
     },
     robots: published.seo?.robots,
