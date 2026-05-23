@@ -58,8 +58,14 @@ async function resolveCustomDomainSlug(host: string): Promise<string | null> {
       { cache: 'no-store' },
     );
     if (res.ok) {
-      const body = (await res.json()) as { slug?: string };
-      slug = body.slug ?? null;
+      // API wraps responses via TransformInterceptor: { success, data, timestamp }.
+      // Read `data.slug` first; fall back to a bare `slug` in case the interceptor
+      // is ever disabled for this route.
+      const body = (await res.json()) as {
+        slug?: string;
+        data?: { slug?: string };
+      };
+      slug = body.data?.slug ?? body.slug ?? null;
     }
   } catch {
     // Network error — fall through with slug=null and cache it briefly so we
