@@ -296,11 +296,17 @@ export default async function CollectionPage({
                 product.translations.find((tr) => tr.locale === locale) ||
                 product.translations.find((tr) => tr.locale === 'en') ||
                 product.translations[0];
+              // Use any translation with a non-empty slug for the URL. Secondary-locale
+              // translations sometimes have an empty `slug` (auto-translation may not
+              // fill it), which would otherwise fall through to `product.id` and 404.
+              const slugTr =
+                product.translations.find((tr) => tr.locale === locale && tr.slug) ||
+                product.translations.find((tr) => tr.slug);
 
               return (
                 <ProductCard
                   key={product.id}
-                  href={`${lp}/products/${translation?.slug || product.id}`}
+                  href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
                   comparePrice={
