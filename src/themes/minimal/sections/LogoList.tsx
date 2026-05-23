@@ -14,6 +14,15 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(2, Math.min(8, v));
 }
 
+// Extract a readable host from a URL for use as a link aria-label fallback.
+function safeHost(url: string): string {
+  try {
+    return new URL(url, 'http://x').host;
+  } catch {
+    return '';
+  }
+}
+
 function LogoList({ settings, content, locale }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const items = ((content.items as LogoItem[]) || []).filter((l) => l.image);
@@ -67,10 +76,20 @@ function LogoList({ settings, content, locale }: SectionRenderProps) {
               }
             />
           );
+          // Anonymous-link guard: when alt is empty, fall back to host or
+          // a localized "Open link" so the link has a discernible name.
+          const linkLabel =
+            l.alt?.trim() ||
+            (l.url ? safeHost(l.url) : '') ||
+            (locale === 'ar' ? 'فتح الرابط' : 'Open link');
           return (
             <StaggerItem key={i}>
               {l.url ? (
-                <a href={l.url} className="block hover:opacity-100 [&>img]:hover:grayscale-0 [&>img]:hover:opacity-100">
+                <a
+                  href={l.url}
+                  aria-label={linkLabel}
+                  className="block hover:opacity-100 [&>img]:hover:grayscale-0 [&>img]:hover:opacity-100"
+                >
                   {img}
                 </a>
               ) : (

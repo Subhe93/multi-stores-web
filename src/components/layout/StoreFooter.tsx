@@ -114,7 +114,7 @@ export function StoreFooter({
             <h2 className="text-xl font-bold tracking-tight">
               {storeName}
             </h2>
-            <p className="text-sm text-white/60 leading-relaxed">
+            <p className="text-sm text-white/75 leading-relaxed">
               {t('store.footerTagline')}
             </p>
 
@@ -128,7 +128,9 @@ export function StoreFooter({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"
+                    // 40×40 hit-target — closer to the 44px Lighthouse recommendation
+                    // than the previous 32×32 while staying compact.
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"
                   >
                     {SocialIcons[key]}
                   </a>
@@ -139,7 +141,7 @@ export function StoreFooter({
 
           {/* Column 2: Quick Links */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/70">
               {t('store.quickLinks')}
             </h3>
             <nav className="flex flex-col gap-2">
@@ -179,7 +181,7 @@ export function StoreFooter({
 
           {/* Column 3: Contact */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/70">
               {t('common.contact')}
             </h3>
 
@@ -211,7 +213,7 @@ export function StoreFooter({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-white/40">{t('store.noContactInfo')}</p>
+              <p className="text-sm text-white/70">{t('store.noContactInfo')}</p>
             )}
           </div>
         </div>
@@ -219,13 +221,13 @@ export function StoreFooter({
 
       {/* Bottom bar */}
       <div className="border-t border-white/10">
-        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/40">
+        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/65">
           <span>
             &copy; {year} {storeName}. {t('common.allRightsReserved')}
           </span>
           <span>
             {t('store.poweredBy').split('Multi-Stores')[0]}
-            <span className="font-semibold text-white/60">Multi-Stores</span>
+            <span className="font-semibold text-white/85">Multi-Stores</span>
           </span>
         </div>
       </div>

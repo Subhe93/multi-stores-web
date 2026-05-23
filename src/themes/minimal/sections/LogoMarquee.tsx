@@ -11,6 +11,15 @@ interface LogoItem {
 // Seconds for the track to complete one loop, by speed setting.
 const DURATION: Record<string, number> = { slow: 50, normal: 32, fast: 18 };
 
+// Extract a readable host from a URL for use as a link aria-label fallback.
+function safeHost(url: string): string {
+  try {
+    return new URL(url, 'http://x').host;
+  } catch {
+    return '';
+  }
+}
+
 // Infinite auto-scrolling logo strip (CSS-only marquee). Two copies of the
 // logos slide seamlessly; hovering pauses, and reduced-motion stops it and
 // wraps the logos onto centered rows (see .marquee rules in globals.css).
@@ -50,10 +59,17 @@ function LogoMarquee({ settings, content, locale }: SectionRenderProps) {
         style={grayscale ? { filter: 'grayscale(1)', opacity: 0.65 } : undefined}
       />
     );
+    // Anonymous-link guard: when the creator leaves alt empty, the wrapping
+    // <a> would have no accessible name. Fall back to the host name or a
+    // localized "Open link".
+    const linkLabel =
+      l.alt?.trim() ||
+      (l.url ? safeHost(l.url) : '') ||
+      (locale === 'ar' ? 'فتح الرابط' : 'Open link');
     return (
       <div key={key} className="shrink-0 flex items-center justify-center px-8 [&>img]:hover:grayscale-0 [&>img]:hover:opacity-100">
         {l.url ? (
-          <a href={l.url} className="block">
+          <a href={l.url} className="block" aria-label={linkLabel}>
             {img}
           </a>
         ) : (

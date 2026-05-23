@@ -61,7 +61,20 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
         )}
       </div>
     );
-    return item.href ? <a href={item.href}>{inner}</a> : inner;
+    // Provide a fallback accessible name so the link is never anonymous when
+    // the creator leaves both alt and caption empty (Lighthouse flagged this
+    // as "Links do not have a discernible name").
+    const linkLabel =
+      item.alt?.trim() ||
+      item.caption?.trim() ||
+      (locale === 'ar' ? 'فتح الرابط' : 'Open link');
+    return item.href ? (
+      <a href={item.href} aria-label={linkLabel}>
+        {inner}
+      </a>
+    ) : (
+      inner
+    );
   }
 
   return (
