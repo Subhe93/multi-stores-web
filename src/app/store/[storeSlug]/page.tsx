@@ -375,12 +375,14 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                 product.translations.find((tr) => tr.locale === locale) ||
                 product.translations.find((tr) => tr.locale === 'en') ||
                 product.translations[0];
-              // Use any translation with a non-empty slug for the URL. Secondary-locale
-              // translations sometimes have an empty `slug` (auto-translation may not
-              // fill it), which would otherwise fall through to `product.id` and 404.
+              // Use any translation with a *usable* slug for the URL. Secondary-locale
+              // translations sometimes have a degenerate slug (empty, or a stray "-"
+              // when slugifying a non-Latin title strips everything) — those would
+              // resolve to a 404. We require at least one alphanumeric char.
+              const usable = (s?: string) => !!s && /[a-z0-9]/i.test(s);
               const slugTr =
-                product.translations.find((tr) => tr.locale === locale && tr.slug) ||
-                product.translations.find((tr) => tr.slug);
+                product.translations.find((tr) => tr.locale === locale && usable(tr.slug)) ||
+                product.translations.find((tr) => usable(tr.slug));
 
               return (
                 <ProductCard
