@@ -17,7 +17,7 @@ import { validateEmail, validatePhone } from '@/lib/validators';
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
 interface OrderResponse { id: string; order_number?: string }
-interface PaymentConfig { stripeConfigured: boolean; publishableKey: string | null }
+interface PaymentConfig { stripeConfigured: boolean; publishableKey: string | null; stripeAccount: string | null }
 interface SavedAddress {
   id: string;
   full_name?: string;
@@ -45,6 +45,29 @@ const COUNTRIES = [
   { code: 'OM', name: 'Oman' }, { code: 'IQ', name: 'Iraq' },
   { code: 'LB', name: 'Lebanon' },
 ];
+
+// ── Store slug resolution ─────────────────────────────────────────────────────
+// Resolve store slug from subdomain (usePathname returns the user-visible URL
+// after middleware rewrite, e.g. "/checkout" not "/store/ahmed-design/checkout",
+// so we must read from the hostname instead).
+const PLATFORM_DOMAINS = ['localhost', 'platform.com', 'www.platform.com'];
+function resolveStoreSlug(pathname: string): string {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (PLATFORM_DOMAINS.includes(hostname)) return '';
+    const parts = hostname.split('.');
+    return parts.length >= 2 ? parts[0]! : '';
+  }
+  return pathname.match(/\/store\/([^/]+)/)?.[1] || '';
+}
+
+// Build the payment-config endpoint, scoped to the current store when known so
+// the API can return the store's connected-account details (independent stores).
+function paymentConfigPath(storeSlug: string): string {
+  return storeSlug
+    ? `/payments/config?store=${encodeURIComponent(storeSlug)}`
+    : '/payments/config';
+}
 
 // ── Input style helper ────────────────────────────────────────────────────────
 const inputCls = (err?: boolean) =>
@@ -261,18 +284,7 @@ function CheckoutForm() {
   const { token, user, login, register } = useAuth();
   const { items, subtotal, total, coupon, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
 
-  // Resolve store slug from subdomain (usePathname returns the user-visible URL
-  // after middleware rewrite, e.g. "/checkout" not "/store/ahmed-design/checkout",
-  // so we must read from the hostname instead).
-  const PLATFORM_DOMAINS = ['localhost', 'platform.com', 'www.platform.com'];
-  const storeSlug = typeof window !== 'undefined'
-    ? (() => {
-        const hostname = window.location.hostname;
-        if (PLATFORM_DOMAINS.includes(hostname)) return '';
-        const parts = hostname.split('.');
-        return parts.length >= 2 ? parts[0]! : '';
-      })()
-    : pathname.match(/\/store\/([^/]+)/)?.[1] || '';
+  const storeSlug = resolveStoreSlug(pathname);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -412,7 +424,7 @@ function CheckoutForm() {
         } catch { /* ignore */ }
       }
       try {
-        const config = await api<PaymentConfig>('/payments/config');
+        const config = await api<PaymentConfig>(paymentConfigPath(storeSlug));
         // Card is offered only when Stripe is configured platform-wide AND the
         // store creator can accept charges.
         setStripeAvailable(config.stripeConfigured && storeCardEnabled);
@@ -1042,16 +1054,20 @@ function CheckoutForm() {
 
 // ── Stripe wrapper ─────────────────────────────────────────────────────────────
 function CheckoutWithStripe() {
+  const pathname = usePathname();
+  const storeSlug = resolveStoreSlug(pathname);
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof getStripe>>(null);
   useEffect(() => {
     // The publishable key is admin-managed and served by the API, so load
     // Stripe.js with the key returned by /payments/config (not a build-time env).
-    api<PaymentConfig>('/payments/config')
+    // Independent stores charge directly on the owner's connected account, so
+    // Stripe.js must be initialised with that same `stripeAccount`.
+    api<PaymentConfig>(paymentConfigPath(storeSlug))
       .then((cfg) => {
-        if (cfg.publishableKey) setStripePromise(getStripe(cfg.publishableKey));
+        if (cfg.publishableKey) setStripePromise(getStripe(cfg.publishableKey, cfg.stripeAccount));
       })
       .catch(() => { /* Stripe stays unavailable; checkout falls back to COD */ });
-  }, []);
+  }, [storeSlug]);
   return (
     <Elements stripe={stripePromise}>
       <CheckoutForm />
