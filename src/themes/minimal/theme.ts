@@ -4,6 +4,11 @@ import { MinimalLayout } from './Layout';
 import { heroBannerSection } from './sections/HeroBanner';
 import { heroSliderSection } from './sections/HeroSlider';
 import { auroraHeroSection } from './sections/AuroraHero';
+import { heroVideoSection } from './sections/HeroVideo';
+import { parallaxBannerSection } from './sections/ParallaxBanner';
+import { beforeAfterSection } from './sections/BeforeAfter';
+import { imageHotspotsSection } from './sections/ImageHotspots';
+import { masonryGallerySection } from './sections/MasonryGallery';
 import { bentoGridSection } from './sections/BentoGrid';
 import { animatedFeaturesSection } from './sections/AnimatedFeatures';
 import { marqueeTextSection } from './sections/MarqueeText';
@@ -23,6 +28,12 @@ import { announcementBarSection } from './sections/chrome/AnnouncementBar';
 import { megaMenuSection } from './sections/chrome/MegaMenu';
 import { mobileBottomNavSection } from './sections/chrome/MobileBottomNav';
 import { testimonialsSection } from './sections/Testimonials';
+import { heroSplitSection } from './sections/HeroSplit';
+import { testimonialCarouselSection } from './sections/TestimonialCarousel';
+import { teamGridSection } from './sections/TeamGrid';
+import { timelineSection } from './sections/Timeline';
+import { pricingTableSection } from './sections/PricingTable';
+import { quoteBannerSection } from './sections/QuoteBanner';
 import { logoListSection } from './sections/LogoList';
 import { logoMarqueeSection } from './sections/LogoMarquee';
 import { stickyCtaBarSection } from './sections/StickyCtaBar';
@@ -59,6 +70,11 @@ export const minimalTheme: Theme = {
     'hero-banner': heroBannerSection,
     'hero-slider': heroSliderSection,
     'aurora-hero': auroraHeroSection,
+    'hero-video': heroVideoSection,
+    'parallax-banner': parallaxBannerSection,
+    'before-after': beforeAfterSection,
+    'image-hotspots': imageHotspotsSection,
+    'masonry-gallery': masonryGallerySection,
     'bento-grid': bentoGridSection,
     'animated-features': animatedFeaturesSection,
     'marquee-text': marqueeTextSection,
@@ -70,6 +86,12 @@ export const minimalTheme: Theme = {
     'call-to-action': callToActionSection,
     'trust-badges': trustBadgesSection,
     'testimonials': testimonialsSection,
+    'hero-split': heroSplitSection,
+    'testimonial-carousel': testimonialCarouselSection,
+    'team-grid': teamGridSection,
+    'timeline': timelineSection,
+    'pricing-table': pricingTableSection,
+    'quote-banner': quoteBannerSection,
     'logo-list': logoListSection,
     'logo-marquee': logoMarqueeSection,
     'sticky-cta-bar': stickyCtaBarSection,
