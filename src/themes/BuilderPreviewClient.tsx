@@ -41,7 +41,12 @@ interface ScrollMessage {
   section_id: string;
 }
 
-type IncomingMessage = UpdateMessage | ScrollMessage;
+interface SelectMessage {
+  type: 'SELECT_SECTION';
+  section_id: string | null;
+}
+
+type IncomingMessage = UpdateMessage | ScrollMessage | SelectMessage;
 
 /**
  * Builder preview shell. Renders sections through the active theme's registry
@@ -50,6 +55,9 @@ type IncomingMessage = UpdateMessage | ScrollMessage;
  */
 export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClientProps) {
   const [state, setState] = useState<InitialPreviewState>(initial);
+  // Section currently selected in the builder — outlined so the creator can
+  // see exactly which block they are editing.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     function onMessage(e: MessageEvent<IncomingMessage>) {
@@ -86,6 +94,8 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           `[data-section-id="${data.section_id}"]`,
         );
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (data.type === 'SELECT_SECTION') {
+        setSelectedId(data.section_id ?? null);
       }
     }
 
@@ -130,6 +140,10 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   );
   const cssVars = useMemo(() => tokensToCssVars(tokens), [tokens]);
 
+  // Only [a-zA-Z0-9_-] can appear in section ids (uuids); strip anything else
+  // so the injected CSS selector cannot be broken out of.
+  const safeSelectedId = selectedId?.replace(/[^a-zA-Z0-9_-]/g, '') || null;
+
   return (
     <div
       data-theme={theme.key}
@@ -138,6 +152,24 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       className="store-root"
       style={cssVars as CSSProperties}
     >
+      {/* Builder-only affordances: a subtle dashed outline on hover so blocks
+          read as clickable, and a solid indigo frame + corner glow on the
+          selected section so the creator always knows what they're editing. */}
+      <style>{`
+        [data-section-id] { cursor: pointer; transition: outline-color 120ms ease, box-shadow 120ms ease; outline: 1px dashed transparent; outline-offset: -1px; }
+        [data-section-id]:hover { outline-color: rgba(99, 102, 241, 0.55); }
+      `}</style>
+      {safeSelectedId && (
+        <style>{`
+          [data-section-id="${safeSelectedId}"],
+          [data-section-id="${safeSelectedId}"]:hover {
+            outline: 2px solid #6366f1;
+            outline-offset: -2px;
+            box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.12), 0 0 0 3px rgba(99, 102, 241, 0.18);
+            border-radius: 2px;
+          }
+        `}</style>
+      )}
       {/* Render through theme.Layout so creators see exactly the page chrome
           their theme provides (decorative strips, spacing, padding). No
           header/footer slots — preview is a clean canvas for editing. */}
