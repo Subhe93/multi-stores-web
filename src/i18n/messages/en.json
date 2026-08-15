@@ -465,5 +465,12 @@
     "PAGE_BUILDER_PAGE_NOT_FOUND": "Page not found",
     "CUSTOM_FIELD_PRODUCT_NOT_FOUND": "Product not found",
     "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attribute template not found"
+  },
+  "builderPreview": {
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "duplicate": "Duplicate",
+    "hide": "Hide",
+    "delete": "Delete"
   }
 }

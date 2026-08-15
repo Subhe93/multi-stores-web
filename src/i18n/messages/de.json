@@ -465,5 +465,12 @@
     "PAGE_BUILDER_PAGE_NOT_FOUND": "Seite nicht gefunden",
     "CUSTOM_FIELD_PRODUCT_NOT_FOUND": "Produkt nicht gefunden",
     "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attributvorlage nicht gefunden"
+  },
+  "builderPreview": {
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "duplicate": "Duplizieren",
+    "hide": "Ausblenden",
+    "delete": "Löschen"
   }
 }

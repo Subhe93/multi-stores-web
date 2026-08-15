@@ -465,5 +465,12 @@
     "PAGE_BUILDER_PAGE_NOT_FOUND": "Sayfa bulunamadı",
     "CUSTOM_FIELD_PRODUCT_NOT_FOUND": "Ürün bulunamadı",
     "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Öznitelik şablonu bulunamadı"
+  },
+  "builderPreview": {
+    "moveUp": "Yukarı taşı",
+    "moveDown": "Aşağı taşı",
+    "duplicate": "Çoğalt",
+    "hide": "Gizle",
+    "delete": "Sil"
   }
 }

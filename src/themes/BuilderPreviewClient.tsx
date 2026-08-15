@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useTranslations } from 'next-intl';
+import { ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
@@ -170,6 +172,9 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           }
         `}</style>
       )}
+      {safeSelectedId && (
+        <SectionToolbar sectionId={safeSelectedId} sections={state.sections} />
+      )}
       {/* Render through theme.Layout so creators see exactly the page chrome
           their theme provides (decorative strips, spacing, padding). No
           header/footer slots — preview is a clean canvas for editing. */}
@@ -198,6 +203,119 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           />
         )}
       </theme.Layout>
+    </div>
+  );
+}
+
+/**
+ * Floating action toolbar pinned to the selected section. Buttons post
+ * SECTION_ACTION messages back to the dashboard, which owns the actual
+ * mutations (duplicate / hide / delete / reorder) and undo history.
+ */
+function SectionToolbar({
+  sectionId,
+  sections,
+}: {
+  sectionId: string;
+  sections: SectionInstance[];
+}) {
+  const t = useTranslations('builderPreview');
+  const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Track the selected section's viewport position. `sections` is a dep so a
+  // content update that re-renders (or replaces) the wrapper re-measures.
+  useEffect(() => {
+    const el = document.querySelector(`[data-section-id="${sectionId}"]`) as HTMLElement | null;
+    if (!el) {
+      setRect(null);
+      return;
+    }
+    let frame = 0;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width });
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener('scroll', schedule, true);
+    window.addEventListener('resize', schedule);
+    const ro = new ResizeObserver(schedule);
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule, true);
+      window.removeEventListener('resize', schedule);
+      ro.disconnect();
+    };
+  }, [sectionId, sections]);
+
+  if (!rect) return null;
+
+  const send = (action: string) => (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.parent?.postMessage({ type: 'SECTION_ACTION', section_id: sectionId, action }, '*');
+  };
+
+  const buttons = [
+    { action: 'move-up', title: t('moveUp'), Icon: ChevronUp },
+    { action: 'move-down', title: t('moveDown'), Icon: ChevronDown },
+    { action: 'duplicate', title: t('duplicate'), Icon: Copy },
+    { action: 'hide', title: t('hide'), Icon: EyeOff },
+    { action: 'delete', title: t('delete'), Icon: Trash2 },
+  ];
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: Math.max(rect.top, 0) + 8,
+        left: rect.left + rect.width / 2,
+        transform: 'translateX(-50%)',
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        padding: '4px 6px',
+        borderRadius: 999,
+        background: 'rgba(24, 24, 27, 0.92)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      {buttons.map(({ action, title, Icon }) => (
+        <button
+          key={action}
+          type="button"
+          title={title}
+          aria-label={title}
+          onClick={send(action)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 26,
+            height: 26,
+            borderRadius: 999,
+            color: action === 'delete' ? '#f87171' : '#fff',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background 120ms ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <Icon size={14} />
+        </button>
+      ))}
     </div>
   );
 }
