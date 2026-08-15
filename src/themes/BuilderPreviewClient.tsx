@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
@@ -60,6 +60,11 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   // Section currently selected in the builder — outlined so the creator can
   // see exactly which block they are editing.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Fresh state for listeners registered once (inline editing).
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     function onMessage(e: MessageEvent<IncomingMessage>) {
@@ -114,6 +119,8 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   useEffect(() => {
     function onClick(e: MouseEvent) {
       const target = e.target as HTMLElement | null;
+      // Don't re-fire selection while an inline edit is in progress.
+      if (target?.isContentEditable) return;
       const node = target?.closest('[data-section-id]') as HTMLElement | null;
       if (!node) return;
       const anchor = target?.closest('a') as HTMLAnchorElement | null;
@@ -133,6 +140,123 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('submit', onSubmit, true);
     };
+  }, []);
+
+  // Inline editing: double-click a piece of text inside a section, edit it in
+  // place, and the committed value is patched back through the dashboard.
+  // The clicked element's text is matched against the section's resolved
+  // content (top-level strings + repeater item strings) to find its field.
+  useEffect(() => {
+    function resolveContent(sectionId: string): Record<string, unknown> | null {
+      const section = stateRef.current.sections.find((s) => s.id === sectionId);
+      if (!section) return null;
+      const rows = Array.isArray(section.translations) ? section.translations : [];
+      return (
+        rows.find((r) => r.locale === stateRef.current.locale)?.content ??
+        rows.find((r) => r.locale === stateRef.current.primaryLocale)?.content ??
+        rows[0]?.content ??
+        null
+      );
+    }
+
+    function findEditablePath(
+      content: Record<string, unknown>,
+      text: string,
+    ): (string | number)[] | null {
+      for (const [key, value] of Object.entries(content)) {
+        if (typeof value === 'string' && value.trim() && value.trim() === text) return [key];
+        if (Array.isArray(value)) {
+          for (let i = 0; i < value.length; i++) {
+            const item = value[i];
+            if (!item || typeof item !== 'object') continue;
+            for (const [subKey, subValue] of Object.entries(item as Record<string, unknown>)) {
+              if (typeof subValue === 'string' && subValue.trim() && subValue.trim() === text) {
+                return [key, i, subKey];
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function startEdit(el: HTMLElement, sectionId: string, path: (string | number)[]) {
+      const original = el.innerText;
+      el.setAttribute('contenteditable', 'plaintext-only');
+      // Older engines that reject 'plaintext-only' fall back to 'true'.
+      if (!el.isContentEditable) el.setAttribute('contenteditable', 'true');
+      el.style.outline = '2px dashed #6366f1';
+      el.style.outlineOffset = '2px';
+      el.style.cursor = 'text';
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+
+      let finished = false;
+      const finish = (commit: boolean) => {
+        if (finished) return;
+        finished = true;
+        el.removeAttribute('contenteditable');
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        el.style.cursor = '';
+        el.removeEventListener('blur', onBlur);
+        el.removeEventListener('keydown', onKey);
+        const value = el.innerText.trim();
+        if (!commit || value === original.trim()) {
+          el.innerText = original;
+          return;
+        }
+        window.parent?.postMessage(
+          { type: 'INLINE_EDIT', section_id: sectionId, path, value },
+          '*',
+        );
+      };
+      const onBlur = () => finish(true);
+      const onKey = (ke: KeyboardEvent) => {
+        if (ke.key === 'Enter' && !ke.shiftKey) {
+          ke.preventDefault();
+          finish(true);
+        } else if (ke.key === 'Escape') {
+          ke.preventDefault();
+          finish(false);
+        }
+      };
+      el.addEventListener('blur', onBlur);
+      el.addEventListener('keydown', onKey);
+    }
+
+    function onDblClick(e: MouseEvent) {
+      const target = e.target as HTMLElement | null;
+      if (!target || target.isContentEditable) return;
+      const wrapper = target.closest('[data-section-id]') as HTMLElement | null;
+      const sectionId = wrapper?.dataset.sectionId;
+      if (!wrapper || !sectionId) return;
+      const content = resolveContent(sectionId);
+      if (!content) return;
+      // Walk from the clicked node up to the wrapper looking for an element
+      // whose text matches a content field exactly.
+      let el: HTMLElement | null = target;
+      while (el && el !== wrapper) {
+        const text = el.innerText?.trim();
+        if (text) {
+          const path = findEditablePath(content, text);
+          if (path) {
+            e.preventDefault();
+            e.stopPropagation();
+            startEdit(el, sectionId, path);
+            return;
+          }
+        }
+        el = el.parentElement;
+      }
+    }
+
+    document.addEventListener('dblclick', onDblClick, true);
+    return () => document.removeEventListener('dblclick', onDblClick, true);
   }, []);
 
   const theme = useMemo(() => resolveTheme(state.themeKey), [state.themeKey]);
