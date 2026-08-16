@@ -76,6 +76,7 @@ interface ProductData {
     style: string;
     colorMap?: Record<string, string>;
     dualColorMap?: Record<string, [string, string]>;
+    imageMap?: Record<string, string>;
   }[];
   shipping_profile?: {
     name: string;
@@ -217,6 +218,9 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('description');
   const [selectedBundleOfferId, setSelectedBundleOfferId] = useState<string | null>(null);
+  // Partial option picks (e.g. color chosen, size pending) — drives the
+  // gallery via value-level images before a full variant is resolved.
+  const [optionSelections, setOptionSelections] = useState<Record<string, string>>({});
 
   // ── Memos ─────────────────────────────────────────────
 
@@ -233,31 +237,55 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
   }, [selectedVariantId, variants]);
 
   const galleryImages = useMemo(() => {
+    const alt = translation?.title || '';
+    // Priority: variant-specific images (per-combination override), then
+    // value-level images of the currently picked options (Shopify-style: one
+    // image per color, shared by every size), then the product gallery.
+    const prioritized: { id: string; url: string; alt: string }[] = [];
+
+    if (selectedVariant?.images?.length) {
+      selectedVariant.images.forEach((img, i) => {
+        prioritized.push({
+          id: `variant-${selectedVariant.id}-${i}`,
+          url: resolveMediaUrl(img.url),
+          alt,
+        });
+      });
+    }
+
+    for (const cfg of product.variant_option_config || []) {
+      const picked = optionSelections[cfg.name];
+      const valueImage = picked ? cfg.imageMap?.[picked] : undefined;
+      if (valueImage) {
+        prioritized.push({
+          id: `option-${cfg.name}-${picked}`,
+          url: resolveMediaUrl(valueImage),
+          alt: `${alt} — ${picked}`,
+        });
+      }
+    }
+
     const baseImages = (product.images || []).map((img, i) => ({
       id: img.id || `img-${i}`,
       url: resolveMediaUrl(img.url),
-      alt: img.alt || img.alt_text || translation?.title || '',
+      alt: img.alt || img.alt_text || alt,
     }));
 
-    if (selectedVariant?.images?.length) {
-      const variantImgs = selectedVariant.images.map((img, i) => ({
-        id: `variant-${selectedVariant.id}-${i}`,
-        url: resolveMediaUrl(img.url),
-        alt: translation?.title || '',
-      }));
-      const variantUrls = new Set(variantImgs.map((i) => i.url));
-      const filteredBase = baseImages.filter((i) => !variantUrls.has(i.url));
-      return [...variantImgs, ...filteredBase];
-    }
+    // Dedupe by URL, first occurrence wins (prioritized images stay on top).
+    const seen = new Set<string>();
+    return [...prioritized, ...baseImages].filter((img) => {
+      if (seen.has(img.url)) return false;
+      seen.add(img.url);
+      return true;
+    });
+  }, [product.images, product.variant_option_config, selectedVariant, optionSelections, translation]);
 
-    return baseImages;
-  }, [product.images, selectedVariant, translation]);
-
+  // Jump back to the first image whenever the gallery's lead image changes
+  // (variant picked or a value-level image surfaced).
+  const leadImageUrl = galleryImages[0]?.url;
   useEffect(() => {
-    if (selectedVariant?.images?.length) {
-      setActiveGalleryIndex(0);
-    }
-  }, [selectedVariantId]); // eslint-disable-line react-hooks/exhaustive-deps
+    setActiveGalleryIndex(0);
+  }, [leadImageUrl]);
 
   const baseUnitPrice = useMemo(() => {
     return selectedVariant ? Number(selectedVariant.price) : Number(product.base_price);
@@ -724,6 +752,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
                 variants={variants}
                 selectedVariantId={selectedVariantId}
                 onSelect={setSelectedVariantId}
+                onSelectionsChange={setOptionSelections}
                 inStockText={t('product.inStock')}
                 outOfStockText={t('product.outOfStock')}
                 optionConfigs={product.variant_option_config}

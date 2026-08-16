@@ -51,6 +51,9 @@ interface OptionConfig {
   style: string;
   colorMap?: Record<string, string>;
   dualColorMap?: Record<string, [string, string]>;
+  // Value-level image (one per option value, e.g. per color) — set in the
+  // dashboard and shared by every variant carrying that value.
+  imageMap?: Record<string, string>;
 }
 
 interface Variant {
@@ -69,6 +72,9 @@ interface VariantSelectorProps {
   inStockText?: string;
   outOfStockText?: string;
   optionConfigs?: OptionConfig[];
+  // Fires on every option click with the partial selection (e.g. color chosen,
+  // size not yet) — lets the gallery react before a full variant is resolved.
+  onSelectionsChange?: (selections: Record<string, string>) => void;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -80,6 +86,7 @@ export function VariantSelector({
   inStockText = 'In Stock',
   outOfStockText = 'Out of Stock',
   optionConfigs,
+  onSelectionsChange,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
   const optionGroups = useMemo(() => {
@@ -127,6 +134,7 @@ export function VariantSelector({
   const handleSelect = (key: string, value: string) => {
     const next = { ...selections, [key]: value };
     setSelections(next);
+    onSelectionsChange?.(next);
     const allKeys = Object.keys(optionGroups);
     if (allKeys.every((k) => k in next)) {
       const matched = variants.find((v) => allKeys.every((k) => v.options[k] === next[k]));
@@ -134,7 +142,10 @@ export function VariantSelector({
     }
   };
 
-  const handleClear = () => setSelections({});
+  const handleClear = () => {
+    setSelections({});
+    onSelectionsChange?.({});
+  };
   const hasSelections = Object.keys(selections).length > 0;
 
   const getStyle = (key: string): 'color' | 'image' | 'text' => {
@@ -146,6 +157,10 @@ export function VariantSelector({
   };
 
   const findVariantImage = (key: string, value: string): string | undefined => {
+    // Value-level image from the option config wins; fall back to the first
+    // variant that carries this value and has its own image.
+    const configured = configByName[key]?.imageMap?.[value];
+    if (configured) return configured;
     const v = variants.find((v) => v.options[key] === value && v.images?.length);
     return v?.images?.[0]?.url;
   };
