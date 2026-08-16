@@ -138,13 +138,13 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             )}
             {lang && <input type="hidden" name="lang" value={lang} />}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Search className="absolute inset-s-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 name="search"
                 defaultValue={search || ''}
                 placeholder={t('product.searchPlaceholder')}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:border-transparent shadow-sm"
+                className="w-full ps-10 pe-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:border-transparent shadow-sm"
                 style={{ '--tw-ring-color': 'var(--store-primary, #2563eb)' } as React.CSSProperties}
               />
             </div>
@@ -256,18 +256,20 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             { value: 'newest', label: t('product.sortNewest') },
           ];
           return (
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-sm text-gray-500">
+            // Stacks on mobile: the four sort pills don't fit beside the count
+            // on narrow screens, and an unwrapped row would overflow the page.
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <p className="text-sm text-gray-500 shrink-0">
                 {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
               </p>
-              <div className="flex items-center gap-1.5">
-                <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                <div className="flex gap-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <div className="flex flex-wrap gap-1">
                   {sortOptions.map((opt) => (
                     <Link
                       key={opt.value}
                       href={buildSortUrl(opt.value)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
                         (sort || '') === opt.value
                           ? 'text-white border-transparent shadow-sm'
                           : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
