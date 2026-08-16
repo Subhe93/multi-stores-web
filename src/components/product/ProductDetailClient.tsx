@@ -962,7 +962,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
             {/* Description tab */}
             {activeTab === 'description' && translation?.description && (
               <div
-                className="prose prose-gray prose-sm max-w-none text-gray-600 leading-relaxed"
+                className="prose prose-gray prose-sm max-w-none text-gray-600 leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto [&_iframe]:max-w-full [&_pre]:overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: translation.description }}
               />
             )}
