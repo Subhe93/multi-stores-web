@@ -164,7 +164,9 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    // min-w-0 keeps the thumbnail strip's intrinsic width (72px × count) from
+    // propagating up and widening the page on mobile.
+    <div className="flex flex-col gap-3 min-w-0 max-w-full">
       {/* Main image container */}
       <div
         ref={mainRef}
@@ -263,7 +265,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
 
       {/* Thumbnail strip */}
       {hasMultiple && (
-        <div className="relative group/thumbs">
+        <div className="relative group/thumbs min-w-0 max-w-full">
           <div
             ref={thumbRef}
             className="flex gap-2 overflow-x-auto scrollbar-none pb-1 scroll-smooth"

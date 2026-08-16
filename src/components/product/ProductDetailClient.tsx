@@ -543,9 +543,14 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
 
   return (
     <>
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-14">
+      {/* grid-cols-1 is explicit so the mobile track is minmax(0,1fr): a bare
+          `grid` auto track sizes to content, and the thumbnail strip's
+          min-content width (72px × image count) would push the whole page
+          wider than the viewport and clip the right side. min-w-0 on both
+          children stops the same min-content propagation at the item level. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14">
         {/* ─── Left: Gallery ─── */}
-        <div className="md:sticky md:top-24 md:self-start">
+        <div className="min-w-0 md:sticky md:top-24 md:self-start">
           <ProductGallery
             images={galleryImages}
             activeIndex={activeGalleryIndex}
@@ -554,7 +559,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
         </div>
 
         {/* ─── Right: Product Info ─── */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 min-w-0">
 
           {/* Creator collection (above title) */}
           {product.creator_categories && product.creator_categories.length > 0 && (() => {
