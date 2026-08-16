@@ -27,6 +27,9 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
   const thumbRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  // A completed swipe fires a click right after touchend on mobile — this flag
+  // suppresses that click so swiping never opens/closes the lightbox.
+  const didSwipe = useRef(false);
 
   // Use controlled or internal index
   const selectedIndex = activeIndex !== undefined ? activeIndex : internalIndex;
@@ -123,9 +126,21 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     // Only swipe if horizontal movement is dominant
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      didSwipe.current = true;
       if (deltaX < 0) goNext();
       else goPrev();
     }
+  }
+
+  // Swallow the click that follows a swipe; let real taps through.
+  function guardedClick(action: () => void) {
+    return () => {
+      if (didSwipe.current) {
+        didSwipe.current = false;
+        return;
+      }
+      action();
+    };
   }
 
   // Zoom handlers (desktop only)
@@ -159,7 +174,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={() => setLightboxOpen(true)}
+        onClick={guardedClick(() => setLightboxOpen(true))}
       >
         {/* Product image */}
         <img
@@ -190,7 +205,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 aria-label={t('product.previousImage')}
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -200,7 +215,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 aria-label={t('product.nextImage')}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -213,7 +228,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
-          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
           aria-label={t('product.viewFullScreen')}
         >
           <Maximize2 className="w-4 h-4" />
@@ -291,7 +306,9 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
       {lightboxOpen && (
         <div
           className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
-          onClick={() => setLightboxOpen(false)}
+          onClick={guardedClick(() => setLightboxOpen(false))}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           role="dialog"
           aria-modal="true"
           aria-label={t('product.imageViewer')}
@@ -309,7 +326,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
             src={currentImage.url}
             alt={currentImage.alt ?? t('product.productImage')}
             className="max-h-[90vh] max-w-[92vw] object-contain select-none"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); didSwipe.current = false; }}
             draggable={false}
           />
 

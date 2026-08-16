@@ -152,13 +152,13 @@ function ProductTabs({
   onTabChange: (id: TabId) => void;
 }) {
   return (
-    <div className="flex border-b border-gray-200">
+    <div className="flex border-b border-gray-200 overflow-x-auto">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onTabChange(tab.id)}
-          className={`relative px-5 py-3 text-sm font-medium transition-colors ${
+          className={`relative shrink-0 whitespace-nowrap px-5 py-3 text-sm font-medium transition-colors ${
             activeTab === tab.id
               ? 'text-gray-900'
               : 'text-gray-400 hover:text-gray-600'
@@ -811,7 +811,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <QuantitySelector
                 value={quantity}
                 onChange={handleQuantityChange}
@@ -824,7 +824,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isAddDisabled || addingToCart}
-                className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
+                className={`flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
                   addedToCart
                     ? 'bg-green-600 text-white scale-[1.02]'
                     : isAddDisabled
@@ -969,7 +969,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
 
             {/* Specifications tab */}
             {activeTab === 'specifications' && product.attributes && product.attributes.length > 0 && (
-              <div className="rounded-xl border border-gray-200 overflow-hidden max-w-2xl">
+              <div className="rounded-xl border border-gray-200 overflow-x-auto max-w-2xl">
                 <table className="w-full text-sm border-collapse">
                   <tbody>
                     {product.attributes.map((attr, i) => {
@@ -982,7 +982,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
                           <td className="px-4 py-3 text-gray-500 font-medium w-2/5 border-b border-gray-100">
                             {attrLabel}
                           </td>
-                          <td className="px-4 py-3 text-gray-900 font-semibold border-b border-gray-100">
+                          <td className="px-4 py-3 text-gray-900 font-semibold border-b border-gray-100 wrap-break-word">
                             {renderAttrValue(attr)}
                           </td>
                         </tr>
