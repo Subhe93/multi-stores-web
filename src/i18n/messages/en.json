@@ -200,6 +200,7 @@
     "stripeNotConfigured": "Card payments coming soon",
     "noPaymentMethods": "No payment methods are currently available for this store. Please try again later.",
     "paymentFailed": "Payment failed. Please try again.",
+    "storeNotReady": "Still loading store details. Please try again in a moment.",
     "information": "Information",
     "shipping": "Shipping",
     "continueToShipping": "Continue to Shipping",
@@ -312,10 +313,13 @@
     "PENDING": "Pending",
     "CONFIRMED": "Confirmed",
     "PROCESSING": "Processing",
+    "MANUFACTURING": "Manufacturing",
+    "QUALITY_CHECK": "Quality check",
     "SHIPPED": "Shipped",
     "DELIVERED": "Delivered",
     "CANCELLED": "Cancelled",
-    "REFUNDED": "Refunded"
+    "REFUNDED": "Refunded",
+    "RETURNED": "Returned"
   },
   "store": {
     "poweredBy": "Powered by Multi-Stores",

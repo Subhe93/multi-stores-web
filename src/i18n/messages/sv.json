@@ -200,6 +200,7 @@
     "stripeNotConfigured": "Kortbetalningar kommer snart",
     "noPaymentMethods": "Inga betalningsmetoder är tillgängliga för denna butik just nu. Försök igen senare.",
     "paymentFailed": "Betalningen misslyckades. Försök igen.",
+    "storeNotReady": "Butiksinformationen laddas fortfarande. Försök igen om en stund.",
     "information": "Information",
     "shipping": "Frakt",
     "continueToShipping": "Fortsätt till frakt",
@@ -312,10 +313,13 @@
     "PENDING": "Väntande",
     "CONFIRMED": "Bekräftad",
     "PROCESSING": "Behandlas",
+    "MANUFACTURING": "Tillverkas",
+    "QUALITY_CHECK": "Kvalitetskontroll",
     "SHIPPED": "Skickad",
     "DELIVERED": "Levererad",
     "CANCELLED": "Avbruten",
-    "REFUNDED": "Återbetald"
+    "REFUNDED": "Återbetald",
+    "RETURNED": "Returnerad"
   },
   "store": {
     "poweredBy": "Drivs av Multi-Stores",

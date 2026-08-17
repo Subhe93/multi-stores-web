@@ -200,6 +200,7 @@
     "stripeNotConfigured": "الدفع بالبطاقة قريباً",
     "noPaymentMethods": "لا تتوفر طرق دفع لهذا المتجر حالياً. يرجى المحاولة لاحقاً.",
     "paymentFailed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
+    "storeNotReady": "ما زال يتم تحميل بيانات المتجر. يرجى المحاولة بعد لحظات.",
     "information": "المعلومات",
     "shipping": "الشحن",
     "continueToShipping": "متابعة إلى الشحن",
@@ -312,10 +313,13 @@
     "PENDING": "قيد الانتظار",
     "CONFIRMED": "مؤكد",
     "PROCESSING": "قيد التجهيز",
+    "MANUFACTURING": "قيد التصنيع",
+    "QUALITY_CHECK": "فحص الجودة",
     "SHIPPED": "تم الشحن",
     "DELIVERED": "تم التوصيل",
     "CANCELLED": "ملغي",
-    "REFUNDED": "مسترد"
+    "REFUNDED": "مسترد",
+    "RETURNED": "مرتجع"
   },
   "store": {
     "poweredBy": "يعمل بواسطة Multi-Stores",

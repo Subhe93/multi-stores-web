@@ -190,16 +190,33 @@ html, body {
   transform: none;
 }
 
-/* Soft hover lift for cards/tiles — pairs with the rounded theme tokens. */
-.card-lift {
+/* Soft hover lift for cards/tiles — pairs with the rounded theme tokens.
+   Only for elements that actually have a surface (background + padding);
+   a shadow on a bare, padding-less wrapper draws a hard rectangle right
+   against the text. Product tiles use .card-media-lift below instead. */
+.card-lift,
+.card-media-lift {
   transition:
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
-.card-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--theme-shadow-lg, 0 12px 32px rgb(0 0 0 / 0.1));
+
+/* Hover-capable pointers only. On touch, :hover sticks after a tap and leaves
+   the lifted shadow stuck on the last card the visitor touched. */
+@media (hover: hover) and (pointer: fine) {
+  .card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--theme-shadow-lg, 0 12px 32px rgb(0 0 0 / 0.1));
+  }
+  /* Product tiles have no card surface of their own — the caption sits
+     directly on the page background — so the lift goes on the media tile,
+     the only rounded, filled surface in the card. Driven by the card's
+     :hover so hovering the caption still lifts the image. */
+  .group:hover .card-media-lift {
+    transform: translateY(-4px);
+    box-shadow: var(--theme-shadow-lg, 0 12px 32px rgb(0 0 0 / 0.1));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -208,10 +225,12 @@ html, body {
     transform: none !important;
     transition: none !important;
   }
-  .card-lift {
+  .card-lift,
+  .card-media-lift {
     transition: none !important;
   }
-  .card-lift:hover {
+  .card-lift:hover,
+  .group:hover .card-media-lift {
     transform: none !important;
   }
 }

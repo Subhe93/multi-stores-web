@@ -171,9 +171,9 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                 ? Math.round((1 - Number(p.base_price) / Number(p.compare_at_price)) * 100)
                 : 0;
             return (
-              <a key={p.id} href={url} className="group block card-lift">
+              <a key={p.id} href={url} className="group block">
                 <div
-                  className="relative aspect-square overflow-hidden"
+                  className="card-media-lift relative aspect-square overflow-hidden"
                   style={{ backgroundColor: 'var(--theme-colors-surface)', borderRadius: 'var(--theme-radius-md)' }}
                 >
                   {discount > 0 && (

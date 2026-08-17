@@ -200,6 +200,7 @@
     "stripeNotConfigured": "Kartenzahlung bald verfügbar",
     "noPaymentMethods": "Für diesen Shop sind derzeit keine Zahlungsmethoden verfügbar. Bitte versuchen Sie es später erneut.",
     "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "storeNotReady": "Shop-Daten werden noch geladen. Bitte versuchen Sie es gleich erneut.",
     "information": "Informationen",
     "shipping": "Versand",
     "continueToShipping": "Weiter zum Versand",
@@ -312,10 +313,13 @@
     "PENDING": "Ausstehend",
     "CONFIRMED": "Bestätigt",
     "PROCESSING": "In Bearbeitung",
+    "MANUFACTURING": "In Produktion",
+    "QUALITY_CHECK": "Qualitätsprüfung",
     "SHIPPED": "Versendet",
     "DELIVERED": "Zugestellt",
     "CANCELLED": "Storniert",
-    "REFUNDED": "Erstattet"
+    "REFUNDED": "Erstattet",
+    "RETURNED": "Zurückgesendet"
   },
   "store": {
     "poweredBy": "Betrieben von Multi-Stores",

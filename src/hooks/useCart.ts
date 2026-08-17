@@ -189,9 +189,12 @@ interface CartProviderProps {
   /** Active storefront locale — sent to the API so item titles come back in
    *  the right language (the server defaults to the wrong locale otherwise). */
   locale?: string;
+  /** Store the cart belongs to — required when validating a coupon, since a
+   *  coupon is only valid on the store whose owner issued it. */
+  storeId?: string;
 }
 
-export function CartProvider({ children, token, locale }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering.
   const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
@@ -474,6 +477,7 @@ export function CartProvider({ children, token, locale }: CartProviderProps) {
         method: 'POST',
         body: JSON.stringify({
           coupon_code: code,
+          store_id: storeId,
           subtotal: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
           item_count: items.reduce((sum, i) => sum + i.quantity, 0),
           product_ids: items.map((i) => i.customProductId || i.productId).filter(Boolean),
@@ -507,7 +511,7 @@ export function CartProvider({ children, token, locale }: CartProviderProps) {
       setCoupon(couponData);
       saveLocalCoupon(couponData);
     },
-    [isAuthenticated, token, items]
+    [isAuthenticated, token, items, storeId]
   );
 
   // ── Remove coupon ──────────────────────────────────

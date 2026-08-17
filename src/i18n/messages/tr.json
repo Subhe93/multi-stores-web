@@ -200,6 +200,7 @@
     "stripeNotConfigured": "Kart ile ödeme yakında",
     "noPaymentMethods": "Bu mağaza için şu anda kullanılabilir ödeme yöntemi yok. Lütfen daha sonra tekrar deneyin.",
     "paymentFailed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
+    "storeNotReady": "Mağaza bilgileri hâlâ yükleniyor. Lütfen birazdan tekrar deneyin.",
     "information": "Bilgiler",
     "shipping": "Kargo",
     "continueToShipping": "Kargoya Devam Et",
@@ -312,10 +313,13 @@
     "PENDING": "Beklemede",
     "CONFIRMED": "Onaylandı",
     "PROCESSING": "İşleniyor",
+    "MANUFACTURING": "Üretiliyor",
+    "QUALITY_CHECK": "Kalite kontrol",
     "SHIPPED": "Kargoya Verildi",
     "DELIVERED": "Teslim Edildi",
     "CANCELLED": "İptal Edildi",
-    "REFUNDED": "İade Edildi"
+    "REFUNDED": "İade Edildi",
+    "RETURNED": "İade Alındı"
   },
   "store": {
     "poweredBy": "Multi-Stores tarafından desteklenmektedir",

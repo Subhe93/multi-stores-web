@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -311,6 +311,10 @@ function CheckoutForm() {
   const [couponError, setCouponError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // `loading` only disables the button on the next render, so a fast double
+  // click (or Enter + click) can enter handleSubmit twice and place two orders
+  // — two charges on the same card. This ref rejects re-entry synchronously.
+  const submittingRef = useRef(false);
   // Login panel
   const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -522,10 +526,18 @@ function CheckoutForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
     // Defense in depth — the server rejects COD for stores that disabled it.
     if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
+    // The server ties the order to this store (commission model, payout
+    // routing, catalogue check), so don't submit before it has resolved.
+    if (!storeId) {
+      setError(t('checkout.storeNotReady'));
+      return;
+    }
     if (!validate()) return;
     setError('');
+    submittingRef.current = true;
     setLoading(true);
 
     let activeToken = token;
@@ -602,7 +614,7 @@ function CheckoutForm() {
           method: 'POST', token: activeToken,
           body: JSON.stringify({
             address_id: addressId,
-            ...(storeId ? { store_id: storeId } : {}),
+            store_id: storeId,
             payment_method: 'STRIPE',
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
@@ -633,7 +645,7 @@ function CheckoutForm() {
           method: 'POST', token: activeToken,
           body: JSON.stringify({
             address_id: addressId,
-            ...(storeId ? { store_id: storeId } : {}),
+            store_id: storeId,
             payment_method: 'COD',
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
@@ -645,6 +657,7 @@ function CheckoutForm() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

@@ -138,16 +138,30 @@ function buildVariantLabel(options?: Record<string, string>): string {
     .join(' / ');
 }
 
-const STATUS_STEPS = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+// Mirrors the OrderStatus progression on the API. Manufacturing and quality
+// check are real stages a fulfiller can set — leaving them out made the tracker
+// go blank (indexOf returned -1) for every custom-made order.
+const STATUS_STEPS = [
+  'PENDING',
+  'CONFIRMED',
+  'PROCESSING',
+  'MANUFACTURING',
+  'QUALITY_CHECK',
+  'SHIPPED',
+  'DELIVERED',
+];
 
 function statusStyle(status: string): string {
   switch (status?.toUpperCase()) {
     case 'PENDING': return 'bg-amber-50 text-amber-700';
     case 'CONFIRMED':
     case 'PROCESSING': return 'bg-blue-50 text-blue-700';
+    case 'MANUFACTURING':
+    case 'QUALITY_CHECK': return 'bg-indigo-50 text-indigo-700';
     case 'SHIPPED': return 'bg-purple-50 text-purple-700';
     case 'DELIVERED': return 'bg-green-50 text-green-700';
-    case 'CANCELLED': return 'bg-red-50 text-red-700';
+    case 'CANCELLED':
+    case 'RETURNED': return 'bg-red-50 text-red-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 }
@@ -205,8 +219,10 @@ export default function StoreOrderDetailPage() {
   const items = order.items || [];
   const address = order.address;
   const status = order.status?.toUpperCase();
-  const isCancelled = status === 'CANCELLED' || status === 'REFUNDED';
-  const currentIdx = STATUS_STEPS.indexOf(status);
+  const isCancelled = status === 'CANCELLED' || status === 'REFUNDED' || status === 'RETURNED';
+  // -1 for an unknown status would silently blank the whole tracker, so fall
+  // back to the first step instead.
+  const currentIdx = Math.max(0, STATUS_STEPS.indexOf(status));
 
   const fmt = (v: number) => new Intl.NumberFormat('en', { style: 'currency', currency }).format(v);
 
@@ -235,21 +251,25 @@ export default function StoreOrderDetailPage() {
       {/* Status timeline */}
       {!isCancelled && (
         <div className="store-surface store-bd rounded-2xl border p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             {STATUS_STEPS.map((step, idx) => (
-              <div key={step} className="flex-1 flex flex-col items-center relative">
+              <div key={step} className="flex-1 flex flex-col items-center relative min-w-0">
                 {idx > 0 && (
-                  <div className={`absolute top-3 right-1/2 w-full h-0.5 -z-0 ${idx <= currentIdx ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                  <div className={`absolute top-3 inset-e-1/2 w-full h-0.5 z-0 ${idx <= currentIdx ? 'bg-gray-900' : 'bg-gray-200'}`} />
                 )}
                 <div
-                  className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  className={`relative z-10 w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
                     idx <= currentIdx ? 'text-white' : 'bg-gray-200 text-gray-400'
                   }`}
                   style={idx <= currentIdx ? { backgroundColor: 'var(--store-primary, #111)' } : undefined}
                 >
                   {idx < currentIdx ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : idx + 1}
                 </div>
-                <span className="mt-2 text-[10px] text-gray-500 capitalize">{step.toLowerCase()}</span>
+                {/* Seven steps have to fit a phone, so the labels stay narrow
+                    and wrap rather than pushing the row into a scroll. */}
+                <span className="mt-2 px-0.5 text-[9px] sm:text-[10px] leading-tight text-center text-gray-500 hyphens-auto">
+                  {t(`orderStatus.${step}` as any)}
+                </span>
               </div>
             ))}
           </div>

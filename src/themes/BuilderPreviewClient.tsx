@@ -8,6 +8,21 @@ import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import type { ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
+// Only the builder that embedded this preview may drive it, and messages go
+// only to it. Sections here render straight from the incoming payload (some as
+// raw HTML), so an unrestricted listener let any page holding a handle to this
+// window inject content. Null when unconfigured, which falls back to the old
+// permissive behaviour rather than breaking the preview outright.
+const PARENT_ORIGIN: string | null = (() => {
+  const configured = process.env.NEXT_PUBLIC_DASHBOARD_URL;
+  if (!configured) return null;
+  try {
+    return new URL(configured).origin;
+  } catch {
+    return null;
+  }
+})();
+
 interface InitialPreviewState {
   themeKey: string;
   customizations: ThemeCustomizations;
@@ -68,8 +83,8 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
 
   useEffect(() => {
     function onMessage(e: MessageEvent<IncomingMessage>) {
-      // We don't restrict origin here on purpose — the dashboard origin in dev
-      // and prod is set via env. Restrict before shipping to prod multi-tenant.
+      if (e.source !== window.parent) return;
+      if (PARENT_ORIGIN && e.origin !== PARENT_ORIGIN) return;
       const data = e.data;
       if (!data || typeof data !== 'object') return;
 
@@ -108,7 +123,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
 
     window.addEventListener('message', onMessage);
     // Tell the dashboard we're ready to receive the initial sync.
-    window.parent?.postMessage({ type: 'PREVIEW_READY' }, '*');
+    window.parent?.postMessage({ type: 'PREVIEW_READY' }, PARENT_ORIGIN ?? '*');
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
@@ -127,7 +142,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       if (anchor) e.preventDefault();
       window.parent?.postMessage(
         { type: 'SECTION_CLICKED', section_id: node.dataset.sectionId },
-        '*',
+        PARENT_ORIGIN ?? '*',
       );
     }
     function onSubmit(e: SubmitEvent) {
@@ -212,7 +227,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
         }
         window.parent?.postMessage(
           { type: 'INLINE_EDIT', section_id: sectionId, path, value },
-          '*',
+          PARENT_ORIGIN ?? '*',
         );
       };
       const onBlur = () => finish(true);
@@ -381,7 +396,10 @@ function SectionToolbar({
   const send = (action: string) => (e: ReactMouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    window.parent?.postMessage({ type: 'SECTION_ACTION', section_id: sectionId, action }, '*');
+    window.parent?.postMessage(
+      { type: 'SECTION_ACTION', section_id: sectionId, action },
+      PARENT_ORIGIN ?? '*',
+    );
   };
 
   const buttons = [

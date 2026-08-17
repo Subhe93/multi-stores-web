@@ -24,9 +24,12 @@ function statusStyle(status: string): string {
     case 'PENDING': return 'bg-amber-50 text-amber-700';
     case 'CONFIRMED':
     case 'PROCESSING': return 'bg-blue-50 text-blue-700';
+    case 'MANUFACTURING':
+    case 'QUALITY_CHECK': return 'bg-indigo-50 text-indigo-700';
     case 'SHIPPED': return 'bg-purple-50 text-purple-700';
     case 'DELIVERED': return 'bg-green-50 text-green-700';
-    case 'CANCELLED': return 'bg-red-50 text-red-700';
+    case 'CANCELLED':
+    case 'RETURNED': return 'bg-red-50 text-red-700';
     case 'REFUNDED': return 'bg-gray-100 text-gray-600';
     default: return 'bg-gray-100 text-gray-600';
   }
