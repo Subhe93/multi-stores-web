@@ -92,7 +92,9 @@ export function VariantSelector({
   const optionGroups = useMemo(() => {
     const groups: Record<string, string[]> = {};
     for (const variant of variants) {
-      for (const [key, value] of Object.entries(variant.options)) {
+      // Guard: some payloads (e.g. the builder's sample product before it was
+      // completed) can carry variants without an options object.
+      for (const [key, value] of Object.entries(variant.options || {})) {
         if (!groups[key]) groups[key] = [];
         if (!groups[key].includes(value)) groups[key].push(value);
       }
@@ -119,7 +121,7 @@ export function VariantSelector({
   const matchingVariant = useMemo(() => {
     const keys = Object.keys(optionGroups);
     if (Object.keys(selections).length < keys.length) return null;
-    return variants.find((v) => keys.every((k) => v.options[k] === selections[k])) ?? null;
+    return variants.find((v) => keys.every((k) => v.options?.[k] === selections[k])) ?? null;
   }, [selections, variants, optionGroups]);
 
   const isOptionAvailable = (key: string, value: string): boolean => {
@@ -127,7 +129,7 @@ export function VariantSelector({
     return variants.some(
       (v) =>
         v.stock > 0 &&
-        Object.keys(hypothetical).every((k) => v.options[k] === hypothetical[k]),
+        Object.keys(hypothetical).every((k) => v.options?.[k] === hypothetical[k]),
     );
   };
 
@@ -137,7 +139,7 @@ export function VariantSelector({
     onSelectionsChange?.(next);
     const allKeys = Object.keys(optionGroups);
     if (allKeys.every((k) => k in next)) {
-      const matched = variants.find((v) => allKeys.every((k) => v.options[k] === next[k]));
+      const matched = variants.find((v) => allKeys.every((k) => v.options?.[k] === next[k]));
       if (matched) onSelect(matched.id);
     }
   };
@@ -161,7 +163,7 @@ export function VariantSelector({
     // variant that carries this value and has its own image.
     const configured = configByName[key]?.imageMap?.[value];
     if (configured) return configured;
-    const v = variants.find((v) => v.options[key] === value && v.images?.length);
+    const v = variants.find((v) => v.options?.[key] === value && v.images?.length);
     return v?.images?.[0]?.url;
   };
 
