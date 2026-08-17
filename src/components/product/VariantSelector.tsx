@@ -49,6 +49,8 @@ function isLightColor(hex: string): boolean {
 interface OptionConfig {
   name: string;
   style: string;
+  // Values in the order the seller arranged them in the dashboard.
+  values?: string[];
   colorMap?: Record<string, string>;
   dualColorMap?: Record<string, [string, string]>;
   // Value-level image (one per option value, e.g. per color) — set in the
@@ -89,18 +91,50 @@ export function VariantSelector({
   onSelectionsChange,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
-  const optionGroups = useMemo(() => {
-    const groups: Record<string, string[]> = {};
+
+  // What the variants actually offer, then arranged the way the seller set it
+  // up. Neither source of order in the raw data is usable on its own: the
+  // variant `options` column is jsonb, which does not preserve key order, and
+  // values would otherwise appear in variant-creation order. optionConfigs is
+  // the ordered array the dashboard saves, so it drives both levels. Anything
+  // it doesn't mention (products saved before the config existed, or a value
+  // added straight to a variant) is appended rather than dropped.
+  const optionGroups = useMemo<[string, string[]][]>(() => {
+    const discovered: Record<string, string[]> = {};
     for (const variant of variants) {
       // Guard: some payloads (e.g. the builder's sample product before it was
       // completed) can carry variants without an options object.
       for (const [key, value] of Object.entries(variant.options || {})) {
-        if (!groups[key]) groups[key] = [];
-        if (!groups[key].includes(value)) groups[key].push(value);
+        if (!discovered[key]) discovered[key] = [];
+        if (!discovered[key].includes(value)) discovered[key].push(value);
       }
     }
-    return groups;
-  }, [variants]);
+
+    const ordered: [string, string[]][] = [];
+    const placed = new Set<string>();
+
+    for (const cfg of optionConfigs ?? []) {
+      const values = discovered[cfg.name];
+      if (!values || placed.has(cfg.name)) continue;
+      placed.add(cfg.name);
+      const configured = cfg.values ?? [];
+      ordered.push([
+        cfg.name,
+        [
+          ...configured.filter((v) => values.includes(v)),
+          ...values.filter((v) => !configured.includes(v)),
+        ],
+      ]);
+    }
+
+    for (const [key, values] of Object.entries(discovered)) {
+      if (!placed.has(key)) ordered.push([key, values]);
+    }
+
+    return ordered;
+  }, [variants, optionConfigs]);
+
+  const optionKeys = useMemo(() => optionGroups.map(([key]) => key), [optionGroups]);
 
   const configByName = useMemo(() => {
     const map: Record<string, OptionConfig> = {};
@@ -119,10 +153,9 @@ export function VariantSelector({
   const [selections, setSelections] = useState<Record<string, string>>(initialSelections);
 
   const matchingVariant = useMemo(() => {
-    const keys = Object.keys(optionGroups);
-    if (Object.keys(selections).length < keys.length) return null;
-    return variants.find((v) => keys.every((k) => v.options?.[k] === selections[k])) ?? null;
-  }, [selections, variants, optionGroups]);
+    if (Object.keys(selections).length < optionKeys.length) return null;
+    return variants.find((v) => optionKeys.every((k) => v.options?.[k] === selections[k])) ?? null;
+  }, [selections, variants, optionKeys]);
 
   const isOptionAvailable = (key: string, value: string): boolean => {
     const hypothetical = { ...selections, [key]: value };
@@ -137,9 +170,8 @@ export function VariantSelector({
     const next = { ...selections, [key]: value };
     setSelections(next);
     onSelectionsChange?.(next);
-    const allKeys = Object.keys(optionGroups);
-    if (allKeys.every((k) => k in next)) {
-      const matched = variants.find((v) => allKeys.every((k) => v.options?.[k] === next[k]));
+    if (optionKeys.every((k) => k in next)) {
+      const matched = variants.find((v) => optionKeys.every((k) => v.options?.[k] === next[k]));
       if (matched) onSelect(matched.id);
     }
   };
@@ -169,7 +201,7 @@ export function VariantSelector({
 
   return (
     <div className="flex flex-col gap-6">
-      {Object.entries(optionGroups).map(([key, values]) => {
+      {optionGroups.map(([key, values]) => {
         const style = getStyle(key);
         const config = configByName[key];
         const selectedValue = selections[key];
