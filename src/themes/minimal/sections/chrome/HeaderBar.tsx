@@ -99,7 +99,13 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const showSearch = settings.show_search !== false;
   const showCart = settings.show_cart !== false;
   const showAccount = settings.show_account === true;
-  const showLocale = settings.show_locale !== false && (ctx?.secondaryLocales?.length ?? 0) > 0;
+  // Only secondary locales that actually differ from the primary count — a
+  // store configured with e.g. primary "en" + secondary ["en"] has just one
+  // real language and gets no switcher.
+  const effectiveSecondaryLocales = (ctx?.secondaryLocales ?? []).filter(
+    (l) => !!l && l !== ctx?.primaryLocale,
+  );
+  const showLocale = settings.show_locale !== false && effectiveSecondaryLocales.length > 0;
   // Backwards-compat: the old boolean `sticky` maps to 'always' / 'none' when
   // the newer `sticky_mode` select isn't present.
   const stickyMode: StickyMode =
@@ -276,7 +282,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               <LocaleSwitcher
                 current={locale}
                 primary={ctx.primaryLocale}
-                others={ctx.secondaryLocales}
+                others={effectiveSecondaryLocales}
                 accent={accent}
               />
             )}

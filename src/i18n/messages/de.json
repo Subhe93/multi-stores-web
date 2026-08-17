@@ -198,6 +198,7 @@
     "stripeDescription": "Sichere Zahlung über Stripe",
     "payAndPlaceOrder": "Bezahlen & Bestellen",
     "stripeNotConfigured": "Kartenzahlung bald verfügbar",
+    "noPaymentMethods": "Für diesen Shop sind derzeit keine Zahlungsmethoden verfügbar. Bitte versuchen Sie es später erneut.",
     "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "information": "Informationen",
     "shipping": "Versand",

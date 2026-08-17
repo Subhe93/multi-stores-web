@@ -198,6 +198,7 @@
     "stripeDescription": "دفع آمن عبر Stripe",
     "payAndPlaceOrder": "ادفع وأكّد الطلب",
     "stripeNotConfigured": "الدفع بالبطاقة قريباً",
+    "noPaymentMethods": "لا تتوفر طرق دفع لهذا المتجر حالياً. يرجى المحاولة لاحقاً.",
     "paymentFailed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
     "information": "المعلومات",
     "shipping": "الشحن",

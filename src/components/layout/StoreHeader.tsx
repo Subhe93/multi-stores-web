@@ -432,6 +432,12 @@ export function StoreHeader({
   const displayName = storeName || storeSlug;
   const navPages = resolvePages(pages, currentLang);
 
+  // Only secondary locales that differ from the primary are real alternatives;
+  // a store with one language must not render the language dropdown at all.
+  const effectiveSecondaryLocales = secondaryLocales.filter(
+    (l) => !!l && l !== primaryLocale,
+  );
+
   // Active link underline color used via inline style (Tailwind cannot generate arbitrary colors)
   const activeLinkStyle = { color: primaryColor || '#111827' };
   const hoverUnderlineClass =
@@ -497,13 +503,14 @@ export function StoreHeader({
 
         {/* Right: language switcher + cart icon + mobile hamburger */}
         <div className="flex items-center gap-3">
-          {/* Language switcher — only rendered when store has secondary locales */}
-          {secondaryLocales.length > 0 && (
+          {/* Language switcher — only rendered when the store actually has
+              more than one language */}
+          {effectiveSecondaryLocales.length > 0 && (
             <div className="hidden md:block">
               <Suspense fallback={null}>
                 <LanguageSwitcher
                   primaryLocale={primaryLocale}
-                  availableLocales={secondaryLocales}
+                  availableLocales={effectiveSecondaryLocales}
                   primaryColor={primaryColor}
                   activeLang={currentLang}
                 />
@@ -523,7 +530,7 @@ export function StoreHeader({
             collections={collections}
             primaryColor={primaryColor}
             primaryLocale={primaryLocale}
-            secondaryLocales={secondaryLocales}
+            secondaryLocales={effectiveSecondaryLocales}
             currentLang={currentLang}
           />
         </div>

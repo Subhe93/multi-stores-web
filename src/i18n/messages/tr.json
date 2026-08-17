@@ -198,6 +198,7 @@
     "stripeDescription": "Stripe ile güvenli ödeme",
     "payAndPlaceOrder": "Öde ve Sipariş Ver",
     "stripeNotConfigured": "Kart ile ödeme yakında",
+    "noPaymentMethods": "Bu mağaza için şu anda kullanılabilir ödeme yöntemi yok. Lütfen daha sonra tekrar deneyin.",
     "paymentFailed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
     "information": "Bilgiler",
     "shipping": "Kargo",

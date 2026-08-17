@@ -198,6 +198,7 @@
     "stripeDescription": "Säker betalning via Stripe",
     "payAndPlaceOrder": "Betala och lägg beställning",
     "stripeNotConfigured": "Kortbetalningar kommer snart",
+    "noPaymentMethods": "Inga betalningsmetoder är tillgängliga för denna butik just nu. Försök igen senare.",
     "paymentFailed": "Betalningen misslyckades. Försök igen.",
     "information": "Information",
     "shipping": "Frakt",

@@ -295,6 +295,8 @@ function CheckoutForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
   const [stripeAvailable, setStripeAvailable] = useState(false);
+  // Cash on delivery is opt-in per store (off by default server-side).
+  const [codAvailable, setCodAvailable] = useState(false);
   const [stripeReady, setStripeReady] = useState(false);
   // The desktop and mobile layouts each have their own payment panel, but Stripe
   // allows only one CardElement per Elements provider — so we mount the card in
@@ -416,11 +418,18 @@ function CheckoutForm() {
       let storeCardEnabled = true;
       if (storeSlug) {
         try {
-          const store = await storefront.getStore(storeSlug) as { id: string; card_payments_enabled?: boolean };
+          const store = await storefront.getStore(storeSlug) as {
+            id: string;
+            card_payments_enabled?: boolean;
+            cod_enabled?: boolean;
+          };
           setStoreId(store.id);
           // The creator must have completed Stripe Connect onboarding for this
           // store to accept card payments.
           storeCardEnabled = store.card_payments_enabled !== false;
+          // COD is opt-in per store; strict check so it stays hidden for
+          // stores that haven't enabled it.
+          setCodAvailable(store.cod_enabled === true);
         } catch { /* ignore */ }
       }
       try {
@@ -434,6 +443,18 @@ function CheckoutForm() {
     }
     init();
   }, [storeSlug]);
+
+  // Keep the selected method valid as availability resolves: COD is the
+  // initial default but may be disabled for this store.
+  useEffect(() => {
+    if (paymentMethod === 'cod' && !codAvailable && stripeAvailable) {
+      setPaymentMethod('stripe');
+    } else if (paymentMethod === 'stripe' && !stripeAvailable && codAvailable) {
+      setPaymentMethod('cod');
+    }
+  }, [codAvailable, stripeAvailable, paymentMethod]);
+
+  const noPaymentMethods = !codAvailable && !stripeAvailable;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChange = useCallback(
@@ -501,6 +522,8 @@ function CheckoutForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Defense in depth — the server rejects COD for stores that disabled it.
+    if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
     if (!validate()) return;
     setError('');
     setLoading(true);
@@ -921,15 +944,22 @@ function CheckoutForm() {
             <div className="border-t border-gray-200 mt-5 pt-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('checkout.paymentMethod')}</h3>
               <div className="space-y-2">
-                <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                  <input type="radio" name="payment" value="cod"
-                    checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')}
-                    className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{t('checkout.cashOnDelivery')}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{t('checkout.codDescription')}</p>
+                {codAvailable && (
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <input type="radio" name="payment" value="cod"
+                      checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')}
+                      className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{t('checkout.cashOnDelivery')}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{t('checkout.codDescription')}</p>
+                    </div>
+                  </label>
+                )}
+                {noPaymentMethods && (
+                  <div className="p-3 rounded-lg border-2 border-amber-200 bg-amber-50 text-xs text-amber-800">
+                    {t('checkout.noPaymentMethods')}
                   </div>
-                </label>
+                )}
 
                 {stripeAvailable ? (
                   <div>
@@ -973,7 +1003,7 @@ function CheckoutForm() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
               className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -995,15 +1025,22 @@ function CheckoutForm() {
           <div className="max-w-[540px] mx-auto">
             <h3 className="text-base font-semibold text-gray-900 pt-4 pb-3 border-b border-gray-200 mb-4">{t('checkout.paymentMethod')}</h3>
             <div className="space-y-2.5 mb-5">
-              <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                <input type="radio" name="payment_mobile" value="cod"
-                  checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')}
-                  className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{t('checkout.cashOnDelivery')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{t('checkout.codDescription')}</p>
+              {noPaymentMethods && (
+                <div className="p-4 rounded-lg border-2 border-amber-200 bg-amber-50 text-xs text-amber-800">
+                  {t('checkout.noPaymentMethods')}
                 </div>
-              </label>
+              )}
+              {codAvailable && (
+                <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                  <input type="radio" name="payment_mobile" value="cod"
+                    checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')}
+                    className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{t('checkout.cashOnDelivery')}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t('checkout.codDescription')}</p>
+                  </div>
+                </label>
+              )}
               {stripeAvailable && (
                 <div>
                   <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
@@ -1031,7 +1068,7 @@ function CheckoutForm() {
             )}
             <button
               type="submit"
-              disabled={loading || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
               className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >

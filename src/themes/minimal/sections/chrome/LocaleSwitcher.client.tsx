@@ -39,7 +39,7 @@ export function LocaleSwitcher({
   others: string[];
   accent: string;
 }) {
-  const all = Array.from(new Set([primary, ...others]));
+  const all = Array.from(new Set([primary, ...others].filter(Boolean)));
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -61,6 +61,10 @@ export function LocaleSwitcher({
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
+
+  // A single-language store has nothing to switch to — render nothing.
+  // (After the hooks above so the hook order stays stable.)
+  if (all.length < 2) return null;
 
   const switchTo = (locale: string) => {
     const browserPath = window.location.pathname;

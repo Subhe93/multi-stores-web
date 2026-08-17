@@ -198,6 +198,7 @@
     "stripeDescription": "Secure payment via Stripe",
     "payAndPlaceOrder": "Pay & Place Order",
     "stripeNotConfigured": "Card payments coming soon",
+    "noPaymentMethods": "No payment methods are currently available for this store. Please try again later.",
     "paymentFailed": "Payment failed. Please try again.",
     "information": "Information",
     "shipping": "Shipping",
