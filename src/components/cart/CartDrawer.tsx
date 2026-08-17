@@ -18,7 +18,7 @@ interface CartDrawerProps {
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = useTranslations();
   const lp = useLocalePath();
-  const { items, itemCount, subtotal, total, coupon, updateQuantity, removeItem } = useCart();
+  const { items, itemCount, subtotal, total, coupon, currency, updateQuantity, removeItem } = useCart();
 
   // Portal the drawer to <body> so its `position: fixed` is relative to the
   // viewport, not a transformed/filtered ancestor. The header uses
@@ -49,8 +49,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
-  const currency = items[0]?.currency || 'EUR'; // currency inherited from platform config via cart API
 
   if (!mounted) return null;
 
@@ -124,7 +122,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       variant: item.variant,
                       customFields: item.customFields,
                       customerFile: item.customerFile,
-                      currency: item.currency,
+                      currency,
                     }}
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}

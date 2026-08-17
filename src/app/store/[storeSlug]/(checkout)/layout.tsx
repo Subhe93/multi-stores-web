@@ -12,6 +12,7 @@ import type { ThemeCustomizations } from '@/themes/types';
 interface Store {
   id: string;
   name: string;
+  currency?: string;
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
@@ -62,7 +63,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

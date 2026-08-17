@@ -47,6 +47,7 @@ interface TypographyStyle {
 interface Store {
   id: string;
   name: string;
+  currency?: string;
   description?: string;
   logo_url?: string;
   language_config?: LanguageConfig | null;
@@ -384,7 +385,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

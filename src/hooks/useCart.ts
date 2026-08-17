@@ -87,6 +87,9 @@ interface CartContextValue extends CartState {
   itemCount: number;
   subtotal: number;
   total: number;
+  /** Currency to display cart totals in — the store's, so it matches what the
+   *  server will actually charge. */
+  currency: string;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
@@ -192,9 +195,13 @@ interface CartProviderProps {
   /** Store the cart belongs to — required when validating a coupon, since a
    *  coupon is only valid on the store whose owner issued it. */
   storeId?: string;
+  /** The store's presentment currency. Authoritative for display: the server
+   *  derives the order currency from the same store, whereas the currency
+   *  stamped on a cart item is only the platform default. */
+  storeCurrency?: string;
 }
 
-export function CartProvider({ children, token, locale, storeId }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering.
   const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
@@ -615,6 +622,7 @@ export function CartProvider({ children, token, locale, storeId }: CartProviderP
     itemCount,
     subtotal,
     total,
+    currency: storeCurrency || items[0]?.currency || 'EUR',
   };
 
   return createElement(CartContext.Provider, { value }, children);

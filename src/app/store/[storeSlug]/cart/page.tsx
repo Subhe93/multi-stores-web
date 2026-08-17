@@ -98,8 +98,8 @@ interface CartItemRowProps {
 
 function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
   const t = useTranslations();
+  const { currency } = useCart();
   const [updating, setUpdating] = useState(false);
-  const currency = item.currency || 'EUR';
   const title = item.title || item.name || 'Product';
   const img = resolveMediaUrl(item.imageUrl || item.image);
   const lineTotal = item.price * item.quantity;
@@ -223,15 +223,13 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, loading, subtotal, total, coupon,
+    items, loading, subtotal, total, coupon, currency,
     itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
   } = useCart();
 
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
-
-  const currency = items[0]?.currency || 'EUR';
 
   const discount = coupon
     ? coupon.type === 'percentage'
@@ -334,7 +332,7 @@ export default function StoreCartPage() {
                       </div>
                       <p className="flex-1 text-xs text-gray-700 leading-snug line-clamp-1">{title}</p>
                       <p className="text-xs font-semibold text-gray-900 shrink-0">
-                        {formatPrice(item.price * item.quantity, item.currency || 'EUR')}
+                        {formatPrice(item.price * item.quantity, currency)}
                       </p>
                     </div>
                   );

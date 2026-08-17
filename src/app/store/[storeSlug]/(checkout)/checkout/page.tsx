@@ -182,11 +182,11 @@ function OrderSummary({
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-sm font-semibold text-gray-900">
-                  {formatPrice(lineTotal, item.currency || 'EUR')}
+                  {formatPrice(lineTotal, currency)}
                 </p>
                 {originalLineTotal !== null && originalLineTotal > lineTotal && (
                   <p className="text-[10px] text-gray-400 line-through tabular-nums">
-                    {formatPrice(originalLineTotal, item.currency || 'EUR')}
+                    {formatPrice(originalLineTotal, currency)}
                   </p>
                 )}
               </div>
@@ -282,7 +282,7 @@ function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
   const { token, user, login, register } = useAuth();
-  const { items, subtotal, total, coupon, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
+  const { items, subtotal, total, coupon, currency, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
 
   const storeSlug = resolveStoreSlug(pathname);
 
@@ -334,7 +334,6 @@ function CheckoutForm() {
   const [shippingError, setShippingError] = useState('');
 
   const isLoggedIn = Boolean(token);
-  const currency = items[0]?.currency || 'EUR';
   const discount = coupon
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
