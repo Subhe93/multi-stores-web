@@ -20,6 +20,8 @@ interface OrderItem {
   quantity: number;
   unit_price: number | string;
   total_price?: number | string;
+  /** Server-resolved display image for this line (see OrdersService). */
+  image_url?: string | null;
   product?: {
     translations?: Translation[];
     images?: { url: string }[];
@@ -129,7 +131,10 @@ export default function OrderConfirmationPage() {
                   pickTitle(item.custom_product?.translations, locale) ||
                   pickTitle(item.product?.translations, locale) ||
                   'Product';
+                // Server-resolved per line (mockup → chosen option value's
+                // image → product photo); the chain is a legacy fallback.
                 const imgUrl =
+                  item.image_url ||
                   item.custom_product?.mockup_images?.[0]?.url ||
                   item.custom_product?.product?.images?.[0]?.url ||
                   item.product?.images?.[0]?.url;

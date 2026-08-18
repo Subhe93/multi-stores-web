@@ -65,6 +65,8 @@ interface OrderItem {
   variant?: OrderItemVariant | null;
   custom_product?: CustomProduct | null;
   custom_field_values?: CustomFieldValue[];
+  /** Server-resolved display image for this line (see OrdersService). */
+  image_url?: string | null;
   customer_design_url?: string;
   design_notes?: string;
   bundle_offer_id?: string | null;
@@ -285,8 +287,11 @@ export default function StoreOrderDetailPage() {
               pickTranslation(item.custom_product?.translations, locale) ||
               pickTranslation(item.product?.translations, locale) ||
               'Product';
-            // Image priority: custom product mockup → base product image (via custom_product.product) → direct product image
+            // The API resolves this per line (mockup → the chosen option
+            // value's image → product photo) so every surface shows the same
+            // thing. The chain below only covers older cached payloads.
             const imgUrl =
+              item.image_url ||
               item.custom_product?.mockup_images?.[0]?.url ||
               item.custom_product?.product?.images?.[0]?.url ||
               item.product?.images?.[0]?.url;
