@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import { storefront, legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
+import { storefront, legal, resolveMediaUrl, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
@@ -51,6 +51,7 @@ interface Store {
   currency?: string;
   description?: string;
   logo_url?: string;
+  favicon_url?: string;
   language_config?: LanguageConfig | null;
   pages?: StorePage[];
   theme_key?: string;
@@ -164,12 +165,26 @@ export async function generateMetadata({
     // /cart and /account all declared the store homepage as their canonical,
     // asking Google not to index them. Each route now owns its canonical, and
     // a route without one simply has none.
+    // The store-level SEO overrides written by the dashboard's store settings
+    // live under `theme.seo`; only `theme.translations[locale]` was ever read,
+    // so those fields silently did nothing. Per-locale still wins.
+    const storeSeo = store.theme?.seo;
+
     return {
       // Resolves relative URLs (e.g. a page's uploaded OG image) against this
       // store's own origin rather than Next's localhost default.
       metadataBase: new URL(origin),
-      title: trans?.metaTitle || trans?.name || store.name,
-      description: trans?.metaDescription || trans?.description || store.description,
+      title: trans?.metaTitle || storeSeo?.metaTitle || trans?.name || store.name,
+      description:
+        trans?.metaDescription ||
+        storeSeo?.metaDescription ||
+        trans?.description ||
+        store.description,
+      // The creator uploads a favicon in store settings; it was stored and
+      // never rendered, so every storefront showed the framework default.
+      icons: store.favicon_url
+        ? { icon: resolveMediaUrl(store.favicon_url) }
+        : undefined,
     };
   } catch {
     return {};
@@ -531,4 +546,7 @@ export default async function StoreLayout({
             );
           })()}
         </div>
-      </Sto
+      </StoreProviders>
+    </NextIntlClientProvider>
+  );
+}

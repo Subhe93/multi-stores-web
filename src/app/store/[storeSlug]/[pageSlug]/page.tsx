@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { buildTwitterMeta } from '@/lib/jsonld';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -29,7 +30,7 @@ interface LegacyPage {
 interface V2Page {
   id: string;
   type: string;
-  seo: { og_image?: string; canonical?: string; robots?: string };
+  seo: { og_image?: string; canonical?: string; robots?: string; twitter_card?: string };
   snapshot: {
     page: {
       translations: Array<{
@@ -95,19 +96,27 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       v2.snapshot.page.translations.find((t) => t.locale === locale) ||
       v2.snapshot.page.translations.find((t) => t.locale === primaryLocale) ||
       v2.snapshot.page.translations[0];
+    // Absolutize: API stores og_image as a relative `/uploads/...` path, which
+    // external crawlers would otherwise resolve against their own origin.
+    const ogImage = v2.seo?.og_image ? resolveMediaUrl(v2.seo.og_image) : undefined;
+    const ogTitle = tr?.meta_title || tr?.title || undefined;
+
     return {
       title: tr?.meta_title || tr?.title,
       description: tr?.meta_description,
       alternates: { ...alternates, canonical: v2.seo?.canonical || alternates.canonical },
       openGraph: {
-        title: tr?.meta_title || tr?.title || undefined,
+        title: ogTitle,
         description: tr?.meta_description,
-        // Absolutize: API stores og_image as a relative `/uploads/...` path. Without
-        // this, external crawlers resolve the URL against the storefront origin
-        // (where the file doesn't exist) and the OG image breaks.
-        images: v2.seo?.og_image ? [resolveMediaUrl(v2.seo.og_image)] : undefined,
+        images: ogImage ? [ogImage] : undefined,
         type: 'website',
       },
+      twitter: buildTwitterMeta({
+        card: v2.seo?.twitter_card,
+        title: ogTitle,
+        description: tr?.meta_description,
+        image: ogImage,
+      }),
       robots: v2.seo?.robots,
     };
   }

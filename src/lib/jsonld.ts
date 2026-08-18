@@ -142,6 +142,37 @@ export function buildFaqPage(items: FaqItem[]) {
 }
 
 /**
+ * Twitter card metadata for a page.
+ *
+ * The builder's SEO dialog has always collected and saved a `twitter_card`
+ * choice, but no Twitter tag was ever emitted anywhere in the storefront — the
+ * setting looked applied and did nothing. Falls back to the page's OG title,
+ * description and image, which is what a card should mirror anyway.
+ */
+export function buildTwitterMeta(opts: {
+  card?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+}): {
+  card: 'summary' | 'summary_large_image';
+  title?: string;
+  description?: string;
+  images?: string[];
+} | undefined {
+  const { card, title, description, image } = opts;
+  if (!title && !description && !image) return undefined;
+  return {
+    // Only the two types the editor offers; anything else (or nothing) gets
+    // the large-image card, which is the better default for a shop.
+    card: card === 'summary' ? 'summary' : 'summary_large_image',
+    title: title || undefined,
+    description: description || undefined,
+    images: image ? [image] : undefined,
+  };
+}
+
+/**
  * Safely embed a JSON-LD object inside a <script> tag. Escaping `</` prevents a
  * stray `</script>` inside user-supplied content from breaking out of the tag.
  */

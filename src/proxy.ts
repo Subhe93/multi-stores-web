@@ -195,9 +195,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(newUrl);
   }
 
-  // /ar/... or /tr/... → pass through as-is
+  // /ar/... or /tr/... → pass through as-is. The locale goes on the REQUEST
+  // headers as well, because only those are readable from a server component —
+  // the root layout needs it to set <html lang>/<dir>.
   if (pathnameLocale) {
-    const response = NextResponse.next();
+    const localeHeaders = new Headers(request.headers);
+    localeHeaders.set('x-locale', pathnameLocale);
+    const response = NextResponse.next({ request: { headers: localeHeaders } });
     response.headers.set('x-locale', pathnameLocale);
     return response;
   }
@@ -205,7 +209,11 @@ export async function proxy(request: NextRequest) {
   // No locale prefix → rewrite internally to /en/... without changing the URL
   const newUrl = request.nextUrl.clone();
   newUrl.pathname = `/${defaultLocale}${pathname}`;
-  const response = NextResponse.rewrite(newUrl);
+  const defaultHeaders = new Headers(request.headers);
+  defaultHeaders.set('x-locale', defaultLocale);
+  const response = NextResponse.rewrite(newUrl, {
+    request: { headers: defaultHeaders },
+  });
   response.headers.set('x-locale', defaultLocale);
   return response;
 }

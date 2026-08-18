@@ -9,11 +9,35 @@ import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ProductContext, SectionInstance } from '@/themes/types';
-import { buildBreadcrumb, buildProduct, ldJsonSafe } from '@/lib/jsonld';
+import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
   searchParams: Promise<{ lang?: string }>;
+}
+
+/**
+ * FAQPage markup for a product, picking each entry's translation for the
+ * rendered locale. Answers are rich text, so tags are stripped — schema.org
+ * expects plain text and Google rejects markup here.
+ */
+function buildFaqPageFromProduct(product: any, locale: string, primaryLocale: string) {
+  const faqs = product?.faqs;
+  if (!Array.isArray(faqs) || faqs.length === 0) return null;
+
+  const items = faqs
+    .map((faq: any) => {
+      const t =
+        faq.translations?.find((x: any) => x.locale === locale) ||
+        faq.translations?.find((x: any) => x.locale === primaryLocale) ||
+        faq.translations?.[0];
+      const question = t?.question?.trim();
+      const answer = t?.answer?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return question && answer ? { question, answer } : null;
+    })
+    .filter((x: unknown): x is { question: string; answer: string } => x !== null);
+
+  return buildFaqPage(items);
 }
 
 // Per-product metadata: title/description from translations, canonical, hreflang
@@ -60,6 +84,11 @@ export async function generateMetadata({
         images: firstImage ? [firstImage] : undefined,
         type: 'website',
       },
+      twitter: buildTwitterMeta({
+        title: tr?.meta_title || tr?.title || undefined,
+        description: tr?.meta_desc || undefined,
+        image: firstImage,
+      }),
     };
   } catch {
     return {};
@@ -116,12 +145,19 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         ? 'OutOfStock'
         : 'InStock',
     });
+    const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplProductLd) }}
         />
+        {tplFaqLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplFaqLd) }}
+          />
+        )}
         <SectionRenderer
           theme={theme}
           sections={templateSections}
@@ -180,6 +216,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     { name: translation?.title || 'Product', url: productUrl },
   ]);
 
+  // The product's own FAQ, already rendered as a tab below. Marking it up lets
+  // Google show the questions under the search result — the builder existed but
+  // had never been called from anywhere.
+  const faqLd = buildFaqPageFromProduct(product, locale, ldPrimary);
+
   return (
     <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <script
@@ -190,6 +231,12 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJsonSafe(breadcrumbLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(faqLd) }}
+        />
+      )}
       {/* Breadcrumb */}
       <nav className="mb-6 lg:mb-8 flex items-center flex-wrap gap-1 text-sm" aria-label="Breadcrumb">
         <Link href={`${lp}/`} className="text-gray-400 hover:text-gray-700 transition-colors">
