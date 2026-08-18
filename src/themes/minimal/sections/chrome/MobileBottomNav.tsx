@@ -18,6 +18,7 @@ import {
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
 import { ActiveLink } from './ActiveLink.client';
+import { BottomNavCartBadge } from './BottomNavCartBadge.client';
 
 type ItemKey = 'home' | 'search' | 'cart' | 'account' | 'wishlist' | 'categories' | 'menu' | 'custom';
 
@@ -118,11 +119,14 @@ function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRe
               <ActiveLink
                 href={url}
                 exact={type === 'home'}
-                className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition"
+                className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition"
                 style={{ color: fg }}
                 activeStyle={{ color: activeFg }}
               >
                 <Icon className="size-5" style={{ color: 'currentColor' }} />
+                {/* Only the cart tab carries a live count; the badge is a
+                    client island so the rest of the nav stays server-rendered. */}
+                {type === 'cart' && <BottomNavCartBadge accent={activeFg} />}
                 {showLabels && <span style={{ color: 'currentColor' }}>{label}</span>}
               </ActiveLink>
             </li>

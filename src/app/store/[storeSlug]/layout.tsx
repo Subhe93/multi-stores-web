@@ -272,15 +272,34 @@ export default async function StoreLayout({
   const themeCssVars = tokensToCssVars(resolvedTokens);
   const themeFonts = tokenFonts(resolvedTokens);
 
+  // The same variables, emitted at :root as well as on .store-root. Overlay UI
+  // (the cart drawer) is portaled to <body> to escape the header's
+  // backdrop-filter containing block, which puts it outside .store-root — and
+  // custom properties only inherit down the tree, so without this the drawer
+  // resolved none of the theme's fonts or colours.
+  const rootVarsCss = `:root {\n${[
+    ...Object.entries(themeCssVars),
+    // The legacy brand colours live only as inline styles on .store-root, so
+    // portaled UI would lose them too.
+    ['--store-primary', primaryColor],
+    ['--store-secondary', secondaryColor],
+  ]
+    .map(([k, v]) => `  ${k}: ${cssSafe(String(v))};`)
+    .join('\n')}\n}`;
+
   // Scope typography under `.store-root main` so colors don't leak into the
   // dark-bg footer (text-white) or into the dashboard. The header has its own
-  // rule because it lives outside <main>.
+  // rule because it lives outside <main>. `.store-overlay` covers the portaled
+  // cart drawer, which is visually part of the store but not a DOM descendant.
   const typographyCss = [
     typoBlock('.store-root main h1, .store-root main h2, .store-root main h3, .store-root main h4, .store-root main h5, .store-root main h6', typography.heading),
     typoBlock('.store-root main p, .store-root main li, .store-root main span', typography.body),
     typoBlock('.store-root main button', typography.button),
     typoBlock('.store-root main a', typography.link),
     typoBlock('.store-root header, .store-root header *', typography.header),
+    typoBlock('.store-overlay p, .store-overlay li, .store-overlay span', typography.body),
+    typoBlock('.store-overlay button', typography.button),
+    typoBlock('.store-overlay a', typography.link),
   ].filter(Boolean).join('\n');
 
   // Combine every font the user has selected so the browser actually loads them.
@@ -389,6 +408,8 @@ export default async function StoreLayout({
             <link rel="stylesheet" href={fontsHref} />
           </>
         )}
+        {/* Emitted outside .store-root so body-level portals inherit the theme. */}
+        <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}

@@ -63,16 +63,28 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
+      {/* Drawer panel.
+          `store-overlay` marks this as store chrome that lives outside
+          `.store-root` (the portal target is <body>), so the layout's
+          typography rules reach it. The theme fonts/colours come from the
+          `:root` custom properties the layout emits for the same reason. */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`store-overlay fixed top-0 inset-e-0 z-50 h-full w-full max-w-md shadow-xl transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
         }`}
+        style={{
+          fontFamily: 'var(--theme-font-body)',
+          backgroundColor: 'var(--theme-colors-surface, #fff)',
+          color: 'var(--theme-colors-text, inherit)',
+        }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2
+              className="text-lg font-semibold"
+              style={{ fontFamily: 'var(--theme-font-heading)' }}
+            >
               {t('cart.title')} ({itemCount})
             </h2>
             <button
