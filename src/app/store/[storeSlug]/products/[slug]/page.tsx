@@ -136,6 +136,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       name: tr?.title || 'Product',
       description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
       url: tplProductUrl,
+      // The shop is the brand for a creator's own product; sku was already in
+      // the payload and simply never passed through.
+      sku: product.sku || undefined,
+      brand: storeData?.name || undefined,
       images: (product.images || [])
         .map((img: any) => (img.url ? resolveMediaUrl(img.url) : ''))
         .filter((u: string) => !!u),
@@ -189,6 +193,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     name: translation?.title || 'Product',
     description: translation?.description?.replace(/<[^>]+>/g, '') || undefined,
     url: productUrl,
+    sku: product.sku || undefined,
+    brand: storeData?.name || undefined,
     images: productImages,
     price: Number(product.base_price),
     priceCurrency: storeCurrency,

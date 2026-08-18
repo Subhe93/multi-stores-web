@@ -102,6 +102,42 @@ export function buildProduct(input: ProductInput) {
   };
 }
 
+/**
+ * A listing page (a collection, or the catalogue) described as a CollectionPage
+ * whose mainEntity is the ordered list of products on it. This tells search
+ * engines the page IS a product listing rather than leaving them to infer it
+ * from markup, and is what makes listing pages eligible for list-style results.
+ *
+ * Only the items actually rendered on the page belong here — a list that
+ * disagrees with the visible content is a structured-data violation.
+ */
+export function buildCollectionPage(input: {
+  name: string;
+  description?: string;
+  url: string;
+  items: { name: string; url: string; image?: string }[];
+}) {
+  if (!input.items.length) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: input.name,
+    ...(input.description ? { description: input.description } : {}),
+    url: input.url,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: input.items.length,
+      itemListElement: input.items.map((item, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: item.name,
+        url: item.url,
+        ...(item.image ? { image: item.image } : {}),
+      })),
+    },
+  };
+}
+
 interface BreadcrumbItem {
   name: string;
   url: string;

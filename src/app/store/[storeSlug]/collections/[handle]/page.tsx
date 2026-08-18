@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -74,7 +75,12 @@ export default async function CollectionPage({
   // Fetch the tree first so we can render the hero with the matching collection.
   // We also need the store currency for product prices.
   const [storeData, creatorCategoriesTree] = await Promise.all([
-    storefront.getStore(storeSlug) as Promise<{ currency?: string; theme?: { hero?: StoreHero } }>,
+    storefront.getStore(storeSlug) as Promise<{
+      currency?: string;
+      custom_domain?: string | null;
+      language_config?: { primary_locale?: string } | null;
+      theme?: { hero?: StoreHero };
+    }>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
   ]);
 
@@ -129,8 +135,53 @@ export default async function CollectionPage({
     return `${lp}/collections/${handle}${qs ? `?${qs}` : ''}`;
   };
 
+  // JSON-LD: this page is a product listing and a step in the site hierarchy.
+  // Neither was expressed before, so crawlers saw an ordinary page. Built from
+  // data already in scope, so it costs nothing extra to render.
+  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const ldPrimary = storeData?.language_config?.primary_locale || 'en';
+  const collectionUrl = storeLocalePath(
+    ldOrigin,
+    locale,
+    ldPrimary,
+    `/collections/${handle}`,
+  );
+  const collectionLd = buildCollectionPage({
+    name: collectionName,
+    description: collectionDescription?.replace(/<[^>]*>/g, '') || undefined,
+    url: collectionUrl,
+    // Only what this page actually renders — a list that disagrees with the
+    // visible products would be a structured-data violation.
+    items: products.map((p) => {
+      const tr =
+        p.translations?.find((t) => t.locale === locale) ||
+        p.translations?.find((t) => t.locale === ldPrimary) ||
+        p.translations?.[0];
+      return {
+        name: tr?.title || '',
+        url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`),
+        image: p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined,
+      };
+    }),
+  });
+  const collectionBreadcrumbLd = buildBreadcrumb([
+    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
+    { name: t('common.products'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/products') },
+    { name: collectionName, url: collectionUrl },
+  ]);
+
   return (
     <div className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
+      {collectionLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(collectionLd) }}
+        />
+      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJsonSafe(collectionBreadcrumbLd) }}
+      />
       {/* Hero banner — toggled and styled from store settings; uses the
           collection thumbnail (or store hero image) as background when present */}
       {hero.enabled && (

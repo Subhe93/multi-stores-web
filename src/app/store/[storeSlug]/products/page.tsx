@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
@@ -103,7 +104,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const [products, creatorCategories, storeData] = await Promise.all([
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-    storefront.getStore(storeSlug) as Promise<{ currency?: string; theme?: { hero?: StoreHero } }>,
+    storefront.getStore(storeSlug) as Promise<{
+      currency?: string;
+      custom_domain?: string | null;
+      language_config?: { primary_locale?: string } | null;
+      theme?: { hero?: StoreHero };
+    }>,
   ]);
   const currency = storeData?.currency;
 
@@ -134,8 +140,45 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   const isFiltered = !!(search || category || creator_category);
 
+  // JSON-LD for the catalogue. Skipped on filtered views: those are noindex,
+  // and describing a filtered subset as "the catalogue" would be inaccurate.
+  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const ldPrimary = storeData?.language_config?.primary_locale || 'en';
+  const listingUrl = storeLocalePath(ldOrigin, locale, ldPrimary, '/products');
+  const listingLd = isFiltered
+    ? null
+    : buildCollectionPage({
+        name: t('common.products'),
+        url: listingUrl,
+        items: products.map((p) => {
+          const tr =
+            p.translations?.find((x) => x.locale === locale) ||
+            p.translations?.find((x) => x.locale === ldPrimary) ||
+            p.translations?.[0];
+          return {
+            name: tr?.title || '',
+            url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`),
+            image: p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined,
+          };
+        }),
+      });
+  const listingBreadcrumbLd = buildBreadcrumb([
+    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
+    { name: t('common.products'), url: listingUrl },
+  ]);
+
   return (
     <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      {listingLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(listingLd) }}
+        />
+      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJsonSafe(listingBreadcrumbLd) }}
+      />
       {/* Page header banner — toggled and styled from store settings */}
       {hero.enabled && (
         <div

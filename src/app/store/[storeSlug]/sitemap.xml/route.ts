@@ -13,6 +13,8 @@ interface SitemapData {
   static_pages: SitemapPage[];
   landing_pages: SitemapPage[];
   products: SitemapPage[];
+  collections?: SitemapPage[];
+  legal_pages?: SitemapPage[];
 }
 
 interface RouteCtx {
@@ -90,6 +92,11 @@ export async function GET(_req: Request, ctx: RouteCtx) {
   for (const p of data.static_pages) entries.push(urlEntry(`/${p.slug}`, p.lastmod));
   for (const p of data.landing_pages) entries.push(urlEntry(`/p/${p.slug}`, p.lastmod));
   for (const p of data.products) entries.push(urlEntry(`/products/${p.slug}`, p.lastmod));
+  // Collections and legal pages were both absent, so nothing pointed crawlers
+  // at them. The listing page is included too — it is the catalogue entry point.
+  for (const c of data.collections ?? []) entries.push(urlEntry(`/collections/${c.slug}`, c.lastmod));
+  for (const p of data.legal_pages ?? []) entries.push(urlEntry(`/legal/${p.slug}`, p.lastmod));
+  entries.push(urlEntry('/products', data.home?.lastmod ?? new Date()));
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
