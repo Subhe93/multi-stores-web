@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -347,20 +348,49 @@ export async function generateMetadata({
 }: CollectionPageProps) {
   const { storeSlug, handle } = await params;
   const { lang } = await searchParams;
-  const locale = lang || 'en';
 
   try {
-    const tree = (await storefront.getCreatorCategories(
-      storeSlug,
-    )) as CreatorCategory[];
+    const [tree, store] = await Promise.all([
+      storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
+      storefront.getStore(storeSlug) as Promise<any>,
+    ]);
+    const primaryLocale = store?.language_config?.primary_locale || 'en';
+    const secondary: string[] = store?.language_config?.secondary_locales || [];
+    const locale = lang || primaryLocale;
+
     const flat = flattenCreatorCategories(tree || []);
     const collection = flat.find((c) => c.slug === handle && c.is_active !== false);
     if (!collection) return {};
     const tr = pickTranslation(collection.translations, locale);
+
+    // Previously title + description only, so a collection inherited the
+    // layout's canonical and declared itself a duplicate of the homepage.
+    const alternates = buildStoreAlternates({
+      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null),
+      locale,
+      primaryLocale,
+      secondaryLocales: secondary,
+      path: `/collections/${handle}`,
+    });
+
+    const title = tr?.name || handle;
+    const description =
+      tr?.description?.replace(/<[^>]*>/g, '').slice(0, 160) || undefined;
+    const image = collection.thumbnail_url
+      ? resolveMediaUrl(collection.thumbnail_url)
+      : undefined;
+
     return {
-      title: tr?.name || handle,
-      description:
-        tr?.description?.replace(/<[^>]*>/g, '').slice(0, 160) || undefined,
+      title,
+      description,
+      alternates,
+      openGraph: {
+        title,
+        description,
+        images: image ? [image] : undefined,
+        type: 'website',
+        url: alternates.canonical,
+      },
     };
   } catch {
     return {};

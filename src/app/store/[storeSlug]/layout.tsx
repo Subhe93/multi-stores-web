@@ -4,7 +4,7 @@ import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { storefront, legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin } from '@/lib/storeUrl';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
@@ -153,25 +153,23 @@ export async function generateMetadata({
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
     const store = await storefront.getStore(storeSlug) as Store;
     const primaryLocale = store.language_config?.primary_locale || 'en';
-    const secondaryLocales = store.language_config?.secondary_locales || [];
     const lang = urlLocale || primaryLocale;
     const trans = store.theme?.translations?.[lang];
 
-    // hreflang for every supported locale + x-default → primary. Canonical =
-    // the store's subdomain root with primary locale (no prefix). Secondary
-    // locales use `/{locale}/...` path-prefix form (Google-preferred for hreflang).
     const origin = buildStoreOrigin(storeSlug, (store as { custom_domain?: string | null }).custom_domain || null);
-    const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, '');
-    const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
-    const languages: Record<string, string> = {};
-    for (const l of allLocales) {
-      languages[l] = storeLocalePath(origin, l, primaryLocale, '');
-    }
 
+    // Deliberately NO `alternates` here. Metadata merges per top-level field,
+    // so a canonical set at the layout is inherited verbatim by every route
+    // that doesn't define its own — which meant /products, /collections/*,
+    // /cart and /account all declared the store homepage as their canonical,
+    // asking Google not to index them. Each route now owns its canonical, and
+    // a route without one simply has none.
     return {
+      // Resolves relative URLs (e.g. a page's uploaded OG image) against this
+      // store's own origin rather than Next's localhost default.
+      metadataBase: new URL(origin),
       title: trans?.metaTitle || trans?.name || store.name,
       description: trans?.metaDescription || trans?.description || store.description,
-      alternates: { canonical, languages },
     };
   } catch {
     return {};
@@ -513,6 +511,7 @@ export default async function StoreLayout({
                     socials={socials}
                     contact={contact}
                     currentLang={currentLang}
+                    primaryLocale={primaryLocale}
                   />
                 </div>
               );
@@ -532,7 +531,4 @@ export default async function StoreLayout({
             );
           })()}
         </div>
-      </StoreProviders>
-    </NextIntlClientProvider>
-  );
-}
+      </Sto

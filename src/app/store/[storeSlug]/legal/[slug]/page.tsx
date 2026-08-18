@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { legal, storefront, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is
@@ -57,17 +57,18 @@ export async function generateMetadata({
     // alternates use path-prefix `/{locale}/...` for secondary locales, which
     // is what Google prefers (not query strings).
     const subpath = `/legal/${slug}`;
-    const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, subpath);
-    const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
-    const languages: Record<string, string> = {};
-    for (const l of allLocales) {
-      languages[l] = storeLocalePath(origin, l, primaryLocale, subpath);
-    }
+    const alternates = buildStoreAlternates({
+      origin: origin,
+      locale,
+      primaryLocale,
+      secondaryLocales: secondaryLocales,
+      path: subpath,
+    });
 
     return {
       title: page.title,
       description: page.title,
-      alternates: { canonical, languages },
+      alternates,
     };
   } catch {
     return {};

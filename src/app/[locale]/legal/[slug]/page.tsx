@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { legal, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
-import { localePath } from '@/lib/locale-path';
+import { buildPlatformAlternates } from '@/lib/locale-path';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: LegalPageProps): Promise<Meta
     return {
       title: page.title,
       description: `${page.title} — Multi-Stores`,
-      alternates: { canonical: localePath(`/legal/${slug}`, locale) },
+      alternates: buildPlatformAlternates(`/legal/${slug}`, locale),
     };
   } catch {
     return {};

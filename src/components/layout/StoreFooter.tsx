@@ -26,6 +26,7 @@ interface StoreFooterProps {
     address?: string;
   };
   currentLang?: string;
+  primaryLocale?: string;
 }
 
 const LEGAL_KEYWORDS = ['privacy', 'terms', 'return', 'refund', 'shipping'];
@@ -34,9 +35,15 @@ function isLegalPage(slug: string): boolean {
   return LEGAL_KEYWORDS.some((kw) => slug.toLowerCase().includes(kw));
 }
 
-function getPageTitle(translations: { locale: string; title: string }[], locale: string): string {
+// Requested language → store primary locale → English → whatever exists.
+function getPageTitle(
+  translations: { locale: string; title: string }[],
+  locale: string,
+  primaryLocale = 'en',
+): string {
   return (
     translations.find((t) => t.locale === locale)?.title ??
+    translations.find((t) => t.locale === primaryLocale)?.title ??
     translations.find((t) => t.locale === 'en')?.title ??
     translations[0]?.title ??
     ''
@@ -80,6 +87,7 @@ export function StoreFooter({
   socials,
   contact,
   currentLang = 'en',
+  primaryLocale = 'en',
 }: StoreFooterProps) {
   const t = useTranslations();
   const lp = useLocalePath();
@@ -163,7 +171,7 @@ export function StoreFooter({
                   href={lp(`/${page.slug}`)}
                   className="text-sm text-white/70 hover:text-white transition-colors w-fit"
                 >
-                  {getPageTitle(page.translations, currentLang)}
+                  {getPageTitle(page.translations, currentLang, primaryLocale)}
                 </Link>
               ))}
               {/* Platform-wide legal pages — labels are pre-localized by the API. */}

@@ -7,7 +7,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 
 interface Product {
   id: string;
@@ -94,17 +94,20 @@ export async function generateMetadata({
     // Canonical = subdomain root with primary locale (no prefix). Alternates
     // use path-prefix form `/{locale}` (no query strings).
     const origin = buildStoreOrigin(storeSlug, store.custom_domain || null);
-    const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, '');
-    const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
-    const languages: Record<string, string> = {};
-    for (const l of allLocales) {
-      languages[l] = storeLocalePath(origin, l, primaryLocale, '');
-    }
+    const alternates = buildStoreAlternates({
+      origin: origin,
+      locale,
+      primaryLocale,
+      secondaryLocales: secondary,
+      path: '',
+    });
 
     return {
       title: tr?.meta_title || tr?.title,
       description: tr?.meta_description,
-      alternates: { canonical: published.seo?.canonical || canonical, languages },
+      // A creator-supplied canonical overrides ours; otherwise the page's
+      // own locale URL.
+      alternates: { ...alternates, canonical: published.seo?.canonical || alternates.canonical },
       openGraph: {
         title: tr?.meta_title || tr?.title || undefined,
         description: tr?.meta_description,
@@ -141,19 +144,24 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   const { lang } = await searchParams;
   const t = await getTranslations();
 
-  const locale = lang || 'en';
-  const lp = lang ? `/${lang}` : '';
-
   // Pull collections in parallel. Soft-fail to keep the home page rendering if the
   // endpoint hiccups — collections are decorative on this page, not load-bearing.
   // publishedHome may be null when the creator hasn't built a v2 home yet — in
   // that case we fall through to the hardcoded default below.
-  const [store, products, creatorCategoriesResult, publishedHome] = await Promise.all([
+  const [store, creatorCategoriesResult, publishedHome] = await Promise.all([
     storefront.getStore(storeSlug) as Promise<Store>,
-    storefront.getProducts(storeSlug, { featured: 'true', locale }) as Promise<Product[]>,
     storefront.getCreatorCategories(storeSlug).catch(() => [] as CreatorCategory[]) as Promise<CreatorCategory[]>,
     storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
   ]);
+
+  // The canonical (unprefixed) URL is the store's PRIMARY locale — falling
+  // back to 'en' here made every German store render its home in English.
+  const locale = lang || store.language_config?.primary_locale || 'en';
+  const lp = lang ? `/${lang}` : '';
+
+  const products = (await storefront
+    .getProducts(storeSlug, { featured: 'true', locale })
+    .catch(() => [])) as Product[];
 
   // Currency from the store, used by sections that render prices (FeaturedProducts).
   const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';

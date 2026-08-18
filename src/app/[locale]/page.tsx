@@ -1,10 +1,32 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { localePath } from '@/lib/locale-path';
+import { localePath, buildPlatformAlternates } from '@/lib/locale-path';
 import { HeroBackground } from '@/components/home/HeroBackground';
 import { Reveal, Parallax, Magnetic, CountUp } from '@/components/home/ScrollAnimations';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+
+// The marketing homepage had no metadata of its own, so every locale served
+// the root layout's hardcoded English title with no canonical and no hreflang.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'home' });
+  const alternates = buildPlatformAlternates('/', locale);
+  const title = t('title');
+  const description = t('subtitle');
+
+  return {
+    title,
+    description,
+    alternates,
+    openGraph: { title, description, type: 'website', url: alternates.canonical },
+  };
+}
 
 export default async function Home({
   params,

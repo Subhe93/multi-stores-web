@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance } from '@/themes/types';
@@ -82,12 +82,13 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   // use path-prefix `/{locale}/...` for secondary locales.
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
   const subpath = `/${pageSlug}`;
-  const path = storeLocalePath(origin, primaryLocale, primaryLocale, subpath);
-  const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
-  const languages: Record<string, string> = {};
-  for (const l of allLocales) {
-    languages[l] = storeLocalePath(origin, l, primaryLocale, subpath);
-  }
+  const alternates = buildStoreAlternates({
+    origin: origin,
+    locale,
+    primaryLocale,
+    secondaryLocales: secondary,
+    path: subpath,
+  });
 
   if (v2) {
     const tr =
@@ -97,7 +98,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     return {
       title: tr?.meta_title || tr?.title,
       description: tr?.meta_description,
-      alternates: { canonical: v2.seo?.canonical || path, languages },
+      alternates: { ...alternates, canonical: v2.seo?.canonical || alternates.canonical },
       openGraph: {
         title: tr?.meta_title || tr?.title || undefined,
         description: tr?.meta_description,
@@ -118,18 +119,21 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     legacy!.translations[0];
   return {
     title: tr?.title,
-    alternates: { canonical: path, languages },
+    alternates,
   };
 }
 
 export default async function StoreStaticPage({ params, searchParams }: PageProps) {
   const { storeSlug, pageSlug } = await params;
   const { lang } = await searchParams;
-  const locale = lang || 'en';
 
   if (RESERVED_SLUGS.has(pageSlug)) notFound();
 
   const { store, v2, legacy } = await fetchData(storeSlug, pageSlug);
+
+  // The canonical (unprefixed) URL is the store's PRIMARY locale — falling
+  // back to 'en' rendered English content on e.g. a German store's own URL.
+  const locale = lang || store?.language_config?.primary_locale || 'en';
 
   // Prefer v2 — it carries the section layout the creator built. The CSS vars
   // from the parent layout are already in scope so sections render themed.
@@ -149,10 +153,13 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
     );
   }
 
-  // Legacy fallback — single rich-html block.
+  // Legacy fallback — single rich-html block. Prefer the store's primary
+  // locale over English when the requested locale has no translation.
   if (!legacy || legacy.status !== 'PUBLISHED') notFound();
+  const legacyPrimary = store?.language_config?.primary_locale || 'en';
   const translation =
     legacy.translations.find((t) => t.locale === locale) ||
+    legacy.translations.find((t) => t.locale === legacyPrimary) ||
     legacy.translations.find((t) => t.locale === 'en') ||
     legacy.translations[0];
   if (!translation) notFound();

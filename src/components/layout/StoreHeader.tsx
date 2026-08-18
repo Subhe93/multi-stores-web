@@ -42,27 +42,32 @@ interface StoreHeaderProps {
   logoSize?: number;
 }
 
-// Resolve the best available translation for a page
+// Resolve the best available translation for a page: requested language, then
+// the STORE's primary locale, then English, then whatever exists.
 function getPageTitle(
   translations: { locale: string; title: string }[],
   lang: string,
+  primaryLocale = 'en',
 ): string {
-  const byLang = translations.find((t) => t.locale === lang);
-  if (byLang) return byLang.title;
-  const byEn = translations.find((t) => t.locale === 'en');
-  if (byEn) return byEn.title;
-  return translations[0]?.title ?? '';
+  return (
+    translations.find((t) => t.locale === lang)?.title ??
+    translations.find((t) => t.locale === primaryLocale)?.title ??
+    translations.find((t) => t.locale === 'en')?.title ??
+    translations[0]?.title ??
+    ''
+  );
 }
 
 // Build the resolved nav page list from raw pages prop
 function resolvePages(
   pages: StoreHeaderProps['pages'],
   lang: string,
+  primaryLocale = 'en',
 ): NavPage[] {
   if (!pages || pages.length === 0) return [];
   return pages.map((p) => ({
     slug: p.slug,
-    title: getPageTitle(p.translations, lang),
+    title: getPageTitle(p.translations, lang, primaryLocale),
   }));
 }
 
@@ -430,7 +435,7 @@ export function StoreHeader({
   const t = useTranslations();
   const lp = useLocalePath();
   const displayName = storeName || storeSlug;
-  const navPages = resolvePages(pages, currentLang);
+  const navPages = resolvePages(pages, currentLang, primaryLocale);
 
   // Only secondary locales that differ from the primary are real alternatives;
   // a store with one language must not render the language dropdown at all.

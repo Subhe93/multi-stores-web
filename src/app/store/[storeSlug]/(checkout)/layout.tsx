@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
@@ -152,3 +153,10 @@ export default async function CheckoutLayout({
     </NextIntlClientProvider>
   );
 }
+
+// Transactional / private surface — never indexable. robots.txt already
+// disallows these paths; the meta tag covers URLs a crawler reaches anyway
+// (e.g. from an external link), which robots.txt alone cannot suppress.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};

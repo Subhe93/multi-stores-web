@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { storefront } from '@/lib/api';
@@ -111,3 +112,9 @@ export default async function BuilderPreviewPage({
 }
 
 export const dynamic = 'force-dynamic';
+
+// An editing surface that renders a store's unpublished draft — it must never
+// be indexed, and it duplicates real storefront content if it were.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};

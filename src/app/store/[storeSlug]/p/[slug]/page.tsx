@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies, headers } from 'next/headers';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
@@ -78,20 +78,18 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
 
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
   const subpath = `/p/${slug}`;
-  const canonical = storeLocalePath(origin, primaryLocale, primaryLocale, subpath);
-  const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
-  const languages: Record<string, string> = {};
-  for (const l of allLocales) {
-    languages[l] = storeLocalePath(origin, l, primaryLocale, subpath);
-  }
+  const alternates = buildStoreAlternates({
+    origin: origin,
+    locale,
+    primaryLocale,
+    secondaryLocales: secondaryLocales,
+    path: subpath,
+  });
 
   return {
     title: tr?.meta_title || tr?.title,
     description: tr?.meta_description,
-    alternates: {
-      canonical: published.seo?.canonical || canonical,
-      languages,
-    },
+    alternates: { ...alternates, canonical: published.seo?.canonical || alternates.canonical },
     openGraph: {
       title: tr?.meta_title || tr?.title || undefined,
       description: tr?.meta_description,

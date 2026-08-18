@@ -1,6 +1,8 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
@@ -31,6 +33,57 @@ interface StoreProductsProps {
     lang?: string;
     sort?: string;
   }>;
+}
+
+// The catalogue listing is a store's most commercially valuable page, and it
+// had no metadata at all: it inherited the store name as its title and, worse,
+// the layout's canonical, telling search engines it was a duplicate of the
+// homepage. Filtered and searched views are noindex'd (they are thin,
+// near-infinite permutations) while still being followed so products get
+// discovered through them.
+export async function generateMetadata({
+  params,
+  searchParams,
+}: StoreProductsProps): Promise<Metadata> {
+  const { storeSlug } = await params;
+  const { lang, search, category, creator_category, sort } = await searchParams;
+  try {
+    const [store, t] = await Promise.all([
+      storefront.getStore(storeSlug) as Promise<any>,
+      getTranslations(),
+    ]);
+    const primaryLocale = store?.language_config?.primary_locale || 'en';
+    const secondary: string[] = store?.language_config?.secondary_locales || [];
+    const locale = lang || primaryLocale;
+    const storeName = store?.theme?.translations?.[locale]?.name || store?.name || '';
+
+    const alternates = buildStoreAlternates({
+      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null),
+      locale,
+      primaryLocale,
+      secondaryLocales: secondary,
+      path: '/products',
+    });
+
+    const isFiltered = Boolean(search || category || creator_category || sort);
+
+    return {
+      title: `${t('common.products')} — ${storeName}`.trim(),
+      description:
+        store?.theme?.translations?.[locale]?.description ||
+        store?.description ||
+        undefined,
+      alternates,
+      robots: isFiltered ? { index: false, follow: true } : undefined,
+      openGraph: {
+        title: `${t('common.products')} — ${storeName}`.trim(),
+        type: 'website',
+        url: alternates.canonical,
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 export default async function StoreProductsPage({ params, searchParams }: StoreProductsProps) {

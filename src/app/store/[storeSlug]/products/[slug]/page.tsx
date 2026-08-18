@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -37,15 +37,14 @@ export async function generateMetadata({
       product.translations?.find((t: any) => t.locale === primaryLocale) ||
       product.translations?.[0];
 
-    // Canonical = subdomain URL with primary locale; alternates use path-prefix.
     const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
-    const subpath = `/products/${productSlug}`;
-    const path = storeLocalePath(storeOrigin, primaryLocale, primaryLocale, subpath);
-    const allLocales = Array.from(new Set([primaryLocale, ...secondary]));
-    const languages: Record<string, string> = {};
-    for (const l of allLocales) {
-      languages[l] = storeLocalePath(storeOrigin, l, primaryLocale, subpath);
-    }
+    const alternates = buildStoreAlternates({
+      origin: storeOrigin,
+      locale,
+      primaryLocale,
+      secondaryLocales: secondary,
+      path: `/products/${productSlug}`,
+    });
 
     const firstImage = product.images?.[0]?.url
       ? resolveMediaUrl(product.images[0].url)
@@ -54,7 +53,7 @@ export async function generateMetadata({
     return {
       title: tr?.meta_title || tr?.title || 'Product',
       description: tr?.meta_desc || tr?.description?.replace(/<[^>]+>/g, '').slice(0, 200),
-      alternates: { canonical: path, languages },
+      alternates,
       openGraph: {
         title: tr?.meta_title || tr?.title || undefined,
         description: tr?.meta_desc || undefined,
