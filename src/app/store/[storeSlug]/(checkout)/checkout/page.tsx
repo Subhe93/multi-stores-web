@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
@@ -47,19 +47,11 @@ const COUNTRIES = [
 ];
 
 // ── Store slug resolution ─────────────────────────────────────────────────────
-// Resolve store slug from subdomain (usePathname returns the user-visible URL
-// after middleware rewrite, e.g. "/checkout" not "/store/ahmed-design/checkout",
-// so we must read from the hostname instead).
-const PLATFORM_DOMAINS = ['localhost', 'platform.com', 'www.platform.com'];
-function resolveStoreSlug(pathname: string): string {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (PLATFORM_DOMAINS.includes(hostname)) return '';
-    const parts = hostname.split('.');
-    return parts.length >= 2 ? parts[0]! : '';
-  }
-  return pathname.match(/\/store\/([^/]+)/)?.[1] || '';
-}
+// The proxy rewrites every store URL — platform subdomain AND custom CNAME —
+// to /store/[storeSlug]/..., so the route param always carries the slug the
+// API resolved. Guessing from the hostname (the previous approach) broke
+// custom domains: "shop.merchant.com" yielded "shop", getStore 404'd, and on
+// an independent store the connected Stripe account was never resolved.
 
 // Build the payment-config endpoint, scoped to the current store when known so
 // the API can return the store's connected-account details (independent stores).
@@ -276,7 +268,6 @@ function OrderSummary({
 // ── Checkout Form ─────────────────────────────────────────────────────────────
 function CheckoutForm() {
   const router = useRouter();
-  const pathname = usePathname();
   const t = useTranslations();
   const lp = useLocalePath();
   const stripe = useStripe();
@@ -284,7 +275,7 @@ function CheckoutForm() {
   const { token, user, login, register } = useAuth();
   const { items, subtotal, total, coupon, currency, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
 
-  const storeSlug = resolveStoreSlug(pathname);
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -1103,8 +1094,7 @@ function CheckoutForm() {
 
 // ── Stripe wrapper ─────────────────────────────────────────────────────────────
 function CheckoutWithStripe() {
-  const pathname = usePathname();
-  const storeSlug = resolveStoreSlug(pathname);
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof getStripe>>(null);
   useEffect(() => {
     // The publishable key is admin-managed and served by the API, so load

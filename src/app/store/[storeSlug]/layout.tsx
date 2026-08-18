@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { storefront, legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -117,17 +118,12 @@ function typoBlock(selector: string, style?: TypographyStyle): string {
   return `${selector} { ${parts.join(' ')} }`;
 }
 
-// Allowlist of fonts we serve from Google Fonts. Anything outside this list is
+// Build a single Google Fonts CSS2 URL covering every distinct font the store
+// uses. The full family catalog is the allowlist — anything outside it is
 // treated as a system font and skipped from the <link> request.
-const GOOGLE_FONTS = new Set([
-  'Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Display', 'Lato', 'Open Sans',
-  'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', 'Noto Sans', 'Noto Serif', 'Merriweather',
-]);
-
-// Build a single Google Fonts CSS2 URL covering every distinct font the store uses.
 function buildGoogleFontsHref(fonts: (string | undefined)[]): string | null {
   const unique = Array.from(new Set(
-    fonts.filter((f): f is string => !!f && GOOGLE_FONTS.has(f))
+    fonts.filter((f): f is string => !!f && GOOGLE_FONT_SET.has(f))
   ));
   if (!unique.length) return null;
   const families = unique

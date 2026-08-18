@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEve
 import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
+import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import type { ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
@@ -280,6 +281,39 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
     [theme, state.customizations],
   );
   const cssVars = useMemo(() => tokensToCssVars(tokens), [tokens]);
+
+  // Load the theme's Google Fonts inside the preview. The live storefront gets
+  // its font <link> from the server layout, which this iframe never renders —
+  // without this, picking a font in the builder silently fell back to a system
+  // font and looked like the setting did nothing.
+  useEffect(() => {
+    const families = Array.from(
+      new Set(
+        [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body].filter(
+          (f): f is string => !!f && GOOGLE_FONT_SET.has(f),
+        ),
+      ),
+    );
+    const id = 'builder-preview-fonts';
+    const existing = document.getElementById(id) as HTMLLinkElement | null;
+    if (!families.length) {
+      existing?.remove();
+      return;
+    }
+    const query = families
+      .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;500;600;700`)
+      .join('&');
+    const href = `https://fonts.googleapis.com/css2?${query}&display=swap`;
+    if (existing) {
+      if (existing.href !== href) existing.href = href;
+      return;
+    }
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }, [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body]);
 
   // Only [a-zA-Z0-9_-] can appear in section ids (uuids); strip anything else
   // so the injected CSS selector cannot be broken out of.
