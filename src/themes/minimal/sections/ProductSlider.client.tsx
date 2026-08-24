@@ -22,10 +22,18 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+// Card image aspect ratio — same option set as featured-products/collection-products.
+const CARD_ASPECT: Record<string, string> = {
+  square: 'aspect-square',
+  portrait: 'aspect-[4/5]',
+  landscape: 'aspect-[4/3]',
+};
+
 export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const filter = (settings.filter as 'newest' | 'featured') || 'newest';
+  const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
   const limit = clamp((settings.limit as number) ?? 8, 1, 24);
   const spvDesktop = clamp((settings.slides_per_view as number) ?? 4, 1, 6);
   const spvTablet = clamp((settings.slides_per_view_tablet as number) ?? 3, 1, 6);
@@ -90,7 +98,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     return (
       <a key={p.id} href={url} className="group block h-full">
         <div
-          className="aspect-square overflow-hidden"
+          className={`${aspectClass} overflow-hidden`}
           style={{
             backgroundColor: 'var(--theme-colors-surface)',
             borderRadius: 'var(--theme-radius-md)',
@@ -171,7 +179,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
           {Array.from({ length: spvDesktop }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square animate-pulse flex-1"
+              className={`${aspectClass} animate-pulse flex-1`}
               style={{
                 backgroundColor: 'var(--theme-colors-surface)',
                 borderRadius: 'var(--theme-radius-md)',

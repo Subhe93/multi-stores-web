@@ -30,6 +30,17 @@ export const productPageMagicSection: SectionDefinition = {
           { value: 'outline', label: { en: 'Outline', ar: 'إطار' } },
         ],
       },
+      {
+        key: 'gallery_aspect',
+        type: 'select',
+        label: { en: 'Gallery aspect ratio', ar: 'نسبة أبعاد المعرض' },
+        defaultValue: 'square',
+        options: [
+          { value: 'square', label: { en: 'Square (1:1)', ar: 'مربّع (1:1)' } },
+          { value: 'portrait', label: { en: 'Portrait (4:5)', ar: 'طولي (4:5)' } },
+          { value: 'landscape', label: { en: 'Landscape (4:3)', ar: 'عرضي (4:3)' } },
+        ],
+      },
     ],
   },
   Component: ProductPageMagic,
@@ -39,5 +50,6 @@ export const productPageMagicSection: SectionDefinition = {
     show_tabs: true,
     show_tags: true,
     button_style: 'solid',
+    gallery_aspect: 'square',
   },
 };

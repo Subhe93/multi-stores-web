@@ -23,6 +23,13 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+// Card image aspect ratio — same option set as featured-products/product-slider.
+const CARD_ASPECT: Record<string, string> = {
+  square: 'aspect-square',
+  portrait: 'aspect-[4/5]',
+  landscape: 'aspect-[4/3]',
+};
+
 export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
@@ -30,6 +37,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   // storefront resolves it via the `creator_category` filter.
   const categorySlug = (settings.category as string) || '';
   const limit = clamp((settings.limit as number) ?? 8, 1, 24);
+  const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
@@ -128,7 +136,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
           {Array.from({ length: limit }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square animate-pulse"
+              className={`${aspectClass} animate-pulse`}
               style={{ backgroundColor: 'var(--theme-colors-surface)', borderRadius: 'var(--theme-radius-md)' }}
             />
           ))}
@@ -173,7 +181,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
             return (
               <a key={p.id} href={url} className="group block">
                 <div
-                  className="card-media-lift relative aspect-square overflow-hidden"
+                  className={`card-media-lift relative ${aspectClass} overflow-hidden`}
                   style={{ backgroundColor: 'var(--theme-colors-surface)', borderRadius: 'var(--theme-radius-md)' }}
                 >
                   {discount > 0 && (

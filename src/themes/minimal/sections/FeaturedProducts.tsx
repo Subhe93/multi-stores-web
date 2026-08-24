@@ -27,6 +27,17 @@ export const featuredProductsSection: SectionDefinition = {
           { value: 'featured', label: { en: 'Featured only', ar: 'المميّزة فقط' } },
         ],
       },
+      {
+        key: 'aspect',
+        type: 'select',
+        label: { en: 'Image aspect ratio', ar: 'نسبة أبعاد الصور' },
+        defaultValue: 'square',
+        options: [
+          { value: 'square', label: { en: 'Square (1:1)', ar: 'مربّع (1:1)' } },
+          { value: 'portrait', label: { en: 'Portrait (4:5)', ar: 'طولي (4:5)' } },
+          { value: 'landscape', label: { en: 'Landscape (4:3)', ar: 'عرضي (4:3)' } },
+        ],
+      },
       { key: 'limit', type: 'number', label: { en: 'Number of products', ar: 'عدد المنتجات' }, min: 1, max: 12, defaultValue: 4 },
       { key: 'columns', type: 'number', label: { en: 'Columns — desktop', ar: 'الأعمدة — سطح المكتب' }, min: 1, max: 6, defaultValue: 4 },
       { key: 'columns_tablet', type: 'number', label: { en: 'Columns — tablet', ar: 'الأعمدة — تابلت' }, min: 1, max: 6, defaultValue: 3 },
@@ -39,5 +50,5 @@ export const featuredProductsSection: SectionDefinition = {
     ],
   },
   Component: FeaturedProducts,
-  defaultSettings: { filter: 'newest', limit: 4, columns: 4, columns_tablet: 3, columns_mobile: 2 },
+  defaultSettings: { filter: 'newest', aspect: 'square', limit: 4, columns: 4, columns_tablet: 3, columns_mobile: 2 },
 };

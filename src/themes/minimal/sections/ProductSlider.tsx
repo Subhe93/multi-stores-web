@@ -27,6 +27,17 @@ export const productSliderSection: SectionDefinition = {
           { value: 'featured', label: { en: 'Featured only', ar: 'المميّزة فقط' } },
         ],
       },
+      {
+        key: 'aspect',
+        type: 'select',
+        label: { en: 'Image aspect ratio', ar: 'نسبة أبعاد الصور' },
+        defaultValue: 'square',
+        options: [
+          { value: 'square', label: { en: 'Square (1:1)', ar: 'مربّع (1:1)' } },
+          { value: 'portrait', label: { en: 'Portrait (4:5)', ar: 'طولي (4:5)' } },
+          { value: 'landscape', label: { en: 'Landscape (4:3)', ar: 'عرضي (4:3)' } },
+        ],
+      },
       { key: 'limit', type: 'number', label: { en: 'Number of products', ar: 'عدد المنتجات' }, min: 1, max: 24, defaultValue: 8 },
       {
         key: 'slides_per_view',
@@ -74,6 +85,7 @@ export const productSliderSection: SectionDefinition = {
   Component: ProductSlider,
   defaultSettings: {
     filter: 'newest',
+    aspect: 'square',
     limit: 8,
     slides_per_view: 4,
     slides_per_view_tablet: 3,

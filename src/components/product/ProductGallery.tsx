@@ -14,9 +14,17 @@ interface ProductGalleryProps {
   images: GalleryImage[];
   activeIndex?: number;
   onIndexChange?: (index: number) => void;
+  /** Main-image aspect ratio; defaults to square (existing behavior). */
+  aspect?: 'square' | 'portrait' | 'landscape';
 }
 
-export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGalleryProps) {
+const GALLERY_ASPECT: Record<string, string> = {
+  square: 'aspect-square',
+  portrait: 'aspect-[4/5]',
+  landscape: 'aspect-[4/3]',
+};
+
+export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 'square' }: ProductGalleryProps) {
   const t = useTranslations();
   const [internalIndex, setInternalIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
@@ -99,7 +107,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
 
   if (!images || images.length === 0) {
     return (
-      <div className="aspect-square overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center text-gray-300">
+      <div className={`${GALLERY_ASPECT[aspect] || GALLERY_ASPECT.square} overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center text-gray-300`}>
         <svg className="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
@@ -170,7 +178,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange }: ProductGa
       {/* Main image container */}
       <div
         ref={mainRef}
-        className="relative aspect-square overflow-hidden rounded-2xl bg-gray-50 group cursor-crosshair select-none"
+        className={`relative ${GALLERY_ASPECT[aspect] || GALLERY_ASPECT.square} overflow-hidden rounded-2xl bg-gray-50 group cursor-crosshair select-none`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onMouseMove={handleMouseMove}

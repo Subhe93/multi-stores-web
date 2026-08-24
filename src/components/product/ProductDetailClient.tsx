@@ -128,6 +128,8 @@ export interface ProductDetailOptions {
   showTabs?: boolean;
   showTags?: boolean;
   buttonStyle?: 'solid' | 'outline';
+  /** Gallery main-image aspect ratio (builder setting; defaults to square). */
+  galleryAspect?: 'square' | 'portrait' | 'landscape';
 }
 
 interface ProductDetailClientProps {
@@ -555,6 +557,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
             images={galleryImages}
             activeIndex={activeGalleryIndex}
             onIndexChange={setActiveGalleryIndex}
+            aspect={options?.galleryAspect}
           />
         </div>
 

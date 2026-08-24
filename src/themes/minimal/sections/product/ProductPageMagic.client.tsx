@@ -107,6 +107,7 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
           showTabs: settings.show_tabs !== false,
           showTags: settings.show_tags !== false,
           buttonStyle: (settings.button_style as 'solid' | 'outline') || 'solid',
+          galleryAspect: (settings.gallery_aspect as 'square' | 'portrait' | 'landscape') || 'square',
         }}
       />
     </section>
