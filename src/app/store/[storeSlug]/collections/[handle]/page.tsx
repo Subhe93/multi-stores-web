@@ -7,6 +7,10 @@ import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/s
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
+import { resolveTheme } from '@/themes/registry';
+import { SectionRenderer } from '@/themes/SectionRenderer';
+import type { ListingContext, SectionInstance } from '@/themes/types';
+import { toListingProduct } from '@/lib/listing';
 
 interface Product {
   id: string;
@@ -74,14 +78,21 @@ export default async function CollectionPage({
 
   // Fetch the tree first so we can render the hero with the matching collection.
   // We also need the store currency for product prices.
-  const [storeData, creatorCategoriesTree] = await Promise.all([
+  const [storeData, creatorCategoriesTree, template] = await Promise.all([
     storefront.getStore(storeSlug) as Promise<{
       currency?: string;
       custom_domain?: string | null;
       language_config?: { primary_locale?: string } | null;
       theme?: { hero?: StoreHero };
+      theme_key?: string;
     }>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
+    // Published COLLECTION_TEMPLATE snapshot; null when the creator hasn't
+    // published one (or the endpoint is unavailable) — the built-in markup
+    // below is the fallback in that case.
+    storefront.getPublishedCollectionTemplate(storeSlug).catch(() => null) as Promise<{
+      snapshot?: { sections?: SectionInstance[] };
+    } | null>,
   ]);
 
   const flat = flattenCreatorCategories(creatorCategoriesTree || []);
@@ -169,6 +180,49 @@ export default async function CollectionPage({
     { name: t('common.products'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/products') },
     { name: collectionName, url: collectionUrl },
   ]);
+
+  // If the creator has published a COLLECTION_TEMPLATE, render the page
+  // through the active theme using its sections + this listing as the magic
+  // context. The default layout below stays as the fallback for stores
+  // without one. SEO output (JSON-LD) is identical in both branches.
+  const templateSections = template?.snapshot?.sections;
+  if (templateSections && templateSections.length > 0) {
+    const tplLocale = lang || ldPrimary;
+    const listing: ListingContext = {
+      kind: 'collection',
+      // Card-level projection only — see lib/listing.ts.
+      products: products.map(toListingProduct),
+      collections: creatorCategoriesTree || [],
+      collection,
+      query: { search, sort },
+      hero: storeData?.theme?.hero?.collections,
+      basePath: `/collections/${handle}`,
+      isFiltered: !!search,
+    };
+    return (
+      <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
+        {collectionLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(collectionLd) }}
+          />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(collectionBreadcrumbLd) }}
+        />
+        <SectionRenderer
+          theme={resolveTheme(storeData?.theme_key)}
+          sections={templateSections}
+          locale={tplLocale}
+          primaryLocale={ldPrimary}
+          storeSlug={storeSlug}
+          currency={currency}
+          listing={listing}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>

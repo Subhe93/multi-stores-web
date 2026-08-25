@@ -7,6 +7,10 @@ import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
+import { resolveTheme } from '@/themes/registry';
+import { SectionRenderer } from '@/themes/SectionRenderer';
+import type { ListingContext, SectionInstance } from '@/themes/types';
+import { toListingProduct } from '@/lib/listing';
 
 interface Product {
   id: string;
@@ -101,7 +105,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // Only the creator's own collections are shown on the storefront — admin/provider
   // taxonomy categories live at the platform level and don't belong on the store page.
-  const [products, creatorCategories, storeData] = await Promise.all([
+  const [products, creatorCategories, storeData, template] = await Promise.all([
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     storefront.getStore(storeSlug) as Promise<{
@@ -109,7 +113,14 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
       custom_domain?: string | null;
       language_config?: { primary_locale?: string } | null;
       theme?: { hero?: StoreHero };
+      theme_key?: string;
     }>,
+    // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
+    // published one (or the endpoint is unavailable) — the built-in markup
+    // below is the fallback in that case.
+    storefront.getPublishedCatalogTemplate(storeSlug).catch(() => null) as Promise<{
+      snapshot?: { sections?: SectionInstance[] };
+    } | null>,
   ]);
   const currency = storeData?.currency;
 
@@ -166,6 +177,48 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
     { name: t('common.products'), url: listingUrl },
   ]);
+
+  // If the creator has published a CATALOG_TEMPLATE, render the page through
+  // the active theme using its sections + this listing as the magic context.
+  // The default layout below stays as the fallback for stores without one.
+  // SEO output (JSON-LD) is identical in both branches.
+  const templateSections = template?.snapshot?.sections;
+  if (templateSections && templateSections.length > 0) {
+    const tplLocale = lang || ldPrimary;
+    const listing: ListingContext = {
+      kind: 'catalog',
+      // Card-level projection only — see lib/listing.ts.
+      products: products.map(toListingProduct),
+      collections: creatorCategories || [],
+      query: { search, sort, category, creator_category },
+      hero: storeData?.theme?.hero?.products,
+      basePath: '/products',
+      isFiltered,
+    };
+    return (
+      <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
+        {listingLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(listingLd) }}
+          />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(listingBreadcrumbLd) }}
+        />
+        <SectionRenderer
+          theme={resolveTheme(storeData?.theme_key)}
+          sections={templateSections}
+          locale={tplLocale}
+          primaryLocale={ldPrimary}
+          storeSlug={storeSlug}
+          currency={currency}
+          listing={listing}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'}>

@@ -2,6 +2,7 @@
 // in the Store table. Creators override individual tokens via `theme_customizations`.
 
 import type { ComponentType, ReactNode } from 'react';
+import type { HeroPageConfig } from '@/lib/hero';
 
 export type LocalizedString = Record<string, string>;
 
@@ -136,7 +137,9 @@ export interface SectionSchema {
   // columns) don't pollute regular HOME/STATIC/LANDING palettes, and
   // page-content sections (hero, products, etc.) don't pollute the chrome
   // palettes. Omit on chrome-only sections and pass ['HEADER'] or ['FOOTER'].
-  pageTypes?: Array<'HOME' | 'STATIC' | 'LANDING' | 'PRODUCT_TEMPLATE' | 'HEADER' | 'FOOTER'>;
+  pageTypes?: Array<
+    'HOME' | 'STATIC' | 'LANDING' | 'PRODUCT_TEMPLATE' | 'HEADER' | 'FOOTER' | 'CATALOG_TEMPLATE' | 'COLLECTION_TEMPLATE'
+  >;
 }
 
 export interface SectionInstance {
@@ -171,6 +174,49 @@ export interface ProductContext {
   faqs?: Array<{ translations: Array<{ locale: string; question?: string; answer?: string }> }>;
   // Catch-all so themes can read fields we haven't typed yet without ts-errors.
   [extra: string]: unknown;
+}
+
+// ── Listing context (CATALOG_TEMPLATE / COLLECTION_TEMPLATE) ───────
+// Mirrors what the /products and /collections/[handle] routes already load.
+// The route computes everything (filtering, sorting, hero config) and the
+// `product-listing` magic section only renders it — exactly like `product`
+// for PRODUCT_TEMPLATE. Kept loose (index signature) so storefront API tweaks
+// don't break themes.
+
+export interface ListingProduct {
+  id: string;
+  base_price: number;
+  compare_at_price?: number;
+  created_at?: string;
+  translations: Array<{ locale: string; title?: string; slug?: string }>;
+  images: Array<{ url: string }>;
+  promotions?: unknown[];
+  [extra: string]: unknown;
+}
+
+export interface ListingCollection {
+  id: string;
+  slug: string;
+  is_active?: boolean;
+  thumbnail_url?: string | null;
+  translations: Array<{ locale: string; name: string; description?: string | null }>;
+  children?: ListingCollection[];
+}
+
+export interface ListingContext {
+  kind: 'catalog' | 'collection';
+  /** Already filtered + sorted by the route. */
+  products: ListingProduct[];
+  /** Creator category TREE (catalog: for pills; collection: for children lookup). */
+  collections: ListingCollection[];
+  /** The current collection (kind === 'collection'). */
+  collection?: ListingCollection;
+  query: { search?: string; sort?: string; category?: string; creator_category?: string };
+  /** store.theme.hero.products | .collections (raw, unresolved). */
+  hero?: HeroPageConfig;
+  /** '/products' or `/collections/${handle}` (no locale prefix). */
+  basePath: string;
+  isFiltered: boolean;
 }
 
 // A single navigation menu item. `parent_id` enables nesting (dropdowns /
@@ -242,6 +288,9 @@ export interface SectionRenderProps {
   primaryLocale: string;
   storeSlug: string;
   product?: ProductContext;
+  // Populated for sections rendered inside a CATALOG_TEMPLATE /
+  // COLLECTION_TEMPLATE page. Only the `product-listing` magic section reads it.
+  listing?: ListingContext;
   currency?: string;
   // Populated by StoreLayout when rendering HEADER / FOOTER chrome. Undefined
   // for page sections — they shouldn't depend on global store data.

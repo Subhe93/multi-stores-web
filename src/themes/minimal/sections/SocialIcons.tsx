@@ -282,7 +282,7 @@ export const socialIconsSection: SectionDefinition = {
     },
     // Available on every page type — explicitly include HEADER and FOOTER so
     // creators can drop a social row into the chrome (very common for stores).
-    pageTypes: ['HOME', 'STATIC', 'LANDING', 'PRODUCT_TEMPLATE', 'HEADER', 'FOOTER'],
+    pageTypes: ['HOME', 'STATIC', 'LANDING', 'PRODUCT_TEMPLATE', 'CATALOG_TEMPLATE', 'COLLECTION_TEMPLATE', 'HEADER', 'FOOTER'],
     translatable: ['heading', 'subheading', 'items'],
     schema: [
       // ── Content ────────────────────────────────────────────────

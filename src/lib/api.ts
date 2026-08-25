@@ -120,6 +120,15 @@ export const storefront = {
   getPublishedProductTemplate: async (slug: string) =>
     api(`/storefront/${slug}/v2/product-template`, await cacheOpts(slug)),
 
+  // Single CATALOG_TEMPLATE (serves /products) and COLLECTION_TEMPLATE (serves
+  // every /collections/[handle]) per store. Null when not published — the
+  // routes then fall back to their built-in listing markup.
+  getPublishedCatalogTemplate: async (slug: string) =>
+    api(`/storefront/${slug}/v2/catalog-template`, await cacheOpts(slug)),
+
+  getPublishedCollectionTemplate: async (slug: string) =>
+    api(`/storefront/${slug}/v2/collection-template`, await cacheOpts(slug)),
+
   // Store-wide chrome. Null when the creator hasn't published the HEADER /
   // FOOTER pages yet — StoreLayout falls back to its built-in components.
   getPublishedHeader: async (slug: string) =>

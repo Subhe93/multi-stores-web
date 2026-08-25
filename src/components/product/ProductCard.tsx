@@ -14,6 +14,9 @@ interface ProductCardProps {
   currency?: string;
   badge?: string;
   promotionLabel?: string;
+  // Image aspect-ratio class. Defaults to the square card; listing sections
+  // pass portrait/landscape from their settings.
+  aspectClass?: string;
 }
 
 export function ProductCard({
@@ -25,6 +28,7 @@ export function ProductCard({
   currency = 'EUR',
   badge,
   promotionLabel,
+  aspectClass = 'aspect-square',
 }: ProductCardProps) {
   const t = useTranslations('product');
   const formatted = new Intl.NumberFormat('en', {
@@ -45,7 +49,7 @@ export function ProductCard({
   return (
     <Link href={href} className="group block">
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
+      <div className={`relative ${aspectClass} overflow-hidden rounded-2xl bg-gray-100`}>
         {imageUrl ? (
           <StoreImage
             src={imageUrl}

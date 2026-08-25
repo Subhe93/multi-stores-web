@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import type { ProductContext, SectionInstance, StoreContext, Theme } from './types';
+import type { ListingContext, ProductContext, SectionInstance, StoreContext, Theme } from './types';
 import { animationClass, readSectionStyle, resolveSectionStyle } from './sectionStyle';
 import { Reveal } from './_motion';
 
@@ -17,6 +17,9 @@ interface SectionRendererProps {
   primaryLocale: string;
   // Forwarded to every section. Only magic sections read it; the rest ignore.
   product?: ProductContext;
+  // Same idea for CATALOG_TEMPLATE / COLLECTION_TEMPLATE pages — only the
+  // `product-listing` magic section reads it.
+  listing?: ListingContext;
   currency?: string;
   // Forwarded to chrome sections (HEADER / FOOTER) so they can render the
   // store name, logo, locales and pages without re-fetching.
@@ -43,6 +46,7 @@ export function SectionRenderer({
   storeSlug,
   primaryLocale,
   product,
+  listing,
   currency,
   storeContext,
   chrome,
@@ -110,6 +114,7 @@ export function SectionRenderer({
                 primaryLocale={primaryLocale}
                 storeSlug={storeSlug}
                 product={product}
+                listing={listing}
                 currency={currency}
                 storeContext={storeContext}
               />

@@ -55,6 +55,7 @@ import { productGalleryMagicSection } from './sections/product/ProductGalleryMag
 import { productDetailsMagicSection } from './sections/product/ProductDetailsMagic';
 import { productTabsMagicSection } from './sections/product/ProductTabsMagic';
 import { addToCartMagicSection } from './sections/product/AddToCartMagic';
+import { productListingMagicSection } from './sections/listing/ProductListingMagic';
 
 export const minimalTheme: Theme = {
   key: 'minimal',
@@ -119,6 +120,10 @@ export const minimalTheme: Theme = {
     'product-details': productDetailsMagicSection,
     'product-tabs': productTabsMagicSection,
     'add-to-cart': addToCartMagicSection,
+    // Listing magic section — reads from the listing context injected by the
+    // /products and /collections/[handle] routes. Only useful on
+    // CATALOG_TEMPLATE / COLLECTION_TEMPLATE (scoped via schema.pageTypes).
+    'product-listing': productListingMagicSection,
     // Chrome sections — restricted to HEADER/FOOTER pages via schema.pageTypes.
     'header-bar': headerBarSection,
     'footer-columns': footerColumnsSection,

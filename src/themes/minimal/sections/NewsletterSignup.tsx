@@ -15,7 +15,7 @@ export const newsletterSignupSection: SectionDefinition = {
     },
     // Email capture often lives in the footer (above the copyright bar).
     // Header placement is rare and would crowd nav, so HEADER is excluded.
-    pageTypes: ['HOME', 'STATIC', 'LANDING', 'PRODUCT_TEMPLATE', 'FOOTER'],
+    pageTypes: ['HOME', 'STATIC', 'LANDING', 'PRODUCT_TEMPLATE', 'CATALOG_TEMPLATE', 'COLLECTION_TEMPLATE', 'FOOTER'],
     translatable: ['heading', 'subheading', 'placeholder', 'button_label', 'success_message'],
     schema: [
       {

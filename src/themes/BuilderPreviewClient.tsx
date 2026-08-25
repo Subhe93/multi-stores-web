@@ -7,7 +7,7 @@ import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
-import type { ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
+import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
 // Only the builder that embedded this preview may drive it, and messages go
 // only to it. Sections here render straight from the incoming payload (some as
@@ -31,6 +31,8 @@ interface InitialPreviewState {
   locale: string;
   primaryLocale: string;
   product?: ProductContext;
+  // Listing context for CATALOG_TEMPLATE / COLLECTION_TEMPLATE previews.
+  listing?: ListingContext;
   currency?: string;
   // Store-wide context so chrome sections (Header/Footer) resolve menus,
   // logo, store name and locales in the preview just like the live store.
@@ -99,6 +101,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           // Preserve preview-only context the dashboard never sends — but fold
           // in fresh menus when provided so chrome sections resolve them.
           product: prev.product,
+          listing: prev.listing,
           currency: prev.currency,
           storeContext: data.menus
             ? {
@@ -371,6 +374,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
             primaryLocale={state.primaryLocale}
             storeSlug={storeSlug}
             product={state.product}
+            listing={state.listing}
             currency={state.currency}
             storeContext={state.storeContext}
           />
