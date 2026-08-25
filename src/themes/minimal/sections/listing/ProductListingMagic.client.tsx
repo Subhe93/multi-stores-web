@@ -320,8 +320,17 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
     </div>
   );
 
+  // Map the theme tokens onto the legacy --store-* variables the moved markup
+  // reads (pills, links, banner gradient). The live storefront layout sets
+  // them from the same tokens, but the builder preview has no such layout
+  // and would otherwise fall back to the hardcoded blue.
+  const scopeStyle = {
+    ['--store-primary' as string]: 'var(--theme-colors-primary)',
+    ['--store-secondary' as string]: 'var(--theme-colors-secondary)',
+  } as React.CSSProperties;
+
   return (
-    <section>
+    <section style={scopeStyle}>
       {/* Per-breakpoint grid columns — inline styles can't carry media queries
           so we inject a scoped style block keyed off the section's useId. */}
       <style
