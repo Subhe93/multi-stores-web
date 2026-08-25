@@ -36,7 +36,7 @@
     "clear": "Zurücksetzen"
   },
   "home": {
-    "title": "Multi-Stores Marktplatz",
+    "title": "{name} Marktplatz",
     "subtitle": "Die Plattform, die Produktanbieter mit kreativen Designern verbindet, um einzigartige Online-Shops aufzubauen.",
     "getStarted": "Loslegen",
     "badge": "Der neue Weg, online zu verkaufen",
@@ -322,7 +322,7 @@
     "RETURNED": "Zurückgesendet"
   },
   "store": {
-    "poweredBy": "Betrieben von Multi-Stores",
+    "poweredBy": "Betrieben von <b>{name}</b>",
     "featuredProducts": "Empfohlene Produkte",
     "featuredSubtitle": "Handverlesene Produkte nur für Sie",
     "browseProducts": "Produkte durchsuchen",

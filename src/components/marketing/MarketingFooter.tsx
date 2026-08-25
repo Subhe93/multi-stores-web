@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { localePath } from '@/lib/locale-path';
 import { legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
+import { getPlatformName } from '@/lib/platform';
 
 // Shared marketing-site footer used by the [locale] landing page and the
 // platform legal pages. Fetches the localized legal-page list itself (soft
@@ -9,6 +10,7 @@ import { legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
 export async function MarketingFooter({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: 'home' });
   const tc = await getTranslations({ locale, namespace: 'common' });
+  const platformName = await getPlatformName();
 
   let legalPages: LegalPageSummary[] = [];
   try {
@@ -26,8 +28,8 @@ export async function MarketingFooter({ locale }: { locale: string }) {
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
-            <span className="text-lg font-bold tracking-tight">
-              Multi<span style={{ color: 'var(--text-brand)' }}>Stores</span>
+            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-brand)' }}>
+              {platformName}
             </span>
             <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--text-muted)' }}>
               {t('subtitle')}
@@ -49,7 +51,7 @@ export async function MarketingFooter({ locale }: { locale: string }) {
           </div>
         </div>
         <div className="mt-8 pt-8 text-center text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--footer-muted)' }}>
-          &copy; {new Date().getFullYear()} MultiStores. {tc('allRightsReserved')}
+          &copy; {new Date().getFullYear()} {platformName}. {tc('allRightsReserved')}
         </div>
       </div>
     </footer>

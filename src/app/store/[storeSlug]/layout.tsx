@@ -4,6 +4,7 @@ import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { storefront, legal, resolveMediaUrl, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
+import { getPlatformName } from '@/lib/platform';
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
@@ -279,6 +280,9 @@ export default async function StoreLayout({
   const primaryLocale = store.language_config?.primary_locale || 'en';
   const secondaryLocales = store.language_config?.secondary_locales || [];
 
+  // Admin-configured platform name — inherited by the footer attribution.
+  const platformName = await getPlatformName();
+
   // CSS custom properties (`var(--theme-*)`) consumed by sections inside
   // <main>. `activeTheme` / `resolvedTokens` are resolved above so the legacy
   // `--store-*` brand colours can share the same source.
@@ -527,6 +531,7 @@ export default async function StoreLayout({
                     contact={contact}
                     currentLang={currentLang}
                     primaryLocale={primaryLocale}
+                    platformName={platformName}
                   />
                 </div>
               );

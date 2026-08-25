@@ -27,6 +27,8 @@ interface StoreFooterProps {
   };
   currentLang?: string;
   primaryLocale?: string;
+  /** Admin-configured platform name — inherited, never hardcoded. */
+  platformName?: string;
 }
 
 const LEGAL_KEYWORDS = ['privacy', 'terms', 'return', 'refund', 'shipping'];
@@ -88,6 +90,7 @@ export function StoreFooter({
   contact,
   currentLang = 'en',
   primaryLocale = 'en',
+  platformName = 'Multi Stores',
 }: StoreFooterProps) {
   const t = useTranslations();
   const lp = useLocalePath();
@@ -234,8 +237,10 @@ export function StoreFooter({
             &copy; {year} {storeName}. {t('common.allRightsReserved')}
           </span>
           <span>
-            {t('store.poweredBy').split('Multi-Stores')[0]}
-            <span className="font-semibold text-white/85">Multi-Stores</span>
+            {t.rich('store.poweredBy', {
+              name: platformName,
+              b: (chunks) => <span className="font-semibold text-white/85">{chunks}</span>,
+            })}
           </span>
         </div>
       </div>

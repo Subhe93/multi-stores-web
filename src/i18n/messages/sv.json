@@ -36,7 +36,7 @@
     "clear": "Rensa"
   },
   "home": {
-    "title": "Multi-Stores Marknadsplats",
+    "title": "{name} Marknadsplats",
     "subtitle": "Plattformen som kopplar samman produktleverantörer med kreativa designers för att bygga unika nätbutiker.",
     "getStarted": "Kom igång",
     "badge": "Det nya sättet att sälja online",
@@ -322,7 +322,7 @@
     "RETURNED": "Returnerad"
   },
   "store": {
-    "poweredBy": "Drivs av Multi-Stores",
+    "poweredBy": "Drivs av <b>{name}</b>",
     "featuredProducts": "Utvalda produkter",
     "featuredSubtitle": "Handplockade produkter just för dig",
     "browseProducts": "Bläddra bland produkter",

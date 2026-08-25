@@ -36,7 +36,7 @@
     "clear": "Temizle"
   },
   "home": {
-    "title": "Multi-Stores Pazar Yeri",
+    "title": "{name} Pazar Yeri",
     "subtitle": "Ürün tedarikçilerini yaratıcı tasarımcılarla buluşturarak benzersiz çevrimiçi mağazalar oluşturan platform.",
     "getStarted": "Başlayın",
     "badge": "Çevrimiçi satışın yeni yolu",
@@ -322,7 +322,7 @@
     "RETURNED": "İade Alındı"
   },
   "store": {
-    "poweredBy": "Multi-Stores tarafından desteklenmektedir",
+    "poweredBy": "<b>{name}</b> tarafından desteklenmektedir",
     "featuredProducts": "Öne Çıkan Ürünler",
     "featuredSubtitle": "Sizin için özenle seçilmiş ürünler",
     "browseProducts": "Ürünleri İncele",

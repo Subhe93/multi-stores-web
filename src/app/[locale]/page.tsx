@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { localePath, buildPlatformAlternates } from '@/lib/locale-path';
+import { getPlatformName } from '@/lib/platform';
 import { HeroBackground } from '@/components/home/HeroBackground';
 import { Reveal, Parallax, Magnetic, CountUp } from '@/components/home/ScrollAnimations';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
@@ -17,7 +18,8 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'home' });
   const alternates = buildPlatformAlternates('/', locale);
-  const title = t('title');
+  const platformName = await getPlatformName();
+  const title = t('title', { name: platformName });
   const description = t('subtitle');
 
   return {

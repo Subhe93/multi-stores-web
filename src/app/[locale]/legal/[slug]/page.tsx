@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { legal, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
 import { buildPlatformAlternates } from '@/lib/locale-path';
+import { getPlatformName } from '@/lib/platform';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 
@@ -21,10 +22,13 @@ export async function generateMetadata({ params }: LegalPageProps): Promise<Meta
   const { locale, slug } = await params;
   if (!isKnownSlug(slug)) return {};
   try {
-    const page = await legal.get(slug, locale);
+    const [page, platformName] = await Promise.all([
+      legal.get(slug, locale),
+      getPlatformName(),
+    ]);
     return {
       title: page.title,
-      description: `${page.title} — Multi-Stores`,
+      description: `${page.title} — ${platformName}`,
       alternates: buildPlatformAlternates(`/legal/${slug}`, locale),
     };
   } catch {

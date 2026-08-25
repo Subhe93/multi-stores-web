@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers, cookies } from "next/headers";
 import { storefront } from "@/lib/api";
+import { getPlatformName } from "@/lib/platform";
 import { defaultLocale, rtlLocales } from "@/i18n/config";
 import "./globals.css";
 
@@ -13,11 +14,16 @@ const inter = Inter({ subsets: ["latin"] });
 // each store is served from its own subdomain or custom domain.
 const PLATFORM_URL = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3003';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(PLATFORM_URL),
-  title: "Multi-Stores Marketplace",
-  description: "Marketplace connecting providers, creators, and customers",
-};
+// Platform name inherited from the admin-configured PlatformConfig; store
+// routes override this metadata with their own titles anyway.
+export async function generateMetadata(): Promise<Metadata> {
+  const platformName = await getPlatformName();
+  return {
+    metadataBase: new URL(PLATFORM_URL),
+    title: `${platformName} Marketplace`,
+    description: "Marketplace connecting providers, creators, and customers",
+  };
+}
 
 /**
  * The language this request is actually being served in.

@@ -322,7 +322,7 @@
     "RETURNED": "مرتجع"
   },
   "store": {
-    "poweredBy": "يعمل بواسطة Multi-Stores",
+    "poweredBy": "يعمل بواسطة <b>{name}</b>",
     "featuredProducts": "منتجات مميزة",
     "featuredSubtitle": "منتجات مختارة خصيصاً لك",
     "browseProducts": "تصفح المنتجات",

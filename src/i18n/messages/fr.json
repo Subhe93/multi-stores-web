@@ -36,7 +36,7 @@
     "clear": "Effacer"
   },
   "home": {
-    "title": "Marché Multi-Stores",
+    "title": "Marché {name}",
     "subtitle": "La plateforme qui connecte les fournisseurs de produits avec des designers créatifs pour créer des boutiques en ligne uniques.",
     "getStarted": "Commencer",
     "badge": "La nouvelle façon de vendre en ligne",
@@ -322,7 +322,7 @@
     "RETURNED": "Retournée"
   },
   "store": {
-    "poweredBy": "Propulsé par Multi-Stores",
+    "poweredBy": "Propulsé par <b>{name}</b>",
     "featuredProducts": "Produits en vedette",
     "featuredSubtitle": "Des produits sélectionnés rien que pour vous",
     "browseProducts": "Parcourir les produits",

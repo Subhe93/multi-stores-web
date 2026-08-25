@@ -36,7 +36,7 @@
     "clear": "Clear"
   },
   "home": {
-    "title": "Multi-Stores Marketplace",
+    "title": "{name} Marketplace",
     "subtitle": "The platform that connects product providers with creative designers to build unique online stores.",
     "getStarted": "Get Started",
     "badge": "The new way to sell online",
@@ -322,7 +322,7 @@
     "RETURNED": "Returned"
   },
   "store": {
-    "poweredBy": "Powered by Multi-Stores",
+    "poweredBy": "Powered by <b>{name}</b>",
     "featuredProducts": "Featured Products",
     "featuredSubtitle": "Handpicked products just for you",
     "browseProducts": "Browse Products",
