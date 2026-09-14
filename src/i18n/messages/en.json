@@ -245,7 +245,14 @@
       "fieldRequired": "This field is required"
     },
     "estimatedDeliveryVaries": "Estimated delivery time varies",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "kustomCheckout": "Kustom Checkout",
+    "kustomDescription": "Pay with card, Swish, Apple Pay or Klarna invoice — address and delivery are completed in the secure Kustom checkout.",
+    "kustomValidationFailed": "We could not validate your order. Please review your cart and try again.",
+    "kustomSessionFailed": "Could not start the payment. Please try again.",
+    "confirmingPayment": "We are confirming your payment. You will receive an email shortly.",
+    "paymentMismatch": "Kustom received your payment, but it could not be matched to this order. Please contact the store and quote your order number. Nothing will be shipped or charged twice.",
+    "backToCheckout": "Back to checkout"
   },
   "auth": {
     "loginTitle": "Sign In",

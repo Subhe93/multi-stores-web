@@ -17,7 +17,13 @@ import { validateEmail, validatePhone } from '@/lib/validators';
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
 interface OrderResponse { id: string; order_number?: string }
-interface PaymentConfig { stripeConfigured: boolean; publishableKey: string | null; stripeAccount: string | null }
+interface PaymentConfig {
+  stripeConfigured: boolean;
+  publishableKey: string | null;
+  stripeAccount: string | null;
+  /** Kustom Checkout is offered (independent store with configured credentials). */
+  kustomEnabled: boolean;
+}
 interface SavedAddress {
   id: string;
   full_name?: string;
@@ -284,10 +290,12 @@ function CheckoutForm() {
     postal_code: '', country_code: '', phone: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe' | 'kustom'>('cod');
   const [stripeAvailable, setStripeAvailable] = useState(false);
   // Cash on delivery is opt-in per store (off by default server-side).
   const [codAvailable, setCodAvailable] = useState(false);
+  // Kustom Checkout (independent stores with their own Kustom merchant account).
+  const [kustomAvailable, setKustomAvailable] = useState(false);
   const [stripeReady, setStripeReady] = useState(false);
   // The desktop and mobile layouts each have their own payment panel, but Stripe
   // allows only one CardElement per Elements provider — so we mount the card in
@@ -410,12 +418,14 @@ function CheckoutForm() {
   useEffect(() => {
     async function init() {
       let storeCardEnabled = true;
+      let storeKustomEnabled = true;
       if (storeSlug) {
         try {
           const store = await storefront.getStore(storeSlug) as {
             id: string;
             card_payments_enabled?: boolean;
             cod_enabled?: boolean;
+            kustom_enabled?: boolean;
           };
           setStoreId(store.id);
           // The creator must have completed Stripe Connect onboarding for this
@@ -424,6 +434,7 @@ function CheckoutForm() {
           // COD is opt-in per store; strict check so it stays hidden for
           // stores that haven't enabled it.
           setCodAvailable(store.cod_enabled === true);
+          storeKustomEnabled = store.kustom_enabled !== false;
         } catch { /* ignore */ }
       }
       try {
@@ -431,24 +442,32 @@ function CheckoutForm() {
         // Card is offered only when Stripe is configured platform-wide AND the
         // store creator can accept charges.
         setStripeAvailable(config.stripeConfigured && storeCardEnabled);
+        // Kustom is offered only when the payment config says so AND the store
+        // itself hasn't turned it off.
+        setKustomAvailable(config.kustomEnabled === true && storeKustomEnabled);
       } catch {
         setStripeAvailable(false);
+        setKustomAvailable(false);
       }
     }
     init();
   }, [storeSlug]);
 
   // Keep the selected method valid as availability resolves: COD is the
-  // initial default but may be disabled for this store.
+  // initial default but may be disabled for this store, in which case we fall
+  // through to the first available method in COD → card → Kustom order.
   useEffect(() => {
-    if (paymentMethod === 'cod' && !codAvailable && stripeAvailable) {
-      setPaymentMethod('stripe');
-    } else if (paymentMethod === 'stripe' && !stripeAvailable && codAvailable) {
-      setPaymentMethod('cod');
-    }
-  }, [codAvailable, stripeAvailable, paymentMethod]);
+    const available = {
+      cod: codAvailable,
+      stripe: stripeAvailable,
+      kustom: kustomAvailable,
+    } as const;
+    if (available[paymentMethod]) return;
+    const fallback = (['cod', 'stripe', 'kustom'] as const).find((m) => available[m]);
+    if (fallback) setPaymentMethod(fallback);
+  }, [codAvailable, stripeAvailable, kustomAvailable, paymentMethod]);
 
-  const noPaymentMethods = !codAvailable && !stripeAvailable;
+  const noPaymentMethods = !codAvailable && !stripeAvailable && !kustomAvailable;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChange = useCallback(
@@ -517,8 +536,13 @@ function CheckoutForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
-    // Defense in depth — the server rejects COD for stores that disabled it.
-    if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
+    // Defense in depth — the server rejects COD / Kustom for stores that
+    // disabled them.
+    if (
+      noPaymentMethods ||
+      (paymentMethod === 'cod' && !codAvailable) ||
+      (paymentMethod === 'kustom' && !kustomAvailable)
+    ) return;
     // The server ties the order to this store (commission model, payout
     // routing, catalogue check), so don't submit before it has resolved.
     if (!storeId) {
@@ -630,6 +654,22 @@ function CheckoutForm() {
 
         await clearCart();
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
+      } else if (paymentMethod === 'kustom') {
+        // Order-first flow: the order is created awaiting payment, then the
+        // Kustom page opens a checkout session for it. The cart is left intact
+        // until the Kustom confirmation page — the customer may still come
+        // back here if Kustom's validation rejects the purchase.
+        const order = await api<OrderResponse>('/orders', {
+          method: 'POST', token: activeToken,
+          body: JSON.stringify({
+            address_id: addressId,
+            store_id: storeId,
+            payment_method: 'KUSTOM',
+            ...(coupon?.code ? { coupon_code: coupon.code } : {}),
+            ...(orderNotes ? { notes: orderNotes } : {}),
+          }),
+        });
+        router.push(lp(`/checkout/kustom?orderId=${order.id}`));
       } else {
         const order = await api<OrderResponse>('/orders', {
           method: 'POST', token: activeToken,
@@ -668,6 +708,13 @@ function CheckoutForm() {
       </div>
     );
   }
+
+  // Submit label per method: card pays inline, Kustom continues to its hosted
+  // checkout, COD just places the order.
+  const submitLabel =
+    paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder')
+    : paymentMethod === 'kustom' ? t('checkout.continueToPayment')
+    : t('checkout.placeOrder');
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -993,6 +1040,18 @@ function CheckoutForm() {
                     </div>
                   </div>
                 )}
+
+                {kustomAvailable && (
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'kustom' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <input type="radio" name="payment" value="kustom"
+                      checked={paymentMethod === 'kustom'} onChange={() => setPaymentMethod('kustom')}
+                      className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{t('checkout.kustomCheckout')}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{t('checkout.kustomDescription')}</p>
+                    </div>
+                  </label>
+                )}
               </div>
             </div>
 
@@ -1012,7 +1071,7 @@ function CheckoutForm() {
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />{t('checkout.processing')}</>
-                : <><Lock className="w-4 h-4" />{paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder')}</>
+                : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
 
@@ -1065,6 +1124,17 @@ function CheckoutForm() {
                   )}
                 </div>
               )}
+              {kustomAvailable && (
+                <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'kustom' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                  <input type="radio" name="payment_mobile" value="kustom"
+                    checked={paymentMethod === 'kustom'} onChange={() => setPaymentMethod('kustom')}
+                    className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{t('checkout.kustomCheckout')}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t('checkout.kustomDescription')}</p>
+                  </div>
+                </label>
+              )}
             </div>
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>
@@ -1077,7 +1147,7 @@ function CheckoutForm() {
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />{t('checkout.processing')}</>
-                : <><Lock className="w-4 h-4" />{paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder')}</>
+                : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">

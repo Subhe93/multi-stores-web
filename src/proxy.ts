@@ -177,7 +177,9 @@ export async function proxy(request: NextRequest) {
       const rest = match[2] || '/';
       const port = hostname.split(':')[1];
       const protocol = PLATFORM_DOMAIN === 'localhost' ? 'http' : 'https';
-      const target = `${protocol}://${slug}.${PLATFORM_DOMAIN}${port ? ':' + port : ''}${rest}`;
+      // Keep the query string: external redirects built from STOREFRONT_URL
+      // (e.g. Kustom's checkout/confirmation URLs) carry `?orderId=…`.
+      const target = `${protocol}://${slug}.${PLATFORM_DOMAIN}${port ? ':' + port : ''}${rest}${request.nextUrl.search}`;
       return NextResponse.redirect(target);
     }
   }

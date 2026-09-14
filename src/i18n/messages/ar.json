@@ -245,7 +245,14 @@
       "fieldRequired": "هذا الحقل مطلوب"
     },
     "estimatedDeliveryVaries": "وقت التسليم المقدّر يختلف",
-    "comingSoon": "قريباً"
+    "comingSoon": "قريباً",
+    "kustomCheckout": "Kustom Checkout",
+    "kustomDescription": "ادفع بالبطاقة أو Swish أو Apple Pay أو فاتورة Klarna — يتم إكمال العنوان والتوصيل في صفحة الدفع الآمنة من Kustom.",
+    "kustomValidationFailed": "تعذّر التحقق من طلبك. يرجى مراجعة سلة التسوق والمحاولة مرة أخرى.",
+    "kustomSessionFailed": "تعذّر بدء عملية الدفع. يرجى المحاولة مرة أخرى.",
+    "confirmingPayment": "نقوم بتأكيد عملية الدفع الخاصة بك. ستصلك رسالة بريد إلكتروني قريباً.",
+    "paymentMismatch": "استلمت Kustom دفعتك لكن تعذّر ربطها بهذا الطلب. يرجى التواصل مع المتجر وذكر رقم طلبك. لن يُشحن شيء ولن تُخصم الدفعة مرتين.",
+    "backToCheckout": "العودة إلى إتمام الشراء"
   },
   "auth": {
     "loginTitle": "تسجيل الدخول",

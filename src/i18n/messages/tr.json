@@ -245,7 +245,14 @@
       "fieldRequired": "Bu alan gerekli"
     },
     "estimatedDeliveryVaries": "Tahmini teslimat süresi değişir",
-    "comingSoon": "Yakında"
+    "comingSoon": "Yakında",
+    "kustomCheckout": "Kustom Checkout",
+    "kustomDescription": "Kart, Swish, Apple Pay veya Klarna faturası ile ödeyin — adres ve teslimat bilgileri güvenli Kustom ödeme sayfasında tamamlanır.",
+    "kustomValidationFailed": "Siparişiniz doğrulanamadı. Lütfen sepetinizi kontrol edip tekrar deneyin.",
+    "kustomSessionFailed": "Ödeme başlatılamadı. Lütfen tekrar deneyin.",
+    "confirmingPayment": "Ödemenizi onaylıyoruz. Kısa süre içinde bir e-posta alacaksınız.",
+    "paymentMismatch": "Kustom ödemenizi aldı ancak bu siparişle eşleştirilemedi. Lütfen sipariş numaranızı belirterek mağazayla iletişime geçin. Hiçbir şey gönderilmeyecek ve iki kez ücret alınmayacaktır.",
+    "backToCheckout": "Ödeme sayfasına dön"
   },
   "auth": {
     "loginTitle": "Giriş Yap",

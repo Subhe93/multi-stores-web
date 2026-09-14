@@ -245,7 +245,14 @@
       "fieldRequired": "Detta fält är obligatoriskt"
     },
     "estimatedDeliveryVaries": "Beräknad leveranstid varierar",
-    "comingSoon": "Kommer snart"
+    "comingSoon": "Kommer snart",
+    "kustomCheckout": "Kustom Checkout",
+    "kustomDescription": "Betala med kort, Swish, Apple Pay eller Klarna-faktura — adress och leverans fylls i i Kustoms säkra kassa.",
+    "kustomValidationFailed": "Vi kunde inte validera din beställning. Kontrollera din varukorg och försök igen.",
+    "kustomSessionFailed": "Betalningen kunde inte startas. Försök igen.",
+    "confirmingPayment": "Vi bekräftar din betalning. Du får ett e-postmeddelande inom kort.",
+    "paymentMismatch": "Kustom tog emot din betalning men den kunde inte kopplas till den här ordern. Kontakta butiken och ange ditt ordernummer. Inget skickas och inget debiteras två gånger.",
+    "backToCheckout": "Tillbaka till kassan"
   },
   "auth": {
     "loginTitle": "Logga in",

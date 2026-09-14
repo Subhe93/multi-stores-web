@@ -245,7 +245,14 @@
       "fieldRequired": "Dieses Feld ist erforderlich"
     },
     "estimatedDeliveryVaries": "Voraussichtliche Lieferzeit variiert",
-    "comingSoon": "Demnächst verfügbar"
+    "comingSoon": "Demnächst verfügbar",
+    "kustomCheckout": "Kustom Checkout",
+    "kustomDescription": "Zahlen Sie mit Karte, Swish, Apple Pay oder Klarna-Rechnung — Adresse und Lieferung werden im sicheren Kustom-Checkout abgeschlossen.",
+    "kustomValidationFailed": "Ihre Bestellung konnte nicht überprüft werden. Bitte prüfen Sie Ihren Warenkorb und versuchen Sie es erneut.",
+    "kustomSessionFailed": "Die Zahlung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "confirmingPayment": "Wir bestätigen Ihre Zahlung. Sie erhalten in Kürze eine E-Mail.",
+    "paymentMismatch": "Kustom hat Ihre Zahlung erhalten, sie konnte jedoch dieser Bestellung nicht zugeordnet werden. Bitte kontaktieren Sie den Shop unter Angabe Ihrer Bestellnummer. Es wird nichts versandt und nichts doppelt belastet.",
+    "backToCheckout": "Zurück zur Kasse"
   },
   "auth": {
     "loginTitle": "Anmelden",
