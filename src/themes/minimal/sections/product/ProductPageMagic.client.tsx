@@ -99,6 +99,7 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
       <ProductDetailClient
         product={product as unknown as ProductInput}
         locale={locale}
+        primaryLocale={primaryLocale}
         currency={currency}
         langPrefix={langPrefix}
         options={{

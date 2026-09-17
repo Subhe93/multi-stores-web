@@ -8,6 +8,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
 import { formatPrice } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/api';
+import { formatCartFieldValue } from '@/components/cart/CartItem';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -85,6 +86,7 @@ interface CartItemRowProps {
     variant?: string;
     currency?: string;
     customFields?: Record<string, unknown>;
+    customFieldDisplay?: { id: string; label: string; value: unknown; display?: string | null }[];
     bundleOfferId?: string | null;
     bundleOriginalUnitPrice?: number | null;
     bundleTitle?: string | null;
@@ -159,15 +161,24 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
             </button>
           </div>
         )}
-        {item.customFields && Object.keys(item.customFields).length > 0 && (
+        {item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-            {Object.entries(item.customFields).map(([k, v]) => (
-              <span key={k} className="text-xs text-gray-400">
-                {k}: {String(v)}
+            {item.customFieldDisplay.map((f) => (
+              <span key={f.id} className="text-xs text-gray-400">
+                {f.label}: {formatCartFieldValue(f.value, f.display)}
               </span>
             ))}
           </div>
-        )}
+        ) : item.customFields && Object.keys(item.customFields).length > 0 ? (
+          // Legacy items without resolved labels: values only, never raw ids.
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+            {Object.entries(item.customFields).map(([k, v]) => (
+              <span key={k} className="text-xs text-gray-400">
+                {formatCartFieldValue(v)}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         {/* Quantity stepper */}
         <div className="flex items-center gap-3 mt-auto pt-2">

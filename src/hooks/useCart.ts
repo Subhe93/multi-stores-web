@@ -30,12 +30,22 @@ export interface CartItem {
   customerFile?: string;
   currency?: string;
   customFields?: Record<string, any>;
+  /** Resolved "label: value" lines for the custom fields (server-enriched, or captured at add time for guests). */
+  customFieldDisplay?: CartCustomFieldDisplay[];
   bundleOfferId?: string | null;
   bundleOriginalUnitPrice?: number | null;
   bundleTitle?: string | null;
   bundleLabel?: string | null;
   bundleStickerText?: string | null;
   bundleCartQuantity?: number | null;
+}
+
+export interface CartCustomFieldDisplay {
+  id: string;
+  label: string;
+  value: unknown;
+  /** Translated option label when the value is one of the field's options. */
+  display?: string | null;
 }
 
 export interface CartItemMetadata {
@@ -46,6 +56,7 @@ export interface CartItemMetadata {
   customerFile?: string;
   currency?: string;
   customProductId?: string;
+  customFieldDisplay?: CartCustomFieldDisplay[];
   bundleOfferId?: string | null;
   bundleOriginalUnitPrice?: number | null;
   bundleTitle?: string | null;
@@ -146,6 +157,11 @@ function normalizeCartItem(raw: any): CartItem {
     variant: raw.variant || undefined,
     currency: raw.currency || 'EUR',
     customFields: raw.customFields || raw.custom_fields || undefined,
+    customFieldDisplay: Array.isArray(raw.customFieldDisplay)
+      ? raw.customFieldDisplay
+      : Array.isArray(raw.custom_field_display)
+      ? raw.custom_field_display
+      : undefined,
     customerFile: raw.customerFile || undefined,
     bundleOfferId: raw.bundleOfferId ?? raw.bundle_offer_id ?? null,
     bundleOriginalUnitPrice:
@@ -341,6 +357,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
               customerFile: metadata?.customerFile,
               currency: metadata?.currency,
               customFields,
+              customFieldDisplay: metadata?.customFieldDisplay,
               bundleOfferId: bundleOfferId ?? null,
               bundleOriginalUnitPrice: metadata?.bundleOriginalUnitPrice ?? null,
               bundleTitle: metadata?.bundleTitle ?? null,

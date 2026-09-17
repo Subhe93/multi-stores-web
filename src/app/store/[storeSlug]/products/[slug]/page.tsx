@@ -272,6 +272,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       <ProductDetailClient
         product={product}
         locale={locale}
+        primaryLocale={ldPrimary}
         currency={storeCurrency}
         langPrefix={lp}
       />

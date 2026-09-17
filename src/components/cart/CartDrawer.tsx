@@ -133,6 +133,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       imageUrl: item.imageUrl || item.image,
                       variant: item.variant,
                       customFields: item.customFields,
+                      customFieldDisplay: item.customFieldDisplay,
                       customerFile: item.customerFile,
                       currency,
                     }}

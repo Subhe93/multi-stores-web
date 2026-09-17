@@ -6,6 +6,11 @@ import { Upload, Loader2, X } from 'lucide-react';
 
 type Translator = ReturnType<typeof useTranslations>;
 
+/** Display label for a raw option value; falls back to the value itself. */
+function optionDisplayLabel(field: Pick<CustomField, 'optionLabels'>, value: string): string {
+  return field.optionLabels?.[value] ?? value;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 
@@ -16,6 +21,8 @@ export interface CustomField {
   placeholder?: string;
   required: boolean;
   options?: string[];
+  /** Localized display label per raw option value; the submitted value stays raw. */
+  optionLabels?: Record<string, string>;
   validation?: {
     min?: number;
     max?: number;
@@ -248,7 +255,9 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className={`${inputClass(showError)} appearance-none pr-10`}>
                   <option value="">{field.placeholder || t('product.chooseOption')}</option>
-                  {field.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  {field.options?.map((opt) => (
+                    <option key={opt} value={opt}>{optionDisplayLabel(field, opt)}</option>
+                  ))}
                 </select>
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -301,7 +310,7 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
                   className={`${inputClass(showError)} appearance-none pr-10`}>
                   <option value="">{field.placeholder || t('product.selectFont')}</option>
                   {(field.options?.length ? field.options : COMMON_FONTS).map((font) => (
-                    <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+                    <option key={font} value={font} style={{ fontFamily: font }}>{optionDisplayLabel(field, font)}</option>
                   ))}
                 </select>
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"

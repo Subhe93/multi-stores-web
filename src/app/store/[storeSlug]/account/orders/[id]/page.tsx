@@ -6,6 +6,12 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
+import {
+  resolveCustomFieldLabel,
+  resolveCustomFieldTranslation,
+  resolveOptionLabel,
+  type CustomFieldTranslationLike,
+} from '@/lib/customFields';
 import { ArrowLeft, Check } from 'lucide-react';
 
 // ── Types matching backend Prisma response ──────────────────────────────────
@@ -51,7 +57,8 @@ interface CustomFieldValue {
   file_url?: string;
   custom_field: {
     id: string;
-    translations: { locale: string; label: string }[];
+    name?: string;
+    translations: CustomFieldTranslationLike[];
   };
 }
 
@@ -125,12 +132,6 @@ function pickTranslation(translations: Translation[] | undefined, locale: string
   if (!translations?.length) return '';
   const match = translations.find((t) => t.locale === locale);
   return match?.title || translations[0]?.title || '';
-}
-
-function pickFieldLabel(translations: { locale: string; label: string }[] | undefined, locale: string): string {
-  if (!translations?.length) return '';
-  const match = translations.find((t) => t.locale === locale);
-  return match?.label || translations[0]?.label || '';
 }
 
 function buildVariantLabel(options?: Record<string, string>): string {
@@ -343,11 +344,15 @@ export default function StoreOrderDetailPage() {
                 {fieldValues.length > 0 && (
                   <div className="ml-15 pl-3 border-l-2 border-gray-100 space-y-0.5">
                     {fieldValues.map((fv) => {
-                      const label = pickFieldLabel(fv.custom_field?.translations, locale);
+                      // No store primary locale on this client page; the helper
+                      // still falls back to 'en' → first translation.
+                      const fieldTranslation = resolveCustomFieldTranslation(fv.custom_field, locale);
+                      const label = resolveCustomFieldLabel(fv.custom_field, locale);
+                      const displayValue = fv.value ? resolveOptionLabel(fieldTranslation, fv.value) : '';
                       return (
                         <p key={fv.id} className="text-[11px] text-gray-500">
                           <span className="font-medium text-gray-600">{label}:</span>{' '}
-                          {fv.value || (fv.file_url ? 'File uploaded' : '—')}
+                          {displayValue || (fv.file_url ? 'File uploaded' : '—')}
                         </p>
                       );
                     })}

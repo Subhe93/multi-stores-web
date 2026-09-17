@@ -15,8 +15,25 @@ export interface CartItemData {
   imageUrl?: string;
   variant?: string;
   customFields?: Record<string, unknown>;
+  /** Resolved "label: value" lines; preferred over the raw id-keyed map. */
+  customFieldDisplay?: { id: string; label: string; value: unknown; display?: string | null }[];
   customerFile?: string;
   currency?: string;
+}
+
+// Turn a stored custom-field value into short display text: option labels
+// win, files show their name, booleans a check mark, everything else as-is.
+export function formatCartFieldValue(value: unknown, display?: string | null): string {
+  if (display) return display;
+  if (value === true) return '\u2713';
+  if (value === false) return '\u2014';
+  if (value && typeof value === 'object') {
+    const obj = value as { name?: unknown; url?: unknown };
+    if (typeof obj.name === 'string') return obj.name;
+    if (typeof obj.url === 'string') return obj.url.split('/').pop() || '';
+    return '';
+  }
+  return String(value ?? '');
 }
 
 interface CartItemProps {
@@ -66,13 +83,23 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
           <p className="text-xs text-gray-500">{item.variant}</p>
         )}
 
-        {item.customFields && Object.keys(item.customFields).length > 0 && (
+        {item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-            {Object.entries(item.customFields).map(([k, v]) => (
-              <span key={k} className="text-xs text-gray-400">{k}: {String(v)}</span>
+            {item.customFieldDisplay.map((f) => (
+              <span key={f.id} className="text-xs text-gray-400">
+                {f.label}: {formatCartFieldValue(f.value, f.display)}
+              </span>
             ))}
           </div>
-        )}
+        ) : item.customFields && Object.keys(item.customFields).length > 0 ? (
+          // Legacy items without resolved labels: show only the values so the
+          // customer never sees a raw field id.
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+            {Object.entries(item.customFields).map(([k, v]) => (
+              <span key={k} className="text-xs text-gray-400">{formatCartFieldValue(v)}</span>
+            ))}
+          </div>
+        ) : null}
 
         {/* Quantity controls + remove */}
         <div className="flex items-center justify-between mt-auto pt-2">

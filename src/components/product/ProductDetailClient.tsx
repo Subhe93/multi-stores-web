@@ -14,6 +14,11 @@ import { formatPrice } from '@/lib/format';
 import { useCart } from '@/hooks/useCart';
 import { computeBundlePricing } from '@/lib/bundle';
 import {
+  resolveCustomFieldLabel,
+  resolveCustomFieldTranslation,
+  type CustomFieldTranslationLike,
+} from '@/lib/customFields';
+import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   Shield, RotateCcw, Star, Loader2, Tag, Zap, Gift, Percent, X,
 } from 'lucide-react';
@@ -54,7 +59,8 @@ interface ProductData {
     type: string;
     is_required?: boolean;
     required?: boolean;
-    translations: { locale: string; label: string; placeholder?: string }[];
+    name?: string;
+    translations: CustomFieldTranslationLike[];
     options?: string[] | any;
     validation_rules?: { min_length?: number; max_length?: number; pattern?: string; allowed_chars?: string };
     linked_validation?: { type: string; target_field_id: string; fill_char?: string };
@@ -135,6 +141,8 @@ export interface ProductDetailOptions {
 interface ProductDetailClientProps {
   product: ProductData;
   locale?: string;
+  /** Store primary locale; used as the fallback when `locale` has no translation. */
+  primaryLocale?: string;
   currency?: string;
   langPrefix?: string;
   options?: ProductDetailOptions;
@@ -184,7 +192,7 @@ function ProductTabs({
 
 // ── Main component ────────────────────────────────────────
 
-export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
+export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
   const { addItem } = useCart();
   const variants = product.variants || [];
@@ -358,15 +366,16 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
     return product.custom_fields
       .filter((field) => !creatorFilledFieldIds.has(field.id)) // Hide creator-filled fields
       .map((field) => {
-        const fieldTranslation =
-          field.translations?.find((t) => t.locale === locale) || field.translations?.[0];
+        // locale → store primary → 'en' → first; label never falls back to the id
+        const fieldTranslation = resolveCustomFieldTranslation(field, locale, primaryLocale);
         return {
           id: field.id,
           type: field.type as CustomField['type'],
           required: field.is_required ?? field.required ?? false,
-          label: fieldTranslation?.label || field.id,
-          placeholder: fieldTranslation?.placeholder,
+          label: resolveCustomFieldLabel(field, locale, primaryLocale),
+          placeholder: fieldTranslation?.placeholder ?? undefined,
           options: Array.isArray(field.options) ? field.options : undefined,
+          optionLabels: fieldTranslation?.option_labels ?? undefined,
           validation: field.validation_rules
             ? {
                 min: field.validation_rules.min_length,
@@ -376,7 +385,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
             : undefined,
         };
       });
-  }, [product.custom_fields, locale, creatorFilledFieldIds]);
+  }, [product.custom_fields, locale, primaryLocale, creatorFilledFieldIds]);
 
   const isAddDisabled = useMemo(() => {
     if (variants.length > 0 && !selectedVariantId) return true;
@@ -445,6 +454,23 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
       ? Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ')
       : undefined;
 
+    // Human-readable lines for the cart (guest carts have no server
+    // enrichment, so the labels are captured here in the current locale).
+    const customFieldDisplay = fields
+      ? Object.entries(fields).map(([fieldId, value]) => {
+          const def = mappedCustomFields.find((f) => f.id === fieldId);
+          return {
+            id: fieldId,
+            label: def?.label || fieldId,
+            value,
+            display:
+              typeof value === 'string' && def?.optionLabels
+                ? def.optionLabels[value] ?? null
+                : null,
+          };
+        })
+      : undefined;
+
     try {
       await addItem(
         product.id,
@@ -457,6 +483,7 @@ export function ProductDetailClient({ product, locale = 'en', currency = 'EUR', 
           imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
           variant: variantStr,
           customerFile: customerFile ? customerFile.name : undefined,
+          customFieldDisplay,
           customProductId: product._type === 'custom_product' ? product.id : undefined,
           bundleOfferId: selectedBundleOfferId || undefined,
           bundleOriginalUnitPrice: selectedBundleOffer ? baseUnitPrice : undefined,
