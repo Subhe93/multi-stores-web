@@ -50,6 +50,8 @@ interface Store {
   id: string;
   name: string;
   currency?: string;
+  /** Resolved VAT rate in basis points (store override or platform default). */
+  tax_rate_bp?: number | null;
   description?: string;
   logo_url?: string;
   favicon_url?: string;
@@ -417,7 +419,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTaxRateBp={store.tax_rate_bp ?? undefined}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

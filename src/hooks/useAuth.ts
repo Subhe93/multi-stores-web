@@ -59,6 +59,13 @@ interface AuthContextValue extends AuthState {
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   getProfile: () => Promise<User>;
+  /**
+   * Exchange the stored refresh token for a new access token. Resolves with
+   * the new access token, or null when there is no refresh token / the
+   * refresh was rejected — in which case the local auth state is cleared
+   * (same behaviour as the mount-time refresh).
+   */
+  refresh: () => Promise<string | null>;
 }
 
 // ── Helpers ────────────────────────────────────────────
@@ -107,6 +114,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return profile;
   }, [token]);
 
+  // Exchange the stored refresh token for a fresh access token. Used on mount
+  // when the saved access token is rejected, and by callers whose request came
+  // back 401 with a Bearer token attached (e.g. the Kustom checkout session).
+  // A rejected / missing refresh token clears the local auth state, so the app
+  // stops sending a token the API will keep refusing.
+  const refresh = useCallback(async (): Promise<string | null> => {
+    const refreshToken = getSavedRefreshToken();
+    if (!refreshToken) {
+      clearTokens();
+      setToken(null);
+      setUser(null);
+      return null;
+    }
+    try {
+      const res = await api<AuthTokensResponse>('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      const tokens: AuthTokens = {
+        accessToken: res.access_token,
+        refreshToken: res.refresh_token,
+      };
+      saveTokens(tokens);
+      setToken(tokens.accessToken);
+      return tokens.accessToken;
+    } catch {
+      clearTokens();
+      setToken(null);
+      setUser(null);
+      return null;
+    }
+  }, []);
+
   // Auto-load profile on mount when a saved token exists
   useEffect(() => {
     const saved = getSavedToken();
@@ -114,32 +154,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(saved);
       api<User>('/auth/me', { token: saved })
         .then((profile) => setUser(profile))
-        .catch(() => {
+        .catch(async () => {
           // Token may be expired — try refreshing
-          const refresh = getSavedRefreshToken();
-          if (refresh) {
-            api<AuthTokensResponse>('/auth/refresh', {
-              method: 'POST',
-              body: JSON.stringify({ refresh_token: refresh }),
-            })
-              .then((res) => {
-                const tokens: AuthTokens = {
-                  accessToken: res.access_token,
-                  refreshToken: res.refresh_token,
-                };
-                saveTokens(tokens);
-                setToken(tokens.accessToken);
-                return api<User>('/auth/me', { token: tokens.accessToken });
-              })
-              .then((profile) => setUser(profile))
-              .catch(() => {
-                clearTokens();
-                setToken(null);
-              });
-          } else {
-            clearTokens();
-            setToken(null);
+          const fresh = await refresh();
+          if (fresh) {
+            const profile = await api<User>('/auth/me', { token: fresh });
+            setUser(profile);
           }
+        })
+        .catch(() => {
+          // Profile fetch failed even with a fresh token — treat as signed out
+          clearTokens();
+          setToken(null);
+          setUser(null);
         })
         .finally(() => setLoading(false));
     } else {
@@ -252,6 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     forgotPassword,
     getProfile,
+    refresh,
   };
 
   return createElement(AuthContext.Provider, { value }, children);

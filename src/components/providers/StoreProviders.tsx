@@ -9,11 +9,13 @@ function CartProviderWithAuth({
   locale,
   storeId,
   storeCurrency,
+  storeTaxRateBp,
 }: {
   children: ReactNode;
   locale?: string;
   storeId?: string;
   storeCurrency?: string;
+  storeTaxRateBp?: number | null;
 }) {
   const { token } = useAuth();
   return (
@@ -22,6 +24,7 @@ function CartProviderWithAuth({
       locale={locale}
       storeId={storeId}
       storeCurrency={storeCurrency}
+      storeTaxRateBp={storeTaxRateBp}
     >
       {children}
     </CartProvider>
@@ -33,6 +36,7 @@ export function StoreProviders({
   locale,
   storeId,
   storeCurrency,
+  storeTaxRateBp,
 }: {
   children: ReactNode;
   locale?: string;
@@ -41,6 +45,8 @@ export function StoreProviders({
   /** The store's currency — cart and checkout display it instead of the
    *  platform default stamped on individual items. */
   storeCurrency?: string;
+  /** The store's resolved VAT rate in basis points (informational VAT line). */
+  storeTaxRateBp?: number | null;
 }) {
   return (
     <AuthProvider>
@@ -48,6 +54,7 @@ export function StoreProviders({
         locale={locale}
         storeId={storeId}
         storeCurrency={storeCurrency}
+        storeTaxRateBp={storeTaxRateBp}
       >
         {children}
       </CartProviderWithAuth>

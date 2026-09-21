@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, Tag, X, ChevronRight, MapPin, Plus, Check } from 'lucide-react';
+import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { api, storefront, resolveMediaUrl } from '@/lib/api';
+import { api, storefront } from '@/lib/api';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
 import { validateEmail, validatePhone } from '@/lib/validators';
+import { OrderSummary } from '@/components/checkout/OrderSummary';
+import { KustomCheckout } from '@/components/checkout/KustomCheckout';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -23,6 +25,36 @@ interface PaymentConfig {
   stripeAccount: string | null;
   /** Kustom Checkout is offered (independent store with configured credentials). */
   kustomEnabled: boolean;
+}
+// Resolved once per visit (store flags + platform payment config) and shared
+// by both checkout modes.
+interface PaymentAvailability {
+  storeId?: string;
+  cod: boolean;
+  stripe: boolean;
+  kustom: boolean;
+  publishableKey: string | null;
+  stripeAccount: string | null;
+}
+// One row of the shipping-method radio list, as quoted by POST /shipping/estimate.
+interface ShippingMethod {
+  id: string;
+  name: string;
+  type: 'DELIVERY' | 'PICKUP';
+  cost: number;
+  estimated_days: { min: number; max: number } | null;
+  free_shipping: boolean;
+  /** Synthesised from a legacy `{ cost, estimated_days }` response that carries
+   *  no `methods`; it has no server id, so it is never sent with the order. */
+  legacy?: boolean;
+}
+interface ShippingEstimateResponse {
+  available: boolean;
+  message?: string;
+  methods?: ShippingMethod[];
+  cost?: number;
+  estimated_days?: { min: number; max: number } | null;
+  free_shipping?: boolean;
 }
 interface SavedAddress {
   id: string;
@@ -93,195 +125,16 @@ function SectionHeading({ children, first }: { children: React.ReactNode; first?
   );
 }
 
-// ── Order Summary Sidebar (right panel) ──────────────────────────────────────
-interface OrderSummaryProps {
-  items: Array<{
-    id: string; title?: string; name?: string; price: number; quantity: number;
-    imageUrl?: string; image?: string; variant?: string; currency?: string;
-    bundleOfferId?: string | null;
-    bundleOriginalUnitPrice?: number | null;
-    bundleTitle?: string | null;
-    bundleLabel?: string | null;
-    bundleStickerText?: string | null;
-  }>;
-  subtotal: number;
-  discount: number;
-  total: number;
-  currency: string;
-  coupon: { code: string; type: string; discount: number; freeShipping?: boolean } | null;
-  couponCode: string;
-  setCouponCode: (v: string) => void;
-  couponLoading: boolean;
-  couponError: string;
-  onApplyCoupon: () => void;
-  onRemoveCoupon: () => void;
-  shippingCost: number | null;
-  shippingEstimate: { min: number; max: number } | null;
-  shippingLoading: boolean;
-  shippingError: string;
-  effectiveShipping: number;
-  t: (key: string) => string;
-}
-
-function OrderSummary({
-  items, subtotal, discount, total, currency,
-  coupon, couponCode, setCouponCode, couponLoading, couponError,
-  onApplyCoupon, onRemoveCoupon,
-  shippingCost, shippingEstimate, shippingLoading, shippingError, effectiveShipping,
-  t,
-}: OrderSummaryProps) {
-  return (
-    <div className="space-y-4">
-      {/* Item list */}
-      <div className="space-y-3">
-        {items.map((item) => {
-          const img = resolveMediaUrl(item.imageUrl || item.image);
-          const title = item.title || item.name || 'Product';
-          const lineTotal = item.price * item.quantity;
-          const originalUnit =
-            typeof item.bundleOriginalUnitPrice === 'number'
-              ? item.bundleOriginalUnitPrice
-              : null;
-          const originalLineTotal =
-            originalUnit !== null ? originalUnit * item.quantity : null;
-          return (
-            <div key={item.id} className="flex items-center gap-3">
-              <div className="relative w-14 h-14 shrink-0">
-                <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-white">
-                  {img ? (
-                    <img src={img} alt={title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <ShoppingBag className="w-5 h-5 text-gray-300" />
-                    </div>
-                  )}
-                </div>
-                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gray-600 text-white text-[10px] font-bold flex items-center justify-center z-10">
-                  {item.quantity}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 leading-snug line-clamp-2">{title}</p>
-                {item.variant && <p className="text-xs text-gray-500">{item.variant}</p>}
-                {item.bundleOfferId && (
-                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                      <Tag className="w-2.5 h-2.5" />
-                      {item.bundleTitle || 'Bundle'}
-                      {item.bundleLabel ? ` · ${item.bundleLabel}` : ''}
-                    </span>
-                    {item.bundleStickerText && (
-                      <span className="inline-flex items-center rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        {item.bundleStickerText}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold text-gray-900">
-                  {formatPrice(lineTotal, currency)}
-                </p>
-                {originalLineTotal !== null && originalLineTotal > lineTotal && (
-                  <p className="text-[10px] text-gray-400 line-through tabular-nums">
-                    {formatPrice(originalLineTotal, currency)}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-gray-200 pt-4 space-y-1">
-        {/* Coupon input */}
-        {coupon?.code ? (
-          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2 mb-3">
-            <div className="flex items-center gap-2">
-              <Tag className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-sm font-medium text-green-700">{coupon.code}</span>
-            </div>
-            <button
-              type="button"
-              onClick={onRemoveCoupon}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2 mb-3">
-            <div className="relative flex-1">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => { setCouponCode(e.target.value); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onApplyCoupon(); } }}
-                placeholder={t('cart.couponPlaceholder')}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={onApplyCoupon}
-              disabled={couponLoading || !couponCode.trim()}
-              className="px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700 disabled:opacity-40 transition flex items-center gap-1 shrink-0"
-            >
-              {couponLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('cart.applyCoupon')}
-            </button>
-          </div>
-        )}
-        {couponError && <p className="text-xs text-red-500 mb-2">{couponError}</p>}
-
-        {/* Price rows */}
-        <div className="flex justify-between text-sm py-1">
-          <span className="text-gray-600">{t('cart.subtotal')}</span>
-          <span className="text-gray-900 font-medium">{formatPrice(subtotal, currency)}</span>
-        </div>
-        <div className="flex justify-between text-sm py-1">
-          <span className="text-gray-600">{t('cart.shipping')}</span>
-          <span className={`font-medium ${effectiveShipping === 0 ? 'text-green-600' : 'text-gray-900'}`}>
-            {shippingLoading ? '...'
-              : coupon?.freeShipping ? t('checkout.freeShippingLabel')
-              : shippingCost === null ? t('cart.calculatedAtCheckout')
-              : shippingCost === 0 ? t('checkout.freeShippingLabel')
-              : formatPrice(shippingCost, currency)}
-          </span>
-        </div>
-        {shippingEstimate && !coupon?.freeShipping && shippingCost !== null && shippingCost > 0 && (
-          <p className="text-xs text-gray-500 text-right -mt-1">{shippingEstimate.min}-{shippingEstimate.max} {t('checkout.businessDays')}</p>
-        )}
-        {shippingError && (
-          <p className="text-xs text-red-500 mt-1">{shippingError}</p>
-        )}
-        {discount > 0 && (
-          <div className="flex justify-between text-sm py-1">
-            <span className="text-green-600">{t('cart.discount')}</span>
-            <span className="text-green-600 font-medium">-{formatPrice(discount, currency)}</span>
-          </div>
-        )}
-
-        <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
-          <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
-          <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Checkout Form ─────────────────────────────────────────────────────────────
-function CheckoutForm() {
+function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale();
   const lp = useLocalePath();
   const stripe = useStripe();
   const elements = useElements();
   const { token, user, login, register } = useAuth();
-  const { items, subtotal, total, coupon, currency, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
-
-  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
+  const { items, subtotal, total, coupon, currency, taxRateBp, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -290,18 +143,15 @@ function CheckoutForm() {
     postal_code: '', country_code: '', phone: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe' | 'kustom'>('cod');
-  const [stripeAvailable, setStripeAvailable] = useState(false);
-  // Cash on delivery is opt-in per store (off by default server-side).
-  const [codAvailable, setCodAvailable] = useState(false);
-  // Kustom Checkout (independent stores with their own Kustom merchant account).
-  const [kustomAvailable, setKustomAvailable] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
+  // Availability is resolved by CheckoutRouter before either mode mounts.
+  // Kustom is its own mode; here it only drives the "pay with Kustom" link.
+  const { cod: codAvailable, stripe: stripeAvailable, kustom: kustomAvailable, storeId } = availability;
   const [stripeReady, setStripeReady] = useState(false);
   // The desktop and mobile layouts each have their own payment panel, but Stripe
   // allows only one CardElement per Elements provider — so we mount the card in
   // whichever layout is active for the current viewport.
   const [isDesktop, setIsDesktop] = useState(true);
-  const [storeId, setStoreId] = useState<string | undefined>();
   const [orderNotes, setOrderNotes] = useState('');
   const [wantAccount, setWantAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
@@ -326,18 +176,40 @@ function CheckoutForm() {
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   // Mobile summary toggle
   const [summaryOpen, setSummaryOpen] = useState(false);
-  // Shipping
-  const [shippingCost, setShippingCost] = useState<number | null>(null);
-  const [shippingEstimate, setShippingEstimate] = useState<{ min: number; max: number } | null>(null);
+  // Shipping: the quote lists every method the store offers for the address
+  // country; the customer picks one and its cost becomes the shipping line.
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState('');
+  // Bumped to force a fresh shipping quote (e.g. after the API rejected the
+  // selected method); the quote effect below lists it as a dependency.
+  const [requoteTick, setRequoteTick] = useState(0);
 
   const isLoggedIn = Boolean(token);
   const discount = coupon
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
+  // Fall back to the first method so a stale selection can never leave the
+  // order without a shipping cost.
+  const selectedShippingMethod =
+    shippingMethods.find((m) => m.id === selectedShippingMethodId) ?? shippingMethods[0] ?? null;
+  const shippingCost = selectedShippingMethod ? selectedShippingMethod.cost : null;
+  // Pickup has no transit time, so the summary shows no day range for it.
+  const shippingEstimate =
+    selectedShippingMethod && selectedShippingMethod.type !== 'PICKUP'
+      ? selectedShippingMethod.estimated_days
+      : null;
   const effectiveShipping = coupon?.freeShipping ? 0 : (shippingCost ?? 0);
   const finalTotal = total + effectiveShipping;
+
+  // Country the quote is made for: the selected saved address, else the form.
+  const shippingCountryCode = (() => {
+    if (savedAddresses.length > 0 && selectedAddressId && !showNewAddressForm) {
+      return savedAddresses.find((a) => a.id === selectedAddressId)?.country_code || '';
+    }
+    return form.country_code;
+  })();
 
   // Pre-fill email from user profile
   useEffect(() => {
@@ -361,49 +233,69 @@ function CheckoutForm() {
       .catch(() => { setShowNewAddressForm(true); });
   }, [token]);
 
-  // Calculate shipping when country changes
+  // Quote shipping methods whenever the country (or the cart) changes.
   useEffect(() => {
-    let countryCode = '';
-    if (savedAddresses.length > 0 && selectedAddressId && !showNewAddressForm) {
-      const addr = savedAddresses.find((a) => a.id === selectedAddressId);
-      countryCode = addr?.country_code || '';
-    } else {
-      countryCode = form.country_code;
-    }
+    const countryCode = shippingCountryCode;
     if (!countryCode || items.length === 0) {
-      setShippingCost(null);
-      setShippingEstimate(null);
+      setShippingMethods([]);
       setShippingError('');
+      // An in-flight quote was cancelled by the cleanup; clear its spinner too.
+      setShippingLoading(false);
       return;
     }
     const productIds = items.map((i) => i.customProductId || i.productId).filter(Boolean);
     if (productIds.length === 0) return;
 
+    // Ignore a slow response that lands after the country changed again.
+    let cancelled = false;
     setShippingLoading(true);
     setShippingError('');
-    api<any>('/shipping/estimate', {
+    api<ShippingEstimateResponse>('/shipping/estimate', {
       method: 'POST',
       body: JSON.stringify({
         product_ids: productIds,
         country_code: countryCode,
         item_count: items.reduce((s, i) => s + i.quantity, 0),
         subtotal,
+        locale,
       }),
     })
       .then((res) => {
+        if (cancelled) return;
         if (!res.available) {
           setShippingError(res.message || t('checkout.shippingNotAvailable'));
-          setShippingCost(null);
-          setShippingEstimate(null);
-        } else {
-          setShippingCost(res.cost);
-          setShippingEstimate(res.estimated_days || null);
-          setShippingError('');
+          setShippingMethods([]);
+          return;
         }
+        // A pre-phase-C API answers with a single cost and no `methods`;
+        // present it as one "Standard shipping" row so checkout still works.
+        const methods: ShippingMethod[] = Array.isArray(res.methods) && res.methods.length > 0
+          ? res.methods.map((m) => ({ ...m, cost: Number(m.cost) }))
+          : [{
+              id: 'legacy-standard',
+              name: t('checkout.standardShipping'),
+              type: 'DELIVERY',
+              cost: Number(res.cost ?? 0),
+              estimated_days: res.estimated_days ?? null,
+              free_shipping: Number(res.cost ?? 0) === 0,
+              legacy: true,
+            }];
+        setShippingMethods(methods);
+        // Keep the customer's choice across re-quotes while it is still offered;
+        // otherwise default to the first (cheapest / preselected) method.
+        setSelectedShippingMethodId((prev) =>
+          prev && methods.some((m) => m.id === prev) ? prev : methods[0]!.id,
+        );
+        setShippingError('');
       })
-      .catch(() => setShippingError(t('checkout.shippingNotAvailable')))
-      .finally(() => setShippingLoading(false));
-  }, [selectedAddressId, showNewAddressForm, form.country_code, items.length, subtotal]);
+      .catch(() => {
+        if (cancelled) return;
+        setShippingError(t('checkout.shippingNotAvailable'));
+        setShippingMethods([]);
+      })
+      .finally(() => { if (!cancelled) setShippingLoading(false); });
+    return () => { cancelled = true; };
+  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick]);
 
   // Track viewport so only the active layout mounts the CardElement.
   useEffect(() => {
@@ -414,60 +306,18 @@ function CheckoutForm() {
     return () => mq.removeEventListener('change', update);
   }, []);
 
-  // Fetch store ID + Stripe config
+  // Keep the selected method valid: COD is the initial default but may be
+  // disabled for this store, in which case card is selected instead.
   useEffect(() => {
-    async function init() {
-      let storeCardEnabled = true;
-      let storeKustomEnabled = true;
-      if (storeSlug) {
-        try {
-          const store = await storefront.getStore(storeSlug) as {
-            id: string;
-            card_payments_enabled?: boolean;
-            cod_enabled?: boolean;
-            kustom_enabled?: boolean;
-          };
-          setStoreId(store.id);
-          // The creator must have completed Stripe Connect onboarding for this
-          // store to accept card payments.
-          storeCardEnabled = store.card_payments_enabled !== false;
-          // COD is opt-in per store; strict check so it stays hidden for
-          // stores that haven't enabled it.
-          setCodAvailable(store.cod_enabled === true);
-          storeKustomEnabled = store.kustom_enabled !== false;
-        } catch { /* ignore */ }
-      }
-      try {
-        const config = await api<PaymentConfig>(paymentConfigPath(storeSlug));
-        // Card is offered only when Stripe is configured platform-wide AND the
-        // store creator can accept charges.
-        setStripeAvailable(config.stripeConfigured && storeCardEnabled);
-        // Kustom is offered only when the payment config says so AND the store
-        // itself hasn't turned it off.
-        setKustomAvailable(config.kustomEnabled === true && storeKustomEnabled);
-      } catch {
-        setStripeAvailable(false);
-        setKustomAvailable(false);
-      }
-    }
-    init();
-  }, [storeSlug]);
-
-  // Keep the selected method valid as availability resolves: COD is the
-  // initial default but may be disabled for this store, in which case we fall
-  // through to the first available method in COD → card → Kustom order.
-  useEffect(() => {
-    const available = {
-      cod: codAvailable,
-      stripe: stripeAvailable,
-      kustom: kustomAvailable,
-    } as const;
+    const available = { cod: codAvailable, stripe: stripeAvailable } as const;
     if (available[paymentMethod]) return;
-    const fallback = (['cod', 'stripe', 'kustom'] as const).find((m) => available[m]);
+    const fallback = (['cod', 'stripe'] as const).find((m) => available[m]);
     if (fallback) setPaymentMethod(fallback);
-  }, [codAvailable, stripeAvailable, kustomAvailable, paymentMethod]);
+  }, [codAvailable, stripeAvailable, paymentMethod]);
 
-  const noPaymentMethods = !codAvailable && !stripeAvailable && !kustomAvailable;
+  // Kustom is handled by its own checkout mode, so the classic form only
+  // counts COD and card.
+  const noPaymentMethods = !codAvailable && !stripeAvailable;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChange = useCallback(
@@ -536,13 +386,8 @@ function CheckoutForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
-    // Defense in depth — the server rejects COD / Kustom for stores that
-    // disabled them.
-    if (
-      noPaymentMethods ||
-      (paymentMethod === 'cod' && !codAvailable) ||
-      (paymentMethod === 'kustom' && !kustomAvailable)
-    ) return;
+    // Defense in depth — the server rejects COD for stores that disabled it.
+    if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
     // The server ties the order to this store (commission model, payout
     // routing, catalogue check), so don't submit before it has resolved.
     if (!storeId) {
@@ -556,6 +401,13 @@ function CheckoutForm() {
 
     let activeToken = token;
     const fullName = `${form.first_name} ${form.last_name}`.trim();
+    // The server re-quotes for the address country and rejects an id it no
+    // longer offers; a legacy single-cost quote has no id, so nothing is sent
+    // and the server picks its default method.
+    const shippingMethodBody =
+      selectedShippingMethod && !selectedShippingMethod.legacy
+        ? { shipping_method_id: selectedShippingMethod.id }
+        : {};
 
     try {
       // Guest: auto-register then sync cart
@@ -630,6 +482,7 @@ function CheckoutForm() {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'STRIPE',
+            ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
           }),
@@ -654,22 +507,6 @@ function CheckoutForm() {
 
         await clearCart();
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
-      } else if (paymentMethod === 'kustom') {
-        // Order-first flow: the order is created awaiting payment, then the
-        // Kustom page opens a checkout session for it. The cart is left intact
-        // until the Kustom confirmation page — the customer may still come
-        // back here if Kustom's validation rejects the purchase.
-        const order = await api<OrderResponse>('/orders', {
-          method: 'POST', token: activeToken,
-          body: JSON.stringify({
-            address_id: addressId,
-            store_id: storeId,
-            payment_method: 'KUSTOM',
-            ...(coupon?.code ? { coupon_code: coupon.code } : {}),
-            ...(orderNotes ? { notes: orderNotes } : {}),
-          }),
-        });
-        router.push(lp(`/checkout/kustom?orderId=${order.id}`));
       } else {
         const order = await api<OrderResponse>('/orders', {
           method: 'POST', token: activeToken,
@@ -677,6 +514,7 @@ function CheckoutForm() {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'COD',
+            ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
           }),
@@ -685,7 +523,15 @@ function CheckoutForm() {
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
+      const code = (err as { code?: string } | null)?.code;
+      if (code === 'ORDER_SHIPPING_METHOD_INVALID') {
+        // The chosen method was removed/disabled meanwhile: show a friendly
+        // message and re-quote so the list (and the selection) refresh.
+        setError(t('errors.ORDER_SHIPPING_METHOD_INVALID'));
+        setRequoteTick((n) => n + 1);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
+      }
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -709,12 +555,8 @@ function CheckoutForm() {
     );
   }
 
-  // Submit label per method: card pays inline, Kustom continues to its hosted
-  // checkout, COD just places the order.
-  const submitLabel =
-    paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder')
-    : paymentMethod === 'kustom' ? t('checkout.continueToPayment')
-    : t('checkout.placeOrder');
+  // Submit label per method: card pays inline, COD just places the order.
+  const submitLabel = paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder');
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -744,6 +586,8 @@ function CheckoutForm() {
               shippingCost={shippingCost} shippingEstimate={shippingEstimate}
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
+              shippingMethodName={selectedShippingMethod?.name}
+              taxRateBp={taxRateBp}
               t={t as (key: string) => string}
             />
           </div>
@@ -961,6 +805,65 @@ function CheckoutForm() {
                 </>
               )}
 
+              {/* ── Shipping method ── */}
+              {/* The form column is shared by the desktop and mobile layouts,
+                  so a single list serves both. Rendered once a country is
+                  known; each row shows name, transit time and price. */}
+              {shippingCountryCode && (
+                <>
+                  <SectionHeading>{t('checkout.shippingMethod')}</SectionHeading>
+                  <div className="mb-5">
+                    {shippingLoading ? (
+                      <p className="flex items-center gap-2 text-sm text-gray-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {t('common.loading')}
+                      </p>
+                    ) : shippingError ? (
+                      <div className="p-3 rounded-lg border-2 border-red-200 bg-red-50 text-xs text-red-700">
+                        {shippingError}
+                      </div>
+                    ) : (
+                      <div role="radiogroup" aria-label={t('checkout.shippingMethod')} className="space-y-2">
+                        {shippingMethods.map((method) => {
+                          const isActive = selectedShippingMethod?.id === method.id;
+                          const daysLabel = method.type === 'PICKUP'
+                            ? t('checkout.pickUpInStore')
+                            : method.estimated_days
+                              ? `${method.estimated_days.min === method.estimated_days.max
+                                  ? method.estimated_days.min
+                                  : `${method.estimated_days.min}–${method.estimated_days.max}`} ${t('checkout.businessDays')}`
+                              : '';
+                          return (
+                            <label
+                              key={method.id}
+                              className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                                isActive ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="shipping_method"
+                                value={method.id}
+                                checked={isActive}
+                                onChange={() => setSelectedShippingMethodId(method.id)}
+                                className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-800">{method.name}</p>
+                                {daysLabel && <p className="text-xs text-gray-500 mt-0.5">{daysLabel}</p>}
+                              </div>
+                              <span className={`text-sm font-medium shrink-0 ${method.cost === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                {method.cost === 0 ? t('checkout.free') : formatPrice(method.cost, currency)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               <div className="mb-3">
                 <Label htmlFor="ck_notes">{t('checkout.orderNotes')}</Label>
                 <textarea id="ck_notes" value={orderNotes}
@@ -987,6 +890,8 @@ function CheckoutForm() {
               shippingCost={shippingCost} shippingEstimate={shippingEstimate}
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
+              shippingMethodName={selectedShippingMethod?.name}
+              taxRateBp={taxRateBp}
               t={t as (key: string) => string}
             />
 
@@ -1042,15 +947,12 @@ function CheckoutForm() {
                 )}
 
                 {kustomAvailable && (
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'kustom' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                    <input type="radio" name="payment" value="kustom"
-                      checked={paymentMethod === 'kustom'} onChange={() => setPaymentMethod('kustom')}
-                      className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{t('checkout.kustomCheckout')}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{t('checkout.kustomDescription')}</p>
-                    </div>
-                  </label>
+                  <Link
+                    href={lp('/checkout')}
+                    className="block pt-1 text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-800 transition-colors"
+                  >
+                    {t('checkout.payWithKustomInstead')}
+                  </Link>
                 )}
               </div>
             </div>
@@ -1125,15 +1027,12 @@ function CheckoutForm() {
                 </div>
               )}
               {kustomAvailable && (
-                <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'kustom' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                  <input type="radio" name="payment_mobile" value="kustom"
-                    checked={paymentMethod === 'kustom'} onChange={() => setPaymentMethod('kustom')}
-                    className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{t('checkout.kustomCheckout')}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{t('checkout.kustomDescription')}</p>
-                  </div>
-                </label>
+                <Link
+                  href={lp('/checkout')}
+                  className="block pt-1 text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-800 transition-colors"
+                >
+                  {t('checkout.payWithKustomInstead')}
+                </Link>
               )}
             </div>
             {error && (
@@ -1163,27 +1062,110 @@ function CheckoutForm() {
 }
 
 // ── Stripe wrapper ─────────────────────────────────────────────────────────────
-function CheckoutWithStripe() {
-  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
-  const [stripePromise, setStripePromise] = useState<ReturnType<typeof getStripe>>(null);
-  useEffect(() => {
-    // The publishable key is admin-managed and served by the API, so load
-    // Stripe.js with the key returned by /payments/config (not a build-time env).
-    // Independent stores charge directly on the owner's connected account, so
-    // Stripe.js must be initialised with that same `stripeAccount`.
-    api<PaymentConfig>(paymentConfigPath(storeSlug))
-      .then((cfg) => {
-        if (cfg.publishableKey) setStripePromise(getStripe(cfg.publishableKey, cfg.stripeAccount));
-      })
-      .catch(() => { /* Stripe stays unavailable; checkout falls back to COD */ });
-  }, [storeSlug]);
+function CheckoutWithStripe({ availability }: { availability: PaymentAvailability }) {
+  // The publishable key is admin-managed and served by the API, so Stripe.js is
+  // loaded with the key returned by /payments/config (not a build-time env).
+  // Independent stores charge directly on the owner's connected account, so
+  // Stripe.js must be initialised with that same `stripeAccount`.
+  const stripePromise = useMemo(
+    () => (availability.publishableKey ? getStripe(availability.publishableKey, availability.stripeAccount) : null),
+    [availability.publishableKey, availability.stripeAccount],
+  );
   return (
     <Elements stripe={stripePromise}>
-      <CheckoutForm />
+      <CheckoutForm availability={availability} />
     </Elements>
   );
 }
 
+function LoadingState() {
+  const t = useTranslations();
+  return (
+    <div className="flex items-center justify-center gap-2 py-20 text-sm text-gray-400">
+      <Loader2 className="w-5 h-5 animate-spin" />
+      {t('common.loading')}
+    </div>
+  );
+}
+
+// ── Mode router ────────────────────────────────────────────────────────────────
+// Resolves what this store can accept, then picks the checkout mode: Kustom
+// (address + payment inside Kustom's iframe) is the default whenever the store
+// offers it; `?method=classic` — or a store without Kustom — gets the form
+// above. Availability is fetched once here so neither mode flashes the wrong UI.
+function CheckoutRouter() {
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
+  const searchParams = useSearchParams();
+  const wantsClassic = searchParams.get('method') === 'classic';
+  const [availability, setAvailability] = useState<PaymentAvailability | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      let storeId: string | undefined;
+      let storeCardEnabled = true;
+      // Cash on delivery is opt-in per store (off by default server-side).
+      let storeCodEnabled = false;
+      let storeKustomEnabled = true;
+      if (storeSlug) {
+        try {
+          const store = await storefront.getStore(storeSlug) as {
+            id: string;
+            card_payments_enabled?: boolean;
+            cod_enabled?: boolean;
+            kustom_enabled?: boolean;
+          };
+          storeId = store.id;
+          // The creator must have completed Stripe Connect onboarding for this
+          // store to accept card payments.
+          storeCardEnabled = store.card_payments_enabled !== false;
+          // Strict check so COD stays hidden for stores that haven't enabled it.
+          storeCodEnabled = store.cod_enabled === true;
+          storeKustomEnabled = store.kustom_enabled !== false;
+        } catch { /* ignore */ }
+      }
+      let config: PaymentConfig | null = null;
+      try {
+        config = await api<PaymentConfig>(paymentConfigPath(storeSlug));
+      } catch {
+        config = null;
+      }
+      if (cancelled) return;
+      setAvailability({
+        storeId,
+        cod: storeCodEnabled,
+        // Card is offered only when Stripe is configured platform-wide AND the
+        // store creator can accept charges.
+        stripe: Boolean(config?.stripeConfigured) && storeCardEnabled,
+        // Kustom is offered only when the payment config says so AND the store
+        // itself hasn't turned it off.
+        kustom: config?.kustomEnabled === true && storeKustomEnabled,
+        publishableKey: config?.publishableKey ?? null,
+        stripeAccount: config?.stripeAccount ?? null,
+      });
+    }
+    init();
+    return () => { cancelled = true; };
+  }, [storeSlug]);
+
+  if (!availability) return <LoadingState />;
+
+  const classicPossible = availability.cod || availability.stripe;
+  // `?method=classic` is honoured only when there is something to pay with there.
+  const mode = availability.kustom && (!wantsClassic || !classicPossible) ? 'kustom' : 'classic';
+
+  if (mode === 'kustom') {
+    return <KustomCheckout storeSlug={storeSlug} classicAvailable={classicPossible} />;
+  }
+  return <CheckoutWithStripe availability={availability} />;
+}
+
 export default function StoreCheckoutPage() {
-  return <CheckoutWithStripe />;
+  // useSearchParams needs a Suspense boundary on client pages so the static
+  // shell can render before the query string is known.
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <CheckoutRouter />
+    </Suspense>
+  );
 }

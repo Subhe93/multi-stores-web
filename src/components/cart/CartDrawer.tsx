@@ -18,7 +18,7 @@ interface CartDrawerProps {
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = useTranslations();
   const lp = useLocalePath();
-  const { items, itemCount, subtotal, total, coupon, currency, updateQuantity, removeItem } = useCart();
+  const { items, itemCount, subtotal, total, coupon, currency, taxRateBp, taxAmount, updateQuantity, removeItem } = useCart();
 
   // Portal the drawer to <body> so its `position: fixed` is relative to the
   // viewport, not a transformed/filtered ancestor. The header uses
@@ -155,6 +155,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   discount={coupon ? (coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount) : undefined}
                   total={total}
                   currency={currency}
+                  taxRateBp={taxRateBp}
+                  taxAmount={taxAmount}
                 />
                 <Link
                   href={lp('/checkout')}

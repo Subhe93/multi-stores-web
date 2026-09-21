@@ -12,6 +12,7 @@ import {
   createElement,
 } from 'react';
 import { api } from '@/lib/api';
+import { includedTax } from '@/lib/tax';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -72,6 +73,13 @@ interface Coupon {
   freeShipping?: boolean;
 }
 
+/** VAT figures the cart API returns for the cart's store (GET /cart). */
+interface CartTax {
+  rateBp: number;
+  /** Null when the API only sent the rate. */
+  amount: number | null;
+}
+
 interface CartState {
   items: CartItem[];
   loading: boolean;
@@ -101,6 +109,11 @@ interface CartContextValue extends CartState {
   /** Currency to display cart totals in — the store's, so it matches what the
    *  server will actually charge. */
   currency: string;
+  /** Resolved VAT rate in basis points (server cart > store > 0). Prices are
+   *  tax inclusive, so this only drives the informational "Includes VAT" line. */
+  taxRateBp: number;
+  /** VAT included in `total` — the API's figure when it sent one, else computed. */
+  taxAmount: number;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
@@ -182,18 +195,30 @@ function normalizeCartItem(raw: any): CartItem {
   };
 }
 
-function normalizeCartResponse(data: any): { items: CartItem[]; coupon: Coupon | null } {
+// `tax_rate_bp` / `tax_amount` are optional on GET /cart (older API builds
+// omit them); a missing rate means "fall back to the store's rate".
+function normalizeCartTax(data: unknown): CartTax | null {
+  const raw = (data ?? {}) as Record<string, unknown>;
+  const rate = Number(raw.tax_rate_bp ?? raw.taxRateBp);
+  if (!Number.isFinite(rate)) return null;
+  const rawAmount = raw.tax_amount ?? raw.taxAmount;
+  const amount = rawAmount === undefined || rawAmount === null ? NaN : Number(rawAmount);
+  return { rateBp: rate, amount: Number.isFinite(amount) ? amount : null };
+}
+
+function normalizeCartResponse(data: any): { items: CartItem[]; coupon: Coupon | null; tax: CartTax | null } {
   if (Array.isArray(data)) {
-    return { items: data.map(normalizeCartItem), coupon: null };
+    return { items: data.map(normalizeCartItem), coupon: null, tax: null };
   }
   if (data && typeof data === 'object') {
     const rawItems = Array.isArray(data.items) ? data.items : [];
     return {
       items: rawItems.map(normalizeCartItem),
       coupon: data.coupon ?? null,
+      tax: normalizeCartTax(data),
     };
   }
-  return { items: [], coupon: null };
+  return { items: [], coupon: null, tax: null };
 }
 
 // ── Context ────────────────────────────────────────────
@@ -215,14 +240,18 @@ interface CartProviderProps {
    *  derives the order currency from the same store, whereas the currency
    *  stamped on a cart item is only the platform default. */
   storeCurrency?: string;
+  /** The store's resolved VAT rate (basis points) from `storefront.getStore`;
+   *  used until / unless the cart API reports its own. */
+  storeTaxRateBp?: number | null;
 }
 
-export function CartProvider({ children, token, locale, storeId, storeCurrency }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTaxRateBp }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering.
   const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
   const [items, setItems] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [serverTax, setServerTax] = useState<CartTax | null>(null);
   const [loading, setLoading] = useState(true);
   const prevTokenRef = useRef<string | null | undefined>(undefined);
 
@@ -276,25 +305,30 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
               );
               setItems(refreshed.items);
               setCoupon(refreshed.coupon);
+              setServerTax(refreshed.tax);
             } catch {
               setItems(cart.items);
               setCoupon(cart.coupon);
+              setServerTax(cart.tax);
             }
           } else {
             setItems(cart.items);
             setCoupon(cart.coupon);
+            setServerTax(cart.tax);
           }
         })
         .catch(() => {
           // API failed — fallback to local cart so the user doesn't lose items
           setItems(loadLocalCart());
           setCoupon(loadLocalCoupon());
+          setServerTax(null);
         })
         .finally(() => setLoading(false));
     } else {
       // Guest: load from localStorage
       setItems(loadLocalCart());
       setCoupon(loadLocalCoupon());
+      setServerTax(null);
       setLoading(false);
     }
   }, [isAuthenticated, token, localeQuery]);
@@ -330,6 +364,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
+        setServerTax(cart.tax);
       } else {
         setItems((prev) => {
           const idx = prev.findIndex(
@@ -391,6 +426,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
+        setServerTax(cart.tax);
       } else {
         setItems((prev) => {
           const next = prev.map((item) =>
@@ -420,6 +456,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
+        setServerTax(cart.tax);
       } else {
         setItems((prev) => {
           const next = prev.map((item) => {
@@ -459,6 +496,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
+        setServerTax(cart.tax);
       } else {
         setItems((prev) => {
           const next = prev.filter((item) => item.id !== itemId);
@@ -482,6 +520,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
     }
     setItems([]);
     setCoupon(null);
+    setServerTax(null);
     saveLocalCart([]);
     saveLocalCoupon(null);
   }, [isAuthenticated, token, localeQuery]);
@@ -550,12 +589,15 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
+        setServerTax(cart.tax);
       } catch {
         setCoupon(null);
+        setServerTax(null);
         saveLocalCoupon(null);
       }
     } else {
       setCoupon(null);
+      setServerTax(null);
       saveLocalCoupon(null);
     }
   }, [isAuthenticated, token, localeQuery]);
@@ -617,10 +659,24 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
       const cart = normalizeCartResponse(data);
       setItems(cart.items);
       setCoupon(cart.coupon);
+      setServerTax(cart.tax);
     } catch {
       // Keep current state
     }
   }, [localeQuery]);
+
+  // ── Tax (informational — prices are tax inclusive) ─
+
+  const currency = storeCurrency || items[0]?.currency || 'EUR';
+  const taxRateBp = serverTax?.rateBp ?? storeTaxRateBp ?? 0;
+  const taxAmount = useMemo(() => {
+    // Prefer the API's figure when it matches the rate we display; otherwise
+    // derive it from the total shown (guest carts, older API builds).
+    if (serverTax && serverTax.amount !== null && serverTax.rateBp === taxRateBp) {
+      return serverTax.amount;
+    }
+    return includedTax(total, taxRateBp, currency);
+  }, [serverTax, taxRateBp, total, currency]);
 
   // ── Context value ──────────────────────────────────
 
@@ -639,7 +695,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency }
     itemCount,
     subtotal,
     total,
-    currency: storeCurrency || items[0]?.currency || 'EUR',
+    currency,
+    taxRateBp,
+    taxAmount,
   };
 
   return createElement(CartContext.Provider, { value }, children);

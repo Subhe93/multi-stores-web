@@ -7,6 +7,7 @@ import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'l
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
 import { formatPrice } from '@/lib/format';
+import { formatTaxRate, hasTax } from '@/lib/tax';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatCartFieldValue } from '@/components/cart/CartItem';
 
@@ -234,7 +235,7 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, loading, subtotal, total, coupon, currency,
+    items, loading, subtotal, total, coupon, currency, taxRateBp, taxAmount,
     itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
   } = useCart();
 
@@ -415,6 +416,13 @@ export default function StoreCartPage() {
                   <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
                   <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
                 </div>
+                {/* Informational: prices are tax inclusive, the total is unchanged. */}
+                {hasTax(taxRateBp) && (
+                  <div className="flex justify-between text-xs text-gray-500 -mt-2 pb-2">
+                    <span>{t('cart.includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
+                    <span>{formatPrice(taxAmount, currency)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Checkout button */}

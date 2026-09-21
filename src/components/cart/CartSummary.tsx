@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/format';
+import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
 
 interface CartSummaryProps {
   subtotal: number;
@@ -11,6 +12,10 @@ interface CartSummaryProps {
   currency?: string;
   locale?: string;
   itemCount?: number;
+  /** VAT rate in basis points; the "Includes VAT" line is shown when > 0. */
+  taxRateBp?: number;
+  /** VAT included in `total`; computed from the rate when omitted. */
+  taxAmount?: number;
 }
 
 export function CartSummary({
@@ -21,6 +26,8 @@ export function CartSummary({
   currency = 'EUR',
   locale = 'en',
   itemCount,
+  taxRateBp,
+  taxAmount,
 }: CartSummaryProps) {
   const t = useTranslations('cart');
   const fmt = (amount: number) => formatPrice(amount, currency, locale);
@@ -66,6 +73,13 @@ export function CartSummary({
           <span>{t('total')}</span>
           <span>{fmt(total)}</span>
         </div>
+        {/* Informational: prices are tax inclusive, the total is unchanged. */}
+        {hasTax(taxRateBp) && (
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>{t('includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
+            <span>{fmt(taxAmount ?? includedTax(total, taxRateBp, currency))}</span>
+          </div>
+        )}
       </div>
     </div>
   );

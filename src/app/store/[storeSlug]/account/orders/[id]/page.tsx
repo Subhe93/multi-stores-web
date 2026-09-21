@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
+import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
 import {
   resolveCustomFieldLabel,
   resolveCustomFieldTranslation,
@@ -115,9 +116,16 @@ interface OrderDetail {
   status: string;
   subtotal: number;
   shipping_cost: number;
+  /** Display name of the shipping method chosen at checkout (phase C). */
+  shipping_method_name?: string | null;
+  /** DELIVERY vs in-store PICKUP; drives the label of the shipping row. */
+  shipping_method_type?: 'DELIVERY' | 'PICKUP' | null;
   discount_amount: number;
   total: number;
   currency?: string;
+  /** VAT snapshot taken at order creation (older orders may lack it). */
+  tax_rate_bp?: number | null;
+  tax_amount?: number | string | null;
   payment_method?: string;
   notes?: string;
   created_at: string;
@@ -218,6 +226,10 @@ export default function StoreOrderDetailPage() {
   const shipping = Number(order.shipping_cost ?? 0);
   const discount = Number(order.discount_amount ?? 0);
   const currency = order.currency || 'EUR';
+  const taxRateBp = Number(order.tax_rate_bp ?? 0);
+  const taxAmount = order.tax_amount != null
+    ? Number(order.tax_amount)
+    : includedTax(total, taxRateBp, currency);
   const date = order.created_at;
   const items = order.items || [];
   const address = order.address;
@@ -375,7 +387,10 @@ export default function StoreOrderDetailPage() {
             <span className="text-gray-900">{fmt(subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">{t('cart.shipping')}</span>
+            <span className="text-gray-500">
+              {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
+              {order.shipping_method_name ? ` (${order.shipping_method_name})` : ''}
+            </span>
             <span className="text-gray-900">{fmt(shipping)}</span>
           </div>
           {discount > 0 && (
@@ -388,6 +403,13 @@ export default function StoreOrderDetailPage() {
             <span>{t('cart.total')}</span>
             <span>{fmt(total)}</span>
           </div>
+          {/* Informational: prices are tax inclusive, the total is unchanged. */}
+          {hasTax(taxRateBp) && (
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{t('cart.includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
+              <span>{fmt(taxAmount)}</span>
+            </div>
+          )}
         </div>
       </div>
 

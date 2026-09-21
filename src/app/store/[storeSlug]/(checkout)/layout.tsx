@@ -14,6 +14,8 @@ interface Store {
   id: string;
   name: string;
   currency?: string;
+  /** Resolved VAT rate in basis points (store override or platform default). */
+  tax_rate_bp?: number | null;
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
@@ -64,7 +66,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTaxRateBp={store.tax_rate_bp ?? undefined}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

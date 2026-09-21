@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
+import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -36,9 +37,16 @@ export interface OrderReceiptOrder {
   order_number: string;
   subtotal: number | string;
   shipping_cost: number | string;
+  /** Display name of the shipping method chosen at checkout (phase C). */
+  shipping_method_name?: string | null;
+  /** DELIVERY vs in-store PICKUP; drives the label of the shipping row. */
+  shipping_method_type?: 'DELIVERY' | 'PICKUP' | null;
   discount_amount: number | string;
   total: number | string;
   currency?: string;
+  /** VAT snapshot taken at order creation (older orders may lack it). */
+  tax_rate_bp?: number | null;
+  tax_amount?: number | string | null;
   items: OrderReceiptItem[];
 }
 
@@ -62,11 +70,13 @@ interface OrderReceiptProps {
   order: OrderReceiptOrder | null;
   /** Order id for the "view order" link — may be known before the order loads. */
   orderId: string | null;
+  /** Hide the "view order" link (guest-safe confirmation without a login). Defaults to shown. */
+  showOrderLink?: boolean;
 }
 
 // Shared receipt block for the checkout confirmation pages (Stripe/COD and
 // Kustom): line items, totals and the post-purchase action buttons.
-export function OrderReceipt({ order, orderId }: OrderReceiptProps) {
+export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderReceiptProps) {
   const t = useTranslations();
   const locale = useLocale();
   const lp = useLocalePath();
@@ -134,7 +144,10 @@ export function OrderReceipt({ order, orderId }: OrderReceiptProps) {
               <span className="text-gray-900">{fmt(Number(order.subtotal))}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">{t('cart.shipping')}</span>
+              <span className="text-gray-500">
+                {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
+                {order.shipping_method_name ? ` (${order.shipping_method_name})` : ''}
+              </span>
               <span className="text-gray-900">{fmt(Number(order.shipping_cost))}</span>
             </div>
             {Number(order.discount_amount) > 0 && (
@@ -147,13 +160,24 @@ export function OrderReceipt({ order, orderId }: OrderReceiptProps) {
               <span>{t('cart.total')}</span>
               <span>{fmt(Number(order.total))}</span>
             </div>
+            {/* Informational: prices are tax inclusive, the total is unchanged. */}
+            {hasTax(order.tax_rate_bp) && (
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{t('cart.includesVat', { rate: formatTaxRate(order.tax_rate_bp) })}</span>
+                <span>
+                  {fmt(order.tax_amount != null
+                    ? Number(order.tax_amount)
+                    : includedTax(Number(order.total), order.tax_rate_bp, currency))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {orderId && (
+        {orderId && showOrderLink && (
           <Link
             href={lp(`/account/orders/${orderId}`)}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"

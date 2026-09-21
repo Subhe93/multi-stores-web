@@ -2,27 +2,38 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Loader2, UserRound } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { clearKustomCheckoutSession } from '@/hooks/useKustomCheckout';
 import { api } from '@/lib/api';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
 import { OrderReceipt, type OrderReceiptOrder } from '@/components/checkout/OrderReceipt';
 
-// Response of GET /payments/kustom/confirmation (see plans/kustom-integration/API-CONTRACT.md).
+// Response of GET /payments/kustom/confirmation (legacy, order-first flow) and
+// GET /payments/kustom/checkout/confirmation (session flow) — see
+// plans/kustom-integration/API-CONTRACT.md and API-CONTRACT-B.md.
 interface KustomConfirmationResponse {
   order_id: string;
   order_number: string;
-  kustom_order_id: string;
-  status: string;
+  kustom_order_id?: string;
+  status?: string;
   /** Kustom's checkout status; `mismatch` when the payment could not be matched to this order. */
   checkout_status?: string;
   payment_status: string;
   html_snippet: string | null;
+  /** Session flow only: a customer account was created from the Kustom email. */
+  account_created?: boolean;
+  customer_email?: string | null;
 }
+
+// How many extra confirmation attempts to make while the order is still being
+// created from the Kustom session, and the pause between them.
+const CONFIRMATION_MAX_RETRIES = 6;
+const CONFIRMATION_RETRY_DELAY_MS = 2500;
 
 function LoadingState({ label }: { label: string }) {
   return (
@@ -37,13 +48,22 @@ function LoadingState({ label }: { label: string }) {
 // reads the Kustom order, marks ours paid (idempotent) and returns Kustom's
 // confirmation snippet; the push callback finalizes the order independently,
 // so a not-yet-paid response is shown as "confirming", never as a failure.
+//
+// Two entry points:
+//  - `?session=&token=` (Kustom-first flow): authenticated by the session
+//    token, so guests can see it without logging in.
+//  - `?orderId=` (legacy order-first flow): customer-scoped, needs a login.
 function KustomConfirmationContent() {
   const t = useTranslations();
   const lp = useLocalePath();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-  const { token, loading: authLoading } = useAuth();
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
+  const sessionId = searchParams.get('session');
+  const sessionToken = searchParams.get('token');
+  const legacyOrderId = searchParams.get('orderId');
+  const sessionMode = Boolean(sessionId && sessionToken);
+  const { token: authToken, loading: authLoading } = useAuth();
   const { clearCart } = useCart();
 
   const [confirmation, setConfirmation] = useState<KustomConfirmationResponse | null>(null);
@@ -52,35 +72,70 @@ function KustomConfirmationContent() {
   // The cart is cleared exactly once per visit, even if the effect re-runs.
   const cartClearedRef = useRef(false);
 
-  // Same guard as the account area: the confirmation endpoint is
-  // customer-scoped, so send unauthenticated visitors to log in.
+  // Legacy path only: the confirmation endpoint is customer-scoped, so send
+  // unauthenticated visitors to log in (same guard as the account area).
   useEffect(() => {
-    if (!authLoading && !token) router.replace(lp('/auth/login'));
-  }, [authLoading, token, router, lp]);
+    if (sessionMode) return;
+    if (!authLoading && !authToken) router.replace(lp('/auth/login'));
+  }, [sessionMode, authLoading, authToken, router, lp]);
 
   useEffect(() => {
-    if (!token || !orderId) return;
+    if (sessionMode ? !sessionId || !sessionToken : !authToken || !legacyOrderId) return;
+    // Wait for auth to settle so we know whether the receipt can be fetched.
+    if (authLoading) return;
     let cancelled = false;
+    const fetchConfirmation = () =>
+      sessionMode
+        ? api<KustomConfirmationResponse>(
+            `/payments/kustom/checkout/confirmation?session_id=${encodeURIComponent(sessionId!)}&token=${encodeURIComponent(sessionToken!)}`,
+          )
+        : api<KustomConfirmationResponse>(
+            `/payments/kustom/confirmation?order_id=${encodeURIComponent(legacyOrderId!)}`,
+            { token: authToken! },
+          );
+    // Kustom redirects the customer here as soon as the payment is authorized,
+    // which can be before our validation callback has finished turning the
+    // session into an order. The API answers 409 / KUSTOM_SESSION_NOT_ORDERED
+    // in that window, so poll a few times before settling on "confirming".
+    const isNotOrderedYet = (err: unknown) => {
+      const e = err as { status?: number; code?: string } | null;
+      return e?.status === 409 || e?.code === 'KUSTOM_SESSION_NOT_ORDERED';
+    };
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
     (async () => {
       try {
-        const res = await api<KustomConfirmationResponse>(
-          `/payments/kustom/confirmation?order_id=${encodeURIComponent(orderId)}`,
-          { token },
-        );
-        if (cancelled) return;
+        let res: KustomConfirmationResponse | null = null;
+        for (let attempt = 0; ; attempt++) {
+          try {
+            res = await fetchConfirmation();
+            break;
+          } catch (err) {
+            if (cancelled) return;
+            if (!isNotOrderedYet(err) || attempt >= CONFIRMATION_MAX_RETRIES) throw err;
+            await sleep(CONFIRMATION_RETRY_DELAY_MS);
+            if (cancelled) return;
+          }
+        }
+        if (cancelled || !res) return;
         setConfirmation(res);
         // The order is placed on our side as soon as Kustom sends the customer
         // here; the checkout page intentionally left the cart intact until now.
         if (!cartClearedRef.current) {
           cartClearedRef.current = true;
           clearCart().catch(() => { /* local state is cleared regardless */ });
+          // The remembered session is spent: the next checkout starts fresh.
+          if (storeSlug) clearKustomCheckoutSession(storeSlug);
         }
         // Fetch the full order so the receipt can render line items inline.
-        try {
-          const data = await api<OrderReceiptOrder>(`/orders/${orderId}`, { token });
-          if (!cancelled) setOrder(data);
-        } catch {
-          /* swallow — the page still shows the confirmation + buttons */
+        // Only possible for a logged-in customer (the endpoint is scoped).
+        const orderId = res.order_id || legacyOrderId;
+        if (authToken && orderId) {
+          try {
+            const data = await api<OrderReceiptOrder>(`/orders/${encodeURIComponent(orderId)}`, { token: authToken });
+            if (!cancelled) setOrder(data);
+          } catch {
+            /* swallow — the page still shows the confirmation + buttons */
+          }
         }
       } catch {
         // Leave `confirmation` empty: the page then shows the neutral
@@ -90,9 +145,9 @@ function KustomConfirmationContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [token, orderId, clearCart]);
+  }, [sessionMode, sessionId, sessionToken, legacyOrderId, authToken, authLoading, clearCart, storeSlug]);
 
-  if (!orderId) {
+  if (!sessionMode && !legacyOrderId) {
     return (
       <div className="min-h-[60vh] flex items-start justify-center px-4 py-12">
         <div className="w-full max-w-2xl rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
@@ -108,7 +163,7 @@ function KustomConfirmationContent() {
     );
   }
 
-  if (authLoading || !token || loading) {
+  if (authLoading || (!sessionMode && !authToken) || loading) {
     return <LoadingState label={t('common.loading')} />;
   }
 
@@ -118,6 +173,8 @@ function KustomConfirmationContent() {
   // showing the neutral "confirming" state forever.
   const mismatch = !paid && confirmation?.checkout_status === 'mismatch';
   const orderNumber = order?.order_number || confirmation?.order_number;
+  const orderId = confirmation?.order_id || legacyOrderId;
+  const accountCreated = Boolean(confirmation?.account_created && confirmation?.customer_email);
 
   return (
     <div className="min-h-[60vh] flex items-start justify-center px-4 py-12">
@@ -165,10 +222,27 @@ function KustomConfirmationContent() {
           )}
         </div>
 
+        {/* Guest checkout: an account was created from the email Kustom
+            collected. Point to the forgot-password flow to choose a password. */}
+        {accountCreated && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-gray-700">
+            <UserRound className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
+            <div>
+              <p>{t('checkout.accountCreatedNote', { email: confirmation!.customer_email! })}</p>
+              <Link
+                href={lp('/auth/forgot-password')}
+                className="inline-block mt-1 font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
+              >
+                {t('checkout.setPasswordLink')}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Line items, totals and post-purchase actions. When the confirmation
             call itself failed there is no order to render yet, but the order
-            link is still offered. */}
-        <OrderReceipt order={order} orderId={orderId} />
+            link is still offered to logged-in customers. */}
+        <OrderReceipt order={order} orderId={orderId} showOrderLink={Boolean(authToken)} />
       </div>
     </div>
   );
