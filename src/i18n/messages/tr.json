@@ -136,7 +136,9 @@
     "uploadPreview": "Yükleme önizlemesi",
     "changeFile": "Değiştir",
     "dragDropFiles": "Dosyaları buraya sürükleyip bırakın",
-    "browseFiles": "Dosyalara göz at"
+    "browseFiles": "Dosyalara göz at",
+    "inclTax": "KDV dahil",
+    "exclTax": "KDV hariç"
   },
   "cart": {
     "title": "Alışveriş Sepeti",
@@ -164,7 +166,9 @@
     "haveCoupon": "Kuponunuz var mı?",
     "removeBundle": "Paketi kaldır",
     "each": "adet başına",
-    "includesVat": "KDV dahil ({rate})"
+    "taxEstimatedNote": "Vergi tahminidir; nihai tutar ödeme sırasında hesaplanır.",
+    "taxAtCheckout": "Vergi ödeme sırasında hesaplanır",
+    "totalInclTax": "Toplam (vergi dahil)"
   },
   "checkout": {
     "title": "Ödeme",

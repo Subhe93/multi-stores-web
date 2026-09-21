@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/format';
-import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
+import type { TaxLine, TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows } from './TaxLineRows';
 
 interface CartSummaryProps {
   subtotal: number;
@@ -12,10 +13,13 @@ interface CartSummaryProps {
   currency?: string;
   locale?: string;
   itemCount?: number;
-  /** VAT rate in basis points; the "Includes VAT" line is shown when > 0. */
-  taxRateBp?: number;
-  /** VAT included in `total`; computed from the rate when omitted. */
-  taxAmount?: number;
+  /** Itemized tax lines from GET /cart (empty for guest carts). */
+  taxLines?: TaxLine[];
+  taxPricingMode?: TaxPricingMode;
+  /** True while the lines are a registration-country estimate (or a guest cart). */
+  taxEstimated?: boolean;
+  /** EXCLUSIVE mode: `total` + tax; null when unknown (guest cart). */
+  totalWithTax?: number | null;
 }
 
 export function CartSummary({
@@ -26,11 +30,14 @@ export function CartSummary({
   currency = 'EUR',
   locale = 'en',
   itemCount,
-  taxRateBp,
-  taxAmount,
+  taxLines = [],
+  taxPricingMode = 'INCLUSIVE',
+  taxEstimated = true,
+  totalWithTax = null,
 }: CartSummaryProps) {
   const t = useTranslations('cart');
   const fmt = (amount: number) => formatPrice(amount, currency, locale);
+  const exclusive = taxPricingMode === 'EXCLUSIVE';
 
   return (
     <div className="space-y-3">
@@ -73,11 +80,26 @@ export function CartSummary({
           <span>{t('total')}</span>
           <span>{fmt(total)}</span>
         </div>
-        {/* Informational: prices are tax inclusive, the total is unchanged. */}
-        {hasTax(taxRateBp) && (
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{t('includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
-            <span>{fmt(taxAmount ?? includedTax(total, taxRateBp, currency))}</span>
+
+        {exclusive ? (
+          taxLines.length > 0 && totalWithTax !== null ? (
+            // Tax is added on top: itemized lines, then the grand total.
+            <div className="mt-2 space-y-1">
+              <TaxLineRows lines={taxLines} currency={currency} locale={locale} variant="row" />
+              <div className="flex justify-between text-sm font-semibold text-gray-900 pt-1 border-t border-gray-100">
+                <span>{t('totalInclTax')}</span>
+                <span>{fmt(totalWithTax)}</span>
+              </div>
+              {taxEstimated && <p className="text-xs text-gray-500">{t('taxEstimatedNote')}</p>}
+            </div>
+          ) : (
+            // Guest cart: the server has nothing to estimate from yet.
+            <p className="text-xs text-gray-500 mt-1">{t('taxAtCheckout')}</p>
+          )
+        ) : (
+          // Prices are tax inclusive: informational, the total is unchanged.
+          <div className="mt-1 space-y-0.5">
+            <TaxLineRows lines={taxLines} currency={currency} locale={locale} variant="muted" />
           </div>
         )}
       </div>

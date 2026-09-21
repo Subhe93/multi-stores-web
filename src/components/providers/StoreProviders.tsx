@@ -3,19 +3,21 @@
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { CartProvider } from '@/hooks/useCart';
+import { StoreTaxProvider } from '@/hooks/useStoreTax';
+import type { StoreTaxConfig } from '@/lib/tax';
 
 function CartProviderWithAuth({
   children,
   locale,
   storeId,
   storeCurrency,
-  storeTaxRateBp,
+  storeTax,
 }: {
   children: ReactNode;
   locale?: string;
   storeId?: string;
   storeCurrency?: string;
-  storeTaxRateBp?: number | null;
+  storeTax?: StoreTaxConfig | null;
 }) {
   const { token } = useAuth();
   return (
@@ -24,7 +26,7 @@ function CartProviderWithAuth({
       locale={locale}
       storeId={storeId}
       storeCurrency={storeCurrency}
-      storeTaxRateBp={storeTaxRateBp}
+      storeTax={storeTax}
     >
       {children}
     </CartProvider>
@@ -36,7 +38,7 @@ export function StoreProviders({
   locale,
   storeId,
   storeCurrency,
-  storeTaxRateBp,
+  storeTax,
 }: {
   children: ReactNode;
   locale?: string;
@@ -45,19 +47,22 @@ export function StoreProviders({
   /** The store's currency — cart and checkout display it instead of the
    *  platform default stamped on individual items. */
   storeCurrency?: string;
-  /** The store's resolved VAT rate in basis points (informational VAT line). */
-  storeTaxRateBp?: number | null;
+  /** The store's tax settings (`tax` block of `storefront.getStore`): pricing
+   *  mode + catalog display flag for price suffixes and guest-cart hints. */
+  storeTax?: StoreTaxConfig | null;
 }) {
   return (
     <AuthProvider>
-      <CartProviderWithAuth
-        locale={locale}
-        storeId={storeId}
-        storeCurrency={storeCurrency}
-        storeTaxRateBp={storeTaxRateBp}
-      >
-        {children}
-      </CartProviderWithAuth>
+      <StoreTaxProvider value={storeTax ?? null}>
+        <CartProviderWithAuth
+          locale={locale}
+          storeId={storeId}
+          storeCurrency={storeCurrency}
+          storeTax={storeTax}
+        >
+          {children}
+        </CartProviderWithAuth>
+      </StoreTaxProvider>
     </AuthProvider>
   );
 }

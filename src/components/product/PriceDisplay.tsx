@@ -1,4 +1,5 @@
 import { formatPrice } from '@/lib/format';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 interface PriceDisplayProps {
   price: number;
@@ -33,6 +34,7 @@ export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = '
           </span>
         </>
       )}
+      <PriceTaxSuffix className="text-xs text-gray-500" />
     </div>
   );
 }

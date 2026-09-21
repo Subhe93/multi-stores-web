@@ -10,6 +10,7 @@ import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, tokensToCssVars, tokenFonts } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -50,8 +51,8 @@ interface Store {
   id: string;
   name: string;
   currency?: string;
-  /** Resolved VAT rate in basis points (store override or platform default). */
-  tax_rate_bp?: number | null;
+  /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
+  tax?: StoreTaxConfig | null;
   description?: string;
   logo_url?: string;
   favicon_url?: string;
@@ -419,7 +420,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTaxRateBp={store.tax_rate_bp ?? undefined}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

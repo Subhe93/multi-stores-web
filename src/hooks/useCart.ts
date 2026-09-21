@@ -12,7 +12,14 @@ import {
   createElement,
 } from 'react';
 import { api } from '@/lib/api';
-import { includedTax } from '@/lib/tax';
+import {
+  normalizeTaxLines,
+  normalizeTaxPricingMode,
+  sumTaxLines,
+  type StoreTaxConfig,
+  type TaxLine,
+  type TaxPricingMode,
+} from '@/lib/tax';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -73,11 +80,15 @@ interface Coupon {
   freeShipping?: boolean;
 }
 
-/** VAT figures the cart API returns for the cart's store (GET /cart). */
+/** Tax figures GET /cart returns (API-CONTRACT-TAX §3): itemized lines,
+ *  estimated for the store's registration country until an address is known. */
 interface CartTax {
-  rateBp: number;
-  /** Null when the API only sent the rate. */
-  amount: number | null;
+  lines: TaxLine[];
+  total: number;
+  pricingMode: TaxPricingMode | null;
+  estimated: boolean;
+  /** EXCLUSIVE mode only: `total` + tax; null when the API did not send it. */
+  totalWithTax: number | null;
 }
 
 interface CartState {
@@ -109,17 +120,26 @@ interface CartContextValue extends CartState {
   /** Currency to display cart totals in — the store's, so it matches what the
    *  server will actually charge. */
   currency: string;
-  /** Resolved VAT rate in basis points (server cart > store > 0). Prices are
-   *  tax inclusive, so this only drives the informational "Includes VAT" line. */
-  taxRateBp: number;
-  /** VAT included in `total` — the API's figure when it sent one, else computed. */
-  taxAmount: number;
+  /** Itemized tax lines from GET /cart (empty for guest carts — the server
+   *  computes tax, nothing is derived client-side). */
+  taxLines: TaxLine[];
+  /** Sum of `taxLines` (`tax_total` from the API). */
+  taxTotal: number;
+  /** INCLUSIVE: `total` already contains tax; EXCLUSIVE: tax is added on top. */
+  taxPricingMode: TaxPricingMode;
+  /** True until an address is known (registration-country estimate or guest cart). */
+  taxEstimated: boolean;
+  /** Grand total incl. tax: `total_with_tax` in EXCLUSIVE mode, `total` in
+   *  INCLUSIVE mode; null for a guest EXCLUSIVE cart (unknown until checkout). */
+  totalWithTax: number | null;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
 
 const CART_KEY = 'guest_cart';
 const COUPON_KEY = 'guest_coupon';
+// Stable reference so consumers' effects don't re-run on every render.
+const EMPTY_TAX_LINES: TaxLine[] = [];
 
 function loadLocalCart(): CartItem[] {
   if (typeof window === 'undefined') return [];
@@ -195,15 +215,21 @@ function normalizeCartItem(raw: any): CartItem {
   };
 }
 
-// `tax_rate_bp` / `tax_amount` are optional on GET /cart (older API builds
-// omit them); a missing rate means "fall back to the store's rate".
+// `tax_lines` & co. are optional on GET /cart (older API builds omit them);
+// null means "no server figures" and the UI falls back to the guest behaviour.
 function normalizeCartTax(data: unknown): CartTax | null {
   const raw = (data ?? {}) as Record<string, unknown>;
-  const rate = Number(raw.tax_rate_bp ?? raw.taxRateBp);
-  if (!Number.isFinite(rate)) return null;
-  const rawAmount = raw.tax_amount ?? raw.taxAmount;
-  const amount = rawAmount === undefined || rawAmount === null ? NaN : Number(rawAmount);
-  return { rateBp: rate, amount: Number.isFinite(amount) ? amount : null };
+  if (!('tax_lines' in raw) && !('tax_total' in raw) && !('tax_pricing_mode' in raw)) return null;
+  const lines = normalizeTaxLines(raw.tax_lines ?? raw.taxLines);
+  const rawTotal = Number(raw.tax_total ?? raw.taxTotal);
+  const rawWithTax = Number(raw.total_with_tax ?? raw.totalWithTax);
+  return {
+    lines,
+    total: Number.isFinite(rawTotal) ? rawTotal : sumTaxLines(lines),
+    pricingMode: normalizeTaxPricingMode(raw.tax_pricing_mode ?? raw.taxPricingMode),
+    estimated: (raw.tax_estimated ?? raw.taxEstimated) !== false,
+    totalWithTax: Number.isFinite(rawWithTax) ? rawWithTax : null,
+  };
 }
 
 function normalizeCartResponse(data: any): { items: CartItem[]; coupon: Coupon | null; tax: CartTax | null } {
@@ -240,12 +266,12 @@ interface CartProviderProps {
    *  derives the order currency from the same store, whereas the currency
    *  stamped on a cart item is only the platform default. */
   storeCurrency?: string;
-  /** The store's resolved VAT rate (basis points) from `storefront.getStore`;
-   *  used until / unless the cart API reports its own. */
-  storeTaxRateBp?: number | null;
+  /** The store's tax settings from `storefront.getStore`; gives the pricing
+   *  mode for guest carts, which have no server figures. */
+  storeTax?: StoreTaxConfig | null;
 }
 
-export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTaxRateBp }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering.
   const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
@@ -665,18 +691,22 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     }
   }, [localeQuery]);
 
-  // ── Tax (informational — prices are tax inclusive) ─
+  // ── Tax (server-computed; guest carts carry no figures) ─
 
   const currency = storeCurrency || items[0]?.currency || 'EUR';
-  const taxRateBp = serverTax?.rateBp ?? storeTaxRateBp ?? 0;
-  const taxAmount = useMemo(() => {
-    // Prefer the API's figure when it matches the rate we display; otherwise
-    // derive it from the total shown (guest carts, older API builds).
-    if (serverTax && serverTax.amount !== null && serverTax.rateBp === taxRateBp) {
-      return serverTax.amount;
-    }
-    return includedTax(total, taxRateBp, currency);
-  }, [serverTax, taxRateBp, total, currency]);
+  const taxPricingMode: TaxPricingMode =
+    serverTax?.pricingMode ?? storeTax?.pricing_mode ?? 'INCLUSIVE';
+  const taxLines = serverTax?.lines ?? EMPTY_TAX_LINES;
+  const taxTotal = serverTax?.total ?? 0;
+  // A guest cart (or an API without tax figures) is always an estimate.
+  const taxEstimated = serverTax ? serverTax.estimated : true;
+  const totalWithTax = useMemo(() => {
+    if (taxPricingMode === 'INCLUSIVE') return total;
+    if (serverTax?.totalWithTax !== null && serverTax?.totalWithTax !== undefined) return serverTax.totalWithTax;
+    // EXCLUSIVE with lines but no explicit figure: add the tax on top.
+    if (serverTax && serverTax.lines.length > 0) return total + serverTax.total;
+    return null;
+  }, [taxPricingMode, total, serverTax]);
 
   // ── Context value ──────────────────────────────────
 
@@ -696,8 +726,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     subtotal,
     total,
     currency,
-    taxRateBp,
-    taxAmount,
+    taxLines,
+    taxTotal,
+    taxPricingMode,
+    taxEstimated,
+    totalWithTax,
   };
 
   return createElement(CartContext.Provider, { value }, children);

@@ -6,6 +6,7 @@ import { getMessages } from 'next-intl/server';
 import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
@@ -14,8 +15,8 @@ interface Store {
   id: string;
   name: string;
   currency?: string;
-  /** Resolved VAT rate in basis points (store override or platform default). */
-  tax_rate_bp?: number | null;
+  /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
+  tax?: StoreTaxConfig | null;
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
@@ -66,7 +67,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTaxRateBp={store.tax_rate_bp ?? undefined}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

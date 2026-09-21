@@ -136,7 +136,9 @@
     "uploadPreview": "Aperçu du téléchargement",
     "changeFile": "Changer",
     "dragDropFiles": "Glissez-déposez les fichiers ici",
-    "browseFiles": "Parcourir les fichiers"
+    "browseFiles": "Parcourir les fichiers",
+    "inclTax": "TTC",
+    "exclTax": "HT"
   },
   "cart": {
     "title": "Panier",
@@ -164,7 +166,9 @@
     "haveCoupon": "Vous avez un coupon ?",
     "removeBundle": "Retirer le lot",
     "each": "chacun",
-    "includesVat": "TVA incluse ({rate})"
+    "taxEstimatedNote": "La taxe est estimée ; le montant final sera calculé lors du paiement.",
+    "taxAtCheckout": "Taxe calculée lors du paiement",
+    "totalInclTax": "Total (taxes incluses)"
   },
   "checkout": {
     "title": "Paiement",

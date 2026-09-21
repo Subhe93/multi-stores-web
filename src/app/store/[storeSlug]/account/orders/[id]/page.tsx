@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
-import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
+import { formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import {
   resolveCustomFieldLabel,
   resolveCustomFieldTranslation,
@@ -123,7 +124,10 @@ interface OrderDetail {
   discount_amount: number;
   total: number;
   currency?: string;
-  /** VAT snapshot taken at order creation (older orders may lack it). */
+  /** Tax snapshot taken at order creation (API-CONTRACT-TAX): itemized lines
+   *  + pricing mode; `tax_rate_bp` / `tax_amount` are legacy compat fields. */
+  tax_lines?: unknown;
+  tax_pricing_mode?: TaxPricingMode | null;
   tax_rate_bp?: number | null;
   tax_amount?: number | string | null;
   payment_method?: string;
@@ -226,10 +230,8 @@ export default function StoreOrderDetailPage() {
   const shipping = Number(order.shipping_cost ?? 0);
   const discount = Number(order.discount_amount ?? 0);
   const currency = order.currency || 'EUR';
-  const taxRateBp = Number(order.tax_rate_bp ?? 0);
-  const taxAmount = order.tax_amount != null
-    ? Number(order.tax_amount)
-    : includedTax(total, taxRateBp, currency);
+  const taxLines = taxLinesFromLegacy(order, t('cart.tax'));
+  const taxExclusive = order.tax_pricing_mode === 'EXCLUSIVE';
   const date = order.created_at;
   const items = order.items || [];
   const address = order.address;
@@ -399,16 +401,20 @@ export default function StoreOrderDetailPage() {
               <span className="text-green-600">-{fmt(discount)}</span>
             </div>
           )}
+          {/* EXCLUSIVE: tax was added on top, so its rows precede the total. */}
+          {taxExclusive && taxLines.map((line, i) => (
+            <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
+              <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+              <span className="text-gray-900">{fmt(line.tax_amount)}</span>
+            </div>
+          ))}
           <div className="flex justify-between font-semibold text-base border-t border-gray-100 pt-2">
             <span>{t('cart.total')}</span>
             <span>{fmt(total)}</span>
           </div>
-          {/* Informational: prices are tax inclusive, the total is unchanged. */}
-          {hasTax(taxRateBp) && (
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>{t('cart.includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
-              <span>{fmt(taxAmount)}</span>
-            </div>
+          {/* INCLUSIVE: informational, the total already contains the tax. */}
+          {!taxExclusive && (
+            <TaxLineRows lines={taxLines} currency={currency} variant="muted" format={fmt} />
           )}
         </div>
       </div>

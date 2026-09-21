@@ -136,7 +136,9 @@
     "uploadPreview": "Upload preview",
     "changeFile": "Change",
     "dragDropFiles": "Drag & Drop Files Here",
-    "browseFiles": "Browse Files"
+    "browseFiles": "Browse Files",
+    "inclTax": "incl. VAT",
+    "exclTax": "excl. VAT"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -164,7 +166,9 @@
     "haveCoupon": "Have a coupon?",
     "removeBundle": "Remove bundle",
     "each": "each",
-    "includesVat": "Includes VAT ({rate})"
+    "taxEstimatedNote": "Tax is estimated; the final amount is calculated at checkout.",
+    "taxAtCheckout": "Tax calculated at checkout",
+    "totalInclTax": "Total (incl. tax)"
   },
   "checkout": {
     "title": "Checkout",

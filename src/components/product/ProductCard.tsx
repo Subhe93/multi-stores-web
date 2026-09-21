@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { StoreImage } from '@/components/StoreImage';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 interface ProductCardProps {
   title: string;
@@ -122,6 +123,7 @@ export function ProductCard({
           {compareFormatted && (
             <span className="text-xs text-gray-400 line-through">{compareFormatted}</span>
           )}
+          <PriceTaxSuffix className="text-[11px] text-gray-400" />
         </div>
       </div>
     </Link>

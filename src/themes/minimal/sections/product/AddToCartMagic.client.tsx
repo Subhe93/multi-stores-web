@@ -7,6 +7,7 @@ import { Check, Loader2, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { resolveMediaUrl } from '@/lib/api';
 import type { ProductContext, SectionRenderProps } from '../../../types';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 const COLOR_OPTION_NAMES = new Set(['color', 'colour', 'لون']);
 const NAMED_COLOR_MAP: Record<string, string> = {
@@ -291,6 +292,7 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
               {compareAtLabel}
             </span>
           )}
+          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} />
           {showStock && typeof stock === 'number' && (
             <span className="text-xs ml-auto" style={{ color: stock > 0 ? 'var(--theme-colors-muted)' : '#dc2626' }}>
               {stock > 0

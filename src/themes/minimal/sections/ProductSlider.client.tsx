@@ -9,6 +9,7 @@ import { resolveMediaUrl, storefront } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 interface ProductRow {
   id: string;
@@ -133,6 +134,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
                 {fmt(Number(p.compare_at_price))}
               </span>
             )}
+            <PriceTaxSuffix className="text-[11px]" style={{ color: 'var(--theme-colors-muted)' }} />
           </div>
         </div>
       </a>

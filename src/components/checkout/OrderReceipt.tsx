@@ -5,7 +5,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
-import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
+import { formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows } from '@/components/cart/TaxLineRows';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -44,7 +45,11 @@ export interface OrderReceiptOrder {
   discount_amount: number | string;
   total: number | string;
   currency?: string;
-  /** VAT snapshot taken at order creation (older orders may lack it). */
+  /** Tax snapshot taken at order creation (API-CONTRACT-TAX): itemized lines
+   *  + pricing mode. `tax_rate_bp` / `tax_amount` are the legacy single-rate
+   *  compat fields (headline rate / tax total). */
+  tax_lines?: unknown;
+  tax_pricing_mode?: TaxPricingMode | null;
   tax_rate_bp?: number | null;
   tax_amount?: number | string | null;
   items: OrderReceiptItem[];
@@ -84,6 +89,8 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
   const currency = order?.currency || 'EUR';
   const fmt = (v: number) =>
     new Intl.NumberFormat('en', { style: 'currency', currency }).format(v);
+  const taxLines = order ? taxLinesFromLegacy(order, t('cart.tax')) : [];
+  const taxExclusive = order?.tax_pricing_mode === 'EXCLUSIVE';
 
   return (
     <>
@@ -156,20 +163,20 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
                 <span className="text-green-600">-{fmt(Number(order.discount_amount))}</span>
               </div>
             )}
+            {/* EXCLUSIVE: tax was added on top, so its rows precede the total. */}
+            {taxExclusive && taxLines.map((line, i) => (
+              <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
+                <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+                <span className="text-gray-900">{fmt(line.tax_amount)}</span>
+              </div>
+            ))}
             <div className="flex justify-between font-semibold text-base border-t border-gray-100 pt-2">
               <span>{t('cart.total')}</span>
               <span>{fmt(Number(order.total))}</span>
             </div>
-            {/* Informational: prices are tax inclusive, the total is unchanged. */}
-            {hasTax(order.tax_rate_bp) && (
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>{t('cart.includesVat', { rate: formatTaxRate(order.tax_rate_bp) })}</span>
-                <span>
-                  {fmt(order.tax_amount != null
-                    ? Number(order.tax_amount)
-                    : includedTax(Number(order.total), order.tax_rate_bp, currency))}
-                </span>
-              </div>
+            {/* INCLUSIVE: informational, the total already contains the tax. */}
+            {!taxExclusive && (
+              <TaxLineRows lines={taxLines} currency={currency} variant="muted" format={fmt} />
             )}
           </div>
         </div>

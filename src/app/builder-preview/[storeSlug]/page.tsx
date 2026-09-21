@@ -5,6 +5,7 @@ import { storefront } from '@/lib/api';
 import { toListingProduct } from '@/lib/listing';
 import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { locales, defaultLocale } from '@/i18n/config';
 import type { StoreHero } from '@/lib/hero';
 import type {
@@ -23,6 +24,8 @@ interface StoreLite {
   theme_customizations?: ThemeCustomizations;
   theme?: { hero?: StoreHero };
   currency?: string;
+  /** Tax settings — drives the price suffix in previewed product sections. */
+  tax?: StoreTaxConfig | null;
   pages?: Array<{ slug: string; translations: { locale: string; title: string }[] }>;
   language_config?: {
     primary_locale?: string;
@@ -138,7 +141,7 @@ export default async function BuilderPreviewPage({
   const messages = (await import(`@/i18n/messages/${activeLocale}.json`)).default;
 
   return (
-    <StoreProviders locale={activeLocale}>
+    <StoreProviders locale={activeLocale} storeCurrency={currency} storeTax={normalizeStoreTax(store.tax)}>
       <NextIntlClientProvider locale={activeLocale} messages={messages}>
         <BuilderPreviewClient
           storeSlug={storeSlug}

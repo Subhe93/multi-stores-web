@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 interface ProductRow {
   id: string;
@@ -227,6 +228,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                         {fmt(Number(p.compare_at_price))}
                       </span>
                     )}
+                    <PriceTaxSuffix className="text-[11px]" style={{ color: 'var(--theme-colors-muted)' }} />
                   </div>
                 </div>
               </a>

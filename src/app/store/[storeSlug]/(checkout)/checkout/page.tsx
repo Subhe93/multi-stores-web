@@ -12,6 +12,8 @@ import { useCart } from '@/hooks/useCart';
 import { api, storefront } from '@/lib/api';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
+import { normalizeTaxLines, normalizeTaxPricingMode, type TaxLine } from '@/lib/tax';
+import { toKustomCartLines } from '@/hooks/useKustomCheckout';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { KustomCheckout } from '@/components/checkout/KustomCheckout';
@@ -56,6 +58,25 @@ interface ShippingEstimateResponse {
   estimated_days?: { min: number; max: number } | null;
   free_shipping?: boolean;
 }
+// POST /orders/quote (API-CONTRACT-TAX §3): the order the server would create
+// from the cart for this destination — totals + itemized tax. Only the fields
+// the summary renders are typed.
+interface OrderQuoteResponse {
+  subtotal: number;
+  shipping_cost: number;
+  discount_amount: number;
+  /** Grand total; in EXCLUSIVE mode already includes the tax lines. */
+  total: number;
+  currency?: string;
+  tax_lines?: unknown;
+  tax_total?: number;
+  tax_pricing_mode?: string;
+  tax_basis_country?: string | null;
+  shipping_method_id?: string | null;
+}
+// Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
+const QUOTE_DEBOUNCE_MS = 400;
+
 interface SavedAddress {
   id: string;
   full_name?: string;
@@ -134,7 +155,11 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const stripe = useStripe();
   const elements = useElements();
   const { token, user, login, register } = useAuth();
-  const { items, subtotal, total, coupon, currency, taxRateBp, clearCart, applyCoupon, removeCoupon, syncGuestCartToServer } = useCart();
+  const {
+    items, subtotal, total, coupon, currency,
+    taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
+    clearCart, applyCoupon, removeCoupon, syncGuestCartToServer,
+  } = useCart();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -185,6 +210,11 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // Bumped to force a fresh shipping quote (e.g. after the API rejected the
   // selected method); the quote effect below lists it as a dependency.
   const [requoteTick, setRequoteTick] = useState(0);
+  // Server order quote (totals + tax lines) for the current destination /
+  // method / coupon; null until a country is known or when the request failed,
+  // in which case the summary falls back to the client-side figures.
+  const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   const isLoggedIn = Boolean(token);
   const discount = coupon
@@ -203,13 +233,28 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const effectiveShipping = coupon?.freeShipping ? 0 : (shippingCost ?? 0);
   const finalTotal = total + effectiveShipping;
 
-  // Country the quote is made for: the selected saved address, else the form.
-  const shippingCountryCode = (() => {
-    if (savedAddresses.length > 0 && selectedAddressId && !showNewAddressForm) {
-      return savedAddresses.find((a) => a.id === selectedAddressId)?.country_code || '';
-    }
-    return form.country_code;
-  })();
+  // Destination the quotes are made for: the selected saved address, else the form.
+  const activeSavedAddress =
+    savedAddresses.length > 0 && selectedAddressId && !showNewAddressForm
+      ? savedAddresses.find((a) => a.id === selectedAddressId) ?? null
+      : null;
+  const shippingCountryCode = activeSavedAddress ? activeSavedAddress.country_code || '' : form.country_code;
+  const shippingPostcode = (activeSavedAddress ? activeSavedAddress.postal_code : form.postal_code)?.trim() || '';
+  // State / province: the order prices tax with the address state, so the
+  // quote must see the same region to match it.
+  const shippingRegion = (activeSavedAddress ? activeSavedAddress.state : form.state)?.trim() || '';
+
+  // What the summary shows: the server quote once there is one (its `total`
+  // already includes tax in EXCLUSIVE mode), else the client-side figures with
+  // the cart's registration-country tax estimate (INCLUSIVE only — in
+  // EXCLUSIVE mode nothing is added until the server has quoted).
+  const displayTotal = quote ? Number(quote.total) : finalTotal;
+  const pricingMode = (quote && normalizeTaxPricingMode(quote.tax_pricing_mode)) || taxPricingMode;
+  const taxLines: TaxLine[] = quote
+    ? normalizeTaxLines(quote.tax_lines)
+    : pricingMode === 'INCLUSIVE' ? cartTaxLines : [];
+  const taxEstimated = quote ? false : cartTaxEstimated;
+  const taxPending = !quote && quoteLoading;
 
   // Pre-fill email from user profile
   useEffect(() => {
@@ -296,6 +341,50 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       .finally(() => { if (!cancelled) setShippingLoading(false); });
     return () => { cancelled = true; };
   }, [shippingCountryCode, items.length, subtotal, locale, requoteTick]);
+
+  // Quote the order (totals + itemized tax) once the destination country is
+  // known, and again whenever the postcode, shipping method, coupon, cart or
+  // login state changes. Guests send their local lines; a logged-in shopper
+  // omits them so the server prices its cart. Debounced, stale responses dropped.
+  const isLoggedInForQuote = Boolean(token);
+  const quoteLinesKey = JSON.stringify(toKustomCartLines(items));
+  const quoteShippingMethodId =
+    selectedShippingMethod && !selectedShippingMethod.legacy ? selectedShippingMethod.id : null;
+  const quoteCouponCode = coupon?.code ?? null;
+  useEffect(() => {
+    if (!storeId || !shippingCountryCode || items.length === 0) {
+      setQuote(null);
+      setQuoteLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setQuoteLoading(true);
+    const timer = setTimeout(() => {
+      api<OrderQuoteResponse>('/orders/quote', {
+        method: 'POST',
+        token: token ?? undefined,
+        body: JSON.stringify({
+          store_id: storeId,
+          // Guest lines travel as the serialised key so the effect depends on
+          // their content, not on the array identity.
+          ...(isLoggedInForQuote ? {} : { lines: JSON.parse(quoteLinesKey) }),
+          country_code: shippingCountryCode,
+          ...(shippingPostcode ? { postcode: shippingPostcode } : {}),
+          ...(shippingRegion ? { region: shippingRegion } : {}),
+          ...(quoteShippingMethodId ? { shipping_method_id: quoteShippingMethodId } : {}),
+          ...(quoteCouponCode ? { coupon_code: quoteCouponCode } : {}),
+          locale,
+        }),
+      })
+        .then((res) => { if (!cancelled) setQuote(res); })
+        .catch(() => { if (!cancelled) setQuote(null); })
+        .finally(() => { if (!cancelled) setQuoteLoading(false); });
+    }, QUOTE_DEBOUNCE_MS);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [
+    storeId, token, isLoggedInForQuote, quoteLinesKey, items.length,
+    shippingCountryCode, shippingPostcode, shippingRegion, quoteShippingMethodId, quoteCouponCode, locale, requoteTick,
+  ]);
 
   // Track viewport so only the active layout mounts the CardElement.
   useEffect(() => {
@@ -573,13 +662,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {summaryOpen ? t('checkout.hideOrderSummary') : t('checkout.showOrderSummary')}
             {summaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
-          <span className="text-sm font-bold text-gray-900">{formatPrice(finalTotal, currency)}</span>
+          <span className="text-sm font-bold text-gray-900">{formatPrice(displayTotal, currency)}</span>
         </button>
         {summaryOpen && (
           <div className="px-4 pb-5 pt-3 border-t border-gray-200">
             <OrderSummary
               items={items} subtotal={subtotal} discount={discount}
-              total={finalTotal} currency={currency} coupon={coupon}
+              total={displayTotal} currency={currency} coupon={coupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
               onApplyCoupon={handleApplyCoupon} onRemoveCoupon={() => removeCoupon()}
@@ -587,7 +676,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
               shippingMethodName={selectedShippingMethod?.name}
-              taxRateBp={taxRateBp}
+              taxLines={taxLines} pricingMode={pricingMode}
+              taxEstimated={taxEstimated} taxPending={taxPending}
               t={t as (key: string) => string}
             />
           </div>
@@ -883,7 +973,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             </h2>
             <OrderSummary
               items={items} subtotal={subtotal} discount={discount}
-              total={finalTotal} currency={currency} coupon={coupon}
+              total={displayTotal} currency={currency} coupon={coupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
               onApplyCoupon={handleApplyCoupon} onRemoveCoupon={() => removeCoupon()}
@@ -891,7 +981,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
               shippingMethodName={selectedShippingMethod?.name}
-              taxRateBp={taxRateBp}
+              taxLines={taxLines} pricingMode={pricingMode}
+              taxEstimated={taxEstimated} taxPending={taxPending}
               t={t as (key: string) => string}
             />
 

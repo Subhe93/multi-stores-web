@@ -136,7 +136,9 @@
     "uploadPreview": "معاينة الرفع",
     "changeFile": "تغيير",
     "dragDropFiles": "اسحب وأفلت الملفات هنا",
-    "browseFiles": "تصفح الملفات"
+    "browseFiles": "تصفح الملفات",
+    "inclTax": "شامل الضريبة",
+    "exclTax": "غير شامل الضريبة"
   },
   "cart": {
     "title": "سلة التسوق",
@@ -164,7 +166,9 @@
     "haveCoupon": "لديك كوبون؟",
     "removeBundle": "إزالة الحزمة",
     "each": "للوحدة",
-    "includesVat": "شامل ضريبة القيمة المضافة ({rate})"
+    "taxEstimatedNote": "الضريبة تقديرية؛ يُحتسب المبلغ النهائي عند الدفع.",
+    "taxAtCheckout": "تُحتسب الضريبة عند الدفع",
+    "totalInclTax": "الإجمالي (شامل الضريبة)"
   },
   "checkout": {
     "title": "إتمام الشراء",

@@ -7,7 +7,7 @@ import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'l
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
 import { formatPrice } from '@/lib/format';
-import { formatTaxRate, hasTax } from '@/lib/tax';
+import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatCartFieldValue } from '@/components/cart/CartItem';
 
@@ -235,9 +235,11 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, loading, subtotal, total, coupon, currency, taxRateBp, taxAmount,
+    items, loading, subtotal, total, coupon, currency,
+    taxLines, taxPricingMode, taxEstimated, totalWithTax,
     itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
   } = useCart();
+  const taxExclusive = taxPricingMode === 'EXCLUSIVE';
 
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -416,11 +418,27 @@ export default function StoreCartPage() {
                   <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
                   <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
                 </div>
-                {/* Informational: prices are tax inclusive, the total is unchanged. */}
-                {hasTax(taxRateBp) && (
-                  <div className="flex justify-between text-xs text-gray-500 -mt-2 pb-2">
-                    <span>{t('cart.includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
-                    <span>{formatPrice(taxAmount, currency)}</span>
+                {taxExclusive ? (
+                  taxLines.length > 0 && totalWithTax !== null ? (
+                    // Tax is added on top of the total: itemized lines + grand total.
+                    <div className="-mt-1 pb-2 space-y-1">
+                      <TaxLineRows lines={taxLines} currency={currency} variant="row" />
+                      <div className="flex justify-between py-2 border-t border-gray-200">
+                        <span className="text-sm font-semibold text-gray-900">{t('cart.totalInclTax')}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatPrice(totalWithTax, currency)}</span>
+                      </div>
+                      {taxEstimated && (
+                        <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
+                      )}
+                    </div>
+                  ) : (
+                    // Guest cart: the server estimates tax once an address is known.
+                    <p className="text-xs text-gray-500 -mt-2 pb-2">{t('cart.taxAtCheckout')}</p>
+                  )
+                ) : (
+                  // Prices are tax inclusive: informational rows, the total is unchanged.
+                  <div className="-mt-2 pb-2 space-y-0.5">
+                    <TaxLineRows lines={taxLines} currency={currency} variant="muted" />
                   </div>
                 )}
               </div>

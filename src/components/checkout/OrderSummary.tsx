@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { Loader2, ShoppingBag, Tag, X, Minus, Plus, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
-import { formatTaxRate, hasTax, includedTax } from '@/lib/tax';
+import type { TaxLine, TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows } from '@/components/cart/TaxLineRows';
 
 // ── Order summary (checkout side panel) ──────────────────────────────────────
 // Shared by the classic checkout (read-only line items) and the Kustom-first
@@ -55,11 +55,17 @@ export interface OrderSummaryProps {
   /** Name of the chosen shipping method, shown as "Shipping (Standard shipping)".
    *  Kustom mode passes nothing: the options live inside its iframe. */
   shippingMethodName?: string;
-  /** VAT rate in basis points; the "Includes VAT" line is shown when > 0. */
-  taxRateBp?: number;
-  /** VAT included in `total`; computed from the rate when omitted (e.g. when
-   *  `total` includes a shipping estimate the cart API does not know about). */
-  taxAmount?: number;
+  /** Itemized tax lines (from POST /orders/quote, the Kustom session or GET /cart). */
+  taxLines?: TaxLine[];
+  /** Sum of `taxLines`; kept for callers that only have the total. */
+  taxTotal?: number;
+  /** INCLUSIVE: `total` contains the tax (muted rows under it); EXCLUSIVE: the
+   *  rows add up before `total`, which must then already include them. */
+  pricingMode?: TaxPricingMode;
+  /** The lines are a registration-country estimate (no address yet). */
+  taxEstimated?: boolean;
+  /** EXCLUSIVE only: no quote yet (country unknown / request in flight). */
+  taxPending?: boolean;
   t: (key: string) => string;
 }
 
@@ -124,12 +130,11 @@ export function OrderSummary({
   onApplyCoupon, onRemoveCoupon,
   shippingCost, shippingEstimate, shippingLoading, shippingError, effectiveShipping,
   onUpdateQuantity, onRemoveItem, shippingNote, shippingMethodName,
-  taxRateBp, taxAmount,
+  taxLines = [], pricingMode = 'INCLUSIVE', taxEstimated = false, taxPending = false,
   t,
 }: OrderSummaryProps) {
-  // Own translator for the interpolated VAT label (the `t` prop is key-only).
-  const tr = useTranslations();
   const editable = Boolean(onUpdateQuantity && onRemoveItem);
+  const exclusive = pricingMode === 'EXCLUSIVE';
 
   return (
     <div className="space-y-4">
@@ -280,16 +285,30 @@ export function OrderSummary({
           </div>
         )}
 
+        {/* EXCLUSIVE: tax is added on top, so the rows come before the total. */}
+        {exclusive && (
+          taxLines.length > 0 ? (
+            <TaxLineRows lines={taxLines} currency={currency} variant="row" />
+          ) : (
+            <div className="flex justify-between text-sm py-1">
+              <span className="text-gray-600">{t('cart.tax')}</span>
+              <span className="text-gray-500">{taxPending ? '...' : t('cart.calculatedAtCheckout')}</span>
+            </div>
+          )
+        )}
+
         <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
           <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
           <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
         </div>
-        {/* Informational: prices are tax inclusive, the total is unchanged. */}
-        {hasTax(taxRateBp) && (
-          <div className="flex justify-between text-xs text-gray-500 pt-1">
-            <span>{tr('cart.includesVat', { rate: formatTaxRate(taxRateBp) })}</span>
-            <span>{formatPrice(taxAmount ?? includedTax(total, taxRateBp, currency), currency)}</span>
+        {/* INCLUSIVE: informational, prices already contain the tax. */}
+        {!exclusive && taxLines.length > 0 && (
+          <div className="pt-1 space-y-0.5">
+            <TaxLineRows lines={taxLines} currency={currency} variant="muted" />
           </div>
+        )}
+        {taxLines.length > 0 && taxEstimated && (
+          <p className="text-xs text-gray-500 pt-1">{t('cart.taxEstimatedNote')}</p>
         )}
       </div>
     </div>

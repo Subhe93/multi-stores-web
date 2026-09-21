@@ -1,5 +1,6 @@
 import { Heart, Share2, Star } from 'lucide-react';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
+import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 function ProductDetailsMagic({ settings, content, locale, product, currency }: SectionRenderProps) {
   if (!product) {
@@ -122,6 +123,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
               {formatPrice(Number(product.compare_at_price))}
             </span>
           )}
+          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} />
         </div>
       )}
 

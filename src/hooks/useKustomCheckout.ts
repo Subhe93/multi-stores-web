@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { CartItem } from '@/hooks/useCart';
+import { normalizeTaxLines, normalizeTaxPricingMode, type TaxLine, type TaxPricingMode } from '@/lib/tax';
 
 // ── Kustom-first checkout session ─────────────────────────────────────────────
 // Talks to /payments/kustom/checkout/session (plans/kustom-integration/
@@ -21,12 +22,48 @@ export interface KustomCartLine {
   custom_fields?: Record<string, unknown>;
 }
 
+/** `totals` of a session response (API-CONTRACT-TAX §3): what the iframe
+ *  will charge, so the summary next to it shows the same figures. */
+export interface KustomSessionTotals {
+  subtotal: number;
+  shipping_cost: number;
+  discount_amount: number;
+  tax_lines: TaxLine[];
+  tax_total: number;
+  /** Grand total incl. tax (Kustom prices are tax inclusive by definition). */
+  total: number;
+  pricing_mode: TaxPricingMode;
+  /** ISO 4217 code the session is priced in; absent on older API builds. */
+  currency?: string;
+}
+
 export interface KustomCheckoutSessionResponse {
   session_id: string;
   token: string;
   kustom_order_id: string;
   html_snippet: string;
   status: string;
+  /** Optional on older API builds. */
+  totals?: (Partial<KustomSessionTotals> & { tax_lines?: unknown; pricing_mode?: string }) | null;
+}
+
+/** Coerce the raw `totals` block; null when the API did not send one. */
+export function normalizeKustomTotals(raw: KustomCheckoutSessionResponse['totals']): KustomSessionTotals | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const lines = normalizeTaxLines(raw.tax_lines);
+  const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  return {
+    subtotal: num(raw.subtotal),
+    shipping_cost: num(raw.shipping_cost),
+    discount_amount: num(raw.discount_amount),
+    tax_lines: lines,
+    tax_total: raw.tax_total !== undefined ? num(raw.tax_total) : lines.reduce((s, l) => s + l.tax_amount, 0),
+    total: num(raw.total),
+    pricing_mode: normalizeTaxPricingMode(raw.pricing_mode) ?? 'INCLUSIVE',
+    ...(typeof raw.currency === 'string' && raw.currency.trim()
+      ? { currency: raw.currency.trim().toUpperCase() }
+      : {}),
+  };
 }
 
 export interface StoredKustomSession {
@@ -185,6 +222,8 @@ export interface UseKustomCheckoutResult {
   failed: boolean;
   /** A change could not be pushed (the iframe may show stale totals). */
   syncFailed: boolean;
+  /** Totals of the last successful POST / PUT — what the iframe charges. */
+  totals: KustomSessionTotals | null;
   session: StoredKustomSession | null;
   retry: () => void;
 }
@@ -205,6 +244,7 @@ export function useKustomCheckout({
   const [updating, setUpdating] = useState(false);
   const [failed, setFailed] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [totals, setTotals] = useState<KustomSessionTotals | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [resyncTick, setResyncTick] = useState(0);
 
@@ -358,6 +398,7 @@ export function useKustomCheckout({
       .then((res) => {
         if (cancelled) return;
         setHtml(res.html_snippet);
+        setTotals(normalizeKustomTotals(res.totals));
         setSyncFailed(false);
       })
       .catch(() => {
@@ -398,6 +439,7 @@ export function useKustomCheckout({
         try {
           const { res, recreated } = await push();
           syncedKeyRef.current = key;
+          setTotals(normalizeKustomTotals(res.totals));
           setSyncFailed(false);
           // With the JS API the iframe reloads the order itself on resume; a
           // new session (or no API) needs the fresh snippet mounted instead.
@@ -431,5 +473,5 @@ export function useKustomCheckout({
     setAttempt((n) => n + 1);
   }, []);
 
-  return { html, loading, updating, failed, syncFailed, session, retry };
+  return { html, loading, updating, failed, syncFailed, totals, session, retry };
 }

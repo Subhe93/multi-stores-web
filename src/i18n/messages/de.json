@@ -136,7 +136,9 @@
     "uploadPreview": "Upload-Vorschau",
     "changeFile": "Ändern",
     "dragDropFiles": "Dateien hierher ziehen & ablegen",
-    "browseFiles": "Dateien durchsuchen"
+    "browseFiles": "Dateien durchsuchen",
+    "inclTax": "inkl. MwSt.",
+    "exclTax": "zzgl. MwSt."
   },
   "cart": {
     "title": "Warenkorb",
@@ -164,7 +166,9 @@
     "haveCoupon": "Haben Sie einen Gutschein?",
     "removeBundle": "Paket entfernen",
     "each": "pro Stück",
-    "includesVat": "Inkl. MwSt. ({rate})"
+    "taxEstimatedNote": "Die Steuer ist geschätzt; der endgültige Betrag wird an der Kasse berechnet.",
+    "taxAtCheckout": "Steuer wird an der Kasse berechnet",
+    "totalInclTax": "Gesamt (inkl. Steuer)"
   },
   "checkout": {
     "title": "Kasse",

@@ -136,7 +136,9 @@
     "uploadPreview": "Förhandsvisning av uppladdning",
     "changeFile": "Ändra",
     "dragDropFiles": "Dra och släpp filer här",
-    "browseFiles": "Bläddra bland filer"
+    "browseFiles": "Bläddra bland filer",
+    "inclTax": "inkl. moms",
+    "exclTax": "exkl. moms"
   },
   "cart": {
     "title": "Varukorg",
@@ -164,7 +166,9 @@
     "haveCoupon": "Har du en kupong?",
     "removeBundle": "Ta bort paket",
     "each": "styck",
-    "includesVat": "Inkl. moms ({rate})"
+    "taxEstimatedNote": "Momsen är uppskattad; det slutliga beloppet beräknas i kassan.",
+    "taxAtCheckout": "Moms beräknas i kassan",
+    "totalInclTax": "Totalt (inkl. moms)"
   },
   "checkout": {
     "title": "Kassa",

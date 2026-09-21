@@ -50,7 +50,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const { token, loading: authLoading, refresh: refreshAuth } = useAuth();
   const {
     items, subtotal, total, coupon, currency, loading: cartLoading,
-    taxRateBp, taxAmount,
+    taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
     updateQuantity, removeItem, applyCoupon, removeCoupon,
   } = useCart();
 
@@ -63,7 +63,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
 
-  const { html, loading, updating, failed, syncFailed, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, syncFailed, totals, retry } = useKustomCheckout({
     storeSlug,
     locale,
     // Wait for auth (so the JWT is attached) and for the cart to be loaded.
@@ -74,6 +74,22 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     couponCode: coupon?.code ?? null,
     notes: orderNotes,
   });
+
+  // The session's `totals` are what the iframe charges (shipping once Kustom
+  // knows the address, tax for the destination), so the summary prefers them
+  // over the client-side cart figures.
+  const summarySubtotal = totals ? totals.subtotal : subtotal;
+  const summaryDiscount = totals ? totals.discount_amount : discount;
+  const summaryShipping = totals && totals.shipping_cost > 0 ? totals.shipping_cost : null;
+  const summaryTotal = totals ? totals.total : total;
+  const summaryPricingMode = totals ? totals.pricing_mode : taxPricingMode;
+  const summaryTaxLines = totals
+    ? totals.tax_lines
+    : summaryPricingMode === 'INCLUSIVE' ? cartTaxLines : [];
+  const summaryTaxEstimated = totals ? false : cartTaxEstimated;
+  // The session is priced in the store's charge currency, which is the one to
+  // format its figures in; fall back to the cart currency on older API builds.
+  const summaryCurrency = totals?.currency || currency;
 
   // Kustom's callbacks send the customer back here with an error code when
   // shipping is impossible or the order could not be created.
@@ -157,17 +173,17 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               {t('checkout.orderSummary')}
             </h2>
             <OrderSummary
-              items={items} subtotal={subtotal} discount={discount}
-              total={total} currency={currency} coupon={coupon}
+              items={items} subtotal={summarySubtotal} discount={summaryDiscount}
+              total={summaryTotal} currency={summaryCurrency} coupon={coupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
               onApplyCoupon={handleApplyCoupon} onRemoveCoupon={() => removeCoupon()}
-              shippingCost={null} shippingEstimate={null}
+              shippingCost={summaryShipping} shippingEstimate={null}
               shippingLoading={false} shippingError=""
-              effectiveShipping={0}
-              shippingNote={t('checkout.shippingCalculatedInKustom')}
-              taxRateBp={taxRateBp}
-              taxAmount={taxAmount}
+              effectiveShipping={summaryShipping ?? 0}
+              shippingNote={summaryShipping === null ? t('checkout.shippingCalculatedInKustom') : undefined}
+              taxLines={summaryTaxLines} pricingMode={summaryPricingMode}
+              taxEstimated={summaryTaxEstimated} taxPending={!totals && updating}
               onUpdateQuantity={updateQuantity}
               onRemoveItem={removeItem}
               t={t as (key: string) => string}
