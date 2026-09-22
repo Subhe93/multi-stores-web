@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
 
 export default function StoreLoginPage() {
@@ -28,7 +28,9 @@ export default function StoreLoginPage() {
       await login(email, password);
       router.push(lp('/'));
     } catch (err: unknown) {
-      setError(apiError(err));
+      // Dashboard accounts get a dedicated message; every other failure
+      // (wrong password, network, ...) keeps the generic API error path.
+      setError(isNotCustomerAccountError(err) ? t('dashboardAccountNotAllowed') : apiError(err));
     } finally {
       setLoading(false);
     }

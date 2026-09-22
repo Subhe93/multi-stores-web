@@ -13,7 +13,7 @@ import { Check, ChevronDown, Globe } from 'lucide-react';
 import { resolveLocaleMeta } from '@/lib/localeMeta';
 
 // Small flag image with a globe fallback (unknown locale or a failed load).
-function Flag({ url, label }: { url: string; label: string }) {
+function Flag({ url }: { url: string; label: string }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) return <Globe className="size-4 shrink-0 opacity-70" />;
   return (
@@ -83,7 +83,7 @@ export function LocaleSwitcher({
     // Preserve any query string (e.g. product filters) on the new locale path.
     const targetUrl = `${target}${window.location.search}`;
     // Hard navigation so the proxy runs and server components re-render.
-    window.location.href = targetUrl;
+    window.location.assign(targetUrl);
   };
 
   return (

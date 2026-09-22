@@ -260,7 +260,7 @@ export default function StoreOrderDetailPage() {
             )}
           </div>
           <span className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full ${statusStyle(status)}`}>
-            {t(`orderStatus.${order.status}` as any) || order.status}
+            {t(`orderStatus.${order.status}`) || order.status}
           </span>
         </div>
       </div>
@@ -285,7 +285,7 @@ export default function StoreOrderDetailPage() {
                 {/* Seven steps have to fit a phone, so the labels stay narrow
                     and wrap rather than pushing the row into a scroll. */}
                 <span className="mt-2 px-0.5 text-[9px] sm:text-[10px] leading-tight text-center text-gray-500 hyphens-auto">
-                  {t(`orderStatus.${step}` as any)}
+                  {t(`orderStatus.${step}`)}
                 </span>
               </div>
             ))}

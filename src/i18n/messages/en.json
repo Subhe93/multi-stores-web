@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "Sign In",
+    "dashboardAccountNotAllowed": "This is a dashboard account. Please sign in with a customer account or continue as a guest.",
     "registerTitle": "Create Account",
     "forgotPasswordTitle": "Forgot Password",
     "email": "Email",

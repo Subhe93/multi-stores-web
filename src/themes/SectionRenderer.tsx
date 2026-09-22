@@ -70,7 +70,6 @@ export function SectionRenderer({
           // are objects (module references), not raw functions.
           if (!def || !def.Component) {
             if (process.env.NODE_ENV !== 'production') {
-              // eslint-disable-next-line no-console
               console.warn(
                 `[SectionRenderer] No component for section_key="${section.section_key}" in theme "${theme.key}". Skipping.`,
               );

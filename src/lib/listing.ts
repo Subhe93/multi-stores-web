@@ -13,14 +13,25 @@ interface PromotionRow {
   translations?: Array<{ title?: string }>;
 }
 
-export function toListingProduct(p: Record<string, any>): ListingProduct {
-  const promo = (p.promotions as PromotionRow[] | undefined)?.[0];
+/** The subset of a storefront product payload that the listing projection reads. */
+export interface StorefrontProductRow {
+  id: string;
+  base_price: number | string;
+  compare_at_price?: number | string | null;
+  created_at?: string;
+  translations?: Array<{ locale: string; title?: string; slug?: string }>;
+  images?: Array<{ url?: string }>;
+  promotions?: PromotionRow[];
+}
+
+export function toListingProduct(p: StorefrontProductRow): ListingProduct {
+  const promo = p.promotions?.[0];
   return {
     id: p.id,
     base_price: Number(p.base_price),
     compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
     created_at: p.created_at,
-    translations: (p.translations || []).map((tr: any) => ({
+    translations: (p.translations || []).map((tr) => ({
       locale: tr.locale,
       title: tr.title,
       slug: tr.slug,

@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "Giriş Yap",
+    "dashboardAccountNotAllowed": "Bu bir yönetim paneli hesabı. Lütfen bir müşteri hesabıyla giriş yapın veya misafir olarak devam edin.",
     "registerTitle": "Hesap Oluştur",
     "forgotPasswordTitle": "Şifremi Unuttum",
     "email": "E-posta",

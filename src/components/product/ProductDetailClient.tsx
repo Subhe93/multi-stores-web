@@ -25,7 +25,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────
 
-interface ProductData {
+export interface ProductData {
   id: string;
   base_price: number;
   compare_at_price?: number;
@@ -46,7 +46,7 @@ interface ProductData {
   }[];
   attributes?: {
     id: string;
-    value: any;
+    value: unknown;
     template: {
       name: string;
       type?: string;
@@ -61,7 +61,7 @@ interface ProductData {
     required?: boolean;
     name?: string;
     translations: CustomFieldTranslationLike[];
-    options?: string[] | any;
+    options?: unknown;
     validation_rules?: { min_length?: number; max_length?: number; pattern?: string; allowed_chars?: string };
     linked_validation?: { type: string; target_field_id: string; fill_char?: string };
   }[];
@@ -104,7 +104,7 @@ interface ProductData {
     id: string;
     type: string;
     value: number;
-    conditions?: any;
+    conditions?: unknown;
     starts_at?: string;
     expires_at?: string;
     translations: { locale: string; title: string; description?: string }[];
@@ -210,9 +210,9 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     variants.length === 1 ? variants[0].id : undefined
   );
   const [quantity, setQuantity] = useState(1);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(() => {
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>(() => {
     // Pre-fill values from creator-set field_values (custom products)
-    const initial: Record<string, any> = {};
+    const initial: Record<string, unknown> = {};
     if (product.field_values?.length) {
       for (const fv of product.field_values) {
         if (fv.value) initial[fv.custom_field_id] = fv.value;
@@ -395,7 +395,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
 
   // ── Handlers ──────────────────────────────────────────
 
-  const handleCustomFieldChange = useCallback((fieldId: string, value: any) => {
+  const handleCustomFieldChange = useCallback((fieldId: string, value: unknown) => {
     setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }, []);
 
@@ -525,7 +525,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     }
     if (type === 'BOOLEAN') return val ? 'Yes' : 'No';
     if (type === 'DIMENSIONS' && typeof val === 'object') {
-      return Object.entries(val as Record<string, any>).map(([, v]) => `${v}${unit || ''}`).join(' × ');
+      return Object.entries(val as Record<string, unknown>).map(([, v]) => `${v}${unit || ''}`).join(' × ');
     }
     if (type === 'MULTI_SELECT' && Array.isArray(val)) return val.join(', ');
     const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
@@ -1009,7 +1009,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                   <tbody>
                     {product.attributes.map((attr, i) => {
                       const attrLabel =
-                        attr.template?.translations?.find((at: any) => at.locale === locale)?.label ||
+                        attr.template?.translations?.find((at) => at.locale === locale)?.label ||
                         attr.template?.translations?.[0]?.label ||
                         attr.template?.name;
                       return (

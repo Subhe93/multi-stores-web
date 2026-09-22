@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
-import { ProductDetailClient } from '@/components/product/ProductDetailClient';
+import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ProductContext, SectionInstance } from '@/themes/types';
@@ -16,20 +16,36 @@ interface ProductDetailProps {
   searchParams: Promise<{ lang?: string }>;
 }
 
+// The storefront product payload: everything ProductDetailClient renders plus
+// the SEO-only fields (meta title/description, sku) this route reads itself.
+type ProductRecord = Omit<ProductData, 'translations'> & {
+  sku?: string | null;
+  translations: Array<ProductData['translations'][number] & { meta_title?: string; meta_desc?: string }>;
+};
+
+// The slice of the storefront store payload this route reads.
+interface StoreRecord {
+  name?: string;
+  currency?: string;
+  custom_domain?: string | null;
+  theme_key?: string;
+  language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+}
+
 /**
  * FAQPage markup for a product, picking each entry's translation for the
  * rendered locale. Answers are rich text, so tags are stripped — schema.org
  * expects plain text and Google rejects markup here.
  */
-function buildFaqPageFromProduct(product: any, locale: string, primaryLocale: string) {
+function buildFaqPageFromProduct(product: Pick<ProductRecord, 'faqs'> | null | undefined, locale: string, primaryLocale: string) {
   const faqs = product?.faqs;
   if (!Array.isArray(faqs) || faqs.length === 0) return null;
 
   const items = faqs
-    .map((faq: any) => {
+    .map((faq) => {
       const t =
-        faq.translations?.find((x: any) => x.locale === locale) ||
-        faq.translations?.find((x: any) => x.locale === primaryLocale) ||
+        faq.translations?.find((x) => x.locale === locale) ||
+        faq.translations?.find((x) => x.locale === primaryLocale) ||
         faq.translations?.[0];
       const question = t?.question?.trim();
       const answer = t?.answer?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -50,15 +66,15 @@ export async function generateMetadata({
   const { lang } = await searchParams;
   try {
     const [product, storeData] = await Promise.all([
-      storefront.getProduct(storeSlug, productSlug) as Promise<any>,
-      storefront.getStore(storeSlug) as Promise<any>,
+      storefront.getProduct(storeSlug, productSlug) as Promise<ProductRecord>,
+      storefront.getStore(storeSlug) as Promise<StoreRecord | null>,
     ]);
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
     const secondary: string[] = storeData?.language_config?.secondary_locales || [];
     const locale = lang || primaryLocale;
     const tr =
-      product.translations?.find((t: any) => t.locale === locale) ||
-      product.translations?.find((t: any) => t.locale === primaryLocale) ||
+      product.translations?.find((t) => t.locale === locale) ||
+      product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
 
     const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
@@ -102,14 +118,14 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
 
-  let product: any;
-  let storeData: any;
+  let product: ProductRecord;
+  let storeData: StoreRecord | null;
   let storeCurrency = 'EUR';
   let template: { snapshot?: { sections?: SectionInstance[] } } | null = null;
   try {
     [product, storeData, template] = await Promise.all([
-      storefront.getProduct(storeSlug, productSlug, locale),
-      storefront.getStore(storeSlug),
+      storefront.getProduct(storeSlug, productSlug, locale) as Promise<ProductRecord>,
+      storefront.getStore(storeSlug) as Promise<StoreRecord | null>,
       storefront.getPublishedProductTemplate(storeSlug).catch(() => null) as Promise<{
         snapshot?: { sections?: SectionInstance[] };
       } | null>,
@@ -127,8 +143,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     const theme = resolveTheme(storeData?.theme_key);
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
     const tr =
-      product.translations?.find((t: any) => t.locale === locale) ||
-      product.translations?.find((t: any) => t.locale === primaryLocale) ||
+      product.translations?.find((t) => t.locale === locale) ||
+      product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
     const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
     const tplProductUrl = `${tplStoreBase}/products/${productSlug}`;
@@ -141,11 +157,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       sku: product.sku || undefined,
       brand: storeData?.name || undefined,
       images: (product.images || [])
-        .map((img: any) => (img.url ? resolveMediaUrl(img.url) : ''))
+        .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
         .filter((u: string) => !!u),
       price: Number(product.base_price),
       priceCurrency: storeCurrency,
-      availability: product.variants?.some((v: any) => (v.stock ?? 1) > 0) === false
+      availability: product.variants?.some((v) => (v.stock ?? 1) > 0) === false
         ? 'OutOfStock'
         : 'InStock',
     });
@@ -176,8 +192,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   }
 
   const translation =
-    product.translations?.find((tr: any) => tr.locale === locale) ||
-    product.translations?.find((tr: any) => tr.locale === 'en') ||
+    product.translations?.find((tr) => tr.locale === locale) ||
+    product.translations?.find((tr) => tr.locale === 'en') ||
     product.translations?.[0];
 
   // JSON-LD: Product + BreadcrumbList. Built from data already in scope so it
@@ -187,7 +203,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
   const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${productSlug}`);
   const productImages = (product.images || [])
-    .map((img: any) => (img.url ? resolveMediaUrl(img.url) : ''))
+    .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
     .filter((u: string) => !!u);
   const productLd = buildProduct({
     name: translation?.title || 'Product',
@@ -198,15 +214,15 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     images: productImages,
     price: Number(product.base_price),
     priceCurrency: storeCurrency,
-    availability: product.variants?.some((v: any) => (v.stock ?? 1) > 0) === false
+    availability: product.variants?.some((v) => (v.stock ?? 1) > 0) === false
       ? 'OutOfStock'
       : 'InStock',
   });
 
   const primaryCollection = product.creator_categories?.[0];
   const collectionTranslation = primaryCollection
-    ? primaryCollection.translations?.find((ct: any) => ct.locale === locale) ||
-      primaryCollection.translations?.find((ct: any) => ct.locale === 'en') ||
+    ? primaryCollection.translations?.find((ct) => ct.locale === locale) ||
+      primaryCollection.translations?.find((ct) => ct.locale === 'en') ||
       primaryCollection.translations?.[0]
     : undefined;
 

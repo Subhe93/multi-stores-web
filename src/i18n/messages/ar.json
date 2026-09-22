@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "تسجيل الدخول",
+    "dashboardAccountNotAllowed": "هذا حساب لوحة تحكم. سجّل الدخول بحساب عميل أو تابع كزائر.",
     "registerTitle": "إنشاء حساب",
     "forgotPasswordTitle": "نسيت كلمة المرور",
     "email": "البريد الإلكتروني",

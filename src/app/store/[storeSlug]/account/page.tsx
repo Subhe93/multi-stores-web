@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
-import { Package, MapPin, Pencil, X, Loader2, Lock, Check } from 'lucide-react';
+import { Package, MapPin, Pencil, Loader2, Lock, Check } from 'lucide-react';
 
 interface UserProfile {
   id: string;

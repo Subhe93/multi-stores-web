@@ -19,6 +19,39 @@ interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  /** Account role from /auth/me — the storefront only accepts CUSTOMER. */
+  role?: string;
+}
+
+// ── Storefront account guard ───────────────────────────
+// Dashboard accounts (CREATOR / PROVIDER / ADMIN) share the same /auth/login
+// endpoint but must never be signed in on the storefront. `login()` rejects
+// them with an Error carrying this code so callers can show a specific
+// message; the mount/refresh paths silently drop such sessions.
+
+export const NOT_CUSTOMER_ACCOUNT = 'NOT_CUSTOMER_ACCOUNT';
+
+export interface AuthError extends Error {
+  code?: string;
+}
+
+function isCustomer(profile: User): boolean {
+  return profile.role === 'CUSTOMER';
+}
+
+function notCustomerAccountError(): AuthError {
+  const err: AuthError = new Error('This is a dashboard account, not a customer account');
+  err.code = NOT_CUSTOMER_ACCOUNT;
+  return err;
+}
+
+/** True when `err` is the rejection thrown by `login()` for a non-customer account. */
+export function isNotCustomerAccountError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { code?: unknown }).code === NOT_CUSTOMER_ACCOUNT
+  );
 }
 
 export interface RegisterData {
@@ -42,7 +75,7 @@ interface AuthTokensResponse {
 }
 
 interface AuthRegisterResponse {
-  user: any;
+  user: User;
   access_token: string;
   refresh_token: string;
 }
@@ -104,15 +137,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Drop the stored session and the in-memory auth state in one place.
+  const clearAuth = useCallback(() => {
+    clearTokens();
+    setToken(null);
+    setUser(null);
+  }, []);
+
+  // Accept a /auth/me profile: customers are stored, anything else is signed
+  // out immediately. Returns whether the profile was accepted.
+  const applyProfile = useCallback(
+    (profile: User): boolean => {
+      if (!isCustomer(profile)) {
+        clearAuth();
+        return false;
+      }
+      setUser(profile);
+      return true;
+    },
+    [clearAuth],
+  );
+
   // Fetch the current user profile
   const getProfile = useCallback(async (): Promise<User> => {
     const currentToken = token ?? getSavedToken();
     if (!currentToken) throw new Error('No token available');
 
     const profile = await api<User>('/auth/me', { token: currentToken });
-    setUser(profile);
+    if (!applyProfile(profile)) throw notCustomerAccountError();
     return profile;
-  }, [token]);
+  }, [token, applyProfile]);
 
   // Exchange the stored refresh token for a fresh access token. Used on mount
   // when the saved access token is rejected, and by callers whose request came
@@ -122,9 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async (): Promise<string | null> => {
     const refreshToken = getSavedRefreshToken();
     if (!refreshToken) {
-      clearTokens();
-      setToken(null);
-      setUser(null);
+      clearAuth();
       return null;
     }
     try {
@@ -140,33 +192,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(tokens.accessToken);
       return tokens.accessToken;
     } catch {
-      clearTokens();
-      setToken(null);
-      setUser(null);
+      clearAuth();
       return null;
     }
-  }, []);
+  }, [clearAuth]);
 
-  // Auto-load profile on mount when a saved token exists
+  // Auto-load profile on mount when a saved token exists. A dashboard account
+  // whose token is still in storage is signed out here (applyProfile).
   useEffect(() => {
     const saved = getSavedToken();
     if (saved) {
       setToken(saved);
       api<User>('/auth/me', { token: saved })
-        .then((profile) => setUser(profile))
+        .then((profile) => {
+          applyProfile(profile);
+        })
         .catch(async () => {
           // Token may be expired — try refreshing
           const fresh = await refresh();
           if (fresh) {
             const profile = await api<User>('/auth/me', { token: fresh });
-            setUser(profile);
+            applyProfile(profile);
           }
         })
         .catch(() => {
           // Profile fetch failed even with a fresh token — treat as signed out
-          clearTokens();
-          setToken(null);
-          setUser(null);
+          clearAuth();
         })
         .finally(() => setLoading(false));
     } else {
@@ -189,11 +240,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(tokens.accessToken);
 
     const profile = await api<User>('/auth/me', { token: tokens.accessToken });
-    setUser(profile);
+    // Dashboard accounts are rejected: the just-saved tokens are wiped again
+    // and the caller gets a coded error (see NOT_CUSTOMER_ACCOUNT).
+    if (!applyProfile(profile)) throw notCustomerAccountError();
 
     window.dispatchEvent(new CustomEvent('auth-changed'));
     return profile;
-  }, []);
+  }, [applyProfile]);
 
   // Register a new account — returns the access token for immediate use
   const register = useCallback(async (data: RegisterData): Promise<string> => {
@@ -255,12 +308,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore errors — clear local state regardless
     } finally {
-      clearTokens();
-      setToken(null);
-      setUser(null);
+      clearAuth();
       window.dispatchEvent(new CustomEvent('auth-changed'));
     }
-  }, [token]);
+  }, [token, clearAuth]);
 
   // Request a password-reset email
   const forgotPassword = useCallback(async (email: string): Promise<void> => {

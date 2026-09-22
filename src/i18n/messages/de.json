@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "Anmelden",
+    "dashboardAccountNotAllowed": "Dies ist ein Dashboard-Konto. Bitte melden Sie sich mit einem Kundenkonto an oder fahren Sie als Gast fort.",
     "registerTitle": "Konto erstellen",
     "forgotPasswordTitle": "Passwort vergessen",
     "email": "E-Mail",

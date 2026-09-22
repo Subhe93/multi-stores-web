@@ -37,7 +37,7 @@ export interface CartItem {
   variant?: string;
   customerFile?: string;
   currency?: string;
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
   /** Resolved "label: value" lines for the custom fields (server-enriched, or captured at add time for guests). */
   customFieldDisplay?: CartCustomFieldDisplay[];
   bundleOfferId?: string | null;
@@ -102,7 +102,7 @@ interface CartContextValue extends CartState {
     productId: string,
     variantId: string | null,
     quantity: number,
-    customFields?: Record<string, any>,
+    customFields?: Record<string, unknown>,
     metadata?: CartItemMetadata,
   ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
@@ -175,7 +175,46 @@ function saveLocalCoupon(coupon: Coupon | null) {
 // ── Normalize API cart response ───────────────────────
 // The API returns enriched items with camelCase keys from the backend.
 // Map them to our CartItem interface.
-function normalizeCartItem(raw: any): CartItem {
+
+// A cart line as the API sends it. Newer builds use camelCase, older ones
+// snake_case; both spellings are read so either API version normalizes.
+interface RawCartItem {
+  id: string;
+  productId?: string | null;
+  product_id?: string | null;
+  variantId?: string | null;
+  variant_id?: string | null;
+  customProductId?: string | null;
+  custom_product_id?: string | null;
+  title?: string | null;
+  name?: string | null;
+  price?: unknown;
+  quantity?: number | null;
+  imageUrl?: string | null;
+  image_url?: string | null;
+  image?: string | null;
+  variant?: string | null;
+  currency?: string | null;
+  customFields?: Record<string, unknown> | null;
+  custom_fields?: Record<string, unknown> | null;
+  customFieldDisplay?: unknown;
+  custom_field_display?: unknown;
+  customerFile?: string | null;
+  bundleOfferId?: string | null;
+  bundle_offer_id?: string | null;
+  bundleOriginalUnitPrice?: unknown;
+  bundle_original_unit_price?: unknown;
+  bundleTitle?: string | null;
+  bundle_title?: string | null;
+  bundleLabel?: string | null;
+  bundle_label?: string | null;
+  bundleStickerText?: string | null;
+  bundle_sticker_text?: string | null;
+  bundleCartQuantity?: unknown;
+  bundle_cart_quantity?: unknown;
+}
+
+function normalizeCartItem(raw: RawCartItem): CartItem {
   return {
     id: raw.id,
     productId: raw.productId || raw.product_id || '',
@@ -232,15 +271,16 @@ function normalizeCartTax(data: unknown): CartTax | null {
   };
 }
 
-function normalizeCartResponse(data: any): { items: CartItem[]; coupon: Coupon | null; tax: CartTax | null } {
+function normalizeCartResponse(data: unknown): { items: CartItem[]; coupon: Coupon | null; tax: CartTax | null } {
   if (Array.isArray(data)) {
     return { items: data.map(normalizeCartItem), coupon: null, tax: null };
   }
   if (data && typeof data === 'object') {
-    const rawItems = Array.isArray(data.items) ? data.items : [];
+    const obj = data as { items?: unknown; coupon?: Coupon | null };
+    const rawItems: RawCartItem[] = Array.isArray(obj.items) ? obj.items : [];
     return {
       items: rawItems.map(normalizeCartItem),
-      coupon: data.coupon ?? null,
+      coupon: obj.coupon ?? null,
       tax: normalizeCartTax(data),
     };
   }
@@ -295,7 +335,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       const guestItems = wasGuest ? loadLocalCart() : [];
 
       // Fetch server cart
-      api<any>(`/cart${localeQuery}`, { token })
+      api<unknown>(`/cart${localeQuery}`, { token })
         .then(async (data) => {
           const cart = normalizeCartResponse(data);
 
@@ -327,7 +367,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
             // Re-fetch the merged cart from server
             try {
               const refreshed = normalizeCartResponse(
-                await api<any>(`/cart${localeQuery}`, { token })
+                await api<unknown>(`/cart${localeQuery}`, { token })
               );
               setItems(refreshed.items);
               setCoupon(refreshed.coupon);
@@ -366,13 +406,13 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       productId: string,
       variantId: string | null,
       quantity: number,
-      customFields?: Record<string, any>,
+      customFields?: Record<string, unknown>,
       metadata?: CartItemMetadata,
     ) => {
       const isCustomProduct = Boolean(metadata?.customProductId);
       const bundleOfferId = metadata?.bundleOfferId || undefined;
       if (isAuthenticated && token) {
-        const data = await api<any>(
+        const data = await api<unknown>(
           `/cart/items${localeQuery}`,
           {
             method: 'POST',
@@ -441,7 +481,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const updateQuantity = useCallback(
     async (itemId: string, quantity: number) => {
       if (isAuthenticated && token) {
-        const data = await api<any>(
+        const data = await api<unknown>(
           `/cart/items/${itemId}${localeQuery}`,
           {
             method: 'PUT',
@@ -471,7 +511,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const clearBundle = useCallback(
     async (itemId: string) => {
       if (isAuthenticated && token) {
-        const data = await api<any>(
+        const data = await api<unknown>(
           `/cart/items/${itemId}${localeQuery}`,
           {
             method: 'PUT',
@@ -515,7 +555,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const removeItem = useCallback(
     async (itemId: string) => {
       if (isAuthenticated && token) {
-        const data = await api<any>(
+        const data = await api<unknown>(
           `/cart/items/${itemId}${localeQuery}`,
           { method: 'DELETE', token }
         );
@@ -608,7 +648,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const removeCoupon = useCallback(async () => {
     if (isAuthenticated && token) {
       try {
-        const data = await api<any>(
+        const data = await api<unknown>(
           `/cart/remove-coupon${localeQuery}`,
           { method: 'DELETE', token }
         );
@@ -681,7 +721,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
     // Refresh cart from server
     try {
-      const data = await api<any>(`/cart${localeQuery}`, { token: authToken });
+      const data = await api<unknown>(`/cart${localeQuery}`, { token: authToken });
       const cart = normalizeCartResponse(data);
       setItems(cart.items);
       setCoupon(cart.coupon);

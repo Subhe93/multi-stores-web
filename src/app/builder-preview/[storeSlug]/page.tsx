@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { storefront } from '@/lib/api';
-import { toListingProduct } from '@/lib/listing';
+import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
 import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
@@ -93,7 +93,7 @@ export default async function BuilderPreviewPage({
       if (!isCollection || collection) {
         const params: Record<string, string> = { locale: previewLocale, limit: '12' };
         if (collection) params.creator_category = collection.slug;
-        const products = (((await storefront.getProducts(storeSlug, params)) as Record<string, any>[] | null) || [])
+        const products = (((await storefront.getProducts(storeSlug, params)) as StorefrontProductRow[] | null) || [])
           .slice(0, 12)
           .map(toListingProduct);
         listing = {

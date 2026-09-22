@@ -72,7 +72,7 @@ function resolvePages(
 }
 
 // ---------- UserMenu client sub-component ----------
-function UserMenu({ primaryColor }: { primaryColor?: string }) {
+function UserMenu() {
   const t = useTranslations();
   const lp = useLocalePath();
   const { token, logout } = useAuth();
@@ -524,7 +524,7 @@ export function StoreHeader({
           )}
 
           {/* User menu (login / account dropdown) */}
-          <UserMenu primaryColor={primaryColor} />
+          <UserMenu />
 
           {/* Cart icon with live item count badge */}
           <CartBadge />

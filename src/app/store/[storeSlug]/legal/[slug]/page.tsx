@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { legal, storefront, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
-import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is

@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "Se connecter",
+    "dashboardAccountNotAllowed": "Ceci est un compte tableau de bord. Veuillez vous connecter avec un compte client ou continuer en tant qu'invité.",
     "registerTitle": "Créer un compte",
     "forgotPasswordTitle": "Mot de passe oublié",
     "email": "E-mail",

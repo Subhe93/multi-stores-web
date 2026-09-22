@@ -34,8 +34,8 @@ export interface CustomField {
 
 interface CustomFieldsFormProps {
   fields: CustomField[];
-  values: Record<string, any>;
-  onChange: (fieldId: string, value: any) => void;
+  values: Record<string, unknown>;
+  onChange: (fieldId: string, value: unknown) => void;
 }
 
 const COMMON_FONTS = [
@@ -46,8 +46,8 @@ const COMMON_FONTS = [
 
 function validateField(
   field: CustomField,
-  value: any,
-  allValues: Record<string, any>,
+  value: unknown,
+  allValues: Record<string, unknown>,
   allFields: CustomField[],
   t: Translator,
 ): string | null {
@@ -111,7 +111,7 @@ async function uploadFile(file: File, folder = 'custom-fields'): Promise<string 
   }
 }
 
-function resolveDisplayUrl(val: any): string {
+function resolveDisplayUrl(val: unknown): string {
   if (!val) return '';
   if (typeof val === 'string') {
     if (val.startsWith('http') || val.startsWith('/uploads')) return val.startsWith('http') ? val : `${API_ORIGIN}${val}`;
@@ -121,8 +121,8 @@ function resolveDisplayUrl(val: any): string {
 }
 
 function FileInput({ accept, multiple, value, onChange }: {
-  accept?: string; multiple?: boolean; value: any;
-  onChange: (val: any) => void;
+  accept?: string; multiple?: boolean; value: unknown;
+  onChange: (val: unknown) => void;
 }) {
   const t = useTranslations('product');
   const ref = useRef<HTMLInputElement>(null);
@@ -175,7 +175,7 @@ function FileInput({ accept, multiple, value, onChange }: {
               )}
               <button type="button" onClick={() => {
                 if (multiple && Array.isArray(value)) {
-                  onChange(value.filter((_: any, j: number) => j !== i));
+                  onChange(value.filter((_: unknown, j: number) => j !== i));
                 } else {
                   onChange('');
                 }
@@ -220,7 +220,9 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
     <div className="flex flex-col gap-5">
       {fields.map((field) => {
         const error = errors[field.id];
-        const value = values[field.id];
+        // Values are stored as `unknown`; each control below only ever receives
+        // the primitive its own field type wrote, so this narrowing is type-only.
+        const value = values[field.id] as string | number | undefined;
         const hasValue = value !== undefined && value !== null && value !== '';
         const showError = !!error && hasValue;
 

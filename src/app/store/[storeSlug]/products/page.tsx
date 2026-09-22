@@ -12,12 +12,20 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
 
+interface ProductPromotion {
+  type?: string;
+  value?: unknown;
+  translations?: { title?: string }[];
+}
+
 interface Product {
   id: string;
   base_price: number;
   compare_at_price?: number;
+  created_at?: string;
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
+  promotions?: ProductPromotion[];
 }
 
 interface CreatorCategory {
@@ -54,7 +62,13 @@ export async function generateMetadata({
   const { lang, search, category, creator_category, sort } = await searchParams;
   try {
     const [store, t] = await Promise.all([
-      storefront.getStore(storeSlug) as Promise<any>,
+      storefront.getStore(storeSlug) as Promise<{
+        name?: string;
+        description?: string | null;
+        custom_domain?: string | null;
+        language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+        theme?: { translations?: Record<string, { name?: string; description?: string }> };
+      } | null>,
       getTranslations(),
     ]);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
@@ -146,7 +160,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   } else if (sort === 'price_desc') {
     products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
   } else if (sort === 'newest') {
-    products.sort((a, b) => ((b as any).created_at || '').localeCompare((a as any).created_at || ''));
+    products.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
   }
 
   const isFiltered = !!(search || category || creator_category);
@@ -483,12 +497,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
                   }
                   currency={currency}
                   promotionLabel={
-                    (product as any).promotions?.[0]
-                      ? (product as any).promotions[0].type === 'PERCENTAGE' || (product as any).promotions[0].type === 'FLASH_SALE'
-                        ? `${(product as any).promotions[0].value}% off`
-                        : (product as any).promotions[0].type === 'FREE_SHIPPING'
+                    product.promotions?.[0]
+                      ? product.promotions[0].type === 'PERCENTAGE' || product.promotions[0].type === 'FLASH_SALE'
+                        ? `${product.promotions[0].value}% off`
+                        : product.promotions[0].type === 'FREE_SHIPPING'
                         ? 'Free Shipping'
-                        : (product as any).promotions[0].translations?.[0]?.title || 'Offer'
+                        : product.promotions[0].translations?.[0]?.title || 'Offer'
                       : undefined
                   }
                 />

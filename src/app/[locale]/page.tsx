@@ -37,7 +37,6 @@ export default async function Home({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'home' });
-  const tc = await getTranslations({ locale, namespace: 'common' });
 
   return (
     <div className="min-h-screen overflow-x-hidden noise relative" style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>

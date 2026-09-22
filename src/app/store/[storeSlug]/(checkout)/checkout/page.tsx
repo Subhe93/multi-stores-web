@@ -7,7 +7,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { api, storefront } from '@/lib/api';
 import { getStripe } from '@/lib/stripe';
@@ -451,7 +451,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       await login(loginEmail, loginPassword);
       setShowLogin(false);
     } catch (err: unknown) {
-      setLoginError(err instanceof Error ? err.message : 'Login failed');
+      // Dashboard accounts get a dedicated message; wrong-password and other
+      // failures keep the generic message path.
+      if (isNotCustomerAccountError(err)) {
+        setLoginError(t('auth.dashboardAccountNotAllowed'));
+      } else {
+        setLoginError(err instanceof Error ? err.message : 'Login failed');
+      }
     } finally {
       setLoginLoading(false);
     }

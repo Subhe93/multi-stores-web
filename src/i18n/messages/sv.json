@@ -280,6 +280,7 @@
   },
   "auth": {
     "loginTitle": "Logga in",
+    "dashboardAccountNotAllowed": "Detta är ett instrumentpanelskonto. Logga in med ett kundkonto eller fortsätt som gäst.",
     "registerTitle": "Skapa konto",
     "forgotPasswordTitle": "Glömt lösenord",
     "email": "E-post",

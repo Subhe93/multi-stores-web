@@ -44,7 +44,7 @@ export function LanguageSwitcher({ primaryLocale = 'en', availableLocales, prima
       target = `/${locale}${rest}`;
     }
     // Hard navigation to ensure middleware runs and server components re-render
-    window.location.href = target;
+    window.location.assign(target);
   };
 
   return (

@@ -12,12 +12,20 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
 
+interface ProductPromotion {
+  type?: string;
+  value?: unknown;
+  translations?: { title?: string }[];
+}
+
 interface Product {
   id: string;
   base_price: number;
   compare_at_price?: number;
+  created_at?: string;
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
+  promotions?: ProductPromotion[];
 }
 
 interface CreatorCategoryTranslation {
@@ -119,7 +127,7 @@ export default async function CollectionPage({
     products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
   } else if (sort === 'newest') {
     products.sort((a, b) =>
-      ((b as any).created_at || '').localeCompare((a as any).created_at || ''),
+      (b.created_at || '').localeCompare(a.created_at || ''),
     );
   }
 
@@ -427,13 +435,13 @@ export default async function CollectionPage({
                   }
                   currency={currency}
                   promotionLabel={
-                    (product as any).promotions?.[0]
-                      ? (product as any).promotions[0].type === 'PERCENTAGE' ||
-                        (product as any).promotions[0].type === 'FLASH_SALE'
-                        ? `${(product as any).promotions[0].value}% off`
-                        : (product as any).promotions[0].type === 'FREE_SHIPPING'
+                    product.promotions?.[0]
+                      ? product.promotions[0].type === 'PERCENTAGE' ||
+                        product.promotions[0].type === 'FLASH_SALE'
+                        ? `${product.promotions[0].value}% off`
+                        : product.promotions[0].type === 'FREE_SHIPPING'
                         ? 'Free Shipping'
-                        : (product as any).promotions[0].translations?.[0]?.title ||
+                        : product.promotions[0].translations?.[0]?.title ||
                           'Offer'
                       : undefined
                   }
@@ -457,7 +465,10 @@ export async function generateMetadata({
   try {
     const [tree, store] = await Promise.all([
       storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-      storefront.getStore(storeSlug) as Promise<any>,
+      storefront.getStore(storeSlug) as Promise<{
+        custom_domain?: string | null;
+        language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+      } | null>,
     ]);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     const secondary: string[] = store?.language_config?.secondary_locales || [];

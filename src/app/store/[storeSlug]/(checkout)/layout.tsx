@@ -98,20 +98,24 @@ export default async function CheckoutLayout({
                 className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
               >
                 {store.logo_url ? (
+                  // The logo already carries the brand; repeating the store
+                  // name next to it looked like a duplicate wordmark.
                   <img
                     src={resolveMediaUrl(store.logo_url)}
                     alt={storeName}
                     className="h-9 w-auto object-contain"
                   />
                 ) : (
-                  <span
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    {storeName.charAt(0).toUpperCase()}
-                  </span>
+                  <>
+                    <span
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      {storeName.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="font-semibold text-gray-900 text-base">{storeName}</span>
+                  </>
                 )}
-                <span className="font-semibold text-gray-900 text-base">{storeName}</span>
               </Link>
 
               {/* Secure checkout badge */}

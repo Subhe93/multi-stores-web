@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildTwitterMeta } from '@/lib/jsonld';
-import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance } from '@/themes/types';

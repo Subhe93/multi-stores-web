@@ -8,7 +8,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
-import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 
 interface Product {
   id: string;

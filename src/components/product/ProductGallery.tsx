@@ -86,7 +86,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   // Lightbox: lock body scroll while open, and wire Escape / arrow keys.
   useEffect(() => {

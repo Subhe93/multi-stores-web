@@ -44,7 +44,7 @@ export default function StoreOrdersPage() {
   useEffect(() => {
     const token = localStorage.getItem('auth_access_token');
     if (!token) return;
-    api<any>('/orders/my', { token })
+    api<Order[] | { data?: Order[] } | null>('/orders/my', { token })
       .then((data) => {
         const list = Array.isArray(data) ? data : data?.data || [];
         setOrders(list);
@@ -98,7 +98,7 @@ export default function StoreOrdersPage() {
                   <div className="flex items-center gap-2.5 mb-1">
                     <span className="text-sm font-semibold text-gray-900">#{num}</span>
                     <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${statusStyle(order.status)}`}>
-                      {t(`orderStatus.${order.status}` as any) || order.status}
+                      {t(`orderStatus.${order.status}`) || order.status}
                     </span>
                   </div>
                   {date && (

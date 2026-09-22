@@ -82,22 +82,22 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
     }
   }
 
-  function MessageContent({ msg }: { msg: AnnouncementMessage }) {
-    return (
-      <span className="inline-flex items-center gap-2 whitespace-nowrap">
-        <span>{msg.text}</span>
-        {msg.link_label && msg.link_url && (
-          <a
-            href={msg.link_url}
-            className="underline font-medium hover:opacity-80 transition"
-            style={{ color: linkColor }}
-          >
-            {msg.link_label}
-          </a>
-        )}
-      </span>
-    );
-  }
+  // Plain render helper rather than a component declared inside render, so
+  // React does not treat it as a new element type (and remount) every render.
+  const renderMessage = (msg: AnnouncementMessage, key?: number) => (
+    <span key={key} className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span>{msg.text}</span>
+      {msg.link_label && msg.link_url && (
+        <a
+          href={msg.link_url}
+          className="underline font-medium hover:opacity-80 transition"
+          style={{ color: linkColor }}
+        >
+          {msg.link_label}
+        </a>
+      )}
+    </span>
+  );
 
   return (
     <div
@@ -110,7 +110,7 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
             <div className="inline-flex gap-12 whitespace-nowrap will-change-transform">
               {/* Duplicate the message list once so the scroll loops seamlessly. */}
               {[...messages, ...messages].map((msg, i) => (
-                <MessageContent key={i} msg={msg} />
+                renderMessage(msg, i)
               ))}
             </div>
           </div>
@@ -123,16 +123,16 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
                 className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
                 style={{ opacity: i === activeIdx ? 1 : 0 }}
               >
-                <MessageContent msg={msg} />
+                {renderMessage(msg)}
               </span>
             ))}
             {/* Invisible spacer reserves height equal to the tallest message. */}
             <span className="invisible">
-              <MessageContent msg={messages[0]} />
+              {renderMessage(messages[0])}
             </span>
           </div>
         ) : (
-          <MessageContent msg={messages[0]} />
+          renderMessage(messages[0])
         )}
 
         {dismissible && (

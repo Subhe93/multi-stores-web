@@ -44,7 +44,10 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
   const json = await res.json();
 
   if (!res.ok) {
-    const err: any = new Error(json.message || 'API request failed');
+    const err = new Error(json.message || 'API request failed') as Error & {
+      status?: number;
+      code?: string;
+    };
     err.status = res.status;
     // Stable machine-readable error code (when present) for UI translation,
     // falling back to the English `message` above.

@@ -6,7 +6,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   // Fallback for store pages (not under [locale] segment):
   // read locale from cookie/header set by middleware
-  if (!locale || !locales.includes(locale as any)) {
+  if (!locale || !(locales as readonly string[]).includes(locale)) {
     try {
       const { cookies, headers } = await import('next/headers');
       const cookieStore = await cookies();
@@ -20,7 +20,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
     }
   }
 
-  if (!locales.includes(locale as any)) {
+  if (!(locales as readonly string[]).includes(locale)) {
     locale = defaultLocale;
   }
 

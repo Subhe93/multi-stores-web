@@ -63,7 +63,9 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
     setZoom({ x, y });
   }
 
-  function MainImage({ index }: { index: number }) {
+  // Plain render helper rather than a component declared inside render, so
+  // React does not treat it as a new element type (and remount) every render.
+  const renderMainImage = (index: number) => {
     const img = images[index];
     return (
       <div
@@ -99,7 +101,7 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
         )}
       </div>
     );
-  }
+  };
 
   if (layout === 'grid') {
     return (
@@ -142,7 +144,7 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   if (layout === 'carousel') {
     return (
       <section className="relative">
-        <MainImage index={active} />
+        {renderMainImage(active)}
         {images.length > 1 && (
           <>
             <button
@@ -184,7 +186,7 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
 
   return (
     <section>
-      <MainImage index={active} />
+      {renderMainImage(active)}
       {images.length > 1 && (
         <div className="grid grid-cols-5 gap-2 mt-3">
           {images.slice(0, 10).map((img, i) => (

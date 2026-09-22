@@ -23,7 +23,6 @@ if (
   process.env.NODE_ENV === 'production' &&
   !process.env.NEXT_PUBLIC_API_URL
 ) {
-  // eslint-disable-next-line no-console
   console.error(
     '[proxy] NEXT_PUBLIC_API_URL is not set — custom domain lookups will fail',
   );
