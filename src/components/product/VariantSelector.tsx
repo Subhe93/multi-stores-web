@@ -70,7 +70,10 @@ interface Variant {
 interface VariantSelectorProps {
   variants: Variant[];
   selectedVariantId?: string;
-  onSelect: (variantId: string) => void;
+  // Called with the variant the current picks resolve to, or undefined when
+  // they no longer resolve to one (cleared, incomplete, or no such
+  // combination) so the page stops treating the old variant as chosen.
+  onSelect: (variantId: string | undefined) => void;
   inStockText?: string;
   outOfStockText?: string;
   optionConfigs?: OptionConfig[];
@@ -167,18 +170,25 @@ export function VariantSelector({
   };
 
   const handleSelect = (key: string, value: string) => {
-    const next = { ...selections, [key]: value };
+    // Clicking the value that is already picked takes it off again.
+    const next = { ...selections };
+    if (next[key] === value) delete next[key];
+    else next[key] = value;
     setSelections(next);
     onSelectionsChange?.(next);
-    if (optionKeys.every((k) => k in next)) {
-      const matched = variants.find((v) => optionKeys.every((k) => v.options?.[k] === next[k]));
-      if (matched) onSelect(matched.id);
-    }
+    // Always report what the picks resolve to. Reporting only on a match left
+    // the previously chosen variant selected on the page, so "add to cart"
+    // stayed enabled and added a variant the buyer no longer had picked.
+    const matched = optionKeys.every((k) => k in next)
+      ? variants.find((v) => optionKeys.every((k) => v.options?.[k] === next[k]))
+      : undefined;
+    onSelect(matched?.id);
   };
 
   const handleClear = () => {
     setSelections({});
     onSelectionsChange?.({});
+    onSelect(undefined);
   };
   const hasSelections = Object.keys(selections).length > 0;
 

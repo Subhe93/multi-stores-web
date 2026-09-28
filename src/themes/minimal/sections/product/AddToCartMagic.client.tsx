@@ -65,8 +65,10 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
   const showSticky = settings.sticky_on_mobile === true;
   const showQuantity = settings.show_quantity !== false;
 
+  // No fallback to the first variant: when the picked options match no
+  // variant, nothing is selected and the button is disabled.
   const selectedVariant = useMemo(
-    () => variants.find((v) => v.id === selectedVariantId) || variants[0],
+    () => variants.find((v) => v.id === selectedVariantId),
     [variants, selectedVariantId],
   );
 
@@ -122,7 +124,7 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
   const imageUrl = product.images?.[0]?.url ? resolveMediaUrl(product.images[0].url) : undefined;
 
   async function handleAdd() {
-    if (!product || busy) return;
+    if (!product || busy || needsVariant) return;
     setBusy(true);
     try {
       await addItem(
@@ -153,16 +155,20 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
     const match = variants.find((v) =>
       Object.entries(next).every(([n, val]) => v.options[n] === val),
     );
-    if (match) setSelectedVariantId(match.id);
+    // Keeping the old variant when nothing matches would add a combination
+    // the buyer is no longer looking at.
+    setSelectedVariantId(match ? match.id : null);
   }
 
   const oos = typeof stock === 'number' && stock <= 0;
+  // A product with variants needs one resolved before it can be added.
+  const needsVariant = variants.length > 0 && !selectedVariant;
 
   const cta = (
     <button
       type="button"
       onClick={handleAdd}
-      disabled={busy || oos}
+      disabled={busy || oos || needsVariant}
       className={`inline-flex items-center justify-center gap-2 px-6 py-3 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
         fullWidth ? 'w-full' : ''
       }`}
