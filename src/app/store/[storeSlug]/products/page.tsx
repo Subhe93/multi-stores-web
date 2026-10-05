@@ -109,8 +109,18 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const { storeSlug } = await params;
   const { search, category, creator_category, lang, sort } = await searchParams;
   const t = await getTranslations();
-  const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
+
+  // The store is read first (cached): without a locale prefix in the URL the
+  // catalogue is rendered in the store's primary locale, not in English.
+  const storeData = (await storefront.getStore(storeSlug)) as {
+    currency?: string;
+    custom_domain?: string | null;
+    language_config?: { primary_locale?: string } | null;
+    theme?: { hero?: StoreHero };
+    theme_key?: string;
+  };
+  const locale = lang || storeData?.language_config?.primary_locale || 'en';
 
   const queryParams: Record<string, string> = { locale };
   if (search) queryParams.search = search;
@@ -119,16 +129,9 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // Only the creator's own collections are shown on the storefront — admin/provider
   // taxonomy categories live at the platform level and don't belong on the store page.
-  const [products, creatorCategories, storeData, template] = await Promise.all([
+  const [products, creatorCategories, template] = await Promise.all([
     storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-    storefront.getStore(storeSlug) as Promise<{
-      currency?: string;
-      custom_domain?: string | null;
-      language_config?: { primary_locale?: string } | null;
-      theme?: { hero?: StoreHero };
-      theme_key?: string;
-    }>,
     // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup
     // below is the fallback in that case.

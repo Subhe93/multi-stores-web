@@ -81,19 +81,22 @@ export default async function CollectionPage({
   const { storeSlug, handle } = await params;
   const { search, lang, sort } = await searchParams;
   const t = await getTranslations();
-  const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
 
   // Fetch the tree first so we can render the hero with the matching collection.
   // We also need the store currency for product prices.
-  const [storeData, creatorCategoriesTree, template] = await Promise.all([
-    storefront.getStore(storeSlug) as Promise<{
+  // The store is read first (cached): without a locale prefix in the URL the
+  // collection is rendered in the store's primary locale, not in English.
+  const storeData = (await storefront.getStore(storeSlug)) as {
       currency?: string;
       custom_domain?: string | null;
       language_config?: { primary_locale?: string } | null;
       theme?: { hero?: StoreHero };
       theme_key?: string;
-    }>,
+    };
+  const locale = lang || storeData?.language_config?.primary_locale || 'en';
+
+  const [creatorCategoriesTree, template] = await Promise.all([
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     // Published COLLECTION_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup

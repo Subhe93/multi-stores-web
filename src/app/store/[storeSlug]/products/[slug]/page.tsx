@@ -115,17 +115,20 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const { storeSlug, slug: productSlug } = await params;
   const { lang } = await searchParams;
   const t = await getTranslations();
-  const locale = lang || 'en';
   const lp = lang ? `/${lang}` : '';
 
   let product: ProductRecord;
   let storeData: StoreRecord | null;
   let storeCurrency = 'EUR';
   let template: { snapshot?: { sections?: SectionInstance[] } } | null = null;
+  // Without a locale prefix in the URL the content is rendered in the store's
+  // primary locale, not in English — so the store is read first (it is cached).
+  let locale = lang || 'en';
   try {
-    [product, storeData, template] = await Promise.all([
+    storeData = (await storefront.getStore(storeSlug)) as StoreRecord | null;
+    locale = lang || storeData?.language_config?.primary_locale || 'en';
+    [product, template] = await Promise.all([
       storefront.getProduct(storeSlug, productSlug, locale) as Promise<ProductRecord>,
-      storefront.getStore(storeSlug) as Promise<StoreRecord | null>,
       storefront.getPublishedProductTemplate(storeSlug).catch(() => null) as Promise<{
         snapshot?: { sections?: SectionInstance[] };
       } | null>,
