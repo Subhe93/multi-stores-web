@@ -370,7 +370,11 @@
     "productSingular": "ürün",
     "store_collections": "Mağaza Koleksiyonları",
     "all_collections": "Tüm koleksiyonlar",
-    "explore_collections": "Koleksiyonlarımızı keşfedin"
+    "explore_collections": "Koleksiyonlarımızı keşfedin",
+    "collectionSingular": "koleksiyon",
+    "collectionsCount": "koleksiyon",
+    "noCollections": "Henüz koleksiyon yok.",
+    "viewCollection": "Koleksiyonu gör"
   },
   "errors": {
     "generic": "Bir hata oluştu. Lütfen tekrar deneyin.",

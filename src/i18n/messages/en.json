@@ -370,7 +370,11 @@
     "productSingular": "product",
     "store_collections": "Store Collections",
     "all_collections": "All collections",
-    "explore_collections": "Explore our collections"
+    "explore_collections": "Explore our collections",
+    "collectionSingular": "collection",
+    "collectionsCount": "collections",
+    "noCollections": "No collections yet.",
+    "viewCollection": "View collection"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

@@ -370,7 +370,11 @@
     "productSingular": "produkt",
     "store_collections": "Butikskollektioner",
     "all_collections": "Alla kollektioner",
-    "explore_collections": "Utforska våra kollektioner"
+    "explore_collections": "Utforska våra kollektioner",
+    "collectionSingular": "kollektion",
+    "collectionsCount": "kollektioner",
+    "noCollections": "Inga kollektioner ännu.",
+    "viewCollection": "Visa kollektionen"
   },
   "errors": {
     "generic": "Något gick fel. Försök igen.",

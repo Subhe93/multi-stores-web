@@ -370,7 +370,11 @@
     "productSingular": "منتج",
     "store_collections": "تصنيفات المتجر",
     "all_collections": "كل التصنيفات",
-    "explore_collections": "استكشف تصنيفاتنا"
+    "explore_collections": "استكشف تصنيفاتنا",
+    "collectionSingular": "قسم",
+    "collectionsCount": "أقسام",
+    "noCollections": "لا توجد أقسام بعد.",
+    "viewCollection": "عرض القسم"
   },
   "errors": {
     "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",

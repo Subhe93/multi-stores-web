@@ -370,7 +370,11 @@
     "productSingular": "produit",
     "store_collections": "Collections de la boutique",
     "all_collections": "Toutes les collections",
-    "explore_collections": "Explorez nos collections"
+    "explore_collections": "Explorez nos collections",
+    "collectionSingular": "collection",
+    "collectionsCount": "collections",
+    "noCollections": "Aucune collection pour le moment.",
+    "viewCollection": "Voir la collection"
   },
   "errors": {
     "generic": "Une erreur s'est produite. Veuillez réessayer.",
