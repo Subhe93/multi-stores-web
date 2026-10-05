@@ -138,7 +138,11 @@
     "dragDropFiles": "Drag & Drop Files Here",
     "browseFiles": "Browse Files",
     "inclTax": "incl. VAT",
-    "exclTax": "excl. VAT"
+    "exclTax": "excl. VAT",
+    "estimatedDays": "{min}–{max} days",
+    "freeShipping": "Free",
+    "freeShippingOver": "Free over {amount}",
+    "pickup": "Pick up in store"
   },
   "cart": {
     "title": "Shopping Cart",

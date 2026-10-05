@@ -138,7 +138,11 @@
     "dragDropFiles": "اسحب وأفلت الملفات هنا",
     "browseFiles": "تصفح الملفات",
     "inclTax": "شامل الضريبة",
-    "exclTax": "غير شامل الضريبة"
+    "exclTax": "غير شامل الضريبة",
+    "estimatedDays": "{min}–{max} أيام",
+    "freeShipping": "مجاني",
+    "freeShippingOver": "مجاني للطلبات فوق {amount}",
+    "pickup": "استلام من المتجر"
   },
   "cart": {
     "title": "سلة التسوق",

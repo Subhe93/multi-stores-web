@@ -138,7 +138,11 @@
     "dragDropFiles": "Glissez-déposez les fichiers ici",
     "browseFiles": "Parcourir les fichiers",
     "inclTax": "TTC",
-    "exclTax": "HT"
+    "exclTax": "HT",
+    "estimatedDays": "{min}–{max} jours",
+    "freeShipping": "Gratuit",
+    "freeShippingOver": "Gratuit dès {amount}",
+    "pickup": "Retrait en boutique"
   },
   "cart": {
     "title": "Panier",

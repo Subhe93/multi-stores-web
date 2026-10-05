@@ -138,7 +138,11 @@
     "dragDropFiles": "Dosyaları buraya sürükleyip bırakın",
     "browseFiles": "Dosyalara göz at",
     "inclTax": "KDV dahil",
-    "exclTax": "KDV hariç"
+    "exclTax": "KDV hariç",
+    "estimatedDays": "{min}–{max} gün",
+    "freeShipping": "Ücretsiz",
+    "freeShippingOver": "{amount} üzeri ücretsiz",
+    "pickup": "Mağazadan teslim al"
   },
   "cart": {
     "title": "Alışveriş Sepeti",

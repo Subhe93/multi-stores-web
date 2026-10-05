@@ -138,7 +138,11 @@
     "dragDropFiles": "Dateien hierher ziehen & ablegen",
     "browseFiles": "Dateien durchsuchen",
     "inclTax": "inkl. MwSt.",
-    "exclTax": "zzgl. MwSt."
+    "exclTax": "zzgl. MwSt.",
+    "estimatedDays": "{min}–{max} Tage",
+    "freeShipping": "Kostenlos",
+    "freeShippingOver": "Kostenlos ab {amount}",
+    "pickup": "Abholung im Geschäft"
   },
   "cart": {
     "title": "Warenkorb",

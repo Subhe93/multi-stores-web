@@ -138,7 +138,11 @@
     "dragDropFiles": "Dra och släpp filer här",
     "browseFiles": "Bläddra bland filer",
     "inclTax": "inkl. moms",
-    "exclTax": "exkl. moms"
+    "exclTax": "exkl. moms",
+    "estimatedDays": "{min}–{max} dagar",
+    "freeShipping": "Gratis",
+    "freeShippingOver": "Gratis över {amount}",
+    "pickup": "Hämta i butik"
   },
   "cart": {
     "title": "Varukorg",

@@ -95,6 +95,19 @@ export interface ProductData {
       free_threshold?: number;
       estimated_days_min: number;
       estimated_days_max: number;
+      // Selectable methods of the zone. When present they are what the cart
+      // and checkout actually charge; the zone's own cost/days columns are
+      // only the legacy fallback for a zone without methods.
+      methods?: {
+        id: string;
+        name: string;
+        translations?: Record<string, string> | null;
+        type?: 'DELIVERY' | 'PICKUP';
+        base_cost: number;
+        free_threshold?: number | null;
+        estimated_days_min: number;
+        estimated_days_max: number;
+      }[];
     }[];
   };
   field_values?: { custom_field_id: string; value?: string; file_url?: string }[];
@@ -936,38 +949,73 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 {t('product.shippingAndDelivery')}
               </h3>
               <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
-                {product.shipping_profile.zones.map((zone) => (
-                  <div key={zone.id} className="px-4 py-3.5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                        <Globe className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{zone.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {zone.estimated_days_min}–{zone.estimated_days_max} days
-                          {zone.countries.length > 0 && (
-                            <span className="text-gray-400">
-                              {' '}· {zone.countries.slice(0, 3).join(', ')}
-                              {zone.countries.length > 3 && ` +${zone.countries.length - 3}`}
-                            </span>
+                {product.shipping_profile.zones.flatMap((zone) => {
+                  // One row per method; a zone without methods falls back to
+                  // its legacy single cost/days so old data still renders.
+                  const rows = zone.methods?.length
+                    ? zone.methods.map((m) => ({
+                        key: m.id,
+                        title: m.translations?.[locale] || m.name,
+                        pickup: m.type === 'PICKUP',
+                        cost: Number(m.base_cost),
+                        freeOver: m.free_threshold != null ? Number(m.free_threshold) : null,
+                        daysMin: m.estimated_days_min,
+                        daysMax: m.estimated_days_max,
+                      }))
+                    : [
+                        {
+                          key: zone.id,
+                          title: zone.name,
+                          pickup: false,
+                          cost: Number(zone.base_cost),
+                          freeOver: zone.free_threshold ? Number(zone.free_threshold) : null,
+                          daysMin: zone.estimated_days_min,
+                          daysMax: zone.estimated_days_max,
+                        },
+                      ];
+                  const countries =
+                    zone.countries.length > 0
+                      ? ` · ${zone.countries.slice(0, 3).join(', ')}${zone.countries.length > 3 ? ` +${zone.countries.length - 3}` : ''}`
+                      : '';
+                  return rows.map((row) => (
+                    <div key={row.key} className="px-4 py-3.5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                          {row.pickup ? (
+                            <Package className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <Globe className="w-4 h-4 text-gray-400" />
                           )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800">
+                            {row.title}
+                            {rows.length > 1 || row.title !== zone.name ? (
+                              <span className="text-gray-400 font-normal"> · {zone.name}</span>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {row.pickup
+                              ? t('product.pickup')
+                              : t('product.estimatedDays', { min: row.daysMin, max: row.daysMax })}
+                            <span className="text-gray-400">{countries}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-gray-800">
+                          {row.cost > 0 ? formatPrice(row.cost, currency, locale) : t('product.freeShipping')}
                         </p>
+                        {row.freeOver != null && row.cost > 0 && (
+                          <p className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1 justify-end">
+                            <Package className="w-3 h-3" />
+                            {t('product.freeShippingOver', { amount: formatPrice(row.freeOver, currency, locale) })}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-gray-800">
-                        {formatPrice(Number(zone.base_cost), currency, locale)}
-                      </p>
-                      {zone.free_threshold && (
-                        <p className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1 justify-end">
-                          <Package className="w-3 h-3" />
-                          Free over {formatPrice(Number(zone.free_threshold), currency, locale)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ));
+                })}
               </div>
             </div>
           )}
