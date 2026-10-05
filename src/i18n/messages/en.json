@@ -119,6 +119,7 @@
     "viewImage": "View image {number}",
     "imageViewer": "Image viewer",
     "view": "View",
+    "soldBy": "Sold by {name}",
     "fieldRequired": "{label} is required",
     "minimumValue": "Minimum value is {min}",
     "maximumValue": "Maximum value is {max}",

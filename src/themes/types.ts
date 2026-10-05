@@ -172,6 +172,9 @@ export interface ProductContext {
     variant_values?: Array<{ option_name: string; option_value: string }>;
   }>;
   faqs?: Array<{ translations: Array<{ locale: string; question?: string; answer?: string }> }>;
+  // Marketplace vendor - only present when the store enabled "show vendor
+  // name"; null/absent everywhere else, so sections must treat it as optional.
+  vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
   // Catch-all so themes can read fields we haven't typed yet without ts-errors.
   [extra: string]: unknown;
 }
@@ -191,6 +194,8 @@ export interface ListingProduct {
   translations: Array<{ locale: string; title?: string; slug?: string }>;
   images: Array<{ url: string }>;
   promotions?: unknown[];
+  // Marketplace vendor (optional; see ProductContext.vendor).
+  vendor?: { company_name: string } | null;
   [extra: string]: unknown;
 }
 

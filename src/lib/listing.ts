@@ -22,6 +22,7 @@ export interface StorefrontProductRow {
   translations?: Array<{ locale: string; title?: string; slug?: string }>;
   images?: Array<{ url?: string }>;
   promotions?: PromotionRow[];
+  vendor?: { company_name?: string | null } | null;
 }
 
 export function toListingProduct(p: StorefrontProductRow): ListingProduct {
@@ -40,5 +41,6 @@ export function toListingProduct(p: StorefrontProductRow): ListingProduct {
     promotions: promo
       ? [{ type: promo.type, value: promo.value, translations: [{ title: promo.translations?.[0]?.title }] }]
       : undefined,
+    vendor: p.vendor?.company_name ? { company_name: p.vendor.company_name } : undefined,
   };
 }

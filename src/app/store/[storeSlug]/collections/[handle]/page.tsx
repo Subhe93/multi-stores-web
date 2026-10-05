@@ -26,6 +26,7 @@ interface Product {
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
   promotions?: ProductPromotion[];
+  vendor?: { company_name: string } | null;
 }
 
 interface CreatorCategoryTranslation {
@@ -448,6 +449,7 @@ export default async function CollectionPage({
                           'Offer'
                       : undefined
                   }
+                  vendorName={product.vendor?.company_name}
                 />
               );
             })}

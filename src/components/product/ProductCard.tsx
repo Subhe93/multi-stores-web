@@ -18,6 +18,8 @@ interface ProductCardProps {
   // Image aspect-ratio class. Defaults to the square card; listing sections
   // pass portrait/landscape from their settings.
   aspectClass?: string;
+  // Marketplace vendor name; renders a muted "Sold by ..." line under the title.
+  vendorName?: string;
 }
 
 export function ProductCard({
@@ -30,6 +32,7 @@ export function ProductCard({
   badge,
   promotionLabel,
   aspectClass = 'aspect-square',
+  vendorName,
 }: ProductCardProps) {
   const t = useTranslations('product');
   const formatted = new Intl.NumberFormat('en', {
@@ -113,6 +116,9 @@ export function ProductCard({
         <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug group-hover:opacity-75 transition-opacity">
           {title}
         </h3>
+        {vendorName && (
+          <p className="mt-0.5 text-xs text-gray-500 truncate">{t('soldBy', { name: vendorName })}</p>
+        )}
         <div className="mt-1.5 flex items-center gap-2 flex-wrap">
           <span
             className="text-sm font-bold"

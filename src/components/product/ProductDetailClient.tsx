@@ -34,6 +34,8 @@ export interface ProductData {
   customization_type?: string;
   translations: { locale: string; title: string; slug: string; description?: string }[];
   images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
+  // Marketplace vendor - only present when the store shows vendor names.
+  vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
   variants?: {
     id: string;
     sku?: string;
@@ -627,6 +629,11 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
             {translation?.title}
           </h1>
+          {product.vendor?.company_name && (
+            <p className="-mt-3 text-sm text-gray-500">
+              {t('product.soldBy', { name: product.vendor.company_name })}
+            </p>
+          )}
 
           {/* Price + Savings */}
           <div className="flex flex-col gap-1">

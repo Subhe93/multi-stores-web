@@ -119,6 +119,7 @@
     "viewImage": "{number}. görseli görüntüle",
     "imageViewer": "Görsel görüntüleyici",
     "view": "Görüntüle",
+    "soldBy": "Satıcı: {name}",
     "fieldRequired": "{label} gereklidir",
     "minimumValue": "Minimum değer {min}",
     "maximumValue": "Maksimum değer {max}",

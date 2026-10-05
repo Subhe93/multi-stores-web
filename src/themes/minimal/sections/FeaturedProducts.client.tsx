@@ -4,6 +4,7 @@
 // server-side theme registry can read `.Component` as a ClientReference.
 
 import { useEffect, useId, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
@@ -16,6 +17,7 @@ interface ProductRow {
   compare_at_price?: number;
   translations: Array<{ locale: string; title?: string; slug?: string }>;
   images: Array<{ url: string }>;
+  vendor?: { company_name: string } | null;
 }
 
 function clamp(n: number, min: number, max: number): number {
@@ -51,6 +53,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
 
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations('product');
 
   // Fetch on mount + whenever filter/locale change. Public storefront API so
   // this also works inside the builder iframe (no auth token needed).
@@ -213,6 +216,11 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   >
                     {tr?.title || ''}
                   </p>
+                  {p.vendor?.company_name && (
+                    <p className="text-xs truncate" style={{ color: 'var(--theme-colors-muted)' }}>
+                      {t('soldBy', { name: p.vendor.company_name })}
+                    </p>
+                  )}
                   <div className="flex items-baseline gap-2">
                     <span
                       className="text-sm font-semibold"

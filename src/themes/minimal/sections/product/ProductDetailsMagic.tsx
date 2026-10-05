@@ -1,8 +1,10 @@
 import { Heart, Share2, Star } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 function ProductDetailsMagic({ settings, content, locale, product, currency }: SectionRenderProps) {
+  const t = useTranslations('product');
   if (!product) {
     return (
       <div
@@ -68,18 +70,25 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
         </div>
       )}
 
-      {/* Title */}
-      <h1
-        style={{
-          fontFamily: 'var(--theme-font-heading)',
-          fontSize: 'var(--theme-scale-h2)',
-          lineHeight: 'var(--theme-line-heading)',
-          fontWeight: 'var(--theme-weight-heading)',
-          color: 'var(--theme-colors-text)',
-        }}
-      >
-        {title}
-      </h1>
+      {/* Title (+ marketplace vendor line when the store exposes it) */}
+      <div className="space-y-1">
+        <h1
+          style={{
+            fontFamily: 'var(--theme-font-heading)',
+            fontSize: 'var(--theme-scale-h2)',
+            lineHeight: 'var(--theme-line-heading)',
+            fontWeight: 'var(--theme-weight-heading)',
+            color: 'var(--theme-colors-text)',
+          }}
+        >
+          {title}
+        </h1>
+        {product.vendor?.company_name && (
+          <p className="text-sm" style={{ color: 'var(--theme-colors-muted)' }}>
+            {t('soldBy', { name: product.vendor.company_name })}
+          </p>
+        )}
+      </div>
 
       {/* Rating row */}
       {showRating && (

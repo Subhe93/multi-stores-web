@@ -119,6 +119,7 @@
     "viewImage": "عرض الصورة {number}",
     "imageViewer": "عارض الصور",
     "view": "عرض",
+    "soldBy": "من صنع {name}",
     "fieldRequired": "{label} مطلوب",
     "minimumValue": "الحد الأدنى للقيمة هو {min}",
     "maximumValue": "الحد الأقصى للقيمة هو {max}",

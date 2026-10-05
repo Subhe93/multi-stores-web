@@ -16,6 +16,7 @@ interface Product {
   compare_at_price?: number;
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
+  vendor?: { company_name: string } | null;
 }
 
 interface StoreTranslation {
@@ -419,6 +420,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                       : undefined
                   }
                   currency={store.currency}
+                  vendorName={product.vendor?.company_name}
                 />
               );
             })}

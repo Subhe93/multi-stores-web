@@ -313,6 +313,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             imageUrl={product.images[0]?.url ? resolveMediaUrl(product.images[0].url) : undefined}
             currency={currency}
             promotionLabel={promotionLabelFor(product)}
+            vendorName={product.vendor?.company_name}
             aspectClass={aspectClass}
           />
         );

@@ -119,6 +119,7 @@
     "viewImage": "Bild {number} anzeigen",
     "imageViewer": "Bildbetrachter",
     "view": "Ansehen",
+    "soldBy": "Verkauft von {name}",
     "fieldRequired": "{label} ist erforderlich",
     "minimumValue": "Mindestwert ist {min}",
     "maximumValue": "Maximalwert ist {max}",

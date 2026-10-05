@@ -119,6 +119,7 @@
     "viewImage": "Visa bild {number}",
     "imageViewer": "Bildvisare",
     "view": "Visa",
+    "soldBy": "Säljs av {name}",
     "fieldRequired": "{label} krävs",
     "minimumValue": "Minsta värde är {min}",
     "maximumValue": "Högsta värde är {max}",
