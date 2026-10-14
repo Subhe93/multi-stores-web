@@ -309,6 +309,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             href={`${lp}/products/${slugTr?.slug || product.id}`}
             title={translation?.title || 'Untitled'}
             price={Number(product.base_price)}
+            taxRateBp={product.tax_rate_bp}
             comparePrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
             imageUrl={product.images[0]?.url ? resolveMediaUrl(product.images[0].url) : undefined}
             currency={currency}

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { IfApp } from '@/components/IfApp';
+import { useStoreApp } from '@/hooks/useStoreApps';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 
 interface Address {
@@ -16,6 +18,10 @@ interface Address {
   country_code: string;
   phone?: string;
   is_default?: boolean;
+  /** b2b app: company fields of this (billing) address (M2-DESIGN D8). */
+  company_name?: string | null;
+  org_number?: string | null;
+  buyer_reference?: string | null;
 }
 
 const COUNTRIES = [
@@ -42,6 +48,10 @@ const EMPTY_FORM = {
   postal_code: '',
   country_code: '',
   phone: '',
+  // b2b app: company fields (only sent when the store has the app).
+  company_name: '',
+  org_number: '',
+  buyer_reference: '',
 };
 
 const inputCls =
@@ -50,6 +60,10 @@ const inputCls =
 export default function StoreAddressesPage() {
   const t = useTranslations('account');
   const tCheckout = useTranslations('checkout');
+  const tB2b = useTranslations('b2b');
+  // b2b app: company fields are rendered and sent only when the store has
+  // the app, so the POST body stays identical for every other store.
+  const b2bEnabled = Boolean(useStoreApp('b2b'));
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +110,13 @@ export default function StoreAddressesPage() {
           postal_code: form.postal_code,
           country_code: form.country_code,
           phone: form.phone || undefined,
+          ...(b2bEnabled
+            ? {
+                company_name: form.company_name.trim() || undefined,
+                org_number: form.org_number.trim() || undefined,
+                buyer_reference: form.buyer_reference.trim() || undefined,
+              }
+            : {}),
         }),
       });
       setAddresses((prev) => [...prev, newAddr]);
@@ -195,6 +216,22 @@ export default function StoreAddressesPage() {
               <label className="block text-xs font-medium text-gray-700 mb-1">{tCheckout('phone')}</label>
               <input name="phone" type="tel" value={form.phone} onChange={handleChange} className={inputCls} />
             </div>
+            {/* Company fields — b2b app only */}
+            <IfApp app="b2b">
+              <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+                <p className="text-xs font-semibold text-gray-900 mb-2">{tB2b('companyDetails')}</p>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('companyName')}</label>
+                <input name="company_name" value={form.company_name} onChange={handleChange} className={inputCls} autoComplete="organization" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('orgNumber')}</label>
+                <input name="org_number" value={form.org_number} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('reference')}</label>
+                <input name="buyer_reference" value={form.buyer_reference} onChange={handleChange} className={inputCls} maxLength={100} />
+              </div>
+            </IfApp>
             <div className="sm:col-span-2">
               <button
                 type="submit"
@@ -222,6 +259,12 @@ export default function StoreAddressesPage() {
               <div className="flex items-start justify-between">
                 <div className="text-sm text-gray-600 space-y-0.5">
                   <p className="font-medium text-gray-900">{addr.full_name}</p>
+                  {/* Company fields — b2b app only */}
+                  <IfApp app="b2b">
+                    {addr.company_name && <p className="text-gray-800">{addr.company_name}</p>}
+                    {addr.org_number && <p className="text-xs text-gray-500">{tB2b('orgNumber')}: {addr.org_number}</p>}
+                    {addr.buyer_reference && <p className="text-xs text-gray-500">{tB2b('reference')}: {addr.buyer_reference}</p>}
+                  </IfApp>
                   <p>{addr.line1}</p>
                   {addr.line2 && <p>{addr.line2}</p>}
                   <p>

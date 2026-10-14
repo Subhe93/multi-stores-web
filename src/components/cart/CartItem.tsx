@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/api';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { UnavailableInMarketNotice } from './UnavailableInMarket';
 
 export interface CartItemData {
   id: string;
@@ -19,6 +21,10 @@ export interface CartItemData {
   customFieldDisplay?: { id: string; label: string; value: unknown; display?: string | null }[];
   customerFile?: string;
   currency?: string;
+  /** b2b stores: estimated rate of the line, for the company net view. */
+  taxRateBp?: number | null;
+  /** Markets app: hidden in the request market — no price, remove only. */
+  unavailableInMarket?: boolean;
 }
 
 // Turn a stored custom-field value into short display text: option labels
@@ -46,9 +52,12 @@ interface CartItemProps {
 export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: CartItemProps) {
   const t = useTranslations();
   const [updating, setUpdating] = useState(false);
+  const display = useDisplayPrice();
   const currency = item.currency || 'EUR';
-  const lineTotal = item.price * item.quantity;
+  // Company view (b2b app) shows the net line total; persons the gross.
+  const lineTotal = display(item.price, item.taxRateBp, currency).amount * item.quantity;
   const img = resolveMediaUrl(item.imageUrl);
+  const unavailable = item.unavailableInMarket === true;
 
   async function handleQuantity(qty: number) {
     if (qty < 1) return;
@@ -60,7 +69,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
     <div className={`flex gap-3 py-4 border-b border-gray-100 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail with quantity badge */}
       <div className="relative w-16 h-16 shrink-0">
-        <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+        <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
             <img src={img} alt={item.title} className="w-full h-full object-cover" />
           ) : (
@@ -75,9 +84,14 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
       {/* Details */}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
-          <p className="text-sm font-semibold text-gray-900 shrink-0">{formatPrice(lineTotal, currency, locale)}</p>
+          <h3 className={`text-sm font-medium leading-snug line-clamp-2 ${unavailable ? 'text-gray-400' : 'text-gray-900'}`}>{item.title}</h3>
+          {/* An unavailable line has no valid price in this market. */}
+          {!unavailable && (
+            <p className="text-sm font-semibold text-gray-900 shrink-0">{formatPrice(lineTotal, currency, locale)}</p>
+          )}
         </div>
+
+        {unavailable && <UnavailableInMarketNotice />}
 
         {item.variant && (
           <p className="text-xs text-gray-500">{item.variant}</p>
@@ -101,7 +115,20 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
           </div>
         ) : null}
 
-        {/* Quantity controls + remove */}
+        {/* Unavailable line: the API rejects quantity changes, so only Remove. */}
+        {unavailable ? (
+          <div className="flex items-center justify-end mt-auto pt-2">
+            <button
+              type="button"
+              onClick={() => onRemove(item.id)}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:text-red-600 hover:border-red-200 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t('cart.remove')}
+            </button>
+          </div>
+        ) : (
+        /* Quantity controls + remove */
         <div className="flex items-center justify-between mt-auto pt-2">
           <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
             <button
@@ -133,6 +160,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
+        )}
       </div>
     </div>
   );

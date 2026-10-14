@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { Loader2, ShoppingBag, Tag, X, Minus, Plus, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
-import type { TaxLine, TaxPricingMode } from '@/lib/tax';
+import type { B2bNetTotals, TaxLine, TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
+import { useBuyerType } from '@/hooks/useBuyerType';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 // ── Order summary (checkout side panel) ──────────────────────────────────────
 // Shared by the classic checkout (read-only line items) and the Kustom-first
@@ -27,6 +30,10 @@ export interface OrderSummaryItem {
   bundleTitle?: string | null;
   bundleLabel?: string | null;
   bundleStickerText?: string | null;
+  /** b2b stores: estimated rate of the line (`items[].tax_rate_bp`). */
+  taxRateBp?: number | null;
+  /** Markets app: hidden in the request market — no price, remove only. */
+  unavailableInMarket?: boolean;
 }
 
 export interface OrderSummaryProps {
@@ -50,6 +57,9 @@ export interface OrderSummaryProps {
   /** When set, every line gets quantity +/- and a remove button. */
   onUpdateQuantity?: (itemId: string, quantity: number) => Promise<void> | void;
   onRemoveItem?: (itemId: string) => Promise<void> | void;
+  /** Remove handler for lines unavailable in the market when the summary is
+   *  otherwise read-only (classic checkout); `onRemoveItem` wins when set. */
+  onRemoveUnavailable?: (itemId: string) => Promise<void> | void;
   /** Optional copy under the shipping row (e.g. "calculated in the Kustom checkout"). */
   shippingNote?: string;
   /** Name of the chosen shipping method, shown as "Shipping (Standard shipping)".
@@ -66,6 +76,12 @@ export interface OrderSummaryProps {
   taxEstimated?: boolean;
   /** EXCLUSIVE only: no quote yet (country unknown / request in flight). */
   taxPending?: boolean;
+  /** b2b app, company view: the `b2b` net block of the quote / session /
+   *  cart (null when absent). */
+  b2bNet?: B2bNetTotals | null;
+  /** b2b app, company view: net item subtotal fallback when `b2bNet` is
+   *  absent (client estimate); null falls back to the gross `subtotal`. */
+  netItems?: number | null;
   t: (key: string) => string;
 }
 
@@ -129,12 +145,21 @@ export function OrderSummary({
   coupon, couponCode, setCouponCode, couponLoading, couponError,
   onApplyCoupon, onRemoveCoupon,
   shippingCost, shippingEstimate, shippingLoading, shippingError, effectiveShipping,
-  onUpdateQuantity, onRemoveItem, shippingNote, shippingMethodName,
+  onUpdateQuantity, onRemoveItem, onRemoveUnavailable, shippingNote, shippingMethodName,
   taxLines = [], pricingMode = 'INCLUSIVE', taxEstimated = false, taxPending = false,
+  b2bNet = null, netItems = null,
   t,
 }: OrderSummaryProps) {
   const editable = Boolean(onUpdateQuantity && onRemoveItem);
+  const { isCompany } = useBuyerType();
+  const display = useDisplayPrice();
   const exclusive = pricingMode === 'EXCLUSIVE';
+  // Company view on an INCLUSIVE store (M2-DESIGN §4.3 / L4): net subtotal and
+  // shipping, VAT as regular rows before a "Total incl. VAT" that equals the
+  // unchanged gross total. Persons take exactly the previous branches.
+  const companyNet = isCompany && !exclusive;
+  const shownSubtotal = companyNet ? (b2bNet ? b2bNet.net_items : netItems ?? subtotal) : subtotal;
+  const shownShipping = (amount: number) => (companyNet && b2bNet ? b2bNet.net_shipping : amount);
 
   return (
     <div className="space-y-4">
@@ -143,17 +168,20 @@ export function OrderSummary({
         {items.map((item) => {
           const img = resolveMediaUrl(item.imageUrl || item.image);
           const title = item.title || item.name || 'Product';
-          const lineTotal = item.price * item.quantity;
+          const unit = display(item.price, item.taxRateBp, currency).amount;
+          const lineTotal = unit * item.quantity;
           const originalUnit =
             typeof item.bundleOriginalUnitPrice === 'number'
-              ? item.bundleOriginalUnitPrice
+              ? display(item.bundleOriginalUnitPrice, item.taxRateBp, currency).amount
               : null;
           const originalLineTotal =
             originalUnit !== null ? originalUnit * item.quantity : null;
+          const unavailable = item.unavailableInMarket === true;
+          const removeUnavailable = onRemoveItem ?? onRemoveUnavailable;
           return (
             <div key={item.id} className={`flex gap-3 ${editable ? 'items-start' : 'items-center'}`}>
               <div className="relative w-14 h-14 shrink-0">
-                <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-white">
+                <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-white ${unavailable ? 'opacity-50 grayscale' : ''}`}>
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={img} alt={title} className="w-full h-full object-cover" />
@@ -168,7 +196,8 @@ export function OrderSummary({
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 leading-snug line-clamp-2">{title}</p>
+                <p className={`text-sm leading-snug line-clamp-2 ${unavailable ? 'text-gray-400' : 'text-gray-800'}`}>{title}</p>
+                {unavailable && <UnavailableInMarketNotice className="mt-0.5" />}
                 {item.variant && <p className="text-xs text-gray-500">{item.variant}</p>}
                 {item.bundleOfferId && (
                   <div className="flex flex-wrap items-center gap-1 mt-0.5">
@@ -184,7 +213,17 @@ export function OrderSummary({
                     )}
                   </div>
                 )}
-                {editable && onUpdateQuantity && onRemoveItem && (
+                {unavailable ? (
+                  removeUnavailable && (
+                    <button
+                      type="button"
+                      onClick={() => removeUnavailable(item.id)}
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-red-600 underline underline-offset-2 transition-colors"
+                    >
+                      {t('cart.remove')}
+                    </button>
+                  )
+                ) : editable && onUpdateQuantity && onRemoveItem && (
                   <LineControls
                     itemId={item.id}
                     quantity={item.quantity}
@@ -194,6 +233,8 @@ export function OrderSummary({
                   />
                 )}
               </div>
+              {/* No valid price for a line unavailable in this market. */}
+              {!unavailable && (
               <div className="shrink-0 text-right">
                 <p className="text-sm font-semibold text-gray-900">
                   {formatPrice(lineTotal, currency)}
@@ -204,6 +245,7 @@ export function OrderSummary({
                   </p>
                 )}
               </div>
+              )}
             </div>
           );
         })}
@@ -253,8 +295,8 @@ export function OrderSummary({
 
         {/* Price rows */}
         <div className="flex justify-between text-sm py-1">
-          <span className="text-gray-600">{t('cart.subtotal')}</span>
-          <span className="text-gray-900 font-medium">{formatPrice(subtotal, currency)}</span>
+          <span className="text-gray-600">{companyNet ? t('b2b.subtotalExclVat') : t('cart.subtotal')}</span>
+          <span className="text-gray-900 font-medium">{formatPrice(shownSubtotal, currency)}</span>
         </div>
         <div className="flex justify-between text-sm py-1">
           <span className="text-gray-600">
@@ -266,7 +308,7 @@ export function OrderSummary({
               : coupon?.freeShipping ? t('checkout.freeShippingLabel')
               : shippingCost === null ? t('cart.calculatedAtCheckout')
               : shippingCost === 0 ? t('checkout.freeShippingLabel')
-              : formatPrice(shippingCost, currency)}
+              : formatPrice(shownShipping(shippingCost), currency)}
           </span>
         </div>
         {shippingNote && (
@@ -279,10 +321,17 @@ export function OrderSummary({
           <p className="text-xs text-red-500 mt-1">{shippingError}</p>
         )}
         {discount > 0 && (
+          companyNet ? (
+            // Net subtotal is already post-discount (L4): informational only.
+            <p className="text-xs text-gray-500 py-1">
+              {(t as unknown as (key: string, values: Record<string, string>) => string)('b2b.includesDiscount', { amount: formatPrice(discount, currency) })}
+            </p>
+          ) : (
           <div className="flex justify-between text-sm py-1">
             <span className="text-green-600">{t('cart.discount')}</span>
             <span className="text-green-600 font-medium">-{formatPrice(discount, currency)}</span>
           </div>
+          )
         )}
 
         {/* EXCLUSIVE: tax is added on top, so the rows come before the total. */}
@@ -297,12 +346,36 @@ export function OrderSummary({
           )
         )}
 
-        <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
-          <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
-          <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
-        </div>
+        {companyNet ? (
+          <>
+            {/* Company view, INCLUSIVE store: net total, VAT rows, total incl. VAT. */}
+            {b2bNet && (
+              <div className="flex justify-between text-sm py-1 border-t border-gray-100 mt-1">
+                <span className="text-gray-900 font-medium">{t('b2b.netTotal')}</span>
+                <span className="text-gray-900 font-medium">{formatPrice(b2bNet.net_total, currency)}</span>
+              </div>
+            )}
+            {taxLines.length > 0 ? (
+              <TaxLineRows lines={taxLines} currency={currency} variant="row" />
+            ) : (
+              <div className="flex justify-between text-sm py-1">
+                <span className="text-gray-600">{t('cart.tax')}</span>
+                <span className="text-gray-500">{taxPending ? '...' : t('cart.calculatedAtCheckout')}</span>
+              </div>
+            )}
+            <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
+              <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
+              <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
+            <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
+          </div>
+        )}
         {/* INCLUSIVE: informational, prices already contain the tax. */}
-        {!exclusive && taxLines.length > 0 && (
+        {!exclusive && !companyNet && taxLines.length > 0 && (
           <div className="pt-1 space-y-0.5">
             <TaxLineRows lines={taxLines} currency={currency} variant="muted" />
           </div>

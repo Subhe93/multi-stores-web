@@ -7,6 +7,9 @@ import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
+import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
@@ -17,6 +20,11 @@ interface Store {
   currency?: string;
   /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
   tax?: StoreTaxConfig | null;
+  /** Enabled store apps — always sent by the API (`{}` when none). */
+  apps?: StorefrontApps | null;
+  /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
@@ -44,9 +52,12 @@ export default async function CheckoutLayout({
   const requestHeaders = await headers();
   const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
 
+  // Market of the request host (markets app); undefined for other stores.
+  const marketKey = await getRequestMarketKey();
+
   let store: Store;
   try {
-    store = await storefront.getStore(storeSlug) as Store;
+    store = await storefront.getStore(storeSlug, marketKey) as Store;
   } catch {
     notFound();
   }
@@ -67,7 +78,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

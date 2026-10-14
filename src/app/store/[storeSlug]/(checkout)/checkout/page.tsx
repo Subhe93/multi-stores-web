@@ -9,14 +9,26 @@ import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus,
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useMarket } from '@/hooks/useMarket';
 import { api, storefront } from '@/lib/api';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
-import { normalizeTaxLines, normalizeTaxPricingMode, type TaxLine } from '@/lib/tax';
+import { normalizeB2bNetTotals, normalizeTaxLines, normalizeTaxPricingMode, type TaxLine } from '@/lib/tax';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
 import { validateEmail, validatePhone } from '@/lib/validators';
+import { useBuyerType } from '@/hooks/useBuyerType';
+import {
+  normalizeOrgNumber,
+  normalizeVatNumber,
+  orgNumberFormatHint,
+  validateCompanyName,
+  validateOrgNumber,
+  validateVatNumber,
+} from '@/lib/b2bValidators';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { KustomCheckout } from '@/components/checkout/KustomCheckout';
+import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
+import { availableLines } from '@/lib/cartAvailability';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -73,6 +85,8 @@ interface OrderQuoteResponse {
   tax_pricing_mode?: string;
   tax_basis_country?: string | null;
   shipping_method_id?: string | null;
+  /** b2b app, company quote: net figures (M2-DESIGN D3); absent otherwise. */
+  b2b?: unknown;
 }
 // Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
 const QUOTE_DEBOUNCE_MS = 400;
@@ -88,6 +102,10 @@ interface SavedAddress {
   country_code?: string;
   phone?: string;
   is_default?: boolean;
+  /** b2b app: company fields saved with the address (M2-DESIGN D8). */
+  company_name?: string | null;
+  org_number?: string | null;
+  buyer_reference?: string | null;
 }
 
 const COUNTRIES = [
@@ -158,14 +176,30 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const {
     items, subtotal, total, coupon, currency,
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
+    b2bNet: cartB2bNet, netItems,
     clearCart, applyCoupon, removeCoupon, syncGuestCartToServer,
+    removeItem, hasUnavailableItems,
   } = useCart();
+  // b2b app (M2-DESIGN §4.4): company view adds the company section, sends
+  // `buyer_type` + `company` with the quote / order and saves the company
+  // defaults best-effort. `isCompany` is always false without the app, so
+  // every request body below stays identical for other stores.
+  const { isCompany, settings: b2bSettings } = useBuyerType();
+  // Markets app: the request market (null otherwise). Quote and order bodies
+  // then carry `market_key` + the hostname/locale the order was placed on
+  // (M1-DESIGN D1); non-market stores send exactly the previous bodies.
+  const market = useMarket();
+  // Evaluated at submit time: `window` is unavailable during SSR.
+  const marketBody = () =>
+    market ? { market_key: market.key, hostname: window.location.hostname, locale } : {};
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     email: '', first_name: '', last_name: '',
     line1: '', line2: '', city: '', state: '',
     postal_code: '', country_code: '', phone: '',
+    // b2b app: company section (only read when `isCompany`).
+    company_name: '', org_number: '', vat_number: '', buyer_reference: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
@@ -255,11 +289,31 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     : pricingMode === 'INCLUSIVE' ? cartTaxLines : [];
   const taxEstimated = quote ? false : cartTaxEstimated;
   const taxPending = !quote && quoteLoading;
+  // Company view: net block of the quote once there is one, else the cart's.
+  const b2bNet = quote ? normalizeB2bNetTotals(quote.b2b) : cartB2bNet;
 
   // Pre-fill email from user profile
   useEffect(() => {
     if (user?.email && !form.email) setForm((p) => ({ ...p, email: user.email }));
   }, [user?.email, form.email]);
+
+  // b2b app: prefill the company section from the selected saved address
+  // (its own company fields) and the account defaults (/auth/me customer),
+  // never overwriting what the shopper already typed.
+  const prefillCompanyName = activeSavedAddress?.company_name || user?.customer?.company_name || '';
+  const prefillOrgNumber = activeSavedAddress?.org_number || user?.customer?.org_number || '';
+  const prefillVatNumber = user?.customer?.vat_number || '';
+  const prefillReference = activeSavedAddress?.buyer_reference || '';
+  useEffect(() => {
+    if (!isCompany) return;
+    setForm((p) => ({
+      ...p,
+      company_name: p.company_name || prefillCompanyName,
+      org_number: p.org_number || prefillOrgNumber,
+      vat_number: p.vat_number || prefillVatNumber,
+      buyer_reference: p.buyer_reference || prefillReference,
+    }));
+  }, [isCompany, prefillCompanyName, prefillOrgNumber, prefillVatNumber, prefillReference]);
 
   // Fetch saved addresses for logged-in users
   useEffect(() => {
@@ -288,7 +342,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       setShippingLoading(false);
       return;
     }
-    const productIds = items.map((i) => i.customProductId || i.productId).filter(Boolean);
+    // Lines unavailable in the market are not part of the order.
+    const purchasable = availableLines(items);
+    const productIds = purchasable.map((i) => i.customProductId || i.productId).filter(Boolean);
     if (productIds.length === 0) return;
 
     // Ignore a slow response that lands after the country changed again.
@@ -300,7 +356,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       body: JSON.stringify({
         product_ids: productIds,
         country_code: countryCode,
-        item_count: items.reduce((s, i) => s + i.quantity, 0),
+        item_count: purchasable.reduce((s, i) => s + i.quantity, 0),
         subtotal,
         locale,
       }),
@@ -351,6 +407,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const quoteShippingMethodId =
     selectedShippingMethod && !selectedShippingMethod.legacy ? selectedShippingMethod.id : null;
   const quoteCouponCode = coupon?.code ?? null;
+  const quoteMarketKey = market?.key;
   useEffect(() => {
     if (!storeId || !shippingCountryCode || items.length === 0) {
       setQuote(null);
@@ -365,6 +422,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         token: token ?? undefined,
         body: JSON.stringify({
           store_id: storeId,
+          ...(quoteMarketKey ? { market_key: quoteMarketKey } : {}),
           // Guest lines travel as the serialised key so the effect depends on
           // their content, not on the array identity.
           ...(isLoggedInForQuote ? {} : { lines: JSON.parse(quoteLinesKey) }),
@@ -374,6 +432,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           ...(quoteShippingMethodId ? { shipping_method_id: quoteShippingMethodId } : {}),
           ...(quoteCouponCode ? { coupon_code: quoteCouponCode } : {}),
           locale,
+          // b2b app: the company quote carries the `b2b` net block.
+          ...(isCompany ? { buyer_type: 'COMPANY' } : {}),
         }),
       })
         .then((res) => { if (!cancelled) setQuote(res); })
@@ -384,6 +444,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   }, [
     storeId, token, isLoggedInForQuote, quoteLinesKey, items.length,
     shippingCountryCode, shippingPostcode, shippingRegion, quoteShippingMethodId, quoteCouponCode, locale, requoteTick,
+    quoteMarketKey, isCompany,
   ]);
 
   // Track viewport so only the active layout mounts the CardElement.
@@ -436,12 +497,35 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       if (phoneErr) errs.phone = t(phoneErr);
     }
 
+    if (isCompany) {
+      // Mirror of the API's B2B_* rules (M2-DESIGN D7); the API stays authoritative.
+      const nameErr = validateCompanyName(form.company_name);
+      if (nameErr) errs.company_name = t(nameErr);
+      const orgErr = validateOrgNumber(shippingCountryCode, form.org_number, b2bSettings.org_number_countries);
+      if (orgErr) errs.org_number = orgErr.format ? t(orgErr.key, { format: orgErr.format }) : t(orgErr.key);
+      const vatErr = validateVatNumber(form.vat_number, b2bSettings.require_vat_number);
+      if (vatErr) errs.vat_number = t(vatErr);
+    }
+
     if (wantAccount && !isLoggedIn && accountPassword.length < 8) {
       errs.password = t('checkout.errors.fieldRequired');
     }
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
+
+  // b2b app: company payload for the order (source of truth for the order
+  // snapshot, D8) and the pieces saved best-effort on the address / customer.
+  function companyPayload() {
+    const vat = normalizeVatNumber(form.vat_number);
+    return {
+      company_name: form.company_name.trim(),
+      org_number: normalizeOrgNumber(shippingCountryCode, form.org_number, b2bSettings.org_number_countries),
+      ...(vat ? { vat_number: vat } : {}),
+      ...(form.buyer_reference.trim() ? { buyer_reference: form.buyer_reference.trim() } : {}),
+    };
+  }
+  const b2bBody = () => (isCompany ? { buyer_type: 'COMPANY', company: companyPayload() } : {});
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -483,6 +567,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     if (submittingRef.current) return;
     // Defense in depth — the server rejects COD for stores that disabled it.
     if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
+    // Lines unavailable in this market must be removed first (the button is
+    // disabled too; this guards an Enter-key submit).
+    if (hasUnavailableItems) return;
     // The server ties the order to this store (commission model, payout
     // routing, catalogue check), so don't submit before it has resolved.
     if (!storeId) {
@@ -547,6 +634,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       if (usingSavedAddress) {
         addressId = selectedAddressId!;
       } else {
+        const company = isCompany ? companyPayload() : null;
         const address = await api<AddressResponse>('/customers/me/addresses', {
           method: 'POST', token: activeToken,
           body: JSON.stringify({
@@ -554,9 +642,30 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             line2: form.line2 || undefined, city: form.city,
             state: form.state || undefined, postal_code: form.postal_code,
             country_code: form.country_code, phone: form.phone || undefined,
+            // b2b app: company fields travel with the (billing) address.
+            ...(company
+              ? { company_name: company.company_name, org_number: company.org_number, buyer_reference: company.buyer_reference }
+              : {}),
           }),
         });
         addressId = address.id;
+      }
+
+      // 1b. b2b app: remember the company defaults on the customer (prefill
+      // for the next checkout). Best-effort — the order carries the snapshot.
+      if (isCompany) {
+        try {
+          const company = companyPayload();
+          await api('/customers/me', {
+            method: 'PUT', token: activeToken,
+            body: JSON.stringify({
+              customer_type: 'COMPANY',
+              company_name: company.company_name,
+              org_number: company.org_number,
+              vat_number: company.vat_number ?? null,
+            }),
+          });
+        } catch { /* prefill only */ }
       }
 
       // 2. Payment
@@ -577,6 +686,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'STRIPE',
+            ...marketBody(),
+            ...b2bBody(),
             ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
@@ -609,6 +720,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'COD',
+            ...marketBody(),
+            ...b2bBody(),
             ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
@@ -624,6 +737,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         // message and re-quote so the list (and the selection) refresh.
         setError(t('errors.ORDER_SHIPPING_METHOD_INVALID'));
         setRequoteTick((n) => n + 1);
+      } else if (code && code.startsWith('B2B_') && t.has(`errors.${code}`)) {
+        // b2b app: the API rejected the company data (format / app off).
+        setError(t(`errors.${code}`));
       } else {
         setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
       }
@@ -684,6 +800,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               shippingMethodName={selectedShippingMethod?.name}
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
+              b2bNet={b2bNet} netItems={netItems}
+              onRemoveUnavailable={removeItem}
               t={t as (key: string) => string}
             />
           </div>
@@ -801,6 +919,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-900">{addr.full_name}</p>
+                              {addr.company_name && (
+                                <p className="text-xs text-gray-700">{addr.company_name}</p>
+                              )}
                               <p className="text-xs text-gray-500 mt-0.5">
                                 {addr.line1}
                                 {addr.line2 ? `, ${addr.line2}` : ''}
@@ -901,6 +1022,46 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 </>
               )}
 
+              {/* ── Company details (b2b app, company view) ── */}
+              {/* Shown for saved addresses too: a saved address may lack the
+                  company fields; the order body is the snapshot's source. */}
+              {isCompany && (
+                <>
+                  <SectionHeading>{t('b2b.companyDetails')}</SectionHeading>
+
+                  <div className="mb-3">
+                    <Label htmlFor="ck_company" required>{t('b2b.companyName')}</Label>
+                    <input id="ck_company" name="company_name" type="text" value={form.company_name}
+                      onChange={handleChange} className={inputCls(!!fieldErrors.company_name)} autoComplete="organization" />
+                    {fieldErrors.company_name && <p className="mt-1 text-xs text-red-500">{fieldErrors.company_name}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <Label htmlFor="ck_org" required>{t('b2b.orgNumber')}</Label>
+                      <input id="ck_org" name="org_number" type="text" value={form.org_number}
+                        onChange={handleChange} className={inputCls(!!fieldErrors.org_number)}
+                        placeholder={orgNumberFormatHint(shippingCountryCode, b2bSettings.org_number_countries)} />
+                      {fieldErrors.org_number
+                        ? <p className="mt-1 text-xs text-red-500">{fieldErrors.org_number}</p>
+                        : <p className="mt-1 text-xs text-gray-400">{t('b2b.orgNumberFormat', { format: orgNumberFormatHint(shippingCountryCode, b2bSettings.org_number_countries) })}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="ck_vat" required={b2bSettings.require_vat_number}>{t('b2b.vatNumber')}</Label>
+                      <input id="ck_vat" name="vat_number" type="text" value={form.vat_number}
+                        onChange={handleChange} className={inputCls(!!fieldErrors.vat_number)} placeholder="SE556677889901" />
+                      {fieldErrors.vat_number && <p className="mt-1 text-xs text-red-500">{fieldErrors.vat_number}</p>}
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <Label htmlFor="ck_ref">{t('b2b.reference')}</Label>
+                    <input id="ck_ref" name="buyer_reference" type="text" value={form.buyer_reference}
+                      onChange={handleChange} className={inputCls()} maxLength={100} />
+                  </div>
+                </>
+              )}
+
               {/* ── Shipping method ── */}
               {/* The form column is shared by the desktop and mobile layouts,
                   so a single list serves both. Rendered once a country is
@@ -989,6 +1150,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               shippingMethodName={selectedShippingMethod?.name}
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
+              b2bNet={b2bNet} netItems={netItems}
+              onRemoveUnavailable={removeItem}
               t={t as (key: string) => string}
             />
 
@@ -1064,7 +1227,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
               className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1073,6 +1236,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
+            {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
 
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
               <Lock className="w-3 h-3" />
@@ -1137,7 +1301,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             )}
             <button
               type="submit"
-              disabled={loading || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
               className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1146,6 +1310,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
+            {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
               <Lock className="w-3 h-3" />
               {t('checkout.allTransactionsSecure')}
@@ -1195,6 +1360,8 @@ function CheckoutRouter() {
   const searchParams = useSearchParams();
   const wantsClassic = searchParams.get('method') === 'classic';
   const [availability, setAvailability] = useState<PaymentAvailability | null>(null);
+  // Markets app: `kustom_enabled` / currency must reflect the request market.
+  const routerMarketKey = useMarket()?.key;
 
   useEffect(() => {
     let cancelled = false;
@@ -1206,7 +1373,7 @@ function CheckoutRouter() {
       let storeKustomEnabled = true;
       if (storeSlug) {
         try {
-          const store = await storefront.getStore(storeSlug) as {
+          const store = await storefront.getStore(storeSlug, routerMarketKey) as {
             id: string;
             card_payments_enabled?: boolean;
             cod_enabled?: boolean;
@@ -1243,7 +1410,7 @@ function CheckoutRouter() {
     }
     init();
     return () => { cancelled = true; };
-  }, [storeSlug]);
+  }, [storeSlug, routerMarketKey]);
 
   if (!availability) return <LoadingState />;
 

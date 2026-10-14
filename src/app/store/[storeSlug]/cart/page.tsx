@@ -10,6 +10,11 @@ import { formatPrice } from '@/lib/format';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatCartFieldValue } from '@/components/cart/CartItem';
+import { RemoveUnavailableHint, UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
+import { IfApp } from '@/components/IfApp';
+import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
+import { useBuyerType } from '@/hooks/useBuyerType';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -93,6 +98,10 @@ interface CartItemRowProps {
     bundleTitle?: string | null;
     bundleLabel?: string | null;
     bundleStickerText?: string | null;
+    /** b2b stores: estimated rate of the line (company net view). */
+    taxRateBp?: number | null;
+    /** Markets app: hidden in the request market — no price, remove only. */
+    unavailableInMarket?: boolean;
   };
   onUpdateQuantity: (id: string, qty: number) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
@@ -102,14 +111,20 @@ interface CartItemRowProps {
 function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
   const t = useTranslations();
   const { currency } = useCart();
+  const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
   const title = item.title || item.name || 'Product';
   const img = resolveMediaUrl(item.imageUrl || item.image);
-  const lineTotal = item.price * item.quantity;
+  // Company view (b2b app) prices the line net; persons see the gross.
+  const unitShown = display(item.price, item.taxRateBp, currency).amount;
+  const lineTotal = unitShown * item.quantity;
   const hasBundle = Boolean(item.bundleOfferId);
   const originalUnit =
-    typeof item.bundleOriginalUnitPrice === 'number' ? item.bundleOriginalUnitPrice : null;
+    typeof item.bundleOriginalUnitPrice === 'number'
+      ? display(item.bundleOriginalUnitPrice, item.taxRateBp, currency).amount
+      : null;
   const originalLineTotal = originalUnit !== null ? originalUnit * item.quantity : null;
+  const unavailable = item.unavailableInMarket === true;
 
   async function changeQty(qty: number) {
     if (qty < 1) return;
@@ -121,7 +136,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
     <div className={`flex gap-4 py-5 border-b border-gray-200 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail */}
       <div className="relative w-20 h-20 shrink-0">
-        <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+        <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
             <img src={img} alt={title} className="w-full h-full object-cover" />
           ) : (
@@ -138,7 +153,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
 
       {/* Details */}
       <div className="flex-1 min-w-0 flex flex-col gap-1">
-        <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">{title}</p>
+        <p className={`text-sm font-medium leading-snug line-clamp-2 ${unavailable ? 'text-gray-400' : 'text-gray-900'}`}>{title}</p>
+        {unavailable && <UnavailableInMarketNotice />}
         {item.variant && (
           <p className="text-xs text-gray-500">{item.variant}</p>
         )}
@@ -181,8 +197,9 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           </div>
         ) : null}
 
-        {/* Quantity stepper */}
+        {/* Quantity stepper (an unavailable line can only be removed) */}
         <div className="flex items-center gap-3 mt-auto pt-2">
+          {!unavailable && (
           <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-8">
             <button
               onClick={() => changeQty(item.quantity - 1)}
@@ -204,17 +221,21 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
               <Plus className="w-3 h-3" />
             </button>
           </div>
+          )}
 
           <button
             onClick={() => onRemove(item.id)}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2"
+            className={unavailable
+              ? 'text-xs font-medium text-gray-700 hover:text-red-600 transition-colors underline underline-offset-2'
+              : 'text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2'}
           >
             {t('cart.remove')}
           </button>
         </div>
       </div>
 
-      {/* Line price */}
+      {/* Line price (hidden for a line unavailable in this market) */}
+      {!unavailable && (
       <div className="shrink-0 text-right">
         <p className="text-sm font-semibold text-gray-900">{formatPrice(lineTotal, currency)}</p>
         {originalLineTotal !== null && originalLineTotal > lineTotal && (
@@ -223,9 +244,10 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           </p>
         )}
         {item.quantity > 1 && (
-          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(item.price, currency)} {t('cart.each')}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(unitShown, currency)} {t('cart.each')}</p>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -235,11 +257,17 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, loading, subtotal, total, coupon, currency,
-    taxLines, taxPricingMode, taxEstimated, totalWithTax,
+    items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, dismissPricesNotice,
+    taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
     itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
+    hasUnavailableItems,
   } = useCart();
+  const display = useDisplayPrice();
+  const { isCompany } = useBuyerType();
   const taxExclusive = taxPricingMode === 'EXCLUSIVE';
+  // Company view on an INCLUSIVE store (b2b app, M2-DESIGN §4.3 / L4): net
+  // subtotal, VAT as regular rows, "Total incl. VAT" = the gross total.
+  const companyNet = isCompany && !taxExclusive;
 
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -277,6 +305,19 @@ export default function StoreCartPage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-8">
           {t('cart.title')}
         </h1>
+
+        {/* Cross-market hand-off: lines re-priced / dropped for this market */}
+        {(pricesUpdated || handoffDropped > 0) && (
+          <div role="status" className="mb-6 px-4 py-3 rounded-lg bg-amber-50 text-amber-800 text-sm flex items-start gap-3">
+            <span className="flex-1">
+              {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
+              {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
+            </span>
+            <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="text-xs underline hover:opacity-70">
+              {t('market.suggest.dismiss')}
+            </button>
+          </div>
+        )}
 
         <div className="lg:grid lg:grid-cols-12 lg:gap-12">
 
@@ -344,10 +385,12 @@ export default function StoreCartPage() {
                           {item.quantity}
                         </span>
                       </div>
-                      <p className="flex-1 text-xs text-gray-700 leading-snug line-clamp-1">{title}</p>
+                      <p className={`flex-1 text-xs leading-snug line-clamp-1 ${item.unavailableInMarket ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{title}</p>
+                      {!item.unavailableInMarket && (
                       <p className="text-xs font-semibold text-gray-900 shrink-0">
-                        {formatPrice(item.price * item.quantity, currency)}
+                        {formatPrice(display(item.price, item.taxRateBp, currency).amount * item.quantity, currency)}
                       </p>
+                      )}
                     </div>
                   );
                 })}
@@ -396,10 +439,17 @@ export default function StoreCartPage() {
                   <p className="text-xs text-red-500 mb-2">{couponError}</p>
                 )}
 
+                {/* Person | Company toggle — b2b app only */}
+                <IfApp app="b2b">
+                  <div className="mb-3">
+                    <BuyerTypeToggle variant="full" />
+                  </div>
+                </IfApp>
+
                 {/* Totals */}
                 <div className="flex justify-between text-sm text-gray-600 py-1">
-                  <span>{t('cart.subtotal')}</span>
-                  <span className="font-medium text-gray-900">{formatPrice(subtotal, currency)}</span>
+                  <span>{companyNet ? t('b2b.subtotalExclVat') : t('cart.subtotal')}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(companyNet ? netItems ?? subtotal : subtotal, currency)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm py-1">
@@ -408,12 +458,40 @@ export default function StoreCartPage() {
                 </div>
 
                 {discount > 0 && (
+                  companyNet ? (
+                    // Net subtotal is already post-discount (L4): informational only.
+                    <p className="text-xs text-gray-500 py-1">{t('b2b.includesDiscount', { amount: formatPrice(discount, currency) })}</p>
+                  ) : (
                   <div className="flex justify-between text-sm py-1">
                     <span className="text-green-600">{t('cart.discount')}</span>
                     <span className="text-green-600 font-medium">-{formatPrice(discount, currency)}</span>
                   </div>
+                  )
                 )}
 
+                {companyNet ? (
+                  <div className="pt-2 border-t border-gray-200 mt-1 pb-2 space-y-1">
+                    {b2bNet && (
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="font-medium text-gray-900">{t('b2b.netTotal')}</span>
+                        <span className="font-medium text-gray-900">{formatPrice(b2bNet.net_total, currency)}</span>
+                      </div>
+                    )}
+                    {taxLines.length > 0 ? (
+                      <TaxLineRows lines={taxLines} currency={currency} variant="row" />
+                    ) : (
+                      <p className="text-xs text-gray-500">{t('cart.taxAtCheckout')}</p>
+                    )}
+                    <div className="flex justify-between py-2 border-t border-gray-200">
+                      <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
+                      <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
+                    </div>
+                    {taxLines.length > 0 && taxEstimated && (
+                      <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
+                    )}
+                  </div>
+                ) : (
+                <>
                 <div className="flex justify-between py-3 border-t border-gray-200 mt-1">
                   <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
                   <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
@@ -441,9 +519,25 @@ export default function StoreCartPage() {
                     <TaxLineRows lines={taxLines} currency={currency} variant="muted" />
                   </div>
                 )}
+                </>
+                )}
               </div>
 
-              {/* Checkout button */}
+              {/* Checkout button (blocked while lines unavailable in this market remain) */}
+              {hasUnavailableItems ? (
+                <div className="mt-1 space-y-1.5">
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center justify-center gap-2 w-full py-3.5 text-white text-sm font-semibold rounded-lg opacity-50 cursor-not-allowed"
+                    style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                  >
+                    <Lock className="w-4 h-4" />
+                    {t('cart.checkout')}
+                  </button>
+                  <RemoveUnavailableHint />
+                </div>
+              ) : (
               <Link
                 href={lp('/checkout')}
                 className="flex items-center justify-center gap-2 w-full py-3.5 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity mt-1"
@@ -452,6 +546,7 @@ export default function StoreCartPage() {
                 <Lock className="w-4 h-4" />
                 {t('cart.checkout')}
               </Link>
+              )}
 
               <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
                 <Lock className="w-3 h-3" />

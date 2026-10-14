@@ -7,8 +7,11 @@ import { useTranslations } from 'next-intl';
 import { X, ShoppingCart } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
+import { IfApp } from '@/components/IfApp';
+import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
+import { RemoveUnavailableHint } from './UnavailableInMarket';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -20,8 +23,9 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const lp = useLocalePath();
   const {
     items, itemCount, subtotal, total, coupon, currency,
-    taxLines, taxPricingMode, taxEstimated, totalWithTax,
-    updateQuantity, removeItem,
+    taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
+    updateQuantity, removeItem, pricesUpdated, handoffDropped, dismissPricesNotice,
+    hasUnavailableItems,
   } = useCart();
 
   // Portal the drawer to <body> so its `position: fixed` is relative to the
@@ -123,6 +127,18 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
           ) : (
             <>
+              {/* Cross-market hand-off: lines re-priced / dropped for this market */}
+              {(pricesUpdated || handoffDropped > 0) && (
+                <div role="status" className="mx-6 mb-2 px-3 py-2 rounded-md bg-amber-50 text-amber-800 text-xs flex items-start gap-2">
+                  <span className="flex-1">
+                    {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
+                    {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
+                  </span>
+                  <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="p-0.5 hover:opacity-70">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {/* Items list */}
               <div className="flex-1 overflow-y-auto px-6">
                 {items.map((item) => (
@@ -140,6 +156,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       customFieldDisplay: item.customFieldDisplay,
                       customerFile: item.customerFile,
                       currency,
+                      taxRateBp: item.taxRateBp,
+                      unavailableInMarket: item.unavailableInMarket,
                     }}
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}
@@ -154,6 +172,10 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <span className="text-green-600 font-medium">{t('cart.couponApplied')}: {coupon.code}</span>
                   </div>
                 )}
+                {/* Person | Company toggle — b2b app only */}
+                <IfApp app="b2b">
+                  <BuyerTypeToggle variant="full" />
+                </IfApp>
                 <CartSummary
                   subtotal={subtotal}
                   discount={coupon ? (coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount) : undefined}
@@ -163,7 +185,23 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   taxPricingMode={taxPricingMode}
                   taxEstimated={taxEstimated}
                   totalWithTax={totalWithTax}
+                  b2bNet={b2bNet}
+                  netItems={netItems}
                 />
+                {hasUnavailableItems ? (
+                  // Lines hidden in this market block checkout until removed.
+                  <div className="space-y-1.5">
+                    <button
+                      type="button"
+                      disabled
+                      className="block w-full py-3 text-white text-sm font-semibold text-center rounded-lg opacity-50 cursor-not-allowed"
+                      style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                    >
+                      {t('cart.checkout')}
+                    </button>
+                    <RemoveUnavailableHint />
+                  </div>
+                ) : (
                 <Link
                   href={lp('/checkout')}
                   onClick={onClose}
@@ -172,6 +210,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 >
                   {t('cart.checkout')}
                 </Link>
+                )}
                 <button
                   onClick={onClose}
                   className="block w-full py-2.5 text-sm font-medium text-gray-500 text-center hover:text-gray-900 transition-colors"

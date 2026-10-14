@@ -7,12 +7,16 @@ import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
 import { useApiError } from '@/lib/useApiError';
+import { useMarket } from '@/hooks/useMarket';
 
 export default function StoreForgotPasswordPage() {
   const t = useTranslations('auth');
   const lp = useLocalePath();
   const pathname = usePathname();
   const apiError = useApiError();
+  // Markets app: the reset link must come back on this market's domain, so
+  // the request carries the hostname (validated server-side, M1-DESIGN D1).
+  const market = useMarket();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -39,7 +43,11 @@ export default function StoreForgotPasswordPage() {
     try {
       await api('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({ email, ...(storeSlug ? { store_slug: storeSlug } : {}) }),
+        body: JSON.stringify({
+          email,
+          ...(storeSlug ? { store_slug: storeSlug } : {}),
+          ...(market ? { hostname: window.location.hostname } : {}),
+        }),
       });
       // Always show a neutral success message — never reveal whether the email exists.
       setSuccess(true);

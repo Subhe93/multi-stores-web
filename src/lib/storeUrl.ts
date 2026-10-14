@@ -1,3 +1,16 @@
+import { marketHreflangCode } from './market-routing';
+
+/** The slice of a market needed to build URLs for it (M1-DESIGN §4.3). */
+export interface MarketUrlInput {
+  key: string;
+  is_default: boolean;
+  countries: string[];
+  default_locale: string;
+  locales: string[];
+  primary_hostname: string | null;
+  status?: string;
+}
+
 /**
  * Build the canonical origin for a store's storefront. This is the URL search
  * engines (and customers) should see — NOT the internal `/store/{slug}/...`
@@ -5,13 +18,19 @@
  * `/store/...` path is an implementation detail that should never appear in
  * sitemaps, canonical tags, robots files, or social meta.
  *
- * Priority: store.custom_domain → `{slug}.{platformHost}` derived from
- * NEXT_PUBLIC_WEB_URL (with a sane localhost fallback for dev).
+ * Priority: market.primary_hostname (markets app only) → store.custom_domain
+ * → `{slug}.{platformHost}` derived from NEXT_PUBLIC_WEB_URL (with a sane
+ * localhost fallback for dev). Stores without a market pass nothing for the
+ * third argument and get exactly the previous result.
  */
 export function buildStoreOrigin(
   storeSlug: string,
   customDomain?: string | null,
+  market?: { primary_hostname?: string | null } | null,
 ): string {
+  if (market?.primary_hostname) {
+    return `https://${market.primary_hostname}`;
+  }
   if (customDomain) {
     return `https://${customDomain}`;
   }
@@ -67,9 +86,39 @@ export function buildStoreAlternates(opts: {
   primaryLocale: string;
   secondaryLocales?: string[];
   path?: string;
+  /**
+   * Markets app only (M1-DESIGN §4.3 / D9): every LIVE market of the store.
+   * When given, hreflang covers each market × locale on that market's origin
+   * (`lang-COUNTRY` for single-country markets), collisions keep the default
+   * market and `x-default` is the default market's default locale. Omitted or
+   * empty → today's single-origin output, untouched.
+   */
+  markets?: MarketUrlInput[] | null;
+  /** Needed with `markets` to build the platform origin of a market without
+   *  its own hostname. Falls back to `origin`. */
+  storeSlug?: string;
+  /** Per-locale sub-path (translated product slugs); `path` is the fallback. */
+  pathByLocale?: Record<string, string | undefined> | null;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
+
+  // Only LIVE markets, and a non-default market needs its own hostname: the
+  // platform subdomain always serves the default market, so a hostless
+  // secondary market has no URL to advertise (L5).
+  const liveMarkets = (opts.markets ?? []).filter(isServableMarket);
+  if (liveMarkets.length > 0) {
+    return buildMarketAlternates({
+      origin,
+      locale,
+      primaryLocale,
+      allLocales,
+      path,
+      markets: liveMarkets,
+      platformOrigin: opts.storeSlug ? buildStoreOrigin(opts.storeSlug, null) : origin,
+      pathByLocale: opts.pathByLocale ?? {},
+    });
+  }
 
   const languages: Record<string, string> = {};
   for (const l of allLocales) {
@@ -82,6 +131,61 @@ export function buildStoreAlternates(opts: {
   const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
   return {
     canonical: storeLocalePath(origin, selfLocale, primaryLocale, path),
+    languages,
+  };
+}
+
+/** LIVE and reachable: the default market always is; others need a hostname. */
+export function isServableMarket(m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status'>): boolean {
+  if (m.status && m.status !== 'LIVE') return false;
+  return m.is_default || Boolean(m.primary_hostname);
+}
+
+/** Origin a market is served on: its own hostname, else the platform subdomain. */
+export function marketOrigin(market: Pick<MarketUrlInput, 'primary_hostname'>, platformOrigin: string): string {
+  return market.primary_hostname ? `https://${market.primary_hostname}` : platformOrigin;
+}
+
+// Markets branch of buildStoreAlternates (kept apart so the legacy body above
+// stays byte-for-byte the same for stores without the app).
+function buildMarketAlternates(opts: {
+  origin: string;
+  locale: string;
+  primaryLocale: string;
+  allLocales: string[];
+  path: string;
+  markets: MarketUrlInput[];
+  platformOrigin: string;
+  pathByLocale: Record<string, string | undefined>;
+}): { canonical: string; languages: Record<string, string> } {
+  const { origin, locale, primaryLocale, allLocales, path, markets, platformOrigin, pathByLocale } = opts;
+  const defaultMarket = markets.find((m) => m.is_default) ?? markets[0]!;
+
+  const languages: Record<string, string> = {};
+  // Owner market of each emitted code, so a later collision from a
+  // non-default market never overwrites the default market's URL.
+  const owner: Record<string, MarketUrlInput> = {};
+  for (const m of markets) {
+    const mOrigin = marketOrigin(m, platformOrigin);
+    for (const l of Array.from(new Set([m.default_locale, ...m.locales]))) {
+      const code = marketHreflangCode(m, l);
+      const existing = owner[code];
+      if (existing && (existing.is_default || !m.is_default)) continue;
+      languages[code] = storeLocalePath(mOrigin, l, m.default_locale, pathByLocale[l] ?? path);
+      owner[code] = m;
+    }
+  }
+  languages['x-default'] = storeLocalePath(
+    marketOrigin(defaultMarket, platformOrigin),
+    defaultMarket.default_locale,
+    defaultMarket.default_locale,
+    pathByLocale[defaultMarket.default_locale] ?? path,
+  );
+
+  // Canonical = this page on the CURRENT market's origin, in its own locale.
+  const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
+  return {
+    canonical: storeLocalePath(origin, selfLocale, primaryLocale, pathByLocale[selfLocale] ?? path),
     languages,
   };
 }

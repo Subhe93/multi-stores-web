@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/format';
-import type { TaxLine, TaxPricingMode } from '@/lib/tax';
+import type { B2bNetTotals, TaxLine, TaxPricingMode } from '@/lib/tax';
+import { useBuyerType } from '@/hooks/useBuyerType';
 import { TaxLineRows } from './TaxLineRows';
 
 interface CartSummaryProps {
@@ -20,6 +21,11 @@ interface CartSummaryProps {
   taxEstimated?: boolean;
   /** EXCLUSIVE mode: `total` + tax; null when unknown (guest cart). */
   totalWithTax?: number | null;
+  /** b2b app, company view: the `b2b` net block of GET /cart (null when absent). */
+  b2bNet?: B2bNetTotals | null;
+  /** b2b app, company view: net item subtotal (server, else client estimate);
+   *  null falls back to the gross `subtotal`. */
+  netItems?: number | null;
 }
 
 export function CartSummary({
@@ -34,10 +40,62 @@ export function CartSummary({
   taxPricingMode = 'INCLUSIVE',
   taxEstimated = true,
   totalWithTax = null,
+  b2bNet = null,
+  netItems = null,
 }: CartSummaryProps) {
   const t = useTranslations('cart');
+  const tB2b = useTranslations('b2b');
+  const { isCompany } = useBuyerType();
   const fmt = (amount: number) => formatPrice(amount, currency, locale);
   const exclusive = taxPricingMode === 'EXCLUSIVE';
+
+  // Company view on an INCLUSIVE store (M2-DESIGN §4.3 / L4): net subtotal,
+  // VAT as regular rows, "Total incl. VAT" = the unchanged gross total.
+  // Persons (and every store without the app) take the branches below.
+  if (isCompany && !exclusive) {
+    const netSubtotal = netItems ?? subtotal;
+    return (
+      <div className="space-y-3">
+        {itemCount !== undefined && (
+          <div className="flex justify-between text-sm text-gray-500">
+            <span>{t('itemCount', { count: itemCount })}</span>
+          </div>
+        )}
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>{tB2b('subtotalExclVat')}</span>
+          <span>{fmt(netSubtotal)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>{t('shipping')}</span>
+          <span>
+            {shipping !== undefined && shipping !== 0
+              ? fmt(b2bNet ? b2bNet.net_shipping : shipping)
+              : t('calculatedAtCheckout')}
+          </span>
+        </div>
+        {/* The net subtotal is already post-discount (L4), so the discount is
+            informational here and the rows add up. */}
+        {discount !== undefined && discount > 0 && (
+          <p className="text-xs text-gray-500">{tB2b('includesDiscount', { amount: fmt(discount) })}</p>
+        )}
+        <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
+          {b2bNet && (
+            <div className="flex justify-between text-sm font-medium text-gray-900">
+              <span>{tB2b('netTotal')}</span>
+              <span>{fmt(b2bNet.net_total)}</span>
+            </div>
+          )}
+          <TaxLineRows lines={taxLines} currency={currency} locale={locale} variant="row" />
+          <div className="flex justify-between text-base font-bold text-gray-900 pt-1 border-t border-gray-100">
+            <span>{tB2b('totalInclVat')}</span>
+            <span>{fmt(total)}</span>
+          </div>
+          {taxLines.length > 0 && taxEstimated && <p className="text-xs text-gray-500">{t('taxEstimatedNote')}</p>}
+          {taxLines.length === 0 && <p className="text-xs text-gray-500">{t('taxAtCheckout')}</p>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

@@ -11,6 +11,15 @@ import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
+import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey, getRequestSuggestedMarket } from '@/lib/market.server';
+import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
+import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
+import { IfApp } from '@/components/IfApp';
+import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
+import { normalizeB2bSettings } from '@/lib/b2bSettings';
+import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, tokensToCssVars, tokenFonts } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -53,6 +62,12 @@ interface Store {
   currency?: string;
   /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
   tax?: StoreTaxConfig | null;
+  /** Enabled store apps — always sent by the API (`{}` when none). */
+  apps?: StorefrontApps | null;
+  /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
+  custom_domain?: string | null;
   description?: string;
   logo_url?: string;
   favicon_url?: string;
@@ -156,12 +171,12 @@ export async function generateMetadata({
     const cookieStore = await cookies();
     const requestHeaders = await headers();
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
-    const store = await storefront.getStore(storeSlug) as Store;
+    const store = await storefront.getStore(storeSlug, await getRequestMarketKey()) as Store;
     const primaryLocale = store.language_config?.primary_locale || 'en';
     const lang = urlLocale || primaryLocale;
     const trans = store.theme?.translations?.[lang];
 
-    const origin = buildStoreOrigin(storeSlug, (store as { custom_domain?: string | null }).custom_domain || null);
+    const origin = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
 
     // Deliberately NO `alternates` here. Metadata merges per top-level field,
     // so a canonical set at the layout is inherited verbatim by every route
@@ -208,9 +223,14 @@ export default async function StoreLayout({
   const requestHeaders = await headers();
   const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
 
+  // Market of the request host (markets app) + the proxy's geo suggestion.
+  // Both are undefined/null for stores without the app.
+  const marketKey = await getRequestMarketKey();
+  const suggestedMarket = marketKey ? await getRequestSuggestedMarket() : null;
+
   let store: Store;
   try {
-    store = await storefront.getStore(storeSlug) as Store;
+    store = await storefront.getStore(storeSlug, marketKey) as Store;
   } catch {
     notFound();
   }
@@ -238,6 +258,19 @@ export default async function StoreLayout({
   } catch {
     publishedFooter = null;
   }
+
+  // Enabled store apps — `{}` for stores without any (D2 keeps output identical).
+  const storeApps = normalizeStoreApps(store.apps);
+
+  // b2b app (M2-DESIGN §4.1): seed the buyer type from the `ms-buyer-type`
+  // cookie / the app's default. The cookie is only read for stores with the
+  // app, so every other store renders exactly as before.
+  const buyerType: BuyerType | undefined = storeApps.b2b
+    ? resolveInitialBuyerType({
+        cookie: cookieStore.get(BUYER_COOKIE)?.value,
+        settings: normalizeB2bSettings(storeApps.b2b.settings),
+      })
+    : undefined;
 
   // Navigation menus the creator built — chrome sections resolve a menu key
   // to its items via storeContext.menus. Soft-fail to an empty list.
@@ -397,7 +430,7 @@ export default async function StoreLayout({
   // JSON-LD: Organization + WebSite. Embedded at the storefront root so every
   // page inside this store inherits them. The url is the store's subdomain
   // (custom_domain wins) — never the internal /store/{slug} path.
-  const storeUrl = buildStoreOrigin(storeSlug, (store as { custom_domain?: string | null }).custom_domain || null);
+  const storeUrl = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
   const sameAs = [socials?.instagram, socials?.facebook, socials?.twitter, socials?.tiktok, socials?.youtube]
     .filter((u): u is string => !!u && /^https?:\/\//i.test(u));
   const organizationLd = buildOrganization({
@@ -420,7 +453,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} buyerType={buyerType}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -474,10 +507,21 @@ export default async function StoreLayout({
               secondaryLocales,
               pages: pages as StoreContext['pages'],
               menus: storeMenus,
+              apps: storeApps,
+              ...(store.market ? { market: store.market, markets: store.markets ?? [] } : {}),
             };
 
             const headerSections = publishedHeader?.snapshot?.sections;
             const footerSections = publishedFooter?.snapshot?.sections;
+
+            // "You seem to be in {country} — switch market?" strip under the
+            // header. Only market stores receive the proxy's suggestion, and
+            // <IfApp> keeps it out of the tree for everyone else.
+            const marketBanner = suggestedMarket ? (
+              <IfApp app="markets">
+                <MarketSuggestBanner storeSlug={storeSlug} suggestedKey={suggestedMarket.key} country={suggestedMarket.country} />
+              </IfApp>
+            ) : null;
 
             const headerSlot =
               headerSections && headerSections.length > 0 ? (
@@ -491,6 +535,23 @@ export default async function StoreLayout({
                     storeContext={storeCtx}
                     chrome
                   />
+                  {/* A published chrome header has no built-in switcher slot
+                      yet (a chrome section is a later milestone), so market
+                      stores get a slim strip with the country switcher, and
+                      b2b stores the Person | Company toggle (M2-DESIGN §4.2). */}
+                  {(store.market || storeApps.b2b) && (
+                    <div className="store-surface store-bd border-b px-4 py-1 flex justify-end items-center gap-3">
+                      <IfApp app="b2b">
+                        <BuyerTypeToggle primaryColor={primaryColor} />
+                      </IfApp>
+                      {store.market && (
+                        <IfApp app="markets">
+                          <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
+                        </IfApp>
+                      )}
+                    </div>
+                  )}
+                  {marketBanner}
                 </div>
               ) : (
                 <div id="store-nav-header" style={{ display: 'contents' }}>
@@ -507,6 +568,7 @@ export default async function StoreLayout({
                     showStoreName={showStoreName}
                     logoSize={logoSize}
                   />
+                  {marketBanner}
                 </div>
               );
 

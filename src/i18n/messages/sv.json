@@ -173,7 +173,12 @@
     "each": "styck",
     "taxEstimatedNote": "Momsen är uppskattad; det slutliga beloppet beräknas i kassan.",
     "taxAtCheckout": "Moms beräknas i kassan",
-    "totalInclTax": "Totalt (inkl. moms)"
+    "totalInclTax": "Totalt (inkl. moms)",
+    "pricesUpdatedForMarket": "Priserna har uppdaterats för den här marknaden.",
+    "linesDroppedForMarket": "{count, plural, one {# vara kunde inte flyttas till den här marknaden.} other {# varor kunde inte flyttas till den här marknaden.}}",
+    "unavailableInMarket": "Inte tillgänglig i {market}",
+    "unavailableHere": "Inte tillgänglig på den här marknaden",
+    "removeUnavailable": "Ta bort de varor som inte är tillgängliga för att gå vidare till kassan."
   },
   "checkout": {
     "title": "Kassa",
@@ -254,7 +259,12 @@
       "countryRequired": "Land krävs",
       "shippingRequired": "Välj ett fraktsätt",
       "phoneInvalid": "Ange ett giltigt telefonnummer",
-      "fieldRequired": "Detta fält är obligatoriskt"
+      "fieldRequired": "Detta fält är obligatoriskt",
+      "companyNameRequired": "Företagsnamn krävs",
+      "orgNumberRequired": "Organisationsnummer krävs",
+      "orgNumberInvalid": "Ogiltigt organisationsnummer (förväntat format: {format})",
+      "vatNumberRequired": "Momsregistreringsnummer krävs",
+      "vatNumberInvalid": "Ogiltigt momsregistreringsnummer"
     },
     "estimatedDeliveryVaries": "Beräknad leveranstid varierar",
     "comingSoon": "Kommer snart",
@@ -344,7 +354,24 @@
     "newPassword": "Nytt lösenord",
     "confirmPassword": "Bekräfta lösenord",
     "passwordChanged": "Lösenordet ändrades",
-    "minPasswordChars": "Minst 8 tecken"
+    "minPasswordChars": "Minst 8 tecken",
+    "companyDefaults": "Företagsuppgifter",
+    "buyerType": "Köpartyp",
+    "invoices": {
+      "title": "Fakturor",
+      "invoice": "Faktura",
+      "creditNote": "Kreditfaktura",
+      "number": "Nummer",
+      "date": "Datum",
+      "amount": "Belopp",
+      "paid": "Betald",
+      "unpaid": "Obetald",
+      "download": "Ladda ner PDF",
+      "downloading": "Laddar ner…",
+      "pdfUnavailable": "PDF:en är tillfälligt otillgänglig. Försök igen senare.",
+      "loadFailed": "Det gick inte att läsa in fakturorna för den här beställningen.",
+      "retry": "Försök igen"
+    }
   },
   "orderStatus": {
     "PENDING": "Väntande",
@@ -380,6 +407,31 @@
     "collectionsCount": "kollektioner",
     "noCollections": "Inga kollektioner ännu.",
     "viewCollection": "Visa kollektionen"
+  },
+  "market": {
+    "switchCountry": "Byt land",
+    "suggest": {
+      "title": "Det verkar som att du befinner dig i {country}. Byt till {market}?",
+      "cta": "Byt till {market}",
+      "dismiss": "Stäng"
+    },
+    "notFound": "Det här språket är inte tillgängligt för det här landet."
+  },
+  "b2b": {
+    "person": "Privatperson",
+    "company": "Företag",
+    "toggleLabel": "Handla som",
+    "plusVat": "+{rate} moms",
+    "companyDetails": "Företagsuppgifter",
+    "companyName": "Företagsnamn",
+    "orgNumber": "Organisationsnummer",
+    "vatNumber": "Momsregistreringsnummer",
+    "reference": "Er referens",
+    "orgNumberFormat": "Format: {format}",
+    "netTotal": "Nettosumma",
+    "totalInclVat": "Totalt inkl. moms",
+    "subtotalExclVat": "Delsumma exkl. moms",
+    "includesDiscount": "Inkluderar rabatt på {amount} inkl. moms"
   },
   "errors": {
     "generic": "Något gick fel. Försök igen.",
@@ -513,7 +565,17 @@
     "PRODUCT_FAQ_NOT_FOUND": "Vanliga frågan hittades inte",
     "PAGE_BUILDER_PAGE_NOT_FOUND": "Sidan hittades inte",
     "CUSTOM_FIELD_PRODUCT_NOT_FOUND": "Produkten hittades inte",
-    "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attributmallen hittades inte"
+    "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attributmallen hittades inte",
+    "B2B_COMPANY_NOT_ALLOWED": "Företagsköp är inte tillgängliga i den här butiken",
+    "B2B_COMPANY_NAME_REQUIRED": "Företagsnamn krävs",
+    "B2B_ORG_NUMBER_REQUIRED": "Organisationsnummer krävs",
+    "B2B_ORG_NUMBER_INVALID": "Organisationsnumret är ogiltigt",
+    "B2B_VAT_NUMBER_REQUIRED": "Momsregistreringsnummer krävs",
+    "B2B_VAT_NUMBER_INVALID": "Momsregistreringsnumret är ogiltigt",
+    "STORE_APP_SETTINGS_INVALID": "Appens inställningar är ogiltiga",
+    "INVOICE_NOT_FOUND": "Fakturan hittades inte.",
+    "INVOICE_PDF_UNAVAILABLE": "Fakturans PDF är tillfälligt otillgänglig. Försök igen senare.",
+    "CART_ITEM_NOT_AVAILABLE_IN_MARKET": "Produkten är inte tillgänglig på den här marknaden."
   },
   "builderPreview": {
     "moveUp": "Flytta upp",

@@ -5,9 +5,11 @@
 import { useMemo, useState } from 'react';
 import { Check, Loader2, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
+import { useApiError } from '@/lib/useApiError';
 import { resolveMediaUrl } from '@/lib/api';
 import type { ProductContext, SectionRenderProps } from '../../../types';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 const COLOR_OPTION_NAMES = new Set(['color', 'colour', 'لون']);
 const NAMED_COLOR_MAP: Record<string, string> = {
@@ -53,11 +55,15 @@ function normaliseVariants(product: ProductContext): NormalisedVariant[] {
 
 export function AddToCartMagic({ settings, content, locale, product, currency }: SectionRenderProps) {
   const { addItem } = useCart();
+  // b2b app: company view shows net amounts.
+  const display = useDisplayPrice();
   const variants = useMemo(() => (product ? normaliseVariants(product) : []), [product]);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(variants[0]?.id ?? null);
   const [qty, setQty] = useState(1);
   const [busy, setBusy] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const [addError, setAddError] = useState('');
+  const apiError = useApiError();
 
   const buttonStyle = (settings.button_style as 'solid' | 'outline') || 'solid';
   const fullWidth = settings.full_width !== false;
@@ -102,17 +108,18 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
   const stock = selectedVariant?.stock;
 
   const c = currency || 'EUR';
+  const taxRateBp = product.tax_rate_bp ?? null;
   const priceLabel = new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
     style: 'currency',
     currency: c,
     maximumFractionDigits: 2,
-  }).format(Number(displayPrice));
+  }).format(display(Number(displayPrice), taxRateBp, c).amount);
   const compareAtLabel = compareAt
     ? new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
         style: 'currency',
         currency: c,
         maximumFractionDigits: 2,
-      }).format(Number(compareAt))
+      }).format(display(Number(compareAt), taxRateBp, c).amount)
     : null;
 
   const buttonLabel = (content.button_label as string) || (locale === 'ar' ? 'أضف للسلة' : 'Add to cart');
@@ -126,16 +133,20 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
   async function handleAdd() {
     if (!product || busy || needsVariant) return;
     setBusy(true);
+    setAddError('');
     try {
       await addItem(
         product.id,
         selectedVariantId,
         qty,
         {},
-        { title, price: Number(displayPrice), imageUrl, currency: c },
+        { title, price: Number(displayPrice), imageUrl, currency: c, taxRateBp: taxRateBp ?? undefined },
       );
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1800);
+    } catch (err) {
+      // e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET, translated via errors.*
+      setAddError(apiError(err));
     } finally {
       setBusy(false);
     }
@@ -298,7 +309,7 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
               {compareAtLabel}
             </span>
           )}
-          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} />
+          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} taxRateBp={taxRateBp} />
           {showStock && typeof stock === 'number' && (
             <span className="text-xs ml-auto" style={{ color: stock > 0 ? 'var(--theme-colors-muted)' : '#dc2626' }}>
               {stock > 0
@@ -347,6 +358,9 @@ export function AddToCartMagic({ settings, content, locale, product, currency }:
         )}
 
         {cta}
+        {addError && (
+          <p role="alert" className="text-sm text-red-600">{addError}</p>
+        )}
       </section>
 
       {showSticky && (

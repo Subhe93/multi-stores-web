@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildTwitterMeta } from '@/lib/jsonld';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance } from '@/themes/types';
@@ -48,6 +50,8 @@ interface StoreLite {
   theme_key?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   custom_domain?: string | null;
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
 }
 
 interface PageProps {
@@ -56,11 +60,11 @@ interface PageProps {
 }
 
 // Avoid colliding with sibling routes that share the [pageSlug] segment.
-const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account', 'collections', 'p']);
+const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account', 'collections', 'p', 'market-not-found']);
 
 async function fetchData(storeSlug: string, pageSlug: string) {
   const [store, v2, legacy] = await Promise.all([
-    storefront.getStore(storeSlug).catch(() => null) as Promise<StoreLite | null>,
+    storefront.getStore(storeSlug, await getRequestMarketKey()).catch(() => null) as Promise<StoreLite | null>,
     storefront.getPublishedPage(storeSlug, pageSlug, 'STATIC').catch(() => null) as Promise<V2Page | null>,
     storefront.getPage(storeSlug, pageSlug).catch(() => null) as Promise<LegacyPage | null>,
   ]);
@@ -81,7 +85,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
   // Canonical = subdomain URL with primary locale (no prefix). Alternates
   // use path-prefix `/{locale}/...` for secondary locales.
-  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
+  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
   const subpath = `/${pageSlug}`;
   const alternates = buildStoreAlternates({
     origin: origin,
@@ -89,6 +93,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     primaryLocale,
     secondaryLocales: secondary,
     path: subpath,
+    markets: store?.markets,
+    storeSlug,
   });
 
   if (v2) {

@@ -80,6 +80,67 @@ export function normalizeStoreTax(raw: unknown): StoreTaxConfig | null {
   };
 }
 
+/** Net figures the API derives for company views (b2b app, M2-DESIGN D3/D4). */
+export interface B2bNetTotals {
+  display_mode: 'incl' | 'excl';
+  /** Σ line nets after the discount share. */
+  net_items: number;
+  net_shipping: number;
+  /** `total − tax_total`. */
+  net_total: number;
+}
+
+/** Coerce a `b2b` block of GET /cart, POST /orders/quote or a Kustom session; null when absent. */
+export function normalizeB2bNetTotals(raw: unknown): B2bNetTotals | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (!('net_total' in r) && !('net_items' in r) && !('netTotal' in r) && !('netItems' in r)) return null;
+  const netItems = toNumber(r.net_items ?? r.netItems);
+  const netShipping = toNumber(r.net_shipping ?? r.netShipping);
+  const netTotal = 'net_total' in r || 'netTotal' in r ? toNumber(r.net_total ?? r.netTotal) : netItems + netShipping;
+  return {
+    display_mode: (r.display_mode ?? r.displayMode) === 'excl' ? 'excl' : 'incl',
+    net_items: netItems,
+    net_shipping: netShipping,
+    net_total: netTotal,
+  };
+}
+
+/**
+ * Net figures of a stored order, derived rather than stored (M2-DESIGN D4,
+ * mirror of the API's `deriveNetTotals`): `gross = total`,
+ * `net_total = total − tax_amount`, `net_shipping = INCLUSIVE ?
+ * shipping_cost − shipping_tax_amount : shipping_cost`. `tax_amount` falls
+ * back to the sum of `tax_lines` for orders that only carry the lines.
+ */
+export function deriveNetTotals(order: {
+  total?: number | string | null;
+  tax_amount?: number | string | null;
+  tax_lines?: unknown;
+  shipping_cost?: number | string | null;
+  shipping_tax_amount?: number | string | null;
+  tax_pricing_mode?: TaxPricingMode | string | null;
+}): B2bNetTotals {
+  const total = toNumber(order.total);
+  const taxAmount =
+    order.tax_amount !== undefined && order.tax_amount !== null
+      ? toNumber(order.tax_amount)
+      : sumTaxLines(normalizeTaxLines(order.tax_lines));
+  const shipping = toNumber(order.shipping_cost);
+  const shippingTax = toNumber(order.shipping_tax_amount);
+  const inclusive = order.tax_pricing_mode !== 'EXCLUSIVE';
+  // Trim float noise from the subtractions (amounts are major units).
+  const clean = (n: number) => Math.max(0, Math.round(n * 1e6) / 1e6);
+  const netShipping = clean(inclusive ? shipping - shippingTax : shipping);
+  const netTotal = clean(total - taxAmount);
+  return {
+    display_mode: 'excl',
+    net_items: clean(netTotal - netShipping),
+    net_shipping: netShipping,
+    net_total: netTotal,
+  };
+}
+
 /**
  * Older orders (pre tax-system) carry only `tax_rate_bp` / `tax_amount`; the
  * migration back-fills `tax_lines`, but keep a one-line fallback so a receipt

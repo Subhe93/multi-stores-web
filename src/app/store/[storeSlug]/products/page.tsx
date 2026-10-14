@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -21,6 +23,8 @@ interface ProductPromotion {
 interface Product {
   id: string;
   base_price: number;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
   compare_at_price?: number;
   created_at?: string;
   translations: { locale: string; title: string; slug: string }[];
@@ -63,12 +67,14 @@ export async function generateMetadata({
   const { lang, search, category, creator_category, sort } = await searchParams;
   try {
     const [store, t] = await Promise.all([
-      storefront.getStore(storeSlug) as Promise<{
+      storefront.getStore(storeSlug, await getRequestMarketKey()) as Promise<{
         name?: string;
         description?: string | null;
         custom_domain?: string | null;
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
         theme?: { translations?: Record<string, { name?: string; description?: string }> };
+        market?: MarketRoute | null;
+        markets?: MarketRoute[];
       } | null>,
       getTranslations(),
     ]);
@@ -78,11 +84,13 @@ export async function generateMetadata({
     const storeName = store?.theme?.translations?.[locale]?.name || store?.name || '';
 
     const alternates = buildStoreAlternates({
-      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null),
+      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
       secondaryLocales: secondary,
       path: '/products',
+      markets: store?.markets,
+      storeSlug,
     });
 
     const isFiltered = Boolean(search || category || creator_category || sort);
@@ -114,12 +122,14 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // The store is read first (cached): without a locale prefix in the URL the
   // catalogue is rendered in the store's primary locale, not in English.
-  const storeData = (await storefront.getStore(storeSlug)) as {
+  const marketKey = await getRequestMarketKey();
+  const storeData = (await storefront.getStore(storeSlug, marketKey)) as {
     currency?: string;
     custom_domain?: string | null;
     language_config?: { primary_locale?: string } | null;
     theme?: { hero?: StoreHero };
     theme_key?: string;
+    market?: MarketRoute | null;
   };
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
 
@@ -131,7 +141,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // Only the creator's own collections are shown on the storefront — admin/provider
   // taxonomy categories live at the platform level and don't belong on the store page.
   const [products, creatorCategories, template] = await Promise.all([
-    storefront.getProducts(storeSlug, queryParams) as Promise<Product[]>,
+    storefront.getProducts(storeSlug, queryParams, marketKey) as Promise<Product[]>,
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup
@@ -171,7 +181,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // JSON-LD for the catalogue. Skipped on filtered views: those are noindex,
   // and describing a filtered subset as "the catalogue" would be inaccurate.
-  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
   const listingUrl = storeLocalePath(ldOrigin, locale, ldPrimary, '/products');
   const listingLd = isFiltered
@@ -491,6 +501,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
+                  taxRateBp={product.tax_rate_bp}
                   comparePrice={
                     product.compare_at_price ? Number(product.compare_at_price) : undefined
                   }

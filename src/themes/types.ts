@@ -3,6 +3,8 @@
 
 import type { ComponentType, ReactNode } from 'react';
 import type { HeroPageConfig } from '@/lib/hero';
+import type { StorefrontApps } from '@/lib/storeApps';
+import type { MarketRoute } from '@/lib/market';
 
 export type LocalizedString = Record<string, string>;
 
@@ -161,6 +163,8 @@ export interface ProductContext {
   id: string;
   base_price: number;
   compare_at_price?: number;
+  /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */
+  tax_rate_bp?: number | null;
   translations: Array<{ locale: string; title?: string; description?: string; slug?: string }>;
   images: Array<{ url: string; alt_text?: string | null; sort_order?: number }>;
   variants?: Array<{
@@ -188,6 +192,8 @@ export interface ProductContext {
 
 export interface ListingProduct {
   id: string;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
   base_price: number;
   compare_at_price?: number;
   created_at?: string;
@@ -259,6 +265,13 @@ export interface StoreContext {
   /** Navigation menus keyed by their `key`. Chrome sections look up a menu
    *  by the key the creator selected, then render its items. */
   menus?: NavMenu[];
+  /** Enabled store apps (normalized `apps` block of `storefront.getStore`).
+   *  Lets sections gate UI on an app without a client hook. */
+  apps?: StorefrontApps;
+  /** Market the request is served in (markets app); absent otherwise. */
+  market?: MarketRoute | null;
+  /** Every LIVE market of the store (markets app); absent otherwise. */
+  markets?: MarketRoute[];
 }
 
 /** Resolve a menu's items by key from a StoreContext. When `locale` is

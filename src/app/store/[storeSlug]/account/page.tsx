@@ -5,14 +5,27 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
-import { Package, MapPin, Pencil, Loader2, Lock, Check } from 'lucide-react';
+import { IfApp } from '@/components/IfApp';
+import { useStoreApp } from '@/hooks/useStoreApps';
+import { Package, MapPin, Pencil, Loader2, Lock, Check, Building2 } from 'lucide-react';
 
 interface UserProfile {
   id: string;
   email: string;
   avatar_url?: string;
-  customer?: { first_name: string; last_name: string; phone?: string };
+  customer?: {
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    /** b2b app: company defaults used to prefill checkout (M2-DESIGN D8). */
+    customer_type?: 'PERSON' | 'COMPANY' | null;
+    company_name?: string | null;
+    org_number?: string | null;
+    vat_number?: string | null;
+  };
 }
+
+type BuyerTypeValue = 'PERSON' | 'COMPANY';
 
 const inputCls =
   'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition';
@@ -20,14 +33,21 @@ const inputCls =
 export default function StoreAccountPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tB2b = useTranslations('b2b');
   const lp = useLocalePath();
+  // b2b app: the company fieldset is rendered (and its fields sent) only when
+  // the store has the app, so the PUT body stays identical elsewhere.
+  const b2bEnabled = Boolean(useStoreApp('b2b'));
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Profile edit state
   const [editing, setEditing] = useState(false);
-  const [profileForm, setProfileForm] = useState({ first_name: '', last_name: '', phone: '' });
+  const [profileForm, setProfileForm] = useState({
+    first_name: '', last_name: '', phone: '',
+    customer_type: 'PERSON' as BuyerTypeValue, company_name: '', org_number: '', vat_number: '',
+  });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
 
@@ -53,6 +73,10 @@ export default function StoreAccountPage() {
             first_name: data.customer.first_name || '',
             last_name: data.customer.last_name || '',
             phone: data.customer.phone || '',
+            customer_type: data.customer.customer_type === 'COMPANY' ? 'COMPANY' : 'PERSON',
+            company_name: data.customer.company_name || '',
+            org_number: data.customer.org_number || '',
+            vat_number: data.customer.vat_number || '',
           });
         }
       })
@@ -74,6 +98,18 @@ export default function StoreAccountPage() {
           first_name: profileForm.first_name,
           last_name: profileForm.last_name,
           phone: profileForm.phone || undefined,
+          // b2b app: company defaults (PUT /customers/me, M2-DESIGN §4.5).
+          // Saving as PERSON clears the company defaults (null accepted by the API).
+          ...(b2bEnabled
+            ? profileForm.customer_type === 'COMPANY'
+              ? {
+                  customer_type: 'COMPANY',
+                  company_name: profileForm.company_name.trim() || null,
+                  org_number: profileForm.org_number.trim() || null,
+                  vat_number: profileForm.vat_number.trim() || null,
+                }
+              : { customer_type: 'PERSON', company_name: null, org_number: null, vat_number: null }
+            : {}),
         }),
       });
       setUser((prev) =>
@@ -81,9 +117,20 @@ export default function StoreAccountPage() {
           ? {
               ...prev,
               customer: {
+                ...prev.customer,
                 first_name: profileForm.first_name,
                 last_name: profileForm.last_name,
                 phone: profileForm.phone || undefined,
+                ...(b2bEnabled
+                  ? profileForm.customer_type === 'COMPANY'
+                    ? {
+                        customer_type: 'COMPANY' as const,
+                        company_name: profileForm.company_name.trim() || null,
+                        org_number: profileForm.org_number.trim() || null,
+                        vat_number: profileForm.vat_number.trim() || null,
+                      }
+                    : { customer_type: 'PERSON' as const, company_name: null, org_number: null, vat_number: null }
+                  : {}),
               },
             }
           : prev,
@@ -204,6 +251,54 @@ export default function StoreAccountPage() {
                 className={inputCls}
               />
             </div>
+
+            {/* Company defaults — b2b app only */}
+            <IfApp app="b2b">
+              <fieldset className="border-t border-gray-100 pt-3 mt-1 space-y-3">
+                <legend className="text-xs font-semibold text-gray-900 flex items-center gap-1.5 pt-3">
+                  <Building2 className="w-3.5 h-3.5 text-gray-500" /> {t('companyDefaults')}
+                </legend>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('buyerType')}</label>
+                  <select
+                    value={profileForm.customer_type}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, customer_type: e.target.value === 'COMPANY' ? 'COMPANY' : 'PERSON' }))}
+                    className={inputCls}
+                  >
+                    <option value="PERSON">{tB2b('person')}</option>
+                    <option value="COMPANY">{tB2b('company')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('companyName')}</label>
+                  <input
+                    value={profileForm.company_name}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, company_name: e.target.value }))}
+                    className={inputCls}
+                    autoComplete="organization"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('orgNumber')}</label>
+                    <input
+                      value={profileForm.org_number}
+                      onChange={(e) => setProfileForm((p) => ({ ...p, org_number: e.target.value }))}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{tB2b('vatNumber')}</label>
+                    <input
+                      value={profileForm.vat_number}
+                      onChange={(e) => setProfileForm((p) => ({ ...p, vat_number: e.target.value }))}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+              </fieldset>
+            </IfApp>
+
             <div className="flex items-center gap-2 pt-1">
               <button
                 type="submit"
@@ -236,6 +331,19 @@ export default function StoreAccountPage() {
                 <h2 className="text-lg font-semibold text-gray-900">{name}</h2>
                 <p className="text-sm text-gray-500">{user.email}</p>
                 {user.customer?.phone && <p className="text-sm text-gray-500">{user.customer.phone}</p>}
+                {/* Company defaults — b2b app only */}
+                <IfApp app="b2b">
+                  {user.customer?.customer_type === 'COMPANY' && (
+                    <div className="mt-2 text-sm text-gray-600 space-y-0.5">
+                      <p className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-gray-500" /> {t('companyDefaults')}
+                      </p>
+                      {user.customer.company_name && <p>{user.customer.company_name}</p>}
+                      {user.customer.org_number && <p>{tB2b('orgNumber')}: {user.customer.org_number}</p>}
+                      {user.customer.vat_number && <p>{tB2b('vatNumber')}: {user.customer.vat_number}</p>}
+                    </div>
+                  )}
+                </IfApp>
               </div>
             </div>
           )

@@ -5,8 +5,9 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
-import { formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
+import { deriveNetTotals, formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -52,6 +53,14 @@ export interface OrderReceiptOrder {
   tax_pricing_mode?: TaxPricingMode | null;
   tax_rate_bp?: number | null;
   tax_amount?: number | string | null;
+  shipping_tax_amount?: number | string | null;
+  /** b2b app snapshot (M2-DESIGN D4): how the order was bought. All null /
+   *  absent for person orders and stores without the app. */
+  customer_type?: 'PERSON' | 'COMPANY' | null;
+  company_name?: string | null;
+  org_number?: string | null;
+  vat_number?: string | null;
+  buyer_reference?: string | null;
   items: OrderReceiptItem[];
 }
 
@@ -91,6 +100,10 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
     new Intl.NumberFormat('en', { style: 'currency', currency }).format(v);
   const taxLines = order ? taxLinesFromLegacy(order, t('cart.tax')) : [];
   const taxExclusive = order?.tax_pricing_mode === 'EXCLUSIVE';
+  // Company order on an INCLUSIVE store: net rows derived from the snapshot
+  // (M2-DESIGN D4), keyed on the order itself — never on the buyer cookie.
+  const companyNet = Boolean(order) && isCompanyOrder(order) && !taxExclusive;
+  const net = order && companyNet ? deriveNetTotals({ ...order, tax_amount: order.tax_amount ?? taxLines.reduce((s, l) => s + l.tax_amount, 0) }) : null;
 
   return (
     <>
@@ -145,6 +158,40 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
           </div>
 
           {/* Totals */}
+          {net ? (
+            // Company order, INCLUSIVE store: net subtotal / shipping, net total,
+            // VAT as regular rows, then the gross "Total incl. VAT".
+            <div className="border-t border-gray-100 mt-3 pt-3 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">{t('b2b.subtotalExclVat')}</span>
+                <span className="text-gray-900">{fmt(net.net_items)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">
+                  {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
+                  {order.shipping_method_name ? ` (${order.shipping_method_name})` : ''}
+                </span>
+                <span className="text-gray-900">{fmt(net.net_shipping)}</span>
+              </div>
+              {Number(order.discount_amount) > 0 && (
+                <p className="text-xs text-gray-500">{t('b2b.includesDiscount', { amount: fmt(Number(order.discount_amount)) })}</p>
+              )}
+              <div className="flex justify-between font-medium border-t border-gray-100 pt-2">
+                <span className="text-gray-700">{t('b2b.netTotal')}</span>
+                <span className="text-gray-900">{fmt(net.net_total)}</span>
+              </div>
+              {taxLines.map((line, i) => (
+                <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
+                  <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+                  <span className="text-gray-900">{fmt(line.tax_amount)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-semibold text-base border-t border-gray-100 pt-2">
+                <span>{t('b2b.totalInclVat')}</span>
+                <span>{fmt(Number(order.total))}</span>
+              </div>
+            </div>
+          ) : (
           <div className="border-t border-gray-100 mt-3 pt-3 space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">{t('cart.subtotal')}</span>
@@ -179,8 +226,12 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
               <TaxLineRows lines={taxLines} currency={currency} variant="muted" format={fmt} />
             )}
           </div>
+          )}
         </div>
       )}
+
+      {/* Company snapshot (b2b app) — rendered from the order, regardless of the app state. */}
+      <CompanyBlock order={order} className="mb-6" />
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">

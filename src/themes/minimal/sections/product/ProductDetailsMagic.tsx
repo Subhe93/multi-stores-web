@@ -2,9 +2,12 @@ import { Heart, Share2, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 function ProductDetailsMagic({ settings, content, locale, product, currency }: SectionRenderProps) {
   const t = useTranslations('product');
+  // b2b app: company view shows net amounts.
+  const display = useDisplayPrice();
   if (!product) {
     return (
       <div
@@ -119,7 +122,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
               color: 'var(--theme-colors-primary)',
             }}
           >
-            {formatPrice(Number(product.base_price))}
+            {formatPrice(display(Number(product.base_price), product.tax_rate_bp, c).amount)}
           </span>
           {showCompareAt && hasCompareAt && (
             <span
@@ -129,10 +132,10 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
                 color: 'var(--theme-colors-muted)',
               }}
             >
-              {formatPrice(Number(product.compare_at_price))}
+              {formatPrice(display(Number(product.compare_at_price), product.tax_rate_bp, c).amount)}
             </span>
           )}
-          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} />
+          <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} taxRateBp={product.tax_rate_bp} />
         </div>
       )}
 

@@ -12,14 +12,19 @@ import {
   createElement,
 } from 'react';
 import { api } from '@/lib/api';
+import { CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM, decodeGuestCart, type HandoffLine } from '@/lib/cartHandoff';
 import {
+  normalizeB2bNetTotals,
   normalizeTaxLines,
   normalizeTaxPricingMode,
   sumTaxLines,
+  type B2bNetTotals,
   type StoreTaxConfig,
   type TaxLine,
   type TaxPricingMode,
 } from '@/lib/tax';
+import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
+import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -46,6 +51,14 @@ export interface CartItem {
   bundleLabel?: string | null;
   bundleStickerText?: string | null;
   bundleCartQuantity?: number | null;
+  /** Estimated tax rate of the line (b2b stores only): from GET /cart
+   *  `items[].tax_rate_bp`, or copied from the product at add time for
+   *  guest carts (M2-DESIGN D2 / L8). Null/undefined = unknown. */
+  taxRateBp?: number | null;
+  /** Markets app: the line's product is hidden in the request market. The
+   *  line stays in the cart (so it can be removed) but has no valid price
+   *  here, is excluded from server tax/totals and blocks checkout. */
+  unavailableInMarket?: boolean;
 }
 
 export interface CartCustomFieldDisplay {
@@ -71,6 +84,8 @@ export interface CartItemMetadata {
   bundleLabel?: string | null;
   bundleStickerText?: string | null;
   bundleCartQuantity?: number | null;
+  /** b2b stores: the product's `tax_rate_bp`, kept on guest lines. */
+  taxRateBp?: number | null;
 }
 
 interface Coupon {
@@ -89,6 +104,8 @@ interface CartTax {
   estimated: boolean;
   /** EXCLUSIVE mode only: `total` + tax; null when the API did not send it. */
   totalWithTax: number | null;
+  /** b2b stores, company view: net figures the API derived (null otherwise). */
+  b2b: B2bNetTotals | null;
 }
 
 interface CartState {
@@ -132,6 +149,21 @@ interface CartContextValue extends CartState {
   /** Grand total incl. tax: `total_with_tax` in EXCLUSIVE mode, `total` in
    *  INCLUSIVE mode; null for a guest EXCLUSIVE cart (unknown until checkout). */
   totalWithTax: number | null;
+  /** b2b app, company view: net figures from GET /cart (`b2b` block); null
+   *  for guest carts, persons and stores without the app. */
+  b2bNet: B2bNetTotals | null;
+  /** Net item subtotal for the company view: the server's `net_items` when
+   *  known, else a client estimate from the lines' rates, else null (no rate
+   *  known — callers fall back to the gross subtotal). */
+  netItems: number | null;
+  /** True after a cross-market hand-off re-priced the lines (markets app). */
+  pricesUpdated: boolean;
+  /** Lines a cross-market hand-off had to drop (not purchasable here). */
+  handoffDropped: number;
+  /** True while any line is flagged `unavailableInMarket` — checkout is blocked. */
+  hasUnavailableItems: boolean;
+  /** Hide the hand-off notices. */
+  dismissPricesNotice: () => void;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
@@ -212,9 +244,14 @@ interface RawCartItem {
   bundle_sticker_text?: string | null;
   bundleCartQuantity?: unknown;
   bundle_cart_quantity?: unknown;
+  taxRateBp?: unknown;
+  tax_rate_bp?: unknown;
+  unavailableInMarket?: unknown;
+  unavailable_in_market?: unknown;
 }
 
 function normalizeCartItem(raw: RawCartItem): CartItem {
+  const rawRate = raw.tax_rate_bp ?? raw.taxRateBp;
   return {
     id: raw.id,
     productId: raw.productId || raw.product_id || '',
@@ -251,6 +288,13 @@ function normalizeCartItem(raw: RawCartItem): CartItem {
         : typeof raw.bundle_cart_quantity === 'number'
         ? raw.bundle_cart_quantity
         : null,
+    // Only present on b2b stores; absent keys leave the field undefined so
+    // the item shape stays identical everywhere else.
+    ...(rawRate !== undefined && rawRate !== null && Number.isFinite(Number(rawRate))
+      ? { taxRateBp: Number(rawRate) }
+      : {}),
+    // Only set when flagged so unaffected carts keep the exact same shape.
+    ...((raw.unavailable_in_market ?? raw.unavailableInMarket) === true ? { unavailableInMarket: true } : {}),
   };
 }
 
@@ -268,6 +312,7 @@ function normalizeCartTax(data: unknown): CartTax | null {
     pricingMode: normalizeTaxPricingMode(raw.tax_pricing_mode ?? raw.taxPricingMode),
     estimated: (raw.tax_estimated ?? raw.taxEstimated) !== false,
     totalWithTax: Number.isFinite(rawWithTax) ? rawWithTax : null,
+    b2b: normalizeB2bNetTotals(raw.b2b),
   };
 }
 
@@ -309,19 +354,169 @@ interface CartProviderProps {
   /** The store's tax settings from `storefront.getStore`; gives the pricing
    *  mode for guest carts, which have no server figures. */
   storeTax?: StoreTaxConfig | null;
+  /** Market the storefront is served in (markets app, M1-DESIGN §4.2):
+   *  appended as `market=` to every /cart call so lines are priced in the
+   *  market currency. Undefined for stores without the app. */
+  marketKey?: string;
+  /** b2b app (M2-DESIGN D1): `'company'` appends `buyer=company` to every
+   *  /cart call so lines carry `tax_rate_bp` and the response a `b2b` net
+   *  block. Undefined for persons and stores without the app. */
+  buyer?: 'company';
+  /** False while the auth provider is still hydrating the session; the
+   *  cross-market hand-off waits for it (guest vs customer decision). Defaults
+   *  to true so existing callers keep working. */
+  authReady?: boolean;
 }
 
-export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax, marketKey, buyer, authReady = true }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
-  // the storefront's active language rather than its default ordering.
-  const localeQuery = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+  // the storefront's active language rather than its default ordering (and,
+  // for market stores, prices lines for the request market).
+  const localeQuery = (() => {
+    const params: string[] = [];
+    if (locale) params.push(`locale=${encodeURIComponent(locale)}`);
+    if (marketKey) params.push(`market=${encodeURIComponent(marketKey)}`);
+    if (buyer === 'company') params.push('buyer=company');
+    return params.length ? `?${params.join('&')}` : '';
+  })();
   const [items, setItems] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [serverTax, setServerTax] = useState<CartTax | null>(null);
   const [loading, setLoading] = useState(true);
+  // Set after a cross-market hand-off (`?c=`, M1-DESIGN D10) re-priced the
+  // lines, so the cart UI can show "prices updated for this market".
+  const [pricesUpdated, setPricesUpdated] = useState(false);
+  // Lines the hand-off could not carry over (rejected by the quote).
+  const [handoffDropped, setHandoffDropped] = useState(0);
+  const dismissPricesNotice = useCallback(() => {
+    setPricesUpdated(false);
+    setHandoffDropped(0);
+  }, []);
   const prevTokenRef = useRef<string | null | undefined>(undefined);
 
   const isAuthenticated = Boolean(token);
+
+  // ── Cross-market cart hand-off landing (markets app only) ──
+  // `?c=` carries a guest's lines from another market domain (D10 / L9).
+  // Waits for auth hydration so the guest / customer decision is final.
+  // Guests merge the lines into the local cart and re-price them through
+  // POST /orders/quote for this market (batch first, then line-by-line so
+  // one rejected line does not sink the rest); rejected lines are dropped
+  // and counted. Logged-in customers only need the server-cart refetch the
+  // effect below already performs. The param is stripped from the URL.
+  useEffect(() => {
+    if (!marketKey || !authReady || typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const param = url.searchParams.get(CART_HANDOFF_PARAM);
+    const senderDropped = Math.max(0, Number.parseInt(url.searchParams.get(CART_HANDOFF_DROPPED_PARAM) || '0', 10) || 0);
+    if (!param && senderDropped === 0) return;
+    url.searchParams.delete(CART_HANDOFF_PARAM);
+    url.searchParams.delete(CART_HANDOFF_DROPPED_PARAM);
+    window.history.replaceState(window.history.state, '', url.toString());
+
+    // Lines the sender could not fit into the 4 KB cap (L9).
+    if (senderDropped > 0) setHandoffDropped(senderDropped);
+    const lines = decodeGuestCart(param);
+    if (lines.length === 0) return;
+    if (isAuthenticated) {
+      setPricesUpdated(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const toQuoteLine = (l: HandoffLine) => ({
+        quantity: l.q,
+        ...(l.c ? { custom_product_id: l.c } : { product_id: l.p }),
+        ...(l.v ? { variant_id: l.v } : {}),
+        ...(l.b ? { bundle_offer_id: l.b } : {}),
+        ...(l.f ? { custom_fields: l.f } : {}),
+      });
+      type Quote = { items?: { unit_price?: number; tax_rate_bp?: number }[]; currency?: string };
+      const quote = (qLines: HandoffLine[]) =>
+        api<Quote>('/orders/quote', {
+          method: 'POST',
+          body: JSON.stringify({
+            store_id: storeId,
+            market_key: marketKey,
+            lines: qLines.map(toQuoteLine),
+            ...(buyer === 'company' ? { buyer_type: 'COMPANY' } : {}),
+          }),
+        });
+
+      // price per line index; undefined = rejected
+      const priced: ({ price: number; currency?: string; taxRateBp?: number } | undefined)[] = new Array(lines.length);
+      try {
+        const res = await quote(lines);
+        lines.forEach((_, i) => {
+          const unit = res.items?.[i]?.unit_price;
+          const rate = res.items?.[i]?.tax_rate_bp;
+          if (typeof unit === 'number') priced[i] = { price: unit, currency: res.currency, ...(typeof rate === 'number' ? { taxRateBp: rate } : {}) };
+        });
+      } catch {
+        // Batch rejected (e.g. one product hidden in this market): re-quote
+        // line-by-line so the valid lines survive.
+        await Promise.all(
+          lines.map(async (l, i) => {
+            try {
+              const res = await quote([l]);
+              const unit = res.items?.[0]?.unit_price;
+              const rate = res.items?.[0]?.tax_rate_bp;
+              if (typeof unit === 'number') priced[i] = { price: unit, currency: res.currency, ...(typeof rate === 'number' ? { taxRateBp: rate } : {}) };
+            } catch {
+              priced[i] = undefined;
+            }
+          }),
+        );
+      }
+      if (cancelled) return;
+
+      const incoming: CartItem[] = [];
+      let dropped = 0;
+      lines.forEach((l, i) => {
+        const p = priced[i];
+        if (!p) { dropped += 1; return; }
+        incoming.push({
+          id: `local_${Date.now()}_${i}`,
+          productId: l.c ?? l.p ?? '',
+          variantId: l.v,
+          customProductId: l.c,
+          title: l.t,
+          price: p.price,
+          currency: p.currency,
+          quantity: l.q,
+          imageUrl: l.i,
+          variant: l.l,
+          customFields: l.f,
+          bundleOfferId: l.b ?? null,
+          ...(p.taxRateBp !== undefined ? { taxRateBp: p.taxRateBp } : {}),
+        });
+      });
+
+      if (incoming.length > 0) {
+        setItems((prev) => {
+          const next = [...prev];
+          for (const item of incoming) {
+            const idx = next.findIndex(
+              (i) =>
+                i.productId === item.productId &&
+                (i.variantId ?? undefined) === (item.variantId ?? undefined) &&
+                (i.bundleOfferId ?? null) === (item.bundleOfferId ?? null),
+            );
+            if (idx >= 0) next[idx] = { ...next[idx]!, quantity: next[idx]!.quantity + item.quantity, price: item.price };
+            else next.push(item);
+          }
+          saveLocalCart(next);
+          return next;
+        });
+        setPricesUpdated(true);
+      }
+      if (dropped > 0) setHandoffDropped((n) => n + dropped);
+    })();
+    return () => { cancelled = true; };
+    // Runs once auth is hydrated: the param is consumed on that pass.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketKey, authReady, buyer]);
 
   // ── Initial load + guest cart migration on login ────
 
@@ -465,6 +660,10 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
               bundleLabel: metadata?.bundleLabel ?? null,
               bundleStickerText: metadata?.bundleStickerText ?? null,
               bundleCartQuantity: metadata?.bundleCartQuantity ?? null,
+              // b2b stores: keep the product's estimated rate on the guest
+              // line (L8); omitted (not null) elsewhere so the stored shape
+              // stays identical.
+              ...(isKnownRate(metadata?.taxRateBp) ? { taxRateBp: metadata!.taxRateBp } : {}),
             };
             next = [...prev, newItem];
           }
@@ -481,14 +680,22 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const updateQuantity = useCallback(
     async (itemId: string, quantity: number) => {
       if (isAuthenticated && token) {
-        const data = await api<unknown>(
-          `/cart/items/${itemId}${localeQuery}`,
-          {
-            method: 'PUT',
-            token,
-            body: JSON.stringify({ quantity }),
-          }
-        );
+        let data: unknown;
+        try {
+          data = await api<unknown>(
+            `/cart/items/${itemId}${localeQuery}`,
+            {
+              method: 'PUT',
+              token,
+              body: JSON.stringify({ quantity }),
+            }
+          );
+        } catch (err) {
+          // The line became unavailable in this market since the cart was
+          // loaded: reload so it shows flagged (remove-only) instead of failing.
+          if ((err as { code?: string }).code !== 'CART_ITEM_NOT_AVAILABLE_IN_MARKET') throw err;
+          data = await api<unknown>(`/cart${localeQuery}`, { token });
+        }
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
@@ -587,6 +794,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setItems([]);
     setCoupon(null);
     setServerTax(null);
+    setPricesUpdated(false);
+    setHandoffDropped(0);
     saveLocalCart([]);
     saveLocalCoupon(null);
   }, [isAuthenticated, token, localeQuery]);
@@ -607,9 +816,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         body: JSON.stringify({
           coupon_code: code,
           store_id: storeId,
-          subtotal: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-          item_count: items.reduce((sum, i) => sum + i.quantity, 0),
-          product_ids: items.map((i) => i.customProductId || i.productId).filter(Boolean),
+          subtotal: sumLineTotals(items),
+          item_count: availableLines(items).reduce((sum, i) => sum + i.quantity, 0),
+          product_ids: availableLines(items).map((i) => i.customProductId || i.productId).filter(Boolean),
         }),
       });
 
@@ -675,8 +884,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     [items]
   );
 
+  // Lines unavailable in the market are excluded, matching the server totals.
   const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () => sumLineTotals(items),
     [items]
   );
 
@@ -748,6 +958,19 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     return null;
   }, [taxPricingMode, total, serverTax]);
 
+  // ── Company view net figures (b2b app) ──────────────
+  const b2bNet = serverTax?.b2b ?? null;
+  const netItems = useMemo(() => {
+    if (b2bNet) return b2bNet.net_items;
+    // Guest / no server block: Σ net line prices when every line has a rate
+    // (INCLUSIVE stores); EXCLUSIVE prices are already net.
+    const lines = availableLines(items);
+    if (lines.length === 0) return null;
+    if (taxPricingMode === 'EXCLUSIVE') return subtotal;
+    if (!lines.every((i) => isKnownRate(i.taxRateBp))) return null;
+    return lines.reduce((sum, i) => sum + netFromGross(i.price, i.taxRateBp, currency) * i.quantity, 0);
+  }, [b2bNet, items, taxPricingMode, subtotal, currency]);
+
   // ── Context value ──────────────────────────────────
 
   const value: CartContextValue = {
@@ -771,6 +994,12 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     taxPricingMode,
     taxEstimated,
     totalWithTax,
+    b2bNet,
+    netItems,
+    pricesUpdated,
+    handoffDropped,
+    hasUnavailableItems: hasUnavailableLines(items),
+    dismissPricesNotice,
   };
 
   return createElement(CartContext.Provider, { value }, children);

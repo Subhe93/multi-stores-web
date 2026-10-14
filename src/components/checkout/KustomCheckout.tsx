@@ -8,7 +8,10 @@ import { AlertTriangle, ChevronRight, Loader2, Lock, ShoppingBag } from 'lucide-
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { useKustomCheckout } from '@/hooks/useKustomCheckout';
+import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
+import { useMarket } from '@/hooks/useMarket';
+import { useBuyerType } from '@/hooks/useBuyerType';
+import { useKustomCheckout, type KustomCompanyPrefill } from '@/hooks/useKustomCheckout';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 
@@ -47,12 +50,27 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const locale = useLocale();
   const lp = useLocalePath();
   const searchParams = useSearchParams();
-  const { token, loading: authLoading, refresh: refreshAuth } = useAuth();
+  const { token, user, loading: authLoading, refresh: refreshAuth } = useAuth();
   const {
     items, subtotal, total, coupon, currency, loading: cartLoading,
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
+    b2bNet: cartB2bNet, netItems,
     updateQuantity, removeItem, applyCoupon, removeCoupon,
+    hasUnavailableItems,
   } = useCart();
+  // Markets app: request market, forwarded to the session (null otherwise).
+  const market = useMarket();
+  // b2b app (M2-DESIGN §4.4): buyer type + the account's company defaults go
+  // to the session; Kustom collects / validates the organisation data in
+  // its iframe. `enabled` is false without the app → nothing is sent.
+  const { enabled: b2bEnabled, isCompany } = useBuyerType();
+  const companyName = user?.customer?.company_name || '';
+  const orgNumber = user?.customer?.org_number || '';
+  const vatNumber = user?.customer?.vat_number || '';
+  const companyPrefill = useMemo<KustomCompanyPrefill | null>(() => {
+    if (!isCompany || !companyName || !orgNumber) return null;
+    return { company_name: companyName, org_number: orgNumber, ...(vatNumber ? { vat_number: vatNumber } : {}) };
+  }, [isCompany, companyName, orgNumber, vatNumber]);
 
   const [orderNotes, setOrderNotes] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -66,13 +84,17 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const { html, loading, updating, failed, syncFailed, totals, retry } = useKustomCheckout({
     storeSlug,
     locale,
+    marketKey: market?.key ?? null,
     // Wait for auth (so the JWT is attached) and for the cart to be loaded.
-    enabled: !authLoading && !cartLoading,
+    // Lines unavailable in the market block the session until removed.
+    enabled: !authLoading && !cartLoading && !hasUnavailableItems,
     authToken: token,
     refreshAuth,
     items,
     couponCode: coupon?.code ?? null,
     notes: orderNotes,
+    buyer: b2bEnabled ? (isCompany ? 'company' : 'person') : null,
+    company: companyPrefill,
   });
 
   // The session's `totals` are what the iframe charges (shipping once Kustom
@@ -87,6 +109,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     ? totals.tax_lines
     : summaryPricingMode === 'INCLUSIVE' ? cartTaxLines : [];
   const summaryTaxEstimated = totals ? false : cartTaxEstimated;
+  // Company view: the session's net block once there is one, else the cart's.
+  const summaryB2bNet = totals ? totals.b2b ?? null : cartB2bNet;
   // The session is priced in the store's charge currency, which is the one to
   // format its figures in; fall back to the cart currency on older API builds.
   const summaryCurrency = totals?.currency || currency;
@@ -184,6 +208,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               shippingNote={summaryShipping === null ? t('checkout.shippingCalculatedInKustom') : undefined}
               taxLines={summaryTaxLines} pricingMode={summaryPricingMode}
               taxEstimated={summaryTaxEstimated} taxPending={!totals && updating}
+              b2bNet={summaryB2bNet} netItems={netItems}
               onUpdateQuantity={updateQuantity}
               onRemoveItem={removeItem}
               t={t as (key: string) => string}
@@ -227,7 +252,11 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
             )}
           </div>
 
-          {failed ? (
+          {hasUnavailableItems ? (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-4">
+              <RemoveUnavailableHint />
+            </div>
+          ) : failed ? (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
               <p>{t('checkout.kustomSessionFailed')}</p>
               <div className="flex flex-wrap gap-4 mt-3">

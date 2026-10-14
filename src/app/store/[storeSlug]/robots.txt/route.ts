@@ -11,18 +11,26 @@ interface RouteCtx {
  * — that's the URL form crawlers actually see, because the proxy rewrites
  * `subdomain/*` → `/store/slug/*` internally.
  */
-export async function GET(_req: Request, ctx: RouteCtx) {
+export async function GET(req: Request, ctx: RouteCtx) {
   const { storeSlug } = await ctx.params;
+  // Market of the request host (markets app) — forwarded by the proxy.
+  const marketKey = req.headers.get('x-market') || undefined;
 
-  // Resolve the store's canonical origin (custom_domain wins, else subdomain).
+  // Resolve the store's canonical origin (market hostname → custom_domain →
+  // subdomain).
   let customDomain: string | null = null;
+  let market: { primary_hostname?: string | null } | null = null;
   try {
-    const store = (await storefront.getStore(storeSlug)) as { custom_domain?: string | null };
+    const store = (await storefront.getStore(storeSlug, marketKey)) as {
+      custom_domain?: string | null;
+      market?: { primary_hostname?: string | null } | null;
+    };
     customDomain = store?.custom_domain || null;
+    market = store?.market ?? null;
   } catch {
     customDomain = null;
   }
-  const origin = buildStoreOrigin(storeSlug, customDomain);
+  const origin = buildStoreOrigin(storeSlug, customDomain, market);
 
   const body = [
     'User-agent: *',

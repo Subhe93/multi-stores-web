@@ -4,6 +4,8 @@ import { cookies, headers } from 'next/headers';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildTwitterMeta } from '@/lib/jsonld';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
@@ -16,6 +18,8 @@ interface StoreLite {
     secondary_locales?: string[];
   } | null;
   custom_domain?: string | null;
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
 }
 
 interface PageTranslationRow {
@@ -48,7 +52,7 @@ interface LandingProps {
 
 async function fetchData(storeSlug: string, slug: string) {
   const [store, published] = await Promise.all([
-    storefront.getStore(storeSlug).catch(() => null) as Promise<StoreLite | null>,
+    storefront.getStore(storeSlug, await getRequestMarketKey()).catch(() => null) as Promise<StoreLite | null>,
     storefront.getPublishedPage(storeSlug, slug, 'LANDING').catch(() => null) as Promise<PublishedPage | null>,
   ]);
   return { store, published };
@@ -77,7 +81,7 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
     published.snapshot.page.translations.find((t) => t.locale === primaryLocale) ||
     published.snapshot.page.translations[0];
 
-  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null);
+  const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
   const subpath = `/p/${slug}`;
   const alternates = buildStoreAlternates({
     origin: origin,
@@ -85,6 +89,8 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
     primaryLocale,
     secondaryLocales: secondaryLocales,
     path: subpath,
+    markets: store?.markets,
+    storeSlug,
   });
 
   // Absolutize: API stores og_image as a relative `/uploads/...` path, which

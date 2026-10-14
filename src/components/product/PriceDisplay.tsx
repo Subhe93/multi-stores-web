@@ -1,4 +1,7 @@
+'use client';
+
 import { formatPrice } from '@/lib/format';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 
 interface PriceDisplayProps {
@@ -6,10 +9,14 @@ interface PriceDisplayProps {
   comparePrice?: number;
   currency?: string;
   locale?: string;
+  /** Estimated tax rate of the product (b2b stores only): drives the
+   *  company net view, see useDisplayPrice. */
+  taxRateBp?: number | null;
 }
 
-export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = 'en' }: PriceDisplayProps) {
-  const fmt = (amount: number) => formatPrice(amount, currency, locale);
+export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = 'en', taxRateBp }: PriceDisplayProps) {
+  const display = useDisplayPrice();
+  const fmt = (amount: number) => formatPrice(display(amount, taxRateBp, currency).amount, currency, locale);
   const isOnSale = comparePrice !== undefined && comparePrice > price;
   const discountPct = isOnSale
     ? Math.round(((comparePrice - price) / comparePrice) * 100)
@@ -34,7 +41,7 @@ export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = '
           </span>
         </>
       )}
-      <PriceTaxSuffix className="text-xs text-gray-500" />
+      <PriceTaxSuffix className="text-xs text-gray-500" taxRateBp={taxRateBp} />
     </div>
   );
 }

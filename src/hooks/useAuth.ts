@@ -21,6 +21,17 @@ interface User {
   avatar?: string;
   /** Account role from /auth/me — the storefront only accepts CUSTOMER. */
   role?: string;
+  /** Customer profile row of /auth/me; the b2b fields are the company
+   *  defaults used to prefill checkout (M2-DESIGN D8 / L9). */
+  customer?: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string | null;
+    customer_type?: 'PERSON' | 'COMPANY' | null;
+    company_name?: string | null;
+    org_number?: string | null;
+    vat_number?: string | null;
+  } | null;
 }
 
 // ── Storefront account guard ───────────────────────────

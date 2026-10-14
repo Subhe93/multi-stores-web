@@ -5,6 +5,7 @@ import { Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { StoreImage } from '@/components/StoreImage';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 interface ProductCardProps {
   title: string;
@@ -20,6 +21,8 @@ interface ProductCardProps {
   aspectClass?: string;
   // Marketplace vendor name; renders a muted "Sold by ..." line under the title.
   vendorName?: string;
+  /** b2b stores: the product's estimated `tax_rate_bp` (company net view). */
+  taxRateBp?: number | null;
 }
 
 export function ProductCard({
@@ -33,16 +36,18 @@ export function ProductCard({
   promotionLabel,
   aspectClass = 'aspect-square',
   vendorName,
+  taxRateBp,
 }: ProductCardProps) {
   const t = useTranslations('product');
+  const display = useDisplayPrice();
   const formatted = new Intl.NumberFormat('en', {
     style: 'currency',
     currency,
-  }).format(price);
+  }).format(display(price, taxRateBp, currency).amount);
 
   const compareFormatted =
     comparePrice && comparePrice > price
-      ? new Intl.NumberFormat('en', { style: 'currency', currency }).format(comparePrice)
+      ? new Intl.NumberFormat('en', { style: 'currency', currency }).format(display(comparePrice, taxRateBp, currency).amount)
       : null;
 
   const discount =
@@ -129,7 +134,7 @@ export function ProductCard({
           {compareFormatted && (
             <span className="text-xs text-gray-400 line-through">{compareFormatted}</span>
           )}
-          <PriceTaxSuffix className="text-[11px] text-gray-400" />
+          <PriceTaxSuffix className="text-[11px] text-gray-400" taxRateBp={taxRateBp} />
         </div>
       </div>
     </Link>

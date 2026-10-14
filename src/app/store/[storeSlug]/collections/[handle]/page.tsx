@@ -4,6 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
@@ -21,6 +23,8 @@ interface ProductPromotion {
 interface Product {
   id: string;
   base_price: number;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
   compare_at_price?: number;
   created_at?: string;
   translations: { locale: string; title: string; slug: string }[];
@@ -88,9 +92,11 @@ export default async function CollectionPage({
   // We also need the store currency for product prices.
   // The store is read first (cached): without a locale prefix in the URL the
   // collection is rendered in the store's primary locale, not in English.
-  const storeData = (await storefront.getStore(storeSlug)) as {
+  const storeData = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as {
       currency?: string;
       custom_domain?: string | null;
+      market?: MarketRoute | null;
+      markets?: MarketRoute[];
       language_config?: { primary_locale?: string } | null;
       theme?: { hero?: StoreHero };
       theme_key?: string;
@@ -122,6 +128,7 @@ export default async function CollectionPage({
   const products = (await storefront.getProducts(
     storeSlug,
     queryParams,
+    storeData?.market?.key,
   )) as Product[];
 
   // Sort client-side (cheap, mirrors /products page behavior)
@@ -161,7 +168,7 @@ export default async function CollectionPage({
   // JSON-LD: this page is a product listing and a step in the site hierarchy.
   // Neither was expressed before, so crawlers saw an ordinary page. Built from
   // data already in scope, so it costs nothing extra to render.
-  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
   const collectionUrl = storeLocalePath(
     ldOrigin,
@@ -429,6 +436,7 @@ export default async function CollectionPage({
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
+                  taxRateBp={product.tax_rate_bp}
                   comparePrice={
                     product.compare_at_price ? Number(product.compare_at_price) : undefined
                   }
@@ -470,8 +478,10 @@ export async function generateMetadata({
   try {
     const [tree, store] = await Promise.all([
       storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-      storefront.getStore(storeSlug) as Promise<{
+      storefront.getStore(storeSlug, await getRequestMarketKey()) as Promise<{
         custom_domain?: string | null;
+        market?: MarketRoute | null;
+        markets?: MarketRoute[];
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
       } | null>,
     ]);
@@ -487,11 +497,13 @@ export async function generateMetadata({
     // Previously title + description only, so a collection inherited the
     // layout's canonical and declared itself a duplicate of the homepage.
     const alternates = buildStoreAlternates({
-      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null),
+      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
       secondaryLocales: secondary,
       path: `/collections/${handle}`,
+      markets: store?.markets,
+      storeSlug,
     });
 
     const title = tr?.name || handle;

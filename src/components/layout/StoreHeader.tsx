@@ -11,7 +11,10 @@ import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { CountrySwitcher } from './CountrySwitcher';
+import { BuyerTypeToggle } from './BuyerTypeToggle';
 import { CartBadge } from './CartBadge';
+import { IfApp } from '@/components/IfApp';
 import { resolveMediaUrl } from '@/lib/api';
 
 // Resolved page shape after picking the right translation
@@ -260,9 +263,10 @@ interface MobileMenuProps {
   primaryLocale?: string;
   secondaryLocales?: string[];
   currentLang?: string;
+  storeSlug: string;
 }
 
-function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en', secondaryLocales = [], currentLang }: MobileMenuProps) {
+function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en', secondaryLocales = [], currentLang, storeSlug }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const t = useTranslations();
@@ -411,6 +415,18 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                 </Suspense>
               </div>
             )}
+            {/* Country (market) switcher — markets app only */}
+            <IfApp app="markets">
+              <div className="pt-1 pb-1">
+                <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
+              </div>
+            </IfApp>
+            {/* Person | Company toggle — b2b app only */}
+            <IfApp app="b2b">
+              <div className="pt-1 pb-1">
+                <BuyerTypeToggle primaryColor={primaryColor} />
+              </div>
+            </IfApp>
           </nav>
         </div>
       )}
@@ -523,6 +539,21 @@ export function StoreHeader({
             </div>
           )}
 
+          {/* Country (market) switcher — markets app only; renders nothing
+              for other stores and for single-market stores. */}
+          <IfApp app="markets">
+            <div className="hidden md:block">
+              <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
+            </div>
+          </IfApp>
+
+          {/* Person | Company toggle — b2b app only (M2-DESIGN §4.2). */}
+          <IfApp app="b2b">
+            <div className="hidden md:block">
+              <BuyerTypeToggle primaryColor={primaryColor} />
+            </div>
+          </IfApp>
+
           {/* User menu (login / account dropdown) */}
           <UserMenu />
 
@@ -537,6 +568,7 @@ export function StoreHeader({
             primaryLocale={primaryLocale}
             secondaryLocales={effectiveSecondaryLocales}
             currentLang={currentLang}
+            storeSlug={storeSlug}
           />
         </div>
       </div>

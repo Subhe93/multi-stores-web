@@ -3,6 +3,8 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -29,6 +31,8 @@ interface CreatorCategory {
 interface StoreRecord {
   name?: string;
   custom_domain?: string | null;
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   theme?: { hero?: StoreHero };
 }
@@ -60,17 +64,19 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
   const { storeSlug } = await params;
   const { lang } = await searchParams;
   try {
-    const store = (await storefront.getStore(storeSlug)) as StoreRecord | null;
+    const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as StoreRecord | null;
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     const locale = lang || primaryLocale;
     const t = await getTranslations({ locale });
     const secondary = store?.language_config?.secondary_locales || [];
     const alternates = buildStoreAlternates({
-      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null),
+      origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
       secondaryLocales: secondary,
       path: '/collections',
+      markets: store?.markets,
+      storeSlug,
     });
     return {
       title: `${t('store.store_collections')} | ${store?.name || storeSlug}`,
@@ -89,7 +95,7 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
 
   // The store is read first (cached): without a locale prefix in the URL the
   // page is rendered in the store's primary locale.
-  const store = (await storefront.getStore(storeSlug)) as StoreRecord | null;
+  const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as StoreRecord | null;
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const locale = lang || primaryLocale;
   const isRTL = locale === 'ar';
@@ -100,7 +106,7 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
 
   const hero = resolveHero(store?.theme?.hero?.collections, { height: 'md' });
   const heroImage = hero.imageUrl ? resolveMediaUrl(hero.imageUrl) : undefined;
-  const storeBase = buildStoreOrigin(storeSlug, store?.custom_domain || null);
+  const storeBase = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
   const breadcrumbLd = buildBreadcrumb([
     { name: t('common.home'), url: storeBase },
     { name: t('store.store_collections'), url: `${storeBase}/collections` },

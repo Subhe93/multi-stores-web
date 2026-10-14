@@ -10,11 +10,14 @@ import { resolveMediaUrl, storefront } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
 interface ProductRow {
   id: string;
   base_price: number;
   compare_at_price?: number;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
   translations: Array<{ locale: string; title?: string; slug?: string }>;
   images: Array<{ url: string }>;
   vendor?: { company_name: string } | null;
@@ -79,6 +82,8 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   }, [storeSlug, locale, limit, filter]);
 
   const c = currency || 'EUR';
+  // b2b app: company view shows net amounts.
+  const display = useDisplayPrice();
   const fmt = (n: number) =>
     new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
       style: 'currency',
@@ -226,17 +231,17 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                       className="text-sm font-semibold"
                       style={{ color: 'var(--theme-colors-primary)' }}
                     >
-                      {fmt(Number(p.base_price))}
+                      {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>
                     {p.compare_at_price && p.compare_at_price > p.base_price && (
                       <span
                         className="text-xs line-through"
                         style={{ color: 'var(--theme-colors-muted)' }}
                       >
-                        {fmt(Number(p.compare_at_price))}
+                        {fmt(display(Number(p.compare_at_price), p.tax_rate_bp, c).amount)}
                       </span>
                     )}
-                    <PriceTaxSuffix className="text-[11px]" style={{ color: 'var(--theme-colors-muted)' }} />
+                    <PriceTaxSuffix className="text-[11px]" style={{ color: 'var(--theme-colors-muted)' }} taxRateBp={p.tax_rate_bp} />
                   </div>
                 </div>
               </a>

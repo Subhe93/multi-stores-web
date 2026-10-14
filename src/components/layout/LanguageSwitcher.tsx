@@ -6,6 +6,7 @@ const LOCALE_LABELS: Record<string, string> = {
   tr: 'TR',
   fr: 'FR',
   de: 'DE',
+  sv: 'SV',
 };
 
 interface LanguageSwitcherProps {

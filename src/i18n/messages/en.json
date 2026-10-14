@@ -173,7 +173,12 @@
     "each": "each",
     "taxEstimatedNote": "Tax is estimated; the final amount is calculated at checkout.",
     "taxAtCheckout": "Tax calculated at checkout",
-    "totalInclTax": "Total (incl. tax)"
+    "totalInclTax": "Total (incl. tax)",
+    "pricesUpdatedForMarket": "Prices were updated for this market.",
+    "linesDroppedForMarket": "{count, plural, one {# item could not be carried over to this market.} other {# items could not be carried over to this market.}}",
+    "unavailableInMarket": "Not available in {market}",
+    "unavailableHere": "Not available in this market",
+    "removeUnavailable": "Remove the unavailable items to continue to checkout."
   },
   "checkout": {
     "title": "Checkout",
@@ -254,7 +259,12 @@
       "countryRequired": "Country is required",
       "shippingRequired": "Please select a shipping method",
       "phoneInvalid": "Please enter a valid phone number",
-      "fieldRequired": "This field is required"
+      "fieldRequired": "This field is required",
+      "companyNameRequired": "Company name is required",
+      "orgNumberRequired": "Organisation number is required",
+      "orgNumberInvalid": "Invalid organisation number (expected {format})",
+      "vatNumberRequired": "VAT number is required",
+      "vatNumberInvalid": "Invalid VAT number"
     },
     "estimatedDeliveryVaries": "Estimated delivery time varies",
     "comingSoon": "Coming soon",
@@ -344,7 +354,24 @@
     "newPassword": "New Password",
     "confirmPassword": "Confirm Password",
     "passwordChanged": "Password changed successfully",
-    "minPasswordChars": "Min 8 characters"
+    "minPasswordChars": "Min 8 characters",
+    "companyDefaults": "Company details",
+    "buyerType": "Buyer type",
+    "invoices": {
+      "title": "Invoices",
+      "invoice": "Invoice",
+      "creditNote": "Credit note",
+      "number": "Number",
+      "date": "Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "download": "Download PDF",
+      "downloading": "Downloading…",
+      "pdfUnavailable": "The PDF is temporarily unavailable. Please try again later.",
+      "loadFailed": "Could not load the invoices for this order.",
+      "retry": "Try again"
+    }
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -380,6 +407,31 @@
     "collectionsCount": "collections",
     "noCollections": "No collections yet.",
     "viewCollection": "View collection"
+  },
+  "market": {
+    "switchCountry": "Switch country",
+    "suggest": {
+      "title": "It looks like you are in {country}. Switch to {market}?",
+      "cta": "Switch to {market}",
+      "dismiss": "Dismiss"
+    },
+    "notFound": "This language is not available for this country."
+  },
+  "b2b": {
+    "person": "Person",
+    "company": "Company",
+    "toggleLabel": "Buy as",
+    "plusVat": "+{rate} VAT",
+    "companyDetails": "Company details",
+    "companyName": "Company name",
+    "orgNumber": "Organisation number",
+    "vatNumber": "VAT number",
+    "reference": "Your reference",
+    "orgNumberFormat": "Format: {format}",
+    "netTotal": "Net total",
+    "totalInclVat": "Total incl. VAT",
+    "subtotalExclVat": "Subtotal excl. VAT",
+    "includesDiscount": "Includes discount of {amount} incl. VAT"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -513,7 +565,17 @@
     "PRODUCT_FAQ_NOT_FOUND": "FAQ not found",
     "PAGE_BUILDER_PAGE_NOT_FOUND": "Page not found",
     "CUSTOM_FIELD_PRODUCT_NOT_FOUND": "Product not found",
-    "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attribute template not found"
+    "ATTRIBUTE_TEMPLATE_NOT_FOUND": "Attribute template not found",
+    "B2B_COMPANY_NOT_ALLOWED": "Company purchases are not available in this store",
+    "B2B_COMPANY_NAME_REQUIRED": "Company name is required",
+    "B2B_ORG_NUMBER_REQUIRED": "Organisation number is required",
+    "B2B_ORG_NUMBER_INVALID": "The organisation number is invalid",
+    "B2B_VAT_NUMBER_REQUIRED": "VAT number is required",
+    "B2B_VAT_NUMBER_INVALID": "The VAT number is invalid",
+    "STORE_APP_SETTINGS_INVALID": "The app settings are invalid",
+    "INVOICE_NOT_FOUND": "Invoice not found.",
+    "INVOICE_PDF_UNAVAILABLE": "The invoice PDF is temporarily unavailable. Please try again later.",
+    "CART_ITEM_NOT_AVAILABLE_IN_MARKET": "This product is not available in this market."
   },
   "builderPreview": {
     "moveUp": "Move up",

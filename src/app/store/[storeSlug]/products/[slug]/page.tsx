@@ -5,6 +5,9 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
+import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -30,6 +33,19 @@ interface StoreRecord {
   custom_domain?: string | null;
   theme_key?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+  /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
+  market?: MarketRoute | null;
+  markets?: MarketRoute[];
+}
+
+// Translated product slugs per locale — hreflang alternates point at the
+// translated URL only when a market context exists (D9 / L12).
+function productPathByLocale(product: Pick<ProductRecord, 'translations'>): Record<string, string> {
+  const paths: Record<string, string> = {};
+  for (const tr of product.translations ?? []) {
+    if (tr.locale && tr.slug) paths[tr.locale] = `/products/${tr.slug}`;
+  }
+  return paths;
 }
 
 /**
@@ -65,9 +81,10 @@ export async function generateMetadata({
   const { storeSlug, slug: productSlug } = await params;
   const { lang } = await searchParams;
   try {
+    const marketKey = await getRequestMarketKey();
     const [product, storeData] = await Promise.all([
-      storefront.getProduct(storeSlug, productSlug) as Promise<ProductRecord>,
-      storefront.getStore(storeSlug) as Promise<StoreRecord | null>,
+      storefront.getProduct(storeSlug, productSlug, undefined, marketKey) as Promise<ProductRecord>,
+      storefront.getStore(storeSlug, marketKey) as Promise<StoreRecord | null>,
     ]);
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
     const secondary: string[] = storeData?.language_config?.secondary_locales || [];
@@ -77,13 +94,16 @@ export async function generateMetadata({
       product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
 
-    const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+    const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
     const alternates = buildStoreAlternates({
       origin: storeOrigin,
       locale,
       primaryLocale,
       secondaryLocales: secondary,
       path: `/products/${productSlug}`,
+      markets: storeData?.markets,
+      storeSlug,
+      pathByLocale: storeData?.market ? productPathByLocale(product) : null,
     });
 
     const firstImage = product.images?.[0]?.url
@@ -125,10 +145,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // primary locale, not in English — so the store is read first (it is cached).
   let locale = lang || 'en';
   try {
-    storeData = (await storefront.getStore(storeSlug)) as StoreRecord | null;
+    const marketKey = await getRequestMarketKey();
+    storeData = (await storefront.getStore(storeSlug, marketKey)) as StoreRecord | null;
     locale = lang || storeData?.language_config?.primary_locale || 'en';
     [product, template] = await Promise.all([
-      storefront.getProduct(storeSlug, productSlug, locale) as Promise<ProductRecord>,
+      storefront.getProduct(storeSlug, productSlug, locale, marketKey) as Promise<ProductRecord>,
       storefront.getPublishedProductTemplate(storeSlug).catch(() => null) as Promise<{
         snapshot?: { sections?: SectionInstance[] };
       } | null>,
@@ -149,7 +170,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       product.translations?.find((t) => t.locale === locale) ||
       product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
-    const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+    const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
     const tplProductUrl = `${tplStoreBase}/products/${productSlug}`;
     const tplProductLd = buildProduct({
       name: tr?.title || 'Product',
@@ -171,6 +192,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        {/* Markets app: translated slugs for the country switcher / banner. */}
+        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplProductLd) }}
@@ -202,7 +225,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // JSON-LD: Product + BreadcrumbList. Built from data already in scope so it
   // costs nothing extra to render. URLs use the locale path-prefix form (no
   // prefix for primary locale, `/{locale}/...` for others).
-  const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null);
+  const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
   const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${productSlug}`);
   const productImages = (product.images || [])
@@ -248,6 +271,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
 
   return (
     <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Markets app: translated slugs for the country switcher / banner. */}
+      {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJsonSafe(productLd) }}

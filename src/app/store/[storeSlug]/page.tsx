@@ -9,10 +9,14 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import type { MarketRoute } from '@/lib/market';
+import { getRequestMarketKey } from '@/lib/market.server';
 
 interface Product {
   id: string;
   base_price: number;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
   compare_at_price?: number;
   translations: { locale: string; title: string; slug: string }[];
   images: { url: string }[];
@@ -75,10 +79,13 @@ export async function generateMetadata({
   const { storeSlug } = await params;
   const { lang } = await searchParams;
   try {
+    const marketKey = await getRequestMarketKey();
     const [store, published] = await Promise.all([
-      storefront.getStore(storeSlug) as Promise<{
+      storefront.getStore(storeSlug, marketKey) as Promise<{
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
         custom_domain?: string | null;
+        market?: MarketRoute | null;
+        markets?: MarketRoute[];
       }>,
       storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
     ]);
@@ -95,13 +102,15 @@ export async function generateMetadata({
 
     // Canonical = subdomain root with primary locale (no prefix). Alternates
     // use path-prefix form `/{locale}` (no query strings).
-    const origin = buildStoreOrigin(storeSlug, store.custom_domain || null);
+    const origin = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
     const alternates = buildStoreAlternates({
       origin: origin,
       locale,
       primaryLocale,
       secondaryLocales: secondary,
       path: '',
+      markets: store.markets,
+      storeSlug,
     });
 
     // Absolutize: API stores og_image as a relative `/uploads/...` path. Without
@@ -161,8 +170,9 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // endpoint hiccups — collections are decorative on this page, not load-bearing.
   // publishedHome may be null when the creator hasn't built a v2 home yet — in
   // that case we fall through to the hardcoded default below.
+  const marketKey = await getRequestMarketKey();
   const [store, creatorCategoriesResult, publishedHome] = await Promise.all([
-    storefront.getStore(storeSlug) as Promise<Store>,
+    storefront.getStore(storeSlug, marketKey) as Promise<Store>,
     storefront.getCreatorCategories(storeSlug).catch(() => [] as CreatorCategory[]) as Promise<CreatorCategory[]>,
     storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
   ]);
@@ -173,7 +183,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   const lp = lang ? `/${lang}` : '';
 
   const products = (await storefront
-    .getProducts(storeSlug, { featured: 'true', locale })
+    .getProducts(storeSlug, { featured: 'true', locale }, marketKey)
     .catch(() => [])) as Product[];
 
   // Currency from the store, used by sections that render prices (FeaturedProducts).
@@ -411,6 +421,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
+                  taxRateBp={product.tax_rate_bp}
                   comparePrice={
                     product.compare_at_price ? Number(product.compare_at_price) : undefined
                   }

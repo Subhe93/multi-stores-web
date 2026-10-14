@@ -24,7 +24,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
         if (storeSlug) {
           try {
             const { storefront } = await import('@/lib/api');
-            const store = (await storefront.getStore(storeSlug)) as {
+            // Market stores pass their key so the payload's language_config
+            // is the market's (M1-DESIGN D3); other stores send no key.
+            const store = (await storefront.getStore(storeSlug, reqHeaders.get('x-market') || undefined)) as {
               language_config?: { primary_locale?: string } | null;
             } | null;
             locale = store?.language_config?.primary_locale || '';

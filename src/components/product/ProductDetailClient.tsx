@@ -11,7 +11,9 @@ import { CustomerUpload } from '@/components/product/CustomerUpload';
 import { CustomFieldsForm, type CustomField } from '@/components/product/CustomFieldsForm';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
+import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useCart } from '@/hooks/useCart';
+import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
 import {
   resolveCustomFieldLabel,
@@ -29,6 +31,8 @@ export interface ProductData {
   id: string;
   base_price: number;
   compare_at_price?: number;
+  /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */
+  tax_rate_bp?: number | null;
   allow_customer_upload?: boolean;
   product_type?: string;
   customization_type?: string;
@@ -209,6 +213,7 @@ function ProductTabs({
 
 export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
+  const apiError = useApiError();
   const { addItem } = useCart();
   const variants = product.variants || [];
 
@@ -315,6 +320,9 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   const baseUnitPrice = useMemo(() => {
     return selectedVariant ? Number(selectedVariant.price) : Number(product.base_price);
   }, [selectedVariant, product.base_price]);
+  // b2b app: company view shows net amounts (variants inherit the product rate).
+  const display = useDisplayPrice();
+  const taxRateBp = product.tax_rate_bp ?? null;
 
   const selectedBundleOffer = useMemo(() => {
     if (!selectedBundleOfferId || !product.bundles?.length) return null;
@@ -506,12 +514,15 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           bundleLabel: selectedBundleOffer?.translation?.label || undefined,
           bundleStickerText: selectedBundleOffer?.translation?.sticker_text || undefined,
           bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
+          // b2b stores: keep the estimated rate on guest lines (L8).
+          taxRateBp: taxRateBp ?? undefined,
         },
       );
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 3000);
     } catch (err) {
-      setAddToCartError(err instanceof Error ? err.message : t('common.error'));
+      // Coded API errors (e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET) are translated.
+      setAddToCartError((err as { code?: string })?.code ? apiError(err) : err instanceof Error ? err.message : t('common.error'));
     } finally {
       setAddingToCart(false);
     }
@@ -520,8 +531,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     selectedVariantId, selectedVariant, quantity, translation,
     currentPrice, galleryImages, customFieldValues, mappedCustomFields,
     customerFile, addItem, selectedBundleOfferId, selectedBundleOffer,
-    bundlePricing, baseUnitPrice,
-  ]);
+    bundlePricing, baseUnitPrice, taxRateBp, apiError, t]);
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -642,15 +652,16 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
               comparePrice={displayComparePrice}
               currency={currency}
               locale={locale}
+              taxRateBp={taxRateBp}
             />
             {quantity > 1 && (
               <p className="text-xs text-gray-500">
-                {formatPrice(currentPrice, currency, locale)} × {quantity}
+                {formatPrice(display(currentPrice, taxRateBp, currency).amount, currency, locale)} × {quantity}
               </p>
             )}
             {savings > 0 && (
               <p className="text-sm text-green-600 font-medium">
-                {t('product.savingsAmount', { amount: formatPrice(savings, currency, locale) })}
+                {t('product.savingsAmount', { amount: formatPrice(display(savings, taxRateBp, currency).amount, currency, locale) })}
               </p>
             )}
             {selectedVariant?.sku && (

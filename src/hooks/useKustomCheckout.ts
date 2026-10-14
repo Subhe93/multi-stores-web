@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { CartItem } from '@/hooks/useCart';
-import { normalizeTaxLines, normalizeTaxPricingMode, type TaxLine, type TaxPricingMode } from '@/lib/tax';
+import {
+  normalizeB2bNetTotals,
+  normalizeTaxLines,
+  normalizeTaxPricingMode,
+  type B2bNetTotals,
+  type TaxLine,
+  type TaxPricingMode,
+} from '@/lib/tax';
 
 // ── Kustom-first checkout session ─────────────────────────────────────────────
 // Talks to /payments/kustom/checkout/session (plans/kustom-integration/
@@ -35,6 +42,17 @@ export interface KustomSessionTotals {
   pricing_mode: TaxPricingMode;
   /** ISO 4217 code the session is priced in; absent on older API builds. */
   currency?: string;
+  /** b2b app, company session: net figures (M2-DESIGN D3); null otherwise. */
+  b2b?: B2bNetTotals | null;
+}
+
+/** Company prefill sent with the session (M2-DESIGN §3.5 / §6); Kustom
+ *  re-collects organisation data in its iframe, this is only a hint. */
+export interface KustomCompanyPrefill {
+  company_name: string;
+  org_number: string;
+  vat_number?: string;
+  buyer_reference?: string;
 }
 
 export interface KustomCheckoutSessionResponse {
@@ -44,7 +62,7 @@ export interface KustomCheckoutSessionResponse {
   html_snippet: string;
   status: string;
   /** Optional on older API builds. */
-  totals?: (Partial<KustomSessionTotals> & { tax_lines?: unknown; pricing_mode?: string }) | null;
+  totals?: (Partial<Omit<KustomSessionTotals, 'b2b'>> & { tax_lines?: unknown; pricing_mode?: string; b2b?: unknown }) | null;
 }
 
 /** Coerce the raw `totals` block; null when the API did not send one. */
@@ -63,6 +81,7 @@ export function normalizeKustomTotals(raw: KustomCheckoutSessionResponse['totals
     ...(typeof raw.currency === 'string' && raw.currency.trim()
       ? { currency: raw.currency.trim().toUpperCase() }
       : {}),
+    b2b: normalizeB2bNetTotals(raw.b2b),
   };
 }
 
@@ -153,6 +172,22 @@ export function toKustomCartLines(items: CartItem[]): KustomCartLine[] {
   });
 }
 
+// ── b2b app: session body fragments (pure) ───────────────────────────────────
+// create: `buyer_type` + `company` only for a company buyer (M2-DESIGN §6);
+// update: the fragment is sent while the buyer is a company, and exactly once
+// more (`buyer_type:'PERSON', company:null`) after a company session is
+// toggled back to person so the API re-syncs; person sessions that were
+// never company keep the M1 body byte-identical.
+type KustomBuyer = 'person' | 'company' | null | undefined;
+export function b2bCreateBody(buyer: KustomBuyer, company: KustomCompanyPrefill | null | undefined) {
+  return buyer === 'company' ? { buyer_type: 'COMPANY', ...(company ? { company } : {}) } : {};
+}
+export function b2bUpdateBody(buyer: KustomBuyer, company: KustomCompanyPrefill | null | undefined, wasCompany: boolean) {
+  if (buyer === 'company') return { buyer_type: 'COMPANY', company: company ?? null };
+  if (wasCompany) return { buyer_type: 'PERSON', company: null };
+  return {};
+}
+
 function isStaleSessionError(err: unknown): boolean {
   const status = (err as { status?: number } | null)?.status;
   return typeof status === 'number' && STALE_SESSION_STATUSES.has(status);
@@ -197,6 +232,10 @@ export interface UseKustomCheckoutOptions {
   storeSlug: string;
   /** Storefront locale sent to Kustom for the iframe language. */
   locale: string;
+  /** Markets app (M1-DESIGN §3.5): market of the request host. When set,
+   *  the session is created with `market_key` + `hostname` so Kustom prices
+   *  in the market currency and the merchant URLs use its domain. */
+  marketKey?: string | null;
   /** False while auth / cart are still resolving — nothing is requested until true. */
   enabled: boolean;
   authToken: string | null;
@@ -209,6 +248,11 @@ export interface UseKustomCheckoutOptions {
   items: CartItem[];
   couponCode: string | null;
   notes: string;
+  /** b2b app (M2-DESIGN §4.4): the current buyer type, or null/undefined for
+   *  stores without the app. `company` is the account-default prefill, sent
+   *  only for a company buyer. A change of either re-syncs the session. */
+  buyer?: 'person' | 'company' | null;
+  company?: KustomCompanyPrefill | null;
 }
 
 export interface UseKustomCheckoutResult {
@@ -231,12 +275,15 @@ export interface UseKustomCheckoutResult {
 export function useKustomCheckout({
   storeSlug,
   locale,
+  marketKey,
   enabled,
   authToken,
   refreshAuth,
   items,
   couponCode,
   notes,
+  buyer = null,
+  company = null,
 }: UseKustomCheckoutOptions): UseKustomCheckoutResult {
   const [html, setHtml] = useState<string | null>(null);
   const [session, setSession] = useState<StoredKustomSession | null>(null);
@@ -250,15 +297,19 @@ export function useKustomCheckout({
 
   const lines = useMemo(() => toKustomCartLines(items), [items]);
   // Everything the session mirrors, serialised; a change schedules a resync.
+  const companyKey = buyer === 'company' && company ? JSON.stringify(company) : null;
   const changeKey = useMemo(
-    () => JSON.stringify({ lines, coupon: couponCode ?? null, notes: notes || null }),
-    [lines, couponCode, notes],
+    () => JSON.stringify({ lines, coupon: couponCode ?? null, notes: notes || null, buyer: buyer ?? null, company: companyKey }),
+    [lines, couponCode, notes, buyer, companyKey],
   );
 
   // Latest inputs for the async callbacks (avoids stale closures without
   // re-creating the callbacks on every keystroke).
-  const latest = useRef({ lines, couponCode, notes, authToken, refreshAuth, locale, changeKey });
-  latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey };
+  const latest = useRef({ lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company });
+  latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company };
+  // True once a create / update of this session was sent as a company, so
+  // the next person update re-syncs once (see b2bUpdateBody).
+  const sentAsCompanyRef = useRef(false);
 
   const sessionRef = useRef<StoredKustomSession | null>(null);
   // `changeKey` the session currently reflects.
@@ -309,7 +360,7 @@ export function useKustomCheckout({
   );
 
   const createSession = useCallback(async (): Promise<KustomCheckoutSessionResponse> => {
-    const { lines: currentLines, couponCode: code, notes: text, locale: lang } = latest.current;
+    const { lines: currentLines, couponCode: code, notes: text, locale: lang, buyer: b, company: c } = latest.current;
     const res = await sendWithAuthFallback((jwt) =>
       api<KustomCheckoutSessionResponse>('/payments/kustom/checkout/session', {
         method: 'POST',
@@ -317,14 +368,17 @@ export function useKustomCheckout({
         body: JSON.stringify({
           store_slug: storeSlug,
           locale: lang,
+          ...(marketKey ? { market_key: marketKey, hostname: window.location.hostname } : {}),
           // Logged-in shoppers omit `items`: the API reads their server cart.
           // A guest (or the guest fallback after a 401) sends the local lines.
           ...(jwt ? {} : { items: currentLines }),
           ...(code ? { coupon_code: code } : {}),
           ...(text ? { notes: text } : {}),
+          ...b2bCreateBody(b, c),
         }),
       }),
     );
+    sentAsCompanyRef.current = b === 'company';
     const stored: StoredKustomSession = {
       session_id: res.session_id,
       token: res.token,
@@ -334,11 +388,12 @@ export function useKustomCheckout({
     sessionRef.current = stored;
     setSession(stored);
     return res;
-  }, [storeSlug, sendWithAuthFallback]);
+  }, [storeSlug, marketKey, sendWithAuthFallback]);
 
   const updateSession = useCallback(async (stored: StoredKustomSession): Promise<KustomCheckoutSessionResponse> => {
-    const { lines: currentLines, couponCode: code, notes: text } = latest.current;
-    return sendWithAuthFallback((jwt) =>
+    const { lines: currentLines, couponCode: code, notes: text, buyer: b, company: c } = latest.current;
+    const b2bFragment = b2bUpdateBody(b, c, sentAsCompanyRef.current);
+    const res = await sendWithAuthFallback((jwt) =>
       api<KustomCheckoutSessionResponse>(
         `/payments/kustom/checkout/session/${encodeURIComponent(stored.session_id)}`,
         {
@@ -352,10 +407,13 @@ export function useKustomCheckout({
             items: currentLines,
             coupon_code: code ?? null,
             notes: text || null,
+            ...b2bFragment,
           }),
         },
       ),
     );
+    sentAsCompanyRef.current = b === 'company';
+    return res;
   }, [sendWithAuthFallback]);
 
   // Resume the remembered session with a PUT (resync), or create a new one
