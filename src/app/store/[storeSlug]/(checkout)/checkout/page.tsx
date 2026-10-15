@@ -13,7 +13,9 @@ import { useMarket } from '@/hooks/useMarket';
 import { api, storefront } from '@/lib/api';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
-import { normalizeB2bNetTotals, normalizeTaxLines, normalizeTaxPricingMode, type TaxLine } from '@/lib/tax';
+import { normalizeB2bNetTotals, normalizeTaxExemptReason, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type TaxLine } from '@/lib/tax';
+import { exemptLinePrices, normalizeQuoteTaxExemption } from '@/lib/taxExemption';
+import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
@@ -27,6 +29,7 @@ import {
 } from '@/lib/b2bValidators';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { KustomCheckout } from '@/components/checkout/KustomCheckout';
+import { VatNumberField } from '@/components/checkout/VatNumberField';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
 import { availableLines } from '@/lib/cartAvailability';
 
@@ -87,6 +90,11 @@ interface OrderQuoteResponse {
   shipping_method_id?: string | null;
   /** b2b app, company quote: net figures (M2-DESIGN D3); absent otherwise. */
   b2b?: unknown;
+  /** Quoted lines; with an exemption their `unit_price` is what is paid. */
+  items?: unknown;
+  /** b2b app M2.5: why the quote carries no VAT (null = taxed); absent without the app. */
+  tax_exempt_reason?: string | null;
+  tax_exemption?: unknown;
 }
 // Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
 const QUOTE_DEBOUNCE_MS = 400;
@@ -185,6 +193,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // defaults best-effort. `isCompany` is always false without the app, so
   // every request body below stays identical for other stores.
   const { isCompany, settings: b2bSettings } = useBuyerType();
+  // M2.5: the VAT field validates live and the quote / order carry the
+  // number only on stores with reverse charge on (off = M2 bodies).
+  const rcEnabled = isCompany && b2bSettings.reverse_charge_enabled;
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
   // Markets app: the request market (null otherwise). Quote and order bodies
   // then carry `market_key` + the hostname/locale the order was placed on
   // (M1-DESIGN D1); non-market stores send exactly the previous bodies.
@@ -249,6 +261,14 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // in which case the summary falls back to the client-side figures.
   const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  // Buyer type the current quote was made for: an exemption of the previous
+  // buyer type is ignored at once after a toggle (M2.5 L5).
+  const [quoteCompany, setQuoteCompany] = useState<boolean | null>(null);
+  // b2b app M2.5 (reverse charge): last settled VAT check of the company
+  // section, and whether the API refused an expected reverse charge (409),
+  // which turns the error box amber and shows the re-quoted total.
+  const [vatCheck, setVatCheck] = useState<VatCheckResult | null>(null);
+  const [rcNotConfirmed, setRcNotConfirmed] = useState(false);
 
   const isLoggedIn = Boolean(token);
   const discount = coupon
@@ -291,6 +311,25 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const taxPending = !quote && quoteLoading;
   // Company view: net block of the quote once there is one, else the cart's.
   const b2bNet = quote ? normalizeB2bNetTotals(quote.b2b) : cartB2bNet;
+  // M2.5: exempt quote → its line prices are shown as-is (never re-netted).
+  const quoteForBuyer = quote !== null && quoteCompany === isCompany;
+  const exemptReason = quote && quoteForBuyer ? normalizeTaxExemptReason(quote.tax_exempt_reason) : null;
+  const quoteExemption = quote && quoteForBuyer ? normalizeQuoteTaxExemption(quote.tax_exemption) : null;
+  // Exempt quote (any buyer): its subtotal / discount are what is paid.
+  const summarySubtotal = exemptReason && quote ? Number(quote.subtotal) : subtotal;
+  const summaryDiscount = exemptReason && quote ? Number(quote.discount_amount) : discount;
+  const quoteItems = quote?.items;
+  const exemptPrices = useMemo(
+    () => (exemptReason ? exemptLinePrices(quoteItems, items) : null),
+    [exemptReason, quoteItems, items],
+  );
+  // Keep the cart's "reverse charge applies at checkout" hint in step.
+  // A quote without a destination decides nothing (`why: NO_DESTINATION`).
+  const quoteHasExemption = quoteExemption !== null && quoteExemption.why !== 'NO_DESTINATION';
+  useEffect(() => {
+    if (!rcEnabled || !quoteHasExemption) return;
+    rememberReverseChargeHint(storeSlug, exemptReason === 'REVERSE_CHARGE');
+  }, [rcEnabled, quoteHasExemption, exemptReason, storeSlug]);
 
   // Pre-fill email from user profile
   useEffect(() => {
@@ -408,6 +447,12 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     selectedShippingMethod && !selectedShippingMethod.legacy ? selectedShippingMethod.id : null;
   const quoteCouponCode = coupon?.code ?? null;
   const quoteMarketKey = market?.key;
+  // M2.5: the (format-valid) VAT number goes with a company quote on reverse
+  // charge stores; each settled VIES check re-quotes so the server's cached
+  // verdict is picked up.
+  const vatPre = precheckVat(form.vat_number);
+  const quoteVatNumber = rcEnabled && vatPre.kind === 'ok' ? vatPre.vatNumber : null;
+  const vatCheckSettledKey = rcEnabled && vatCheck ? `${vatCheck.vatNumber}|${vatCheck.countryCode ?? ''}|${vatCheck.state}` : null;
   useEffect(() => {
     if (!storeId || !shippingCountryCode || items.length === 0) {
       setQuote(null);
@@ -434,9 +479,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           locale,
           // b2b app: the company quote carries the `b2b` net block.
           ...(isCompany ? { buyer_type: 'COMPANY' } : {}),
+          ...(isCompany && quoteVatNumber ? { vat_number: quoteVatNumber } : {}),
         }),
       })
-        .then((res) => { if (!cancelled) setQuote(res); })
+        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); } })
         .catch(() => { if (!cancelled) setQuote(null); })
         .finally(() => { if (!cancelled) setQuoteLoading(false); });
     }, QUOTE_DEBOUNCE_MS);
@@ -444,7 +490,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   }, [
     storeId, token, isLoggedInForQuote, quoteLinesKey, items.length,
     shippingCountryCode, shippingPostcode, shippingRegion, quoteShippingMethodId, quoteCouponCode, locale, requoteTick,
-    quoteMarketKey, isCompany,
+    quoteMarketKey, isCompany, quoteVatNumber, vatCheckSettledKey,
   ]);
 
   // Track viewport so only the active layout mounts the CardElement.
@@ -525,7 +571,22 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       ...(form.buyer_reference.trim() ? { buyer_reference: form.buyer_reference.trim() } : {}),
     };
   }
-  const b2bBody = () => (isCompany ? { buyer_type: 'COMPANY', company: companyPayload() } : {});
+  // M2.5 (D8): when the shown quote removed VAT by reverse charge for this
+  // very number, ask the API to refuse (409) rather than silently charge VAT.
+  const b2bBody = () => {
+    if (!isCompany) return {};
+    const company = companyPayload();
+    const expectReverseCharge =
+      rcEnabled &&
+      exemptReason === 'REVERSE_CHARGE' &&
+      Boolean(company.vat_number) &&
+      vatComparable(quoteExemption?.vat_number) === vatComparable(company.vat_number);
+    return {
+      buyer_type: 'COMPANY',
+      company,
+      ...(expectReverseCharge ? { expect_reverse_charge: true } : {}),
+    };
+  };
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -578,6 +639,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     }
     if (!validate()) return;
     setError('');
+    setRcNotConfirmed(false);
     submittingRef.current = true;
     setLoading(true);
 
@@ -732,7 +794,19 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       }
     } catch (err: unknown) {
       const code = (err as { code?: string } | null)?.code;
-      if (code === 'ORDER_SHIPPING_METHOD_INVALID') {
+      if (code === 'B2B_REVERSE_CHARGE_NOT_CONFIRMED') {
+        // The number could not be confirmed at order time (VIES down, the
+        // destination changed…): nothing was charged. Re-quote with VAT and
+        // let the buyer confirm the new total.
+        setRcNotConfirmed(true);
+        // `why: CUSTOMER_EXEMPT`: the account's own exemption applies instead.
+        const why = (err as { why?: string } | null)?.why;
+        setError(why === 'CUSTOMER_EXEMPT' ? t('b2b.vat.notConfirmedCustomerExempt') : t('errors.B2B_REVERSE_CHARGE_NOT_CONFIRMED'));
+        // Mark the quote as loading now so the old (VAT-free) total is never
+        // shown as the "new" one and submit waits for the re-quote.
+        setQuoteLoading(true);
+        setRequoteTick((n) => n + 1);
+      } else if (code === 'ORDER_SHIPPING_METHOD_INVALID') {
         // The chosen method was removed/disabled meanwhile: show a friendly
         // message and re-quote so the list (and the selection) refresh.
         setError(t('errors.ORDER_SHIPPING_METHOD_INVALID'));
@@ -766,6 +840,27 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     );
   }
 
+  // Error box shared by both layouts. A refused reverse charge (409) is a
+  // warning, not a failure: it shows the re-quoted total to confirm.
+  const errorBox = (spacing: string) => error && (
+    rcNotConfirmed ? (
+      <div className={`rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 ${spacing}`}>
+        <p>{error}</p>
+        {quote && !quoteLoading && (
+          <p className="mt-1 font-semibold">
+            {sumTaxLines(taxLines) > 0
+              ? t('b2b.vat.newTotal', { total: formatPrice(displayTotal, currency) })
+              : t('b2b.vat.newTotalNoVat', { total: formatPrice(displayTotal, currency) })}
+          </p>
+        )}
+      </div>
+    ) : (
+      <div className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 ${spacing}`}>
+        {error}
+      </div>
+    )
+  );
+
   // Submit label per method: card pays inline, COD just places the order.
   const submitLabel = paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder');
 
@@ -789,7 +884,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         {summaryOpen && (
           <div className="px-4 pb-5 pt-3 border-t border-gray-200">
             <OrderSummary
-              items={items} subtotal={subtotal} discount={discount}
+              items={items} subtotal={summarySubtotal} discount={summaryDiscount}
               total={displayTotal} currency={currency} coupon={coupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
@@ -801,6 +896,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
               b2bNet={b2bNet} netItems={netItems}
+              exemptReason={exemptReason} exemptPrices={exemptPrices}
               onRemoveUnavailable={removeItem}
               t={t as (key: string) => string}
             />
@@ -1036,7 +1132,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                     {fieldErrors.company_name && <p className="mt-1 text-xs text-red-500">{fieldErrors.company_name}</p>}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className={rcEnabled ? 'space-y-3 mb-3' : 'grid grid-cols-2 gap-3 mb-3'}>
                     <div>
                       <Label htmlFor="ck_org" required>{t('b2b.orgNumber')}</Label>
                       <input id="ck_org" name="org_number" type="text" value={form.org_number}
@@ -1048,9 +1144,21 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                     </div>
                     <div>
                       <Label htmlFor="ck_vat" required={b2bSettings.require_vat_number}>{t('b2b.vatNumber')}</Label>
-                      <input id="ck_vat" name="vat_number" type="text" value={form.vat_number}
-                        onChange={handleChange} className={inputCls(!!fieldErrors.vat_number)} placeholder="SE556677889901" />
-                      {fieldErrors.vat_number && <p className="mt-1 text-xs text-red-500">{fieldErrors.vat_number}</p>}
+                      {rcEnabled ? (
+                        // M2.5: live VIES check for the shipping destination.
+                        <VatNumberField
+                          id="ck_vat" value={form.vat_number} onChange={handleChange}
+                          storeSlug={storeSlug} countryCode={shippingCountryCode}
+                          error={fieldErrors.vat_number} placeholder="SE556677889901"
+                          inputClassName={inputCls} onResult={setVatCheck}
+                        />
+                      ) : (
+                        <>
+                          <input id="ck_vat" name="vat_number" type="text" value={form.vat_number}
+                            onChange={handleChange} className={inputCls(!!fieldErrors.vat_number)} placeholder="SE556677889901" />
+                          {fieldErrors.vat_number && <p className="mt-1 text-xs text-red-500">{fieldErrors.vat_number}</p>}
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1139,7 +1247,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               {t('checkout.orderSummary')}
             </h2>
             <OrderSummary
-              items={items} subtotal={subtotal} discount={discount}
+              items={items} subtotal={summarySubtotal} discount={summaryDiscount}
               total={displayTotal} currency={currency} coupon={coupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
@@ -1151,6 +1259,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
               b2bNet={b2bNet} netItems={netItems}
+              exemptReason={exemptReason} exemptPrices={exemptPrices}
               onRemoveUnavailable={removeItem}
               t={t as (key: string) => string}
             />
@@ -1218,16 +1327,12 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             </div>
 
             {/* Error */}
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mt-4">
-                {error}
-              </div>
-            )}
+            {errorBox('mt-4')}
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1296,12 +1401,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 </Link>
               )}
             </div>
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>
-            )}
+            {errorBox('mb-4')}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading}
+              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >

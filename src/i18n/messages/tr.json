@@ -431,7 +431,36 @@
     "netTotal": "Net toplam",
     "totalInclVat": "KDV dahil toplam",
     "subtotalExclVat": "KDV hariç ara toplam",
-    "includesDiscount": "{amount} KDV dahil indirim içerir"
+    "includesDiscount": "{amount} KDV dahil indirim içerir",
+    "vat": {
+      "checking": "KDV numarası kontrol ediliyor…",
+      "valid": "Geçerli KDV numarası",
+      "reverseCharge": "KDV kaldırıldı — ters ifa",
+      "reverseChargeApplied": "Bu teslimat adresi için KDV kaldırıldı — ters ifa",
+      "validNoReverseCharge": {
+        "SAME_COUNTRY": "Geçerli — yurt içi alımlarda KDV uygulanır",
+        "DESTINATION_NOT_EU": "Geçerli — ters ifa yalnızca AB içindeki teslimatlarda uygulanır",
+        "VAT_COUNTRY_IS_SELLER": "Geçerli — numara satıcının ülkesinde kayıtlı olduğu için KDV uygulanır",
+        "DEFAULT": "Geçerli — bu siparişe KDV uygulanır"
+      },
+      "invalid": "Bu KDV numarası AB VIES kaydında geçerli değil. KDV uygulanacaktır.",
+      "formatInvalid": "Geçersiz KDV numarası biçimi (ör. DE123456789)",
+      "notEu": "AB dışı KDV numarası — KDV uygulanır",
+      "unavailable": "KDV numarası şu anda doğrulanamadı. KDV uygulanacak; iadesini daha sonra talep edebilirsiniz.",
+      "ownershipNote": "Doğrulama numaranın geçerli olduğunu onaylar, size ait olduğunu değil.",
+      "newTotal": "KDV dahil yeni toplam: {total}",
+      "newTotalNoVat": "Yeni toplam: {total}",
+      "notConfirmedCustomerExempt": "Ters ifa uygulanmaz: hesabınız vergiden muaf olduğu için zaten KDV alınmaz. Lütfen toplamı kontrol edip siparişi yeniden verin.",
+      "cartHint": "Fiyatlar KDV hariç — ödeme adımında ters ifa uygulanır",
+      "companyRequired": "Ters ifanın uygulanması için şirket adını ve ticaret sicil numarasını girin."
+    },
+    "reverseChargeRow": "KDV %0 — Ters ifa",
+    "customerExemptRow": "KDV %0 — Vergiden muaf",
+    "reverseChargeNote": "Ters ifa: KDV alıcı tarafından beyan edilir.",
+    "reverseChargeTitle": "Ters ifa (sorumlu sıfatıyla)",
+    "reverseChargeNotice": "KDV alıcı tarafından beyan edilir. KDV numarası {vat}",
+    "vatValidatedOn": "Doğrulanma tarihi: {date}",
+    "customerExemptNotice": "Vergiden muaf — bu siparişe KDV uygulanmaz"
   },
   "errors": {
     "generic": "Bir hata oluştu. Lütfen tekrar deneyin.",
@@ -572,6 +601,7 @@
     "B2B_ORG_NUMBER_INVALID": "Ticaret sicil numarası geçersiz",
     "B2B_VAT_NUMBER_REQUIRED": "KDV numarası zorunludur",
     "B2B_VAT_NUMBER_INVALID": "KDV numarası geçersiz",
+    "B2B_REVERSE_CHARGE_NOT_CONFIRMED": "KDV numaranız ters ifa için doğrulanamadı, bu nedenle KDV uygulanır. Lütfen güncellenen toplamı kontrol edip siparişi yeniden verin.",
     "STORE_APP_SETTINGS_INVALID": "Uygulama ayarları geçersiz",
     "INVOICE_NOT_FOUND": "Fatura bulunamadı.",
     "INVOICE_PDF_UNAVAILABLE": "Fatura PDF'i geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",

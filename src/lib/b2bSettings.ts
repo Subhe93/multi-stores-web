@@ -18,13 +18,22 @@ export interface B2bSettings {
   require_vat_number: boolean;
   /** ISO2 countries whose organisation-number format is validated strictly. */
   org_number_countries: string[];
+  /** M2.5: validated EU business buyers get reverse charge (VAT 0 %). */
+  reverse_charge_enabled: boolean;
+  /** M2.5 (L1): what an exempt company pays on an INCLUSIVE store — the net
+   *  of the price (`net`, default) or the unchanged price (`gross`). */
+  reverse_charge_pricing: ReverseChargePricing;
 }
+
+export type ReverseChargePricing = 'net' | 'gross';
 
 export const DEFAULT_B2B_SETTINGS: B2bSettings = {
   allow_company: true,
   default_buyer_type: 'PERSON',
   require_vat_number: false,
   org_number_countries: ['SE'],
+  reverse_charge_enabled: false,
+  reverse_charge_pricing: 'net',
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -44,5 +53,7 @@ export function normalizeB2bSettings(raw: unknown): B2bSettings {
     default_buyer_type: raw.default_buyer_type === 'COMPANY' ? 'COMPANY' : 'PERSON',
     require_vat_number: raw.require_vat_number === true,
     org_number_countries: countries ?? [...DEFAULT_B2B_SETTINGS.org_number_countries],
+    reverse_charge_enabled: raw.reverse_charge_enabled === true,
+    reverse_charge_pricing: raw.reverse_charge_pricing === 'gross' ? 'gross' : 'net',
   };
 }

@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
-import { deriveNetTotals, formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
-import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
 import { OrderInvoices } from '@/components/account/OrderInvoices';
 import {
@@ -139,6 +139,9 @@ interface OrderDetail {
   org_number?: string | null;
   vat_number?: string | null;
   buyer_reference?: string | null;
+  /** b2b app M2.5: why the order carries no VAT, and the VIES evidence. */
+  tax_exempt_reason?: 'REVERSE_CHARGE' | 'CUSTOMER_EXEMPT' | null;
+  vat_validation?: unknown;
   payment_method?: string;
   notes?: string;
   created_at: string;
@@ -196,6 +199,8 @@ export default function StoreOrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
   const t = useTranslations();
+  // Tax row labels; the 0 % row of an exempt order reads "VAT 0 % — Reverse charge".
+  const taxLabel = useTaxLineLabel();
   const locale = useLocale();
   const lp = useLocalePath();
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -415,18 +420,21 @@ export default function StoreOrderDetailPage() {
             {discount > 0 && (
               <p className="text-xs text-gray-500">{t('b2b.includesDiscount', { amount: fmt(discount) })}</p>
             )}
+            {/* Exempt order (M2.5): the net total equals the total — skipped. */}
+            {!order.tax_exempt_reason && (
             <div className="flex justify-between font-medium border-t border-gray-100 pt-2">
               <span className="text-gray-700">{t('b2b.netTotal')}</span>
               <span className="text-gray-900">{fmt(net.net_total)}</span>
             </div>
+            )}
             {taxLines.map((line, i) => (
               <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
-                <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+                <span className="text-gray-500">{taxLabel(line)}</span>
                 <span className="text-gray-900">{fmt(line.tax_amount)}</span>
               </div>
             ))}
             <div className="flex justify-between font-semibold text-base border-t border-gray-100 pt-2">
-              <span>{t('b2b.totalInclVat')}</span>
+              <span>{order.tax_exempt_reason ? t('cart.total') : t('b2b.totalInclVat')}</span>
               <span>{fmt(total)}</span>
             </div>
           </div>
@@ -452,7 +460,7 @@ export default function StoreOrderDetailPage() {
           {/* EXCLUSIVE: tax was added on top, so its rows precede the total. */}
           {taxExclusive && taxLines.map((line, i) => (
             <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
-              <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+              <span className="text-gray-500">{taxLabel(line)}</span>
               <span className="text-gray-900">{fmt(line.tax_amount)}</span>
             </div>
           ))}

@@ -5,12 +5,15 @@ import { api } from '@/lib/api';
 import type { CartItem } from '@/hooks/useCart';
 import {
   normalizeB2bNetTotals,
+  normalizeTaxExemptReason,
   normalizeTaxLines,
   normalizeTaxPricingMode,
   type B2bNetTotals,
+  type TaxExemptReason,
   type TaxLine,
   type TaxPricingMode,
 } from '@/lib/tax';
+import { normalizeQuoteTaxExemption, type QuoteTaxExemption } from '@/lib/taxExemption';
 
 // ── Kustom-first checkout session ─────────────────────────────────────────────
 // Talks to /payments/kustom/checkout/session (plans/kustom-integration/
@@ -44,6 +47,12 @@ export interface KustomSessionTotals {
   currency?: string;
   /** b2b app, company session: net figures (M2-DESIGN D3); null otherwise. */
   b2b?: B2bNetTotals | null;
+  /** b2b app M2.5: the session is tax exempt (reverse charge / customer
+   *  exemption); present only when the API reported an exemption block. */
+  tax_exempt_reason?: TaxExemptReason | null;
+  tax_exemption?: QuoteTaxExemption | null;
+  /** Per-line amounts when the API sends them (quote-shaped `items`). */
+  items?: unknown;
 }
 
 /** Company prefill sent with the session (M2-DESIGN §3.5 / §6); Kustom
@@ -62,7 +71,14 @@ export interface KustomCheckoutSessionResponse {
   html_snippet: string;
   status: string;
   /** Optional on older API builds. */
-  totals?: (Partial<Omit<KustomSessionTotals, 'b2b'>> & { tax_lines?: unknown; pricing_mode?: string; b2b?: unknown }) | null;
+  totals?: (Partial<Omit<KustomSessionTotals, 'b2b' | 'tax_exempt_reason' | 'tax_exemption' | 'items'>> & {
+    items?: unknown;
+    tax_lines?: unknown;
+    pricing_mode?: string;
+    b2b?: unknown;
+    tax_exempt_reason?: unknown;
+    tax_exemption?: unknown;
+  }) | null;
 }
 
 /** Coerce the raw `totals` block; null when the API did not send one. */
@@ -82,7 +98,25 @@ export function normalizeKustomTotals(raw: KustomCheckoutSessionResponse['totals
       ? { currency: raw.currency.trim().toUpperCase() }
       : {}),
     b2b: normalizeB2bNetTotals(raw.b2b),
+    ...exemptionOfTotals(raw, lines),
+    ...(Array.isArray(raw.items) ? { items: raw.items } : {}),
   };
+}
+
+// M2.5: exemption of a session; keys only when the API sent an exemption
+// block or an exempt tax row, so other sessions normalise as before.
+function exemptionOfTotals(
+  raw: NonNullable<KustomCheckoutSessionResponse['totals']>,
+  lines: TaxLine[],
+): Pick<KustomSessionTotals, 'tax_exempt_reason' | 'tax_exemption'> {
+  const exemption = normalizeQuoteTaxExemption(raw.tax_exemption);
+  const reason =
+    normalizeTaxExemptReason(raw.tax_exempt_reason) ??
+    exemption?.reason ??
+    lines.find((l) => l.exempt_reason)?.exempt_reason ??
+    null;
+  if (!exemption && !reason && raw.tax_exempt_reason === undefined) return {};
+  return { tax_exempt_reason: reason, tax_exemption: exemption };
 }
 
 export interface StoredKustomSession {
@@ -268,6 +302,9 @@ export interface UseKustomCheckoutResult {
   syncFailed: boolean;
   /** Totals of the last successful POST / PUT — what the iframe charges. */
   totals: KustomSessionTotals | null;
+  /** Buyer type `totals` were priced for (b2b app); lets the page ignore an
+   *  exemption of the previous buyer type until the re-sync lands. */
+  totalsBuyer: 'person' | 'company' | null;
   session: StoredKustomSession | null;
   retry: () => void;
 }
@@ -292,6 +329,9 @@ export function useKustomCheckout({
   const [failed, setFailed] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [totals, setTotals] = useState<KustomSessionTotals | null>(null);
+  const [totalsBuyer, setTotalsBuyer] = useState<'person' | 'company' | null>(null);
+  // Buyer type of the last create / update sent.
+  const sentBuyerRef = useRef<'person' | 'company' | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [resyncTick, setResyncTick] = useState(0);
 
@@ -379,6 +419,7 @@ export function useKustomCheckout({
       }),
     );
     sentAsCompanyRef.current = b === 'company';
+    sentBuyerRef.current = b ?? null;
     const stored: StoredKustomSession = {
       session_id: res.session_id,
       token: res.token,
@@ -413,6 +454,7 @@ export function useKustomCheckout({
       ),
     );
     sentAsCompanyRef.current = b === 'company';
+    sentBuyerRef.current = b ?? null;
     return res;
   }, [sendWithAuthFallback]);
 
@@ -457,6 +499,7 @@ export function useKustomCheckout({
         if (cancelled) return;
         setHtml(res.html_snippet);
         setTotals(normalizeKustomTotals(res.totals));
+        setTotalsBuyer(sentBuyerRef.current);
         setSyncFailed(false);
       })
       .catch(() => {
@@ -498,6 +541,7 @@ export function useKustomCheckout({
           const { res, recreated } = await push();
           syncedKeyRef.current = key;
           setTotals(normalizeKustomTotals(res.totals));
+          setTotalsBuyer(sentBuyerRef.current);
           setSyncFailed(false);
           // With the JS API the iframe reloads the order itself on resume; a
           // new session (or no API) needs the fresh snippet mounted instead.
@@ -531,5 +575,5 @@ export function useKustomCheckout({
     setAttempt((n) => n + 1);
   }, []);
 
-  return { html, loading, updating, failed, syncFailed, totals, session, retry };
+  return { html, loading, updating, failed, syncFailed, totals, totalsBuyer, session, retry };
 }

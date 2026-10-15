@@ -5,6 +5,7 @@ import { formatPrice } from '@/lib/format';
 import type { B2bNetTotals, TaxLine, TaxPricingMode } from '@/lib/tax';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { TaxLineRows } from './TaxLineRows';
+import { ReverseChargeCartHint } from './ReverseChargeCartHint';
 
 interface CartSummaryProps {
   subtotal: number;
@@ -92,6 +93,7 @@ export function CartSummary({
           </div>
           {taxLines.length > 0 && taxEstimated && <p className="text-xs text-gray-500">{t('taxEstimatedNote')}</p>}
           {taxLines.length === 0 && <p className="text-xs text-gray-500">{t('taxAtCheckout')}</p>}
+          <ReverseChargeCartHint />
         </div>
       </div>
     );

@@ -80,7 +80,19 @@ describe('normalizeB2bSettings', () => {
   it('coerces each field and falls back per field', () => {
     expect(
       normalizeB2bSettings({ allow_company: false, default_buyer_type: 'COMPANY', require_vat_number: true, org_number_countries: ['se', ' fi ', 'xyz', 3] }),
-    ).toEqual({ allow_company: false, default_buyer_type: 'COMPANY', require_vat_number: true, org_number_countries: ['SE', 'FI'] });
+    ).toEqual({
+      allow_company: false, default_buyer_type: 'COMPANY', require_vat_number: true, org_number_countries: ['SE', 'FI'],
+      reverse_charge_enabled: false, reverse_charge_pricing: 'net',
+    });
     expect(normalizeB2bSettings({ default_buyer_type: 'other', org_number_countries: 'SE' })).toEqual(DEFAULT_B2B_SETTINGS);
+  });
+
+  it('reads the reverse-charge settings (M2.5): strict true, pricing net unless gross', () => {
+    expect(normalizeB2bSettings({ reverse_charge_enabled: true, reverse_charge_pricing: 'gross' })).toMatchObject({
+      reverse_charge_enabled: true, reverse_charge_pricing: 'gross',
+    });
+    expect(normalizeB2bSettings({ reverse_charge_enabled: 'yes', reverse_charge_pricing: 'other' })).toMatchObject({
+      reverse_charge_enabled: false, reverse_charge_pricing: 'net',
+    });
   });
 });

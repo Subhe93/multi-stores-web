@@ -15,6 +15,7 @@ import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -489,6 +490,7 @@ export default function StoreCartPage() {
                     {taxLines.length > 0 && taxEstimated && (
                       <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
                     )}
+                    <ReverseChargeCartHint />
                   </div>
                 ) : (
                 <>

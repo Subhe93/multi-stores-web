@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -14,6 +14,10 @@ import { useBuyerType } from '@/hooks/useBuyerType';
 import { useKustomCheckout, type KustomCompanyPrefill } from '@/hooks/useKustomCheckout';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
+import { VatNumberField } from '@/components/checkout/VatNumberField';
+import { normalizeVatNumber } from '@/lib/b2bValidators';
+import { vatCheckMessageKey, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
+import { exemptLinePrices } from '@/lib/taxExemption';
 
 // ── Kustom-first checkout ─────────────────────────────────────────────────────
 // Address, shipping and payment all happen inside Kustom's iframe; this page
@@ -35,6 +39,13 @@ const VALIDATION_REASON_KEYS: Record<string, string> = {
   coupon_invalid: 'checkout.kustomValidationReasons.couponInvalid',
   unavailable: 'checkout.kustomValidationReasons.unavailable',
 };
+
+const inputCls = (err?: boolean) =>
+  `w-full border rounded-md px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 transition focus:outline-none focus:ring-2 ${
+    err
+      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-400'
+      : 'border-gray-300 focus:ring-blue-500/20 focus:border-blue-500'
+  }`;
 
 function LoadingState({ label }: { label: string }) {
   return (
@@ -63,14 +74,42 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   // b2b app (M2-DESIGN §4.4): buyer type + the account's company defaults go
   // to the session; Kustom collects / validates the organisation data in
   // its iframe. `enabled` is false without the app → nothing is sent.
-  const { enabled: b2bEnabled, isCompany } = useBuyerType();
+  const { enabled: b2bEnabled, isCompany, settings: b2bSettings } = useBuyerType();
   const companyName = user?.customer?.company_name || '';
   const orgNumber = user?.customer?.org_number || '';
   const vatNumber = user?.customer?.vat_number || '';
+  // M2.5 (reverse charge on): a small company panel above the iframe lets
+  // the buyer enter / confirm name, org number and VAT number. All three go
+  // to the session on blur (the session re-prices through `changeKey`); the
+  // live check only explains the outcome, the API decides reverse charge.
+  // Fields left untouched show the account defaults.
+  const rcEnabled = b2bEnabled && isCompany && b2bSettings.reverse_charge_enabled;
+  const [rcDraft, setRcDraft] = useState<{ company_name?: string; org_number?: string; vat_number?: string }>({});
+  const [rcApplied, setRcApplied] = useState<{ company_name?: string; org_number?: string; vat_number?: string }>({});
+  const [rcVat, setRcVat] = useState<VatCheckResult | null>(null);
+  const rcName = (rcDraft.company_name ?? companyName);
+  const rcOrg = (rcDraft.org_number ?? orgNumber);
+  const rcVatInput = rcDraft.vat_number ?? vatNumber;
+  const rcAppliedName = (rcApplied.company_name ?? companyName).trim();
+  const rcAppliedOrg = (rcApplied.org_number ?? orgNumber).trim();
+  const rcAppliedVat = normalizeVatNumber(rcApplied.vat_number ?? vatNumber);
+  const rcValidVat =
+    rcVat && rcVat.state === 'valid' && vatComparable(rcVat.vatNumber) === vatComparable(rcVatInput) ? rcVat.vatNumber : '';
+  // A valid number cannot be applied without the company identity: say so.
+  const rcMissingCompany = rcEnabled && Boolean(rcValidVat) && (!rcAppliedName || !rcAppliedOrg);
   const companyPrefill = useMemo<KustomCompanyPrefill | null>(() => {
+    if (rcEnabled) {
+      if (!rcAppliedName || !rcAppliedOrg) return null;
+      return { company_name: rcAppliedName, org_number: rcAppliedOrg, ...(rcAppliedVat ? { vat_number: rcAppliedVat } : {}) };
+    }
     if (!isCompany || !companyName || !orgNumber) return null;
     return { company_name: companyName, org_number: orgNumber, ...(vatNumber ? { vat_number: vatNumber } : {}) };
-  }, [isCompany, companyName, orgNumber, vatNumber]);
+  }, [rcEnabled, rcAppliedName, rcAppliedOrg, rcAppliedVat, isCompany, companyName, orgNumber, vatNumber]);
+  const onRcChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setRcDraft((d) => ({ ...d, [name]: value }));
+  };
+  const applyRcCompany = () => setRcApplied({ company_name: rcName, org_number: rcOrg, vat_number: rcVatInput });
 
   const [orderNotes, setOrderNotes] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -81,7 +120,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
 
-  const { html, loading, updating, failed, syncFailed, totals, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, syncFailed, totals, totalsBuyer, retry } = useKustomCheckout({
     storeSlug,
     locale,
     marketKey: market?.key ?? null,
@@ -111,6 +150,23 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const summaryTaxEstimated = totals ? false : cartTaxEstimated;
   // Company view: the session's net block once there is one, else the cart's.
   const summaryB2bNet = totals ? totals.b2b ?? null : cartB2bNet;
+  // M2.5: exemption the session priced with (Kustom knows the destination).
+  // Ignored while the totals still belong to the previous buyer type.
+  const currentBuyer = b2bEnabled ? (isCompany ? 'company' : 'person') : null;
+  const summaryExemptReason = totals && totalsBuyer === currentBuyer ? totals.tax_exempt_reason ?? null : null;
+  const totalsItems = totals?.items;
+  const summaryExemptPrices = useMemo(
+    () => (summaryExemptReason ? exemptLinePrices(totalsItems, items) : null),
+    [summaryExemptReason, totalsItems, items],
+  );
+  const sessionWhy = totals?.tax_exemption?.why ?? null;
+  const sessionRcMessage = !rcEnabled || !totals?.tax_exemption
+    ? null
+    : summaryExemptReason === 'REVERSE_CHARGE'
+      ? { key: 'b2b.vat.reverseChargeApplied', tone: 'success' as const }
+      : rcValidVat && sessionWhy !== 'NO_DESTINATION' && vatComparable(totals.tax_exemption.vat_number) === vatComparable(rcValidVat)
+        ? vatCheckMessageKey('valid', false, sessionWhy)
+        : null;
   // The session is priced in the store's charge currency, which is the one to
   // format its figures in; fall back to the cart currency on older API builds.
   const summaryCurrency = totals?.currency || currency;
@@ -209,6 +265,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               taxLines={summaryTaxLines} pricingMode={summaryPricingMode}
               taxEstimated={summaryTaxEstimated} taxPending={!totals && updating}
               b2bNet={summaryB2bNet} netItems={netItems}
+              exemptReason={summaryExemptReason} exemptPrices={summaryExemptPrices}
               onUpdateQuantity={updateQuantity}
               onRemoveItem={removeItem}
               t={t as (key: string) => string}
@@ -251,6 +308,47 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               </span>
             )}
           </div>
+
+          {rcEnabled && (
+            <div className="mb-5 rounded-lg store-surface border store-bd p-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('b2b.companyDetails')}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label htmlFor="kc_company" className="block text-xs font-medium text-gray-700 mb-1">
+                    {t('b2b.companyName')}<span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <input id="kc_company" name="company_name" type="text" value={rcName} required aria-required
+                    onChange={onRcChange} onBlur={applyRcCompany} className={inputCls(rcMissingCompany && !rcAppliedName)} autoComplete="organization" />
+                </div>
+                <div>
+                  <label htmlFor="kc_org" className="block text-xs font-medium text-gray-700 mb-1">
+                    {t('b2b.orgNumber')}<span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <input id="kc_org" name="org_number" type="text" value={rcOrg} required aria-required
+                    onChange={onRcChange} onBlur={applyRcCompany} className={inputCls(rcMissingCompany && !rcAppliedOrg)} />
+                </div>
+              </div>
+              <label htmlFor="kc_vat" className="block text-xs font-medium text-gray-700 mb-1">{t('b2b.vatNumber')}</label>
+              {/* No destination yet: Kustom collects the address, the session
+                  decides reverse charge for it (message below). */}
+              <VatNumberField
+                id="kc_vat" value={rcVatInput} onChange={onRcChange}
+                storeSlug={storeSlug} placeholder="DE123456789"
+                inputClassName={inputCls} onResult={setRcVat} onBlur={applyRcCompany}
+              />
+              {rcMissingCompany && (
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700" role="alert">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />
+                  {t('b2b.vat.companyRequired')}
+                </p>
+              )}
+              {sessionRcMessage && (
+                <p className={`mt-2 text-xs ${sessionRcMessage.tone === 'success' ? 'text-green-700 font-medium' : 'text-gray-700'}`}>
+                  {t(sessionRcMessage.key)}
+                </p>
+              )}
+            </div>
+          )}
 
           {hasUnavailableItems ? (
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-4">

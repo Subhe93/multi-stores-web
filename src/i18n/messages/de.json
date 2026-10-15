@@ -431,7 +431,36 @@
     "netTotal": "Nettosumme",
     "totalInclVat": "Gesamt inkl. MwSt.",
     "subtotalExclVat": "Zwischensumme exkl. MwSt.",
-    "includesDiscount": "Enthält Rabatt von {amount} inkl. MwSt."
+    "includesDiscount": "Enthält Rabatt von {amount} inkl. MwSt.",
+    "vat": {
+      "checking": "USt-IdNr. wird geprüft…",
+      "valid": "Gültige USt-IdNr.",
+      "reverseCharge": "MwSt. entfällt – Steuerschuldnerschaft des Leistungsempfängers",
+      "reverseChargeApplied": "MwSt. entfällt für diese Lieferadresse – Steuerschuldnerschaft des Leistungsempfängers",
+      "validNoReverseCharge": {
+        "SAME_COUNTRY": "Gültig – bei Inlandskäufen fällt MwSt. an",
+        "DESTINATION_NOT_EU": "Gültig – die Steuerschuldnerschaft des Leistungsempfängers gilt nur für Lieferungen innerhalb der EU",
+        "VAT_COUNTRY_IS_SELLER": "Gültig – MwSt. fällt an, da die Nummer im Land des Verkäufers registriert ist",
+        "DEFAULT": "Gültig – für diese Bestellung fällt MwSt. an"
+      },
+      "invalid": "Diese USt-IdNr. ist im EU-Register VIES nicht gültig. Es wird MwSt. berechnet.",
+      "formatInvalid": "Ungültiges Format der USt-IdNr. (z. B. DE123456789)",
+      "notEu": "USt-IdNr. außerhalb der EU – MwSt. fällt an",
+      "unavailable": "Die USt-IdNr. konnte gerade nicht geprüft werden. Es wird MwSt. berechnet, die Sie sich erstatten lassen können.",
+      "ownershipNote": "Die Prüfung bestätigt, dass die Nummer gültig ist, nicht dass sie Ihnen gehört.",
+      "newTotal": "Neuer Gesamtbetrag inkl. MwSt.: {total}",
+      "newTotalNoVat": "Neuer Gesamtbetrag: {total}",
+      "notConfirmedCustomerExempt": "Die Steuerschuldnerschaft des Leistungsempfängers wird nicht angewendet: Ihr Konto ist steuerbefreit, daher wird ohnehin keine MwSt. berechnet. Bitte prüfen Sie den Gesamtbetrag und geben Sie die Bestellung erneut auf.",
+      "cartHint": "Preise exkl. MwSt. – an der Kasse gilt die Steuerschuldnerschaft des Leistungsempfängers",
+      "companyRequired": "Bitte geben Sie Firmenname und Handelsregisternummer an, damit die Steuerschuldnerschaft des Leistungsempfängers angewendet werden kann."
+    },
+    "reverseChargeRow": "MwSt. 0 % – Steuerschuldnerschaft des Leistungsempfängers",
+    "customerExemptRow": "MwSt. 0 % – steuerbefreit",
+    "reverseChargeNote": "Steuerschuldnerschaft des Leistungsempfängers: Die MwSt. wird vom Käufer abgeführt.",
+    "reverseChargeTitle": "Steuerschuldnerschaft des Leistungsempfängers",
+    "reverseChargeNotice": "Die Steuer schuldet der Leistungsempfänger. USt-IdNr. {vat}",
+    "vatValidatedOn": "Geprüft am {date}",
+    "customerExemptNotice": "Steuerbefreit – für diese Bestellung wird keine MwSt. berechnet"
   },
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
@@ -572,6 +601,7 @@
     "B2B_ORG_NUMBER_INVALID": "Die Handelsregisternummer ist ungültig",
     "B2B_VAT_NUMBER_REQUIRED": "USt-IdNr. ist erforderlich",
     "B2B_VAT_NUMBER_INVALID": "Die USt-IdNr. ist ungültig",
+    "B2B_REVERSE_CHARGE_NOT_CONFIRMED": "Ihre USt-IdNr. konnte für die Steuerschuldnerschaft des Leistungsempfängers nicht bestätigt werden, daher fällt MwSt. an. Bitte prüfen Sie den aktualisierten Gesamtbetrag und geben Sie die Bestellung erneut auf.",
     "STORE_APP_SETTINGS_INVALID": "Die App-Einstellungen sind ungültig",
     "INVOICE_NOT_FOUND": "Rechnung nicht gefunden.",
     "INVOICE_PDF_UNAVAILABLE": "Das Rechnungs-PDF ist vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut.",

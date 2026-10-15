@@ -13,6 +13,16 @@ export interface TaxLine {
   rate_bp: number;
   taxable_amount: number;
   tax_amount: number;
+  /** b2b app M2.5: set only on the synthetic 0 % row of an exempt order. */
+  exempt_reason?: TaxExemptReason;
+}
+
+/** Why an order / quote carries no VAT (b2b app, M2.5). */
+export type TaxExemptReason = 'REVERSE_CHARGE' | 'CUSTOMER_EXEMPT';
+
+/** Coerce an API `tax_exempt_reason` / `exempt_reason`; null for anything else. */
+export function normalizeTaxExemptReason(raw: unknown): TaxExemptReason | null {
+  return raw === 'REVERSE_CHARGE' || raw === 'CUSTOMER_EXEMPT' ? raw : null;
 }
 
 /** `tax` block of `storefront.getStore`. */
@@ -51,12 +61,17 @@ export function normalizeTaxLines(raw: unknown): TaxLine[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((l): l is Record<string, unknown> => Boolean(l) && typeof l === 'object')
-    .map((l) => ({
-      label: typeof l.label === 'string' ? l.label : '',
-      rate_bp: toNumber(l.rate_bp ?? l.rateBp),
-      taxable_amount: toNumber(l.taxable_amount ?? l.taxableAmount),
-      tax_amount: toNumber(l.tax_amount ?? l.taxAmount),
-    }));
+    .map((l) => {
+      const exempt = normalizeTaxExemptReason(l.exempt_reason ?? l.exemptReason);
+      return {
+        label: typeof l.label === 'string' ? l.label : '',
+        rate_bp: toNumber(l.rate_bp ?? l.rateBp),
+        taxable_amount: toNumber(l.taxable_amount ?? l.taxableAmount),
+        tax_amount: toNumber(l.tax_amount ?? l.taxAmount),
+        // Only the exempt row carries the key; ordinary rows stay identical.
+        ...(exempt ? { exempt_reason: exempt } : {}),
+      };
+    });
 }
 
 /** Sum of `tax_amount` over the lines. */

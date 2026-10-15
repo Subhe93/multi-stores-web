@@ -47,11 +47,15 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     const err = new Error(json.message || 'API request failed') as Error & {
       status?: number;
       code?: string;
+      why?: string;
     };
     err.status = res.status;
     // Stable machine-readable error code (when present) for UI translation,
     // falling back to the English `message` above.
     err.code = typeof json.code === 'string' ? json.code : undefined;
+    // Machine-readable reason next to some codes (b2b app M2.5:
+    // B2B_REVERSE_CHARGE_NOT_CONFIRMED carries the decision's `why`).
+    if (typeof json.why === 'string') err.why = json.why;
     throw err;
   }
 

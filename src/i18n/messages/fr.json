@@ -431,7 +431,36 @@
     "netTotal": "Total HT",
     "totalInclVat": "Total TTC",
     "subtotalExclVat": "Sous-total HT",
-    "includesDiscount": "Inclut une remise de {amount} TTC"
+    "includesDiscount": "Inclut une remise de {amount} TTC",
+    "vat": {
+      "checking": "Vérification du numéro de TVA…",
+      "valid": "Numéro de TVA valide",
+      "reverseCharge": "TVA supprimée — autoliquidation",
+      "reverseChargeApplied": "TVA supprimée pour cette adresse de livraison — autoliquidation",
+      "validNoReverseCharge": {
+        "SAME_COUNTRY": "Valide — la TVA s'applique aux achats nationaux",
+        "DESTINATION_NOT_EU": "Valide — l'autoliquidation ne s'applique qu'aux livraisons dans l'UE",
+        "VAT_COUNTRY_IS_SELLER": "Valide — la TVA s'applique car le numéro est enregistré dans le pays du vendeur",
+        "DEFAULT": "Valide — la TVA s'applique à cette commande"
+      },
+      "invalid": "Ce numéro de TVA n'est pas valide dans le registre VIES de l'UE. La TVA sera facturée.",
+      "formatInvalid": "Format de numéro de TVA invalide (ex. DE123456789)",
+      "notEu": "Numéro de TVA hors UE — la TVA s'applique",
+      "unavailable": "Le numéro de TVA n'a pas pu être vérifié pour le moment. La TVA sera facturée et pourra être récupérée.",
+      "ownershipNote": "La vérification confirme que le numéro est valide, pas qu'il vous appartient.",
+      "newTotal": "Nouveau total TTC : {total}",
+      "newTotalNoVat": "Nouveau total : {total}",
+      "notConfirmedCustomerExempt": "L'autoliquidation ne s'applique pas : votre compte est exonéré de TVA, aucune TVA n'est donc facturée. Veuillez vérifier le total et passer à nouveau la commande.",
+      "cartHint": "Prix HT — l'autoliquidation s'applique au paiement",
+      "companyRequired": "Saisissez la raison sociale et le numéro d'entreprise pour appliquer l'autoliquidation."
+    },
+    "reverseChargeRow": "TVA 0 % — Autoliquidation",
+    "customerExemptRow": "TVA 0 % — Exonéré",
+    "reverseChargeNote": "Autoliquidation : la TVA est due par l'acheteur.",
+    "reverseChargeTitle": "Autoliquidation",
+    "reverseChargeNotice": "TVA due par le preneur. Numéro de TVA {vat}",
+    "vatValidatedOn": "Vérifié le {date}",
+    "customerExemptNotice": "Exonéré de TVA — aucune TVA n'est facturée sur cette commande"
   },
   "errors": {
     "generic": "Une erreur s'est produite. Veuillez réessayer.",
@@ -572,6 +601,7 @@
     "B2B_ORG_NUMBER_INVALID": "Le numéro d'entreprise est invalide",
     "B2B_VAT_NUMBER_REQUIRED": "Le numéro de TVA est requis",
     "B2B_VAT_NUMBER_INVALID": "Le numéro de TVA est invalide",
+    "B2B_REVERSE_CHARGE_NOT_CONFIRMED": "Votre numéro de TVA n'a pas pu être confirmé pour l'autoliquidation ; la TVA s'applique donc. Veuillez vérifier le total mis à jour et passer à nouveau la commande.",
     "STORE_APP_SETTINGS_INVALID": "Les paramètres de l'application sont invalides",
     "INVOICE_NOT_FOUND": "Facture introuvable.",
     "INVOICE_PDF_UNAVAILABLE": "Le PDF de la facture est temporairement indisponible. Veuillez réessayer plus tard.",

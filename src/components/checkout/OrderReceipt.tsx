@@ -5,8 +5,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
-import { deriveNetTotals, formatTaxRate, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
-import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
+import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
@@ -61,6 +61,9 @@ export interface OrderReceiptOrder {
   org_number?: string | null;
   vat_number?: string | null;
   buyer_reference?: string | null;
+  /** b2b app M2.5: why the order carries no VAT, and the VIES evidence. */
+  tax_exempt_reason?: 'REVERSE_CHARGE' | 'CUSTOMER_EXEMPT' | null;
+  vat_validation?: unknown;
   items: OrderReceiptItem[];
 }
 
@@ -93,6 +96,8 @@ interface OrderReceiptProps {
 export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderReceiptProps) {
   const t = useTranslations();
   const locale = useLocale();
+  // Tax row labels; the 0 % row of an exempt order reads "VAT 0 % — Reverse charge".
+  const taxLabel = useTaxLineLabel();
   const lp = useLocalePath();
 
   const currency = order?.currency || 'EUR';
@@ -176,18 +181,21 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
               {Number(order.discount_amount) > 0 && (
                 <p className="text-xs text-gray-500">{t('b2b.includesDiscount', { amount: fmt(Number(order.discount_amount)) })}</p>
               )}
+              {/* Exempt order (M2.5): the net total equals the total — skipped. */}
+              {!order.tax_exempt_reason && (
               <div className="flex justify-between font-medium border-t border-gray-100 pt-2">
                 <span className="text-gray-700">{t('b2b.netTotal')}</span>
                 <span className="text-gray-900">{fmt(net.net_total)}</span>
               </div>
+              )}
               {taxLines.map((line, i) => (
                 <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
-                  <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+                  <span className="text-gray-500">{taxLabel(line)}</span>
                   <span className="text-gray-900">{fmt(line.tax_amount)}</span>
                 </div>
               ))}
               <div className="flex justify-between font-semibold text-base border-t border-gray-100 pt-2">
-                <span>{t('b2b.totalInclVat')}</span>
+                <span>{order.tax_exempt_reason ? t('cart.total') : t('b2b.totalInclVat')}</span>
                 <span>{fmt(Number(order.total))}</span>
               </div>
             </div>
@@ -213,7 +221,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
             {/* EXCLUSIVE: tax was added on top, so its rows precede the total. */}
             {taxExclusive && taxLines.map((line, i) => (
               <div key={`${line.label}-${line.rate_bp}-${i}`} className="flex justify-between">
-                <span className="text-gray-500">{line.label} {formatTaxRate(line.rate_bp)}</span>
+                <span className="text-gray-500">{taxLabel(line)}</span>
                 <span className="text-gray-900">{fmt(line.tax_amount)}</span>
               </div>
             ))}

@@ -431,7 +431,36 @@
     "netTotal": "Net total",
     "totalInclVat": "Total incl. VAT",
     "subtotalExclVat": "Subtotal excl. VAT",
-    "includesDiscount": "Includes discount of {amount} incl. VAT"
+    "includesDiscount": "Includes discount of {amount} incl. VAT",
+    "vat": {
+      "checking": "Checking VAT number…",
+      "valid": "Valid VAT number",
+      "reverseCharge": "VAT removed — reverse charge",
+      "reverseChargeApplied": "VAT removed for this delivery address — reverse charge",
+      "validNoReverseCharge": {
+        "SAME_COUNTRY": "Valid — VAT applies for domestic purchases",
+        "DESTINATION_NOT_EU": "Valid — reverse charge only applies to deliveries within the EU",
+        "VAT_COUNTRY_IS_SELLER": "Valid — VAT applies because the number is registered in the seller's country",
+        "DEFAULT": "Valid — VAT applies to this order"
+      },
+      "invalid": "This VAT number is not valid in the EU VIES register. VAT will be charged.",
+      "formatInvalid": "Invalid VAT number format (e.g. DE123456789)",
+      "notEu": "Non-EU VAT number — VAT applies",
+      "unavailable": "The VAT number couldn't be verified right now. VAT will be charged and can be reclaimed.",
+      "ownershipNote": "The check confirms the number is valid, not that it belongs to you.",
+      "newTotal": "New total incl. VAT: {total}",
+      "newTotalNoVat": "New total: {total}",
+      "notConfirmedCustomerExempt": "Reverse charge does not apply: your account is tax exempt, so no VAT is charged either way. Please review the total and place the order again.",
+      "cartHint": "Prices excl. VAT — reverse charge applies at checkout",
+      "companyRequired": "Enter company name and organisation number to apply reverse charge."
+    },
+    "reverseChargeRow": "VAT 0 % — Reverse charge",
+    "customerExemptRow": "VAT 0 % — Tax exempt",
+    "reverseChargeNote": "Reverse charge: VAT to be accounted for by the buyer.",
+    "reverseChargeTitle": "Reverse charge",
+    "reverseChargeNotice": "VAT to be accounted for by the recipient. VAT number {vat}",
+    "vatValidatedOn": "Validated {date}",
+    "customerExemptNotice": "Tax exempt — no VAT charged on this order"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -572,6 +601,7 @@
     "B2B_ORG_NUMBER_INVALID": "The organisation number is invalid",
     "B2B_VAT_NUMBER_REQUIRED": "VAT number is required",
     "B2B_VAT_NUMBER_INVALID": "The VAT number is invalid",
+    "B2B_REVERSE_CHARGE_NOT_CONFIRMED": "Your VAT number could not be confirmed for reverse charge, so VAT applies. Please review the updated total and place the order again.",
     "STORE_APP_SETTINGS_INVALID": "The app settings are invalid",
     "INVOICE_NOT_FOUND": "Invoice not found.",
     "INVOICE_PDF_UNAVAILABLE": "The invoice PDF is temporarily unavailable. Please try again later.",

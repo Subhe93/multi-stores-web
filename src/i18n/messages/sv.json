@@ -431,7 +431,36 @@
     "netTotal": "Nettosumma",
     "totalInclVat": "Totalt inkl. moms",
     "subtotalExclVat": "Delsumma exkl. moms",
-    "includesDiscount": "Inkluderar rabatt på {amount} inkl. moms"
+    "includesDiscount": "Inkluderar rabatt på {amount} inkl. moms",
+    "vat": {
+      "checking": "Kontrollerar momsregistreringsnumret…",
+      "valid": "Giltigt momsregistreringsnummer",
+      "reverseCharge": "Moms borttagen – omvänd skattskyldighet",
+      "reverseChargeApplied": "Moms borttagen för denna leveransadress – omvänd skattskyldighet",
+      "validNoReverseCharge": {
+        "SAME_COUNTRY": "Giltigt – moms tillkommer vid inhemska köp",
+        "DESTINATION_NOT_EU": "Giltigt – omvänd skattskyldighet gäller bara leveranser inom EU",
+        "VAT_COUNTRY_IS_SELLER": "Giltigt – moms tillkommer eftersom numret är registrerat i säljarens land",
+        "DEFAULT": "Giltigt – moms tillkommer på denna order"
+      },
+      "invalid": "Momsregistreringsnumret är inte giltigt i EU:s VIES-register. Moms tillkommer.",
+      "formatInvalid": "Ogiltigt format på momsregistreringsnumret (t.ex. DE123456789)",
+      "notEu": "Momsnummer utanför EU – moms tillkommer",
+      "unavailable": "Momsregistreringsnumret kunde inte verifieras just nu. Moms debiteras och kan dras av som ingående moms.",
+      "ownershipNote": "Kontrollen bekräftar att numret är giltigt, inte att det tillhör er.",
+      "newTotal": "Nytt totalbelopp inkl. moms: {total}",
+      "newTotalNoVat": "Nytt totalbelopp: {total}",
+      "notConfirmedCustomerExempt": "Omvänd skattskyldighet tillämpas inte: ert konto är momsbefriat, så ingen moms debiteras ändå. Kontrollera totalbeloppet och lägg ordern igen.",
+      "cartHint": "Priser exkl. moms – omvänd skattskyldighet tillämpas i kassan",
+      "companyRequired": "Ange företagsnamn och organisationsnummer för att omvänd skattskyldighet ska tillämpas."
+    },
+    "reverseChargeRow": "Moms 0 % – Omvänd skattskyldighet",
+    "customerExemptRow": "Moms 0 % – Momsbefriad",
+    "reverseChargeNote": "Omvänd skattskyldighet: köparen redovisar momsen.",
+    "reverseChargeTitle": "Omvänd skattskyldighet",
+    "reverseChargeNotice": "Mottagaren redovisar momsen. Momsregistreringsnummer {vat}",
+    "vatValidatedOn": "Kontrollerat {date}",
+    "customerExemptNotice": "Momsbefriad – ingen moms debiteras på denna order"
   },
   "errors": {
     "generic": "Något gick fel. Försök igen.",
@@ -572,6 +601,7 @@
     "B2B_ORG_NUMBER_INVALID": "Organisationsnumret är ogiltigt",
     "B2B_VAT_NUMBER_REQUIRED": "Momsregistreringsnummer krävs",
     "B2B_VAT_NUMBER_INVALID": "Momsregistreringsnumret är ogiltigt",
+    "B2B_REVERSE_CHARGE_NOT_CONFIRMED": "Ert momsregistreringsnummer kunde inte bekräftas för omvänd skattskyldighet, så moms tillkommer. Kontrollera det uppdaterade totalbeloppet och lägg ordern igen.",
     "STORE_APP_SETTINGS_INVALID": "Appens inställningar är ogiltiga",
     "INVOICE_NOT_FOUND": "Fakturan hittades inte.",
     "INVOICE_PDF_UNAVAILABLE": "Fakturans PDF är tillfälligt otillgänglig. Försök igen senare.",

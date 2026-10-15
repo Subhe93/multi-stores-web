@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Loader2, ShoppingBag, Tag, X, Minus, Plus, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
-import type { B2bNetTotals, TaxLine, TaxPricingMode } from '@/lib/tax';
+import type { B2bNetTotals, TaxExemptReason, TaxLine, TaxPricingMode } from '@/lib/tax';
+import { summaryUnitAmounts, type ExemptLinePrice } from '@/lib/taxExemption';
+import { netFromGross } from '@/lib/b2bPrice';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { useBuyerType } from '@/hooks/useBuyerType';
@@ -82,6 +84,11 @@ export interface OrderSummaryProps {
   /** b2b app, company view: net item subtotal fallback when `b2bNet` is
    *  absent (client estimate); null falls back to the gross `subtotal`. */
   netItems?: number | null;
+  /** b2b app M2.5: the quote / session is tax exempt (reverse charge or a
+   *  customer exemption); null = taxed as usual. */
+  exemptReason?: TaxExemptReason | null;
+  /** Exempt quote line prices per cart line id, shown as-is (never re-netted). */
+  exemptPrices?: Record<string, ExemptLinePrice> | null;
   t: (key: string) => string;
 }
 
@@ -148,10 +155,11 @@ export function OrderSummary({
   onUpdateQuantity, onRemoveItem, onRemoveUnavailable, shippingNote, shippingMethodName,
   taxLines = [], pricingMode = 'INCLUSIVE', taxEstimated = false, taxPending = false,
   b2bNet = null, netItems = null,
+  exemptReason = null, exemptPrices = null,
   t,
 }: OrderSummaryProps) {
   const editable = Boolean(onUpdateQuantity && onRemoveItem);
-  const { isCompany } = useBuyerType();
+  const { isCompany, settings: b2bSettings } = useBuyerType();
   const display = useDisplayPrice();
   const exclusive = pricingMode === 'EXCLUSIVE';
   // Company view on an INCLUSIVE store (M2-DESIGN §4.3 / L4): net subtotal and
@@ -159,7 +167,8 @@ export function OrderSummary({
   // unchanged gross total. Persons take exactly the previous branches.
   const companyNet = isCompany && !exclusive;
   const shownSubtotal = companyNet ? (b2bNet ? b2bNet.net_items : netItems ?? subtotal) : subtotal;
-  const shownShipping = (amount: number) => (companyNet && b2bNet ? b2bNet.net_shipping : amount);
+  // Exempt (M2.5, any buyer): the net block is what is paid (tax 0).
+  const shownShipping = (amount: number) => ((companyNet || exemptReason) && b2bNet ? b2bNet.net_shipping : amount);
 
   return (
     <div className="space-y-4">
@@ -168,12 +177,19 @@ export function OrderSummary({
         {items.map((item) => {
           const img = resolveMediaUrl(item.imageUrl || item.image);
           const title = item.title || item.name || 'Product';
-          const unit = display(item.price, item.taxRateBp, currency).amount;
+          // Exempt quotes carry final line prices; only taxed ones are
+          // derived for the company view (M2.5 §10 item 9).
+          const { unit, original: originalUnit } = summaryUnitAmounts({
+            itemId: item.id,
+            price: item.price,
+            originalPrice: typeof item.bundleOriginalUnitPrice === 'number' ? item.bundleOriginalUnitPrice : null,
+            exemptReason,
+            exemptPrices,
+            pricing: b2bSettings.reverse_charge_pricing,
+            display: (amount) => display(amount, item.taxRateBp, currency).amount,
+            net: (amount) => (exclusive ? amount : netFromGross(amount, item.taxRateBp, currency)),
+          });
           const lineTotal = unit * item.quantity;
-          const originalUnit =
-            typeof item.bundleOriginalUnitPrice === 'number'
-              ? display(item.bundleOriginalUnitPrice, item.taxRateBp, currency).amount
-              : null;
           const originalLineTotal =
             originalUnit !== null ? originalUnit * item.quantity : null;
           const unavailable = item.unavailableInMarket === true;
@@ -348,8 +364,9 @@ export function OrderSummary({
 
         {companyNet ? (
           <>
-            {/* Company view, INCLUSIVE store: net total, VAT rows, total incl. VAT. */}
-            {b2bNet && (
+            {/* Company view, INCLUSIVE store: net total, VAT rows, total incl. VAT.
+                Exempt (M2.5): the net total equals the total, so it is skipped. */}
+            {b2bNet && !exemptReason && (
               <div className="flex justify-between text-sm py-1 border-t border-gray-100 mt-1">
                 <span className="text-gray-900 font-medium">{t('b2b.netTotal')}</span>
                 <span className="text-gray-900 font-medium">{formatPrice(b2bNet.net_total, currency)}</span>
@@ -364,7 +381,7 @@ export function OrderSummary({
               </div>
             )}
             <div className="flex justify-between pt-3 border-t border-gray-200 mt-1">
-              <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
+              <span className="text-base font-semibold text-gray-900">{exemptReason ? t('cart.total') : t('b2b.totalInclVat')}</span>
               <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
             </div>
           </>
@@ -382,6 +399,9 @@ export function OrderSummary({
         )}
         {taxLines.length > 0 && taxEstimated && (
           <p className="text-xs text-gray-500 pt-1">{t('cart.taxEstimatedNote')}</p>
+        )}
+        {exemptReason === 'REVERSE_CHARGE' && (
+          <p className="text-xs text-gray-500 pt-1">{t('b2b.reverseChargeNote')}</p>
         )}
       </div>
     </div>
