@@ -7,6 +7,11 @@ import { formatPrice } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/api';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { UnavailableInMarketNotice } from './UnavailableInMarket';
+import { hasPersonalizationGroups, isFileRefPath } from '@/lib/personalization';
+import { PersonalizationSummary, type SummaryDisplayLine } from './PersonalizationSummary';
+import { useCart, type CartLineDesign } from '@/hooks/useCart';
+import { useCartDesign } from '@/components/designer/useCartDesign';
+import { DesignLineExtras } from './DesignLineExtras';
 
 export interface CartItemData {
   id: string;
@@ -17,14 +22,19 @@ export interface CartItemData {
   imageUrl?: string;
   variant?: string;
   customFields?: Record<string, unknown>;
-  /** Resolved "label: value" lines; preferred over the raw id-keyed map. */
-  customFieldDisplay?: { id: string; label: string; value: unknown; display?: string | null }[];
+  /** Resolved "label: value" lines; preferred over the raw id-keyed map.
+   *  Personalization app lines also carry group keys (grouped rendering). */
+  customFieldDisplay?: SummaryDisplayLine[];
   customerFile?: string;
   currency?: string;
   /** b2b stores: estimated rate of the line, for the company net view. */
   taxRateBp?: number | null;
   /** Markets app: hidden in the request market — no price, remove only. */
   unavailableInMarket?: boolean;
+  /** Personalization app: the server could not validate the line any more. */
+  personalizationInvalid?: boolean;
+  /** Designer app (M4.2): the line's design (read from the cart when omitted). */
+  design?: CartLineDesign;
 }
 
 // Turn a stored custom-field value into short display text: option labels
@@ -42,6 +52,30 @@ export function formatCartFieldValue(value: unknown, display?: string | null): s
   return String(value ?? '');
 }
 
+/** File references (customer uploads) inside a stored custom-field value. */
+function fileRefsOf(value: unknown): string[] | null {
+  const list = Array.isArray(value) ? value : [value];
+  if (list.length === 0 || !list.every((v) => typeof v === 'string' && isFileRefPath(v))) return null;
+  return list as string[];
+}
+
+/**
+ * One custom-field value of a cart line: uploaded files as small thumbnails
+ * (their public preview), everything else as text.
+ */
+export function CartFieldValue({ value, display }: { value: unknown; display?: string | null }) {
+  const files = display ? null : fileRefsOf(value);
+  if (!files) return <>{formatCartFieldValue(value, display)}</>;
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {files.map((url, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={`${url}-${i}`} src={resolveMediaUrl(url)} alt="" className="w-6 h-6 rounded object-cover border border-gray-200" />
+      ))}
+    </span>
+  );
+}
+
 interface CartItemProps {
   item: CartItemData;
   onUpdateQuantity: (id: string, quantity: number) => void;
@@ -56,8 +90,16 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
   const currency = item.currency || 'EUR';
   // Company view (b2b app) shows the net line total; persons the gross.
   const lineTotal = display(item.price, item.taxRateBp, currency).amount * item.quantity;
-  const img = resolveMediaUrl(item.imageUrl);
+  // Designer lines: the proof replaces the product image once it exists.
+  const { items: cartLines } = useCart();
+  const design = item.design ?? cartLines.find((l) => l.id === item.id)?.design;
+  const designInfo = useCartDesign(design, item.id.startsWith('local_'));
+  const [proofFailed, setProofFailed] = useState(false);
+  const proofImg = design && designInfo.proofUrl && !proofFailed ? resolveMediaUrl(designInfo.proofUrl) : '';
+  const img = proofImg || resolveMediaUrl(item.imageUrl);
   const unavailable = item.unavailableInMarket === true;
+  // Designer app: the design's own message replaces the generic one.
+  const designInvalid = design?.invalid === true;
 
   async function handleQuantity(qty: number) {
     if (qty < 1) return;
@@ -71,7 +113,12 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
       <div className="relative w-16 h-16 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
-            <img src={img} alt={item.title} className="w-full h-full object-cover" />
+            <img
+              src={img}
+              alt={item.title}
+              className={`w-full h-full ${proofImg ? 'object-contain bg-white' : 'object-cover'}`}
+              onError={proofImg ? () => setProofFailed(true) : undefined}
+            />
           ) : (
             <div className="w-full h-full bg-gray-100" />
           )}
@@ -97,11 +144,13 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
           <p className="text-xs text-gray-500">{item.variant}</p>
         )}
 
-        {item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
+        {hasPersonalizationGroups(item.customFieldDisplay) ? (
+          <PersonalizationSummary display={item.customFieldDisplay!} />
+        ) : item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {item.customFieldDisplay.map((f) => (
               <span key={f.id} className="text-xs text-gray-400">
-                {f.label}: {formatCartFieldValue(f.value, f.display)}
+                {f.label}: <CartFieldValue value={f.value} display={f.display} />
               </span>
             ))}
           </div>
@@ -110,10 +159,17 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
           // customer never sees a raw field id.
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {Object.entries(item.customFields).map(([k, v]) => (
-              <span key={k} className="text-xs text-gray-400">{formatCartFieldValue(v)}</span>
+              <span key={k} className="text-xs text-gray-400"><CartFieldValue value={v} /></span>
             ))}
           </div>
         ) : null}
+
+        <DesignLineExtras design={design} info={designInfo} unavailable={unavailable} />
+
+        {item.personalizationInvalid && !designInvalid && (
+          <p className="text-xs text-red-600">{t('personalization.invalidLine')}</p>
+        )}
+
 
         {/* Unavailable line: the API rejects quantity changes, so only Remove. */}
         {unavailable ? (

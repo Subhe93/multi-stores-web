@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Upload, Loader2, X } from 'lucide-react';
-
-type Translator = ReturnType<typeof useTranslations>;
+import { compileAllowedChars } from '@/lib/personalization';
+import { filterAllowedChars, type FormField } from '@/lib/personalization/form';
 
 /** Display label for a raw option value; falls back to the value itself. */
 function optionDisplayLabel(field: Pick<CustomField, 'optionLabels'>, value: string): string {
@@ -14,28 +14,20 @@ function optionDisplayLabel(field: Pick<CustomField, 'optionLabels'>, value: str
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 
-export interface CustomField {
-  id: string;
-  type: 'TEXT' | 'NUMBER' | 'SELECT' | 'COLOR' | 'TEXTAREA' | 'BOOLEAN' | 'DATE' | 'IMAGE' | 'FILE' | 'FONT' | 'MULTI_IMAGE';
-  label: string;
-  placeholder?: string;
-  required: boolean;
-  options?: string[];
-  /** Localized display label per raw option value; the submitted value stays raw. */
-  optionLabels?: Record<string, string>;
-  validation?: {
-    min?: number;
-    max?: number;
-    pattern?: string;
-    linked_to?: string;
-    rule?: string;
-  };
-}
+/** Form model of one field (built by `usePersonalizationFields`). */
+export type CustomField = FormField;
 
 interface CustomFieldsFormProps {
   fields: CustomField[];
   values: Record<string, unknown>;
   onChange: (fieldId: string, value: unknown) => void;
+  /** Localized message per field id (shared validator + API field errors). */
+  errors?: Record<string, string | undefined>;
+  /** Show errors of empty fields too (after a submit attempt). */
+  showAllErrors?: boolean;
+  /** Fields that can be fixed with "Fill with <char>" now: field id → fill char. */
+  fillable?: Record<string, string>;
+  onFill?: (fieldId: string) => void;
 }
 
 const COMMON_FONTS = [
@@ -44,70 +36,38 @@ const COMMON_FONTS = [
   'Garamond', 'Bookman', 'Avant Garde',
 ];
 
-function validateField(
-  field: CustomField,
-  value: unknown,
-  allValues: Record<string, unknown>,
-  allFields: CustomField[],
-  t: Translator,
-): string | null {
-  const strValue = value != null ? String(value) : '';
+/** File types the customer-upload endpoint accepts (M4.0 §8.2). */
+const CUSTOMER_FILE_ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,.ai';
+/** IMAGE / MULTI_IMAGE: the raster types the endpoint accepts (no gif, heic, svg…). */
+const CUSTOMER_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp';
 
-  if (field.required && (value === undefined || value === null || strValue === '')) {
-    return t('product.fieldRequired', { label: field.label });
-  }
+type UploadResult = { url: string; name: string } | { error: string };
 
-  if (!strValue && !field.required) return null;
+/** Pseudo code for a throttled upload (HTTP 429). */
+const RATE_LIMITED = 'RATE_LIMITED';
 
-  const v = field.validation;
-  if (!v) return null;
-
-  if (field.type === 'NUMBER') {
-    const num = Number(value);
-    if (v.min !== undefined && num < v.min) return t('product.minimumValue', { min: v.min });
-    if (v.max !== undefined && num > v.max) return t('product.maximumValue', { max: v.max });
-  }
-
-  if (field.type === 'TEXT' || field.type === 'TEXTAREA') {
-    if (v.min !== undefined && strValue.length < v.min) return t('product.minimumLength', { min: v.min });
-    if (v.max !== undefined && strValue.length > v.max) return t('product.maximumLength', { max: v.max });
-  }
-
-  if (v.pattern && strValue) {
-    try {
-      if (!new RegExp(v.pattern).test(strValue)) return t('product.invalidFormat');
-    } catch { /* skip invalid regex */ }
-  }
-
-  if (v.linked_to && v.rule) {
-    const linkedField = allFields.find((f) => f.id === v.linked_to);
-    const linkedValue = allValues[v.linked_to];
-    if (linkedField && linkedValue != null && v.rule === 'equal_length') {
-      if (strValue.length !== String(linkedValue).length) {
-        return t('product.lengthMustMatch', { label: linkedField.label, length: String(linkedValue).length });
-      }
-    }
-  }
-
-  return null;
-}
-
-async function uploadFile(file: File, folder = 'custom-fields'): Promise<string | null> {
+/**
+ * Uploads a customer file to `POST /uploads/customer` (M4.0 §8.2): the API
+ * keeps the original privately and returns the public preview URL, which is
+ * the value stored in the cart and the order. There is no fallback to the
+ * public upload endpoint: originals must stay private (the API ships first).
+ */
+async function uploadFile(file: File): Promise<UploadResult> {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${API_URL}/uploads/public?folder=${folder}`, {
-      method: 'POST',
-      body: formData,
-    });
-    const json = await res.json();
-    if (json.data?.url) {
-      const url = json.data.url;
-      return url.startsWith('http') ? url : `${API_ORIGIN}${url}`;
+    const res = await fetch(`${API_URL}/uploads/customer`, { method: 'POST', body: formData });
+    // Throttled (10 uploads per minute): no coded body, shown as its own message.
+    if (res.status === 429) return { error: RATE_LIMITED };
+    const json = await res.json().catch(() => null);
+    const url = json?.data?.url;
+    if (res.ok && typeof url === 'string') {
+      const name = typeof json.data.original_name === 'string' ? json.data.original_name : file.name;
+      return { url: url.startsWith('http') ? url : `${API_ORIGIN}${url}`, name };
     }
-    return null;
+    return { error: typeof json?.code === 'string' ? json.code : 'generic' };
   } catch {
-    return null;
+    return { error: 'generic' };
   }
 }
 
@@ -120,33 +80,49 @@ function resolveDisplayUrl(val: unknown): string {
   return '';
 }
 
-function FileInput({ accept, multiple, value, onChange }: {
-  accept?: string; multiple?: boolean; value: unknown;
+function FileInput({ accept, images = false, multiple, value, onChange }: {
+  accept?: string;
+  /** Previews render as images (IMAGE / MULTI_IMAGE). */
+  images?: boolean;
+  multiple?: boolean; value: unknown;
   onChange: (val: unknown) => void;
 }) {
   const t = useTranslations('product');
+  const te = useTranslations('errors');
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  // Original file names of this session's uploads (the value is the preview URL).
+  const [names, setNames] = useState<Record<string, string>>({});
 
   // Derive display from value
   const urls: string[] = Array.isArray(value)
     ? value.map(resolveDisplayUrl).filter(Boolean)
     : value ? [resolveDisplayUrl(value)].filter(Boolean) : [];
-  const isImage = accept?.includes('image');
+  const isImage = images;
 
   const handleFiles = async (files: FileList) => {
     setUploading(true);
+    setUploadError('');
+    const fail = (code: string) =>
+      setUploadError(code === RATE_LIMITED ? t('uploadTooManyRequests') : te.has(code) ? te(code) : te('generic'));
     try {
       if (multiple) {
         const uploaded: string[] = [...(Array.isArray(value) ? value : [])];
         for (const file of Array.from(files)) {
-          const url = await uploadFile(file);
-          if (url) uploaded.push(url);
+          const res = await uploadFile(file);
+          if ('url' in res) {
+            uploaded.push(res.url);
+            setNames((prev) => ({ ...prev, [res.url]: res.name }));
+          } else fail(res.error);
         }
         onChange(uploaded);
       } else {
-        const url = await uploadFile(files[0]!);
-        if (url) onChange(url);
+        const res = await uploadFile(files[0]!);
+        if ('url' in res) {
+          setNames((prev) => ({ ...prev, [res.url]: res.name }));
+          onChange(res.url);
+        } else fail(res.error);
       }
     } finally {
       setUploading(false);
@@ -169,8 +145,14 @@ function FileInput({ accept, multiple, value, onChange }: {
                 <img src={url} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
               ) : (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600">
-                  <Upload className="w-3 h-3" />
-                  {url.split('/').pop()?.slice(0, 20)}
+                  {/* Customer uploads always have a WebP preview (a placeholder for PDF/AI). */}
+                  {url.includes('/uploads/customer-previews/') ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt="" className="w-6 h-6 rounded object-cover" />
+                  ) : (
+                    <Upload className="w-3 h-3" />
+                  )}
+                  {(names[url] ?? url.split('/').pop() ?? '').slice(0, 24)}
                 </div>
               )}
               <button type="button" onClick={() => {
@@ -195,19 +177,39 @@ function FileInput({ accept, multiple, value, onChange }: {
           : <><Upload className="w-4 h-4 text-gray-400" /> {multiple ? t('chooseFiles') : t('chooseFile')}</>
         }
       </button>
+      {uploadError && <p role="alert" className="text-xs text-red-600 font-medium">{uploadError}</p>}
     </div>
   );
 }
 
-export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormProps) {
+export function CustomFieldsForm({
+  fields, values, onChange, errors = {}, showAllErrors = false, fillable = {}, onFill,
+}: CustomFieldsFormProps) {
   const t = useTranslations();
-  const errors = useMemo(() => {
-    const result: Record<string, string | null> = {};
-    for (const field of fields) {
-      result[field.id] = validateField(field, values[field.id], values, fields, t);
-    }
-    return result;
-  }, [fields, values, t]);
+  // `allowed_chars` per field, compiled once (null = no rule / invalid body).
+  const allowed = useMemo(() => {
+    const out: Record<string, RegExp | null> = {};
+    for (const f of fields) out[f.id] = f.allowedChars ? compileAllowedChars(f.allowedChars) : null;
+    return out;
+  }, [fields]);
+  // Field whose input just dropped characters (brief notice).
+  const [filteredField, setFilteredField] = useState<string | null>(null);
+  useEffect(() => {
+    if (!filteredField) return;
+    const timer = setTimeout(() => setFilteredField(null), 2500);
+    return () => clearTimeout(timer);
+  }, [filteredField]);
+
+  // TEXT / TEXTAREA: characters the field's allowed set rejects are dropped
+  // while typing; during IME composition the raw text is kept and filtered
+  // once the composition ends (`onCompositionEnd`).
+  const onTextChange = (field: CustomField, raw: string, composing: boolean) => {
+    const re = allowed[field.id];
+    if (!re || composing) return onChange(field.id, raw);
+    const kept = filterAllowedChars(raw, re);
+    if (kept !== raw.normalize('NFC')) setFilteredField(field.id);
+    onChange(field.id, kept);
+  };
 
   const inputClass = (hasError: boolean) =>
     `w-full rounded-xl border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 ${
@@ -224,7 +226,8 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
         // the primitive its own field type wrote, so this narrowing is type-only.
         const value = values[field.id] as string | number | undefined;
         const hasValue = value !== undefined && value !== null && value !== '';
-        const showError = !!error && hasValue;
+        const showError = !!error && (hasValue || showAllErrors);
+        const fillChar = fillable[field.id];
 
         return (
           <div key={field.id}>
@@ -239,7 +242,10 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
             {/* TEXT */}
             {field.type === 'TEXT' && (
               <input id={`field-${field.id}`} type="text" value={value ?? ''} placeholder={field.placeholder}
-                onChange={(e) => onChange(field.id, e.target.value)} className={inputClass(showError)} />
+                aria-invalid={showError || undefined}
+                onChange={(e) => onTextChange(field, e.target.value, (e.nativeEvent as InputEvent).isComposing === true)}
+                onCompositionEnd={(e) => onTextChange(field, e.currentTarget.value, false)}
+                className={inputClass(showError)} />
             )}
 
             {/* NUMBER */}
@@ -281,7 +287,9 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
             {/* TEXTAREA */}
             {field.type === 'TEXTAREA' && (
               <textarea id={`field-${field.id}`} value={value ?? ''} placeholder={field.placeholder} rows={4}
-                onChange={(e) => onChange(field.id, e.target.value)}
+                aria-invalid={showError || undefined}
+                onChange={(e) => onTextChange(field, e.target.value, (e.nativeEvent as InputEvent).isComposing === true)}
+                onCompositionEnd={(e) => onTextChange(field, e.currentTarget.value, false)}
                 className={`${inputClass(showError)} resize-y`} />
             )}
 
@@ -324,21 +332,34 @@ export function CustomFieldsForm({ fields, values, onChange }: CustomFieldsFormP
 
             {/* IMAGE */}
             {field.type === 'IMAGE' && (
-              <FileInput accept="image/*" value={value} onChange={(v) => onChange(field.id, v)} />
+              <FileInput accept={CUSTOMER_IMAGE_ACCEPT} images value={value} onChange={(v) => onChange(field.id, v)} />
             )}
 
             {/* FILE */}
             {field.type === 'FILE' && (
-              <FileInput accept="*" value={value} onChange={(v) => onChange(field.id, v)} />
+              <FileInput accept={CUSTOMER_FILE_ACCEPT} value={value} onChange={(v) => onChange(field.id, v)} />
             )}
 
             {/* MULTI_IMAGE */}
             {field.type === 'MULTI_IMAGE' && (
-              <FileInput accept="image/*" multiple value={value} onChange={(v) => onChange(field.id, v)} />
+              <FileInput accept={CUSTOMER_IMAGE_ACCEPT} images multiple value={value} onChange={(v) => onChange(field.id, v)} />
+            )}
+
+            {/* Characters outside the allowed set were dropped */}
+            {filteredField === field.id && (
+              <p className="mt-1.5 text-xs text-amber-600">{t('product.invalidCharacters')}</p>
             )}
 
             {/* Validation error */}
             {showError && <p className="mt-1.5 text-xs text-red-600 font-medium">{error}</p>}
+
+            {/* equal_length with a fill char: pad the shorter text */}
+            {fillChar && onFill && (
+              <button type="button" onClick={() => onFill(field.id)}
+                className="mt-1.5 inline-flex items-center rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('product.fillWith', { char: fillChar })}
+              </button>
+            )}
           </div>
         );
       })}

@@ -25,6 +25,24 @@ import {
 } from '@/lib/tax';
 import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
 import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
+import {
+  addGuestLine,
+  guestLineToServerBody,
+  mergeHandoffLines,
+  patchGuestDesignLine,
+  replaceGuestDesignLine,
+  createGuestCartMover,
+  type DroppedGuestLine,
+  type GuestMigrationResult,
+} from '@/lib/guestCart';
+import {
+  applyValidateResult,
+  buildValidateBody,
+  personalizationInvalidError,
+  readValidateResult,
+  validatePath,
+  type GuestPersonalizationCheck,
+} from '@/components/product/personalization/validateApi';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -59,6 +77,46 @@ export interface CartItem {
    *  line stays in the cart (so it can be removed) but has no valid price
    *  here, is excluded from server tax/totals and blocks checkout. */
   unavailableInMarket?: boolean;
+  /** Personalization app: the server could not validate the line's
+   *  personalization any more (config changed); set only when flagged. */
+  personalizationInvalid?: boolean;
+  /** Designer app (M4.2): the line's design. Absent on every other line. */
+  designId?: string;
+  /** Guest lines only: the design's access token, sent when the line moves
+   *  to the server cart on login (claims the design). Never put in a URL. */
+  designToken?: string;
+  /** Designer line details: server-enriched (`GET /cart` `design`) or
+   *  captured at add time for guests. */
+  design?: CartLineDesign;
+}
+
+/** Design of a designer cart line. */
+export interface CartLineDesign {
+  id: string;
+  /** False once the design can no longer change (ordered). */
+  editable: boolean;
+  /** Signed proof image (relative API path, ~1 h); null until rendered. */
+  proofUrl: string | null;
+  /** Product page slug of the design (server block / design view). */
+  productSlug?: string | null;
+  /** The design no longer passes the template (checkout is blocked). */
+  invalid?: boolean;
+  /** API code of why the design is invalid (`DESIGNER_*`). */
+  invalidCode?: string | null;
+}
+
+/** New display / proof of a designer line after its design was edited. */
+export interface DesignLinePatch {
+  display?: CartCustomFieldDisplay[];
+  proofUrl?: string | null;
+}
+
+/** The design that replaces a locked (ordered) design on a cart line. */
+export interface DesignLineReplacement {
+  id: string;
+  token?: string | null;
+  proofUrl?: string | null;
+  productSlug?: string | null;
 }
 
 export interface CartCustomFieldDisplay {
@@ -67,6 +125,15 @@ export interface CartCustomFieldDisplay {
   value: unknown;
   /** Translated option label when the value is one of the field's options. */
   display?: string | null;
+  // Personalization app only (M4.1 contract §4.5); absent otherwise.
+  /** Repeater name of a grouped line. */
+  group_key?: string;
+  /** Repeater item index ("Artikel i"). */
+  group_index?: number;
+  group_label?: string;
+  /** Colour of a palette / variant option value. */
+  hex?: string;
+  source?: 'FIELD' | 'OPTION';
 }
 
 export interface CartItemMetadata {
@@ -86,6 +153,12 @@ export interface CartItemMetadata {
   bundleCartQuantity?: number | null;
   /** b2b stores: the product's `tax_rate_bp`, kept on guest lines. */
   taxRateBp?: number | null;
+  /** Personalization app (D14): guests validate the line on the server
+   *  first and keep its normalized values, price and display. Not stored. */
+  personalizationCheck?: GuestPersonalizationCheck;
+  /** Designer app (M4.2): add the line with this design instead of field
+   *  values. `token` is the guest token (claims the design server-side). */
+  design?: { id: string; token?: string | null; proofUrl?: string | null };
 }
 
 interface Coupon {
@@ -129,8 +202,23 @@ interface CartContextValue extends CartState {
   clearCart: () => Promise<void>;
   applyCoupon: (code: string) => Promise<void>;
   removeCoupon: () => Promise<void>;
+  /**
+   * Designer app: after a cart line's design was edited, refresh the line
+   * (guests patch the stored line; logged-in carts re-read `GET /cart`).
+   */
+  refreshDesignLine: (designId: string, patch: DesignLinePatch) => Promise<void>;
+  /**
+   * Designer app: swap the locked (ordered) design of a line for its
+   * duplicate, keeping product, variant, bundle and quantity.
+   */
+  replaceDesignLine: (oldDesignId: string, next: DesignLineReplacement) => Promise<void>;
   /** Migrate localStorage cart items to the server and return the server cart */
-  syncGuestCartToServer: (authToken: string) => Promise<void>;
+  /**
+   * Moves the guest cart to the server cart (checkout after auto-register).
+   * Resolves with the lines the server rejected for their personalization;
+   * those stay in the guest cart and checkout must stop (M4.0 §1.2).
+   */
+  syncGuestCartToServer: (authToken: string) => Promise<DroppedGuestLine[]>;
   itemCount: number;
   subtotal: number;
   total: number;
@@ -160,9 +248,14 @@ interface CartContextValue extends CartState {
   pricesUpdated: boolean;
   /** Lines a cross-market hand-off had to drop (not purchasable here). */
   handoffDropped: number;
+  /** Guest lines that could not be moved to the account cart on login
+   *  because the server rejected their personalization (M4.0 §1.2). */
+  migrationDropped: number;
+  /** The coded API error of the first line counted in `migrationDropped`. */
+  migrationDropError: unknown;
   /** True while any line is flagged `unavailableInMarket` — checkout is blocked. */
   hasUnavailableItems: boolean;
-  /** Hide the hand-off notices. */
+  /** Hide the hand-off and login-migration notices. */
   dismissPricesNotice: () => void;
 }
 
@@ -248,10 +341,58 @@ interface RawCartItem {
   tax_rate_bp?: unknown;
   unavailableInMarket?: unknown;
   unavailable_in_market?: unknown;
+  personalization_invalid?: unknown;
+  personalizationInvalid?: unknown;
+  design?: unknown;
+  design_id?: string | null;
+  designId?: string | null;
 }
 
-function normalizeCartItem(raw: RawCartItem): CartItem {
+/** `design` block of a designer line in `GET /cart` (M4.2-CONTRACTS). */
+export function readCartLineDesign(raw: unknown): { design: CartLineDesign; display: CartCustomFieldDisplay[] } | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const d = raw as {
+    id?: unknown;
+    editable?: unknown;
+    proof_url?: unknown;
+    text_values?: unknown;
+    product_slug?: unknown;
+    invalid?: unknown;
+    invalid_code?: unknown;
+  };
+  if (typeof d.id !== 'string' || d.id === '') return null;
+  const display: CartCustomFieldDisplay[] = [];
+  if (Array.isArray(d.text_values)) {
+    for (const tv of d.text_values) {
+      const v = tv as { element_id?: unknown; label?: unknown; value?: unknown } | null;
+      if (v && typeof v.element_id === 'string' && typeof v.value === 'string' && v.value !== '') {
+        display.push({ id: v.element_id, label: typeof v.label === 'string' ? v.label : v.element_id, value: v.value });
+      }
+    }
+  }
+  return {
+    design: {
+      id: d.id,
+      editable: d.editable === true,
+      proofUrl: typeof d.proof_url === 'string' && d.proof_url ? d.proof_url : null,
+      // Optional keys only when sent, so older payloads keep their shape.
+      ...(typeof d.product_slug === 'string' && d.product_slug ? { productSlug: d.product_slug } : {}),
+      ...(d.invalid === true
+        ? { invalid: true, invalidCode: typeof d.invalid_code === 'string' && d.invalid_code ? d.invalid_code : null }
+        : {}),
+    },
+    display,
+  };
+}
+
+export function normalizeCartItem(raw: RawCartItem): CartItem {
   const rawRate = raw.tax_rate_bp ?? raw.taxRateBp;
+  const designBlock = readCartLineDesign(raw.design);
+  const rawDisplay = Array.isArray(raw.customFieldDisplay)
+    ? raw.customFieldDisplay
+    : Array.isArray(raw.custom_field_display)
+    ? raw.custom_field_display
+    : undefined;
   return {
     id: raw.id,
     productId: raw.productId || raw.product_id || '',
@@ -266,11 +407,9 @@ function normalizeCartItem(raw: RawCartItem): CartItem {
     variant: raw.variant || undefined,
     currency: raw.currency || 'EUR',
     customFields: raw.customFields || raw.custom_fields || undefined,
-    customFieldDisplay: Array.isArray(raw.customFieldDisplay)
-      ? raw.customFieldDisplay
-      : Array.isArray(raw.custom_field_display)
-      ? raw.custom_field_display
-      : undefined,
+    // Designer lines carry no field values: their text values are the display.
+    customFieldDisplay:
+      designBlock && (!rawDisplay || rawDisplay.length === 0) ? designBlock.display : rawDisplay,
     customerFile: raw.customerFile || undefined,
     bundleOfferId: raw.bundleOfferId ?? raw.bundle_offer_id ?? null,
     bundleOriginalUnitPrice:
@@ -295,6 +434,10 @@ function normalizeCartItem(raw: RawCartItem): CartItem {
       : {}),
     // Only set when flagged so unaffected carts keep the exact same shape.
     ...((raw.unavailable_in_market ?? raw.unavailableInMarket) === true ? { unavailableInMarket: true } : {}),
+    // Personalization app: present only when the server flags the line.
+    ...((raw.personalization_invalid ?? raw.personalizationInvalid) === true ? { personalizationInvalid: true } : {}),
+    // Designer app: only on designer lines.
+    ...(designBlock ? { designId: designBlock.design.id, design: designBlock.design } : {}),
   };
 }
 
@@ -388,11 +531,34 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const [pricesUpdated, setPricesUpdated] = useState(false);
   // Lines the hand-off could not carry over (rejected by the quote).
   const [handoffDropped, setHandoffDropped] = useState(0);
+  // Guest lines rejected when moved to the server cart on login.
+  const [migrationDropped, setMigrationDropped] = useState(0);
+  const [migrationDropError, setMigrationDropError] = useState<unknown>(null);
   const dismissPricesNotice = useCallback(() => {
     setPricesUpdated(false);
     setHandoffDropped(0);
+    setMigrationDropped(0);
+    setMigrationDropError(null);
   }, []);
   const prevTokenRef = useRef<string | null | undefined>(undefined);
+
+  // ── Guest cart → server cart ────────────────────────
+  // The login effect and the checkout sync share one in-flight run (no line
+  // is posted twice). Only the lines the server accepted leave localStorage:
+  // rejected lines (and lines that failed for another reason) stay local.
+  const [moveGuestCart] = useState(() => createGuestCartMover({ load: loadLocalCart, save: saveLocalCart }));
+  const migrateLocalCart = useCallback(async (authToken: string): Promise<GuestMigrationResult> => {
+    const result = await moveGuestCart((body) =>
+      api('/cart/items', { method: 'POST', token: authToken, body: JSON.stringify(body) }),
+    );
+    if (result.moved.length + result.dropped.length + result.failed.length === 0) return result;
+    if (loadLocalCart().length === 0) saveLocalCoupon(null);
+    // A set, not a sum: rejected lines stay local and are retried on the next
+    // run, so they must not be counted twice.
+    setMigrationDropped(result.dropped.length);
+    setMigrationDropError(result.dropped[0]?.error ?? null);
+    return result;
+  }, [moveGuestCart]);
 
   const isAuthenticated = Boolean(token);
 
@@ -495,17 +661,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
       if (incoming.length > 0) {
         setItems((prev) => {
-          const next = [...prev];
-          for (const item of incoming) {
-            const idx = next.findIndex(
-              (i) =>
-                i.productId === item.productId &&
-                (i.variantId ?? undefined) === (item.variantId ?? undefined) &&
-                (i.bundleOfferId ?? null) === (item.bundleOfferId ?? null),
-            );
-            if (idx >= 0) next[idx] = { ...next[idx]!, quantity: next[idx]!.quantity + item.quantity, price: item.price };
-            else next.push(item);
-          }
+          // Same line = same product, variant, bundle and personalization.
+          const next = mergeHandoffLines(prev, incoming);
           saveLocalCart(next);
           return next;
         });
@@ -527,37 +684,17 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     if (isAuthenticated && token) {
       // Check if we just transitioned from guest to authenticated
       const wasGuest = prevToken === null || prevToken === undefined;
-      const guestItems = wasGuest ? loadLocalCart() : [];
+      const hasGuestItems = wasGuest && loadLocalCart().length > 0;
 
       // Fetch server cart
       api<unknown>(`/cart${localeQuery}`, { token })
         .then(async (data) => {
           const cart = normalizeCartResponse(data);
 
-          // Migrate guest cart items to the server if any
-          if (guestItems.length > 0) {
-            for (const item of guestItems) {
-              try {
-                const isCustom = Boolean(item.customProductId);
-                await api('/cart/items', {
-                  method: 'POST',
-                  token,
-                  body: JSON.stringify({
-                    product_id: isCustom ? null : item.productId,
-                    custom_product_id: isCustom ? item.productId : undefined,
-                    variant_id: item.variantId || null,
-                    bundle_offer_id: item.bundleOfferId || undefined,
-                    quantity: item.quantity,
-                    custom_fields: item.customFields,
-                  }),
-                });
-              } catch {
-                // Skip items that fail to migrate
-              }
-            }
-            // Clear local storage after migration
-            saveLocalCart([]);
-            saveLocalCoupon(null);
+          // Migrate guest cart items to the server if any. Lines the server
+          // rejects for their personalization stay local, counted and shown.
+          if (hasGuestItems) {
+            await migrateLocalCart(token);
 
             // Re-fetch the merged cart from server
             try {
@@ -592,7 +729,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       setServerTax(null);
       setLoading(false);
     }
-  }, [isAuthenticated, token, localeQuery]);
+  }, [isAuthenticated, token, localeQuery, migrateLocalCart]);
 
   // ── Add item ───────────────────────────────────────
 
@@ -606,6 +743,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     ) => {
       const isCustomProduct = Boolean(metadata?.customProductId);
       const bundleOfferId = metadata?.bundleOfferId || undefined;
+      // Designer app (M4.2): a design replaces the field values on the line.
+      const design = metadata?.design?.id ? metadata.design : undefined;
       if (isAuthenticated && token) {
         const data = await api<unknown>(
           `/cart/items${localeQuery}`,
@@ -618,7 +757,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
               variant_id: variantId,
               bundle_offer_id: bundleOfferId,
               quantity,
-              custom_fields: customFields,
+              ...(design
+                ? { design_id: design.id, ...(design.token ? { design_token: design.token } : {}) }
+                : { custom_fields: customFields }),
             }),
           }
         );
@@ -627,46 +768,26 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         setCoupon(cart.coupon);
         setServerTax(cart.tax);
       } else {
+        let fields = customFields;
+        let meta = metadata;
+        if (metadata?.personalizationCheck && !design) {
+          // Personalization app (D14): the server normalizes the values and
+          // prices the line; its canonical values make the line key.
+          const raw = await api<unknown>(validatePath(metadata.personalizationCheck.storeSlug), {
+            method: 'POST',
+            body: JSON.stringify(
+              buildValidateBody(productId, variantId, quantity, customFields, metadata.personalizationCheck),
+            ),
+          });
+          const result = readValidateResult(raw);
+          if (!result) throw new Error('PERSONALIZATION_VALIDATE_FAILED');
+          if (!result.ok) throw personalizationInvalidError(result.errors);
+          fields = result.custom_fields;
+          meta = applyValidateResult(metadata, result);
+        }
         setItems((prev) => {
-          const idx = prev.findIndex(
-            (i) =>
-              i.productId === productId &&
-              i.variantId === (variantId ?? undefined) &&
-              (i.bundleOfferId ?? null) === (bundleOfferId ?? null),
-          );
-          let next: CartItem[];
-          if (idx >= 0) {
-            next = prev.map((item, i) =>
-              i === idx ? { ...item, quantity: item.quantity + quantity } : item
-            );
-          } else {
-            const newItem: CartItem = {
-              id: `local_${Date.now()}`,
-              productId,
-              variantId: variantId ?? undefined,
-              customProductId: metadata?.customProductId,
-              title: metadata?.title,
-              price: metadata?.price ?? 0,
-              quantity,
-              imageUrl: metadata?.imageUrl,
-              variant: metadata?.variant,
-              customerFile: metadata?.customerFile,
-              currency: metadata?.currency,
-              customFields,
-              customFieldDisplay: metadata?.customFieldDisplay,
-              bundleOfferId: bundleOfferId ?? null,
-              bundleOriginalUnitPrice: metadata?.bundleOriginalUnitPrice ?? null,
-              bundleTitle: metadata?.bundleTitle ?? null,
-              bundleLabel: metadata?.bundleLabel ?? null,
-              bundleStickerText: metadata?.bundleStickerText ?? null,
-              bundleCartQuantity: metadata?.bundleCartQuantity ?? null,
-              // b2b stores: keep the product's estimated rate on the guest
-              // line (L8); omitted (not null) elsewhere so the stored shape
-              // stays identical.
-              ...(isKnownRate(metadata?.taxRateBp) ? { taxRateBp: metadata!.taxRateBp } : {}),
-            };
-            next = [...prev, newItem];
-          }
+          // Merges only into a line with the same personalization (line key).
+          const next = addGuestLine(prev, productId, variantId, quantity, fields, meta);
           saveLocalCart(next);
           return next;
         });
@@ -781,6 +902,62 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     [isAuthenticated, token, localeQuery]
   );
 
+  // ── Designer lines ─────────────────────────────────
+
+  const refreshDesignLine = useCallback(
+    async (designId: string, patch: DesignLinePatch) => {
+      if (isAuthenticated && token) {
+        // The server block carries the new text values and a fresh proof.
+        const data = await api<unknown>(`/cart${localeQuery}`, { token });
+        const cart = normalizeCartResponse(data);
+        setItems(cart.items);
+        setCoupon(cart.coupon);
+        setServerTax(cart.tax);
+        return;
+      }
+      setItems((prev) => {
+        const next = patchGuestDesignLine(prev, designId, patch);
+        if (next !== prev) saveLocalCart(next);
+        return next;
+      });
+    },
+    [isAuthenticated, token, localeQuery]
+  );
+
+  const replaceDesignLine = useCallback(
+    async (oldDesignId: string, nextDesign: DesignLineReplacement) => {
+      if (isAuthenticated && token) {
+        const line = items.find((i) => i.designId === oldDesignId);
+        if (!line) return;
+        // Add the new design first so a failure never loses the line.
+        await api<unknown>(`/cart/items${localeQuery}`, {
+          method: 'POST',
+          token,
+          body: JSON.stringify(
+            guestLineToServerBody({
+              ...line,
+              productId: line.customProductId || line.productId,
+              designId: nextDesign.id,
+              designToken: nextDesign.token ?? undefined,
+            }),
+          ),
+        });
+        const data = await api<unknown>(`/cart/items/${line.id}${localeQuery}`, { method: 'DELETE', token });
+        const cart = normalizeCartResponse(data);
+        setItems(cart.items);
+        setCoupon(cart.coupon);
+        setServerTax(cart.tax);
+        return;
+      }
+      setItems((prev) => {
+        const next = replaceGuestDesignLine(prev, oldDesignId, nextDesign);
+        if (next !== prev) saveLocalCart(next);
+        return next;
+      });
+    },
+    [isAuthenticated, token, localeQuery, items]
+  );
+
   // ── Clear cart ─────────────────────────────────────
 
   const clearCart = useCallback(async () => {
@@ -796,6 +973,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setServerTax(null);
     setPricesUpdated(false);
     setHandoffDropped(0);
+    setMigrationDropped(0);
+    setMigrationDropError(null);
     saveLocalCart([]);
     saveLocalCoupon(null);
   }, [isAuthenticated, token, localeQuery]);
@@ -900,34 +1079,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
   // ── Sync guest cart to server (for checkout) ────────
 
-  const syncGuestCartToServer = useCallback(async (authToken: string) => {
-    const guestItems = loadLocalCart();
-    if (guestItems.length === 0) return;
+  const syncGuestCartToServer = useCallback(async (authToken: string): Promise<DroppedGuestLine[]> => {
+    // Lines in flight stay in localStorage, so an empty store means nothing to move.
+    if (loadLocalCart().length === 0) return [];
 
-    // Clear localStorage BEFORE async API calls to prevent CartProvider's
-    // useEffect from reading the same items and double-syncing them.
-    saveLocalCart([]);
-    saveLocalCoupon(null);
-
-    for (const item of guestItems) {
-      try {
-        const isCustom = Boolean(item.customProductId);
-        await api('/cart/items', {
-          method: 'POST',
-          token: authToken,
-          body: JSON.stringify({
-            product_id: isCustom ? null : item.productId,
-            custom_product_id: isCustom ? item.productId : undefined,
-            variant_id: item.variantId || null,
-            bundle_offer_id: item.bundleOfferId || undefined,
-            quantity: item.quantity,
-            custom_fields: item.customFields,
-          }),
-        });
-      } catch {
-        // Skip items that fail
-      }
-    }
+    const { dropped } = await migrateLocalCart(authToken);
 
     // Refresh cart from server
     try {
@@ -939,7 +1095,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     } catch {
       // Keep current state
     }
-  }, [localeQuery]);
+    return dropped;
+  }, [localeQuery, migrateLocalCart]);
 
   // ── Tax (server-computed; guest carts carry no figures) ─
 
@@ -985,6 +1142,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     applyCoupon,
     removeCoupon,
     syncGuestCartToServer,
+    refreshDesignLine,
+    replaceDesignLine,
     itemCount,
     subtotal,
     total,
@@ -998,6 +1157,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     netItems,
     pricesUpdated,
     handoffDropped,
+    migrationDropped,
+    migrationDropError,
     hasUnavailableItems: hasUnavailableLines(items),
     dismissPricesNotice,
   };

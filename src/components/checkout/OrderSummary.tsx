@@ -9,6 +9,9 @@ import { summaryUnitAmounts, type ExemptLinePrice } from '@/lib/taxExemption';
 import { netFromGross } from '@/lib/b2bPrice';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
+import { CartFieldValue } from '@/components/cart/CartItem';
+import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
+import { hasPersonalizationGroups } from '@/lib/personalization';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 
@@ -27,6 +30,9 @@ export interface OrderSummaryItem {
   image?: string;
   variant?: string;
   currency?: string;
+  /** Personalization of the line (raw values; display lines preferred). */
+  customFields?: Record<string, unknown>;
+  customFieldDisplay?: SummaryDisplayLine[];
   bundleOfferId?: string | null;
   bundleOriginalUnitPrice?: number | null;
   bundleTitle?: string | null;
@@ -215,6 +221,24 @@ export function OrderSummary({
                 <p className={`text-sm leading-snug line-clamp-2 ${unavailable ? 'text-gray-400' : 'text-gray-800'}`}>{title}</p>
                 {unavailable && <UnavailableInMarketNotice className="mt-0.5" />}
                 {item.variant && <p className="text-xs text-gray-500">{item.variant}</p>}
+                {hasPersonalizationGroups(item.customFieldDisplay) ? (
+                  <PersonalizationSummary display={item.customFieldDisplay!} textClassName="text-gray-500" />
+                ) : item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    {item.customFieldDisplay.map((f) => (
+                      <span key={f.id} className="text-xs text-gray-500">
+                        {f.label}: <CartFieldValue value={f.value} display={f.display} />
+                      </span>
+                    ))}
+                  </div>
+                ) : item.customFields && Object.keys(item.customFields).length > 0 ? (
+                  // Legacy lines without resolved labels: values only, never raw ids.
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    {Object.entries(item.customFields).map(([k, v]) => (
+                      <span key={k} className="text-xs text-gray-500"><CartFieldValue value={v} /></span>
+                    ))}
+                  </div>
+                ) : null}
                 {item.bundleOfferId && (
                   <div className="flex flex-wrap items-center gap-1 mt-0.5">
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">

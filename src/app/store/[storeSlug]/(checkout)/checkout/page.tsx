@@ -10,13 +10,15 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useMarket } from '@/hooks/useMarket';
-import { api, storefront } from '@/lib/api';
+import { api, storefront, type ApiError } from '@/lib/api';
+import { useApiError, useCodedApiError } from '@/lib/useApiError';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
 import { normalizeB2bNetTotals, normalizeTaxExemptReason, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type TaxLine } from '@/lib/tax';
 import { exemptLinePrices, normalizeQuoteTaxExemption } from '@/lib/taxExemption';
 import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
+import { isLineErrorCode } from '@/lib/checkoutLineErrors';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import {
@@ -31,6 +33,7 @@ import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { KustomCheckout } from '@/components/checkout/KustomCheckout';
 import { VatNumberField } from '@/components/checkout/VatNumberField';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
+import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { availableLines } from '@/lib/cartAvailability';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -176,6 +179,8 @@ function SectionHeading({ children, first }: { children: React.ReactNode; first?
 function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const router = useRouter();
   const t = useTranslations();
+  const apiError = useApiError();
+  const codedError = useCodedApiError();
   const locale = useLocale();
   const lp = useLocalePath();
   const stripe = useStripe();
@@ -188,6 +193,23 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     clearCart, applyCoupon, removeCoupon, syncGuestCartToServer,
     removeItem, hasUnavailableItems,
   } = useCart();
+  // Personalization app: a line whose personalization no longer passes the
+  // rules blocks checkout like an unavailable line, until it is fixed in the cart.
+  const personalizationBlocked = hasInvalidPersonalization(items);
+
+  // M4.0: prefix a personalization message with the product of its line.
+  const withProduct = (title: string | undefined, message: string) =>
+    title ? t('checkout.lineError', { product: title, message }) : message;
+  // The line comes from `line_id` (server cart row) or, for a quote of the
+  // local guest lines, from `line_index` (the lines are sent 1:1 from `items`).
+  const lineErrorMessage = (err: ApiError, guestLines: boolean) => {
+    const line = err.line_id
+      ? items.find((i) => i.id === err.line_id)
+      : guestLines && typeof err.line_index === 'number'
+        ? items[err.line_index]
+        : undefined;
+    return withProduct(line?.title, apiError(err));
+  };
   // b2b app (M2-DESIGN §4.4): company view adds the company section, sends
   // `buyer_type` + `company` with the quote / order and saves the company
   // defaults best-effort. `isCompany` is always false without the app, so
@@ -231,6 +253,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const [couponError, setCouponError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // The error concerns a cart line (personalization): the box links to the cart.
+  const [errorCartLink, setErrorCartLink] = useState(false);
   // `loading` only disables the button on the next render, so a fast double
   // click (or Enter + click) can enter handleSubmit twice and place two orders
   // — two charges on the same card. This ref rejects re-entry synchronously.
@@ -261,6 +285,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // in which case the summary falls back to the client-side figures.
   const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  // M4.0: a personalization rejection of the quote (`CUSTOM_FIELD_*` /
+  // `CUSTOMER_UPLOAD_*`) is shown instead of silently dropping the quote.
+  // `guest` = the quote priced the local lines, so `line_index` maps to them.
+  const [quoteLineError, setQuoteLineError] = useState<{ err: ApiError; guest: boolean } | null>(null);
   // Buyer type the current quote was made for: an exemption of the previous
   // buyer type is ignored at once after a toggle (M2.5 L5).
   const [quoteCompany, setQuoteCompany] = useState<boolean | null>(null);
@@ -456,6 +484,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   useEffect(() => {
     if (!storeId || !shippingCountryCode || items.length === 0) {
       setQuote(null);
+      setQuoteLineError(null);
       setQuoteLoading(false);
       return;
     }
@@ -482,8 +511,16 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           ...(isCompany && quoteVatNumber ? { vat_number: quoteVatNumber } : {}),
         }),
       })
-        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); } })
-        .catch(() => { if (!cancelled) setQuote(null); })
+        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); setQuoteLineError(null); } })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setQuote(null);
+          // Personalization errors are shown; other failures keep the
+          // client-side fallback figures as before.
+          setQuoteLineError(isLineErrorCode((err as ApiError | null)?.code)
+            ? { err: err as ApiError, guest: !isLoggedInForQuote }
+            : null);
+        })
         .finally(() => { if (!cancelled) setQuoteLoading(false); });
     }, QUOTE_DEBOUNCE_MS);
     return () => { cancelled = true; clearTimeout(timer); };
@@ -630,7 +667,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     if (noPaymentMethods || (paymentMethod === 'cod' && !codAvailable)) return;
     // Lines unavailable in this market must be removed first (the button is
     // disabled too; this guards an Enter-key submit).
-    if (hasUnavailableItems) return;
+    if (hasUnavailableItems || personalizationBlocked) return;
     // The server ties the order to this store (commission model, payout
     // routing, catalogue check), so don't submit before it has resolved.
     if (!storeId) {
@@ -639,6 +676,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     }
     if (!validate()) return;
     setError('');
+    setErrorCartLink(false);
     setRcNotConfirmed(false);
     submittingRef.current = true;
     setLoading(true);
@@ -688,7 +726,19 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           setLoading(false);
           return;
         }
-        await syncGuestCartToServer(activeToken);
+        // Lines the server rejects for their personalization stay in the
+        // guest cart: stop before any payment and send the buyer to the cart.
+        const dropped = await syncGuestCartToServer(activeToken);
+        if (dropped.length > 0) {
+          const first = dropped[0]!;
+          const reason = codedError(first.error);
+          setError([
+            t('cart.linesNotMoved', { count: dropped.length }),
+            reason ? withProduct(first.item.title, reason) : '',
+          ].filter(Boolean).join(' '));
+          setErrorCartLink(true);
+          return;
+        }
       }
 
       // 1. Resolve shipping address
@@ -811,6 +861,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         // message and re-quote so the list (and the selection) refresh.
         setError(t('errors.ORDER_SHIPPING_METHOD_INVALID'));
         setRequoteTick((n) => n + 1);
+      } else if (isLineErrorCode(code) && t.has(`errors.${code}`)) {
+        // A cart line's personalization fails the field rules (M4.0 K2, or
+        // the personalization app's evaluator) or its uploaded file expired:
+        // the message names the product line (the order is created from the
+        // server cart) and links back to the cart.
+        setError(lineErrorMessage(err as ApiError, false));
+        setErrorCartLink(true);
       } else if (code && code.startsWith('B2B_') && t.has(`errors.${code}`)) {
         // b2b app: the API rejected the company data (format / app off).
         setError(t(`errors.${code}`));
@@ -841,9 +898,24 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   }
 
   // Error box shared by both layouts. A refused reverse charge (409) is a
-  // warning, not a failure: it shows the re-quoted total to confirm.
-  const errorBox = (spacing: string) => error && (
-    rcNotConfirmed ? (
+  // warning, not a failure: it shows the re-quoted total to confirm. Without
+  // a submit error, a personalization rejection of the quote is shown (M4.0).
+  const cartLink = (
+    <Link href={lp('/cart')} className="mt-1 block font-medium underline underline-offset-2 hover:opacity-80">
+      {t('checkout.returnToCart')}
+    </Link>
+  );
+  const quoteLineMessage = quoteLineError ? lineErrorMessage(quoteLineError.err, quoteLineError.guest) : '';
+  const errorBox = (spacing: string) => {
+    if (!error) {
+      return quoteLineMessage ? (
+        <div role="alert" className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 ${spacing}`}>
+          <p>{quoteLineMessage}</p>
+          {cartLink}
+        </div>
+      ) : null;
+    }
+    return rcNotConfirmed ? (
       <div className={`rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 ${spacing}`}>
         <p>{error}</p>
         {quote && !quoteLoading && (
@@ -856,10 +928,11 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       </div>
     ) : (
       <div className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 ${spacing}`}>
-        {error}
+        {errorCartLink ? <p>{error}</p> : error}
+        {errorCartLink && cartLink}
       </div>
-    )
-  );
+    );
+  };
 
   // Submit label per method: card pays inline, COD just places the order.
   const submitLabel = paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder');
@@ -1332,7 +1405,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1342,6 +1415,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               }
             </button>
             {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
+            {personalizationBlocked && <InvalidPersonalizationHint items={items} className="mt-2" />}
 
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
               <Lock className="w-3 h-3" />
@@ -1404,7 +1478,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {errorBox('mb-4')}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1414,6 +1488,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               }
             </button>
             {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
+            {personalizationBlocked && <InvalidPersonalizationHint items={items} className="mt-2" />}
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
               <Lock className="w-3 h-3" />
               {t('checkout.allTransactionsSecure')}

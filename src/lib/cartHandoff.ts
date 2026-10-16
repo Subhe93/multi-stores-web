@@ -75,18 +75,22 @@ export function toHandoffLine(item: CartItem): HandoffLine {
  * Encode guest lines for the `?c=` parameter. Lines are dropped from the end
  * until the payload fits the cap; `dropped` tells the UI how many were lost.
  * Returns `param: null` when nothing fits (or the cart is empty).
+ *
+ * Designer lines (M4.2) never travel: their design is only reachable with a
+ * guest token, which must not be put in a URL. They are counted in `dropped`.
  */
 export function encodeGuestCart(items: CartItem[]): { param: string | null; dropped: number } {
-  const lines = items.map(toHandoffLine);
+  const designerLines = items.filter((i) => Boolean(i.designId)).length;
+  const lines = items.filter((i) => !i.designId).map(toHandoffLine);
   let keep = lines.length;
   while (keep > 0) {
     const encoded = toBase64Url(JSON.stringify(lines.slice(0, keep)));
     if (encoded.length <= CART_HANDOFF_MAX_BYTES) {
-      return { param: encoded, dropped: lines.length - keep };
+      return { param: encoded, dropped: lines.length - keep + designerLines };
     }
     keep -= 1;
   }
-  return { param: null, dropped: lines.length };
+  return { param: null, dropped: lines.length + designerLines };
 }
 
 // Field caps for decoded lines — the payload comes from a URL anyone can

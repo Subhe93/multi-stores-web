@@ -6,6 +6,7 @@ import { CartProvider } from '@/hooks/useCart';
 import { StoreTaxProvider } from '@/hooks/useStoreTax';
 import { StoreAppsProvider } from '@/hooks/useStoreApps';
 import { MarketProvider } from '@/hooks/useMarket';
+import { StorePrimaryLocaleProvider } from '@/hooks/useStorePrimaryLocale';
 import { BuyerTypeProvider, useBuyerType } from '@/hooks/useBuyerType';
 import type { StoreTaxConfig } from '@/lib/tax';
 import type { StorefrontApps } from '@/lib/storeApps';
@@ -59,6 +60,7 @@ export function StoreProviders({
   market,
   markets,
   buyerType,
+  primaryLocale,
 }: {
   children: ReactNode;
   locale?: string;
@@ -82,6 +84,8 @@ export function StoreProviders({
    *  cookie / the app's default (M2-DESIGN §4.1). Only passed for stores
    *  with the app; ignored otherwise. */
   buyerType?: BuyerType;
+  /** The store's primary content locale (label fallback of snapshots). */
+  primaryLocale?: string;
 }) {
   const b2bApp = storeApps?.b2b;
   // Stable settings object so the BuyerType context value only changes when
@@ -104,7 +108,7 @@ export function StoreProviders({
                 storeTax={storeTax}
                 marketKey={market?.key}
               >
-                {children}
+                <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
               </CartProviderWithAuth>
             </MarketProvider>
           </BuyerTypeProvider>

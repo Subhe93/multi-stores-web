@@ -10,6 +10,22 @@ export function resolveMediaUrl(url?: string | null): string {
   return `${API_ORIGIN}${url}`;
 }
 
+/** Error thrown by `api()` for a non-2xx response. */
+export type ApiError = Error & {
+  status?: number;
+  code?: string;
+  why?: string;
+  /** ICU params of the coded message (e.g. `{label, max}`). */
+  params?: Record<string, unknown>;
+  field_id?: string;
+  field_name?: string;
+  /** Cart row id (order create) or line index (quote) the error refers to. */
+  line_id?: string;
+  line_index?: number;
+  /** Personalization app: `PERSONALIZATION_INVALID` carries the evaluator errors (M4.1 §4.3). */
+  errors?: unknown[];
+};
+
 interface FetchOptions extends RequestInit {
   token?: string;
   next?: { revalidate?: number | false; tags?: string[] };
@@ -44,11 +60,7 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
   const json = await res.json();
 
   if (!res.ok) {
-    const err = new Error(json.message || 'API request failed') as Error & {
-      status?: number;
-      code?: string;
-      why?: string;
-    };
+    const err = new Error(json.message || 'API request failed') as ApiError;
     err.status = res.status;
     // Stable machine-readable error code (when present) for UI translation,
     // falling back to the English `message` above.
@@ -56,6 +68,14 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     // Machine-readable reason next to some codes (b2b app M2.5:
     // B2B_REVERSE_CHARGE_NOT_CONFIRMED carries the decision's `why`).
     if (typeof json.why === 'string') err.why = json.why;
+    // Personalization errors (M4.0 §4.2): ICU params and the field / cart
+    // line they belong to. Only set when the API sent them.
+    if (json.params && typeof json.params === 'object' && !Array.isArray(json.params)) err.params = json.params;
+    if (typeof json.field_id === 'string') err.field_id = json.field_id;
+    if (typeof json.field_name === 'string') err.field_name = json.field_name;
+    if (typeof json.line_id === 'string') err.line_id = json.line_id;
+    if (typeof json.line_index === 'number') err.line_index = json.line_index;
+    if (Array.isArray(json.errors)) err.errors = json.errors;
     throw err;
   }
 

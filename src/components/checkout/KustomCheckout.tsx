@@ -9,6 +9,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
+import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { useMarket } from '@/hooks/useMarket';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useKustomCheckout, type KustomCompanyPrefill } from '@/hooks/useKustomCheckout';
@@ -69,6 +70,9 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     updateQuantity, removeItem, applyCoupon, removeCoupon,
     hasUnavailableItems,
   } = useCart();
+  // Personalization app: an invalid line personalization blocks the session
+  // like an unavailable line, until it is fixed in the cart.
+  const personalizationBlocked = hasInvalidPersonalization(items);
   // Markets app: request market, forwarded to the session (null otherwise).
   const market = useMarket();
   // b2b app (M2-DESIGN §4.4): buyer type + the account's company defaults go
@@ -125,8 +129,9 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     locale,
     marketKey: market?.key ?? null,
     // Wait for auth (so the JWT is attached) and for the cart to be loaded.
-    // Lines unavailable in the market block the session until removed.
-    enabled: !authLoading && !cartLoading && !hasUnavailableItems,
+    // Lines unavailable in the market, or with an invalid personalization,
+    // block the session until removed or fixed.
+    enabled: !authLoading && !cartLoading && !hasUnavailableItems && !personalizationBlocked,
     authToken: token,
     refreshAuth,
     items,
@@ -354,6 +359,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-4">
               <RemoveUnavailableHint />
             </div>
+          ) : personalizationBlocked ? (
+            <InvalidPersonalizationHint items={items} />
           ) : failed ? (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
               <p>{t('checkout.kustomSessionFailed')}</p>

@@ -10,12 +10,9 @@ import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
 import { OrderInvoices } from '@/components/account/OrderInvoices';
-import {
-  resolveCustomFieldLabel,
-  resolveCustomFieldTranslation,
-  resolveOptionLabel,
-  type CustomFieldTranslationLike,
-} from '@/lib/customFields';
+import type { OrderFieldValueRow } from '@/lib/customFields';
+import { OrderFieldValues } from '@/components/account/OrderFieldValues';
+import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
 import { ArrowLeft, Check } from 'lucide-react';
 
 // ── Types matching backend Prisma response ──────────────────────────────────
@@ -55,17 +52,6 @@ interface CustomProduct {
   };
 }
 
-interface CustomFieldValue {
-  id: string;
-  value?: string;
-  file_url?: string;
-  custom_field: {
-    id: string;
-    name?: string;
-    translations: CustomFieldTranslationLike[];
-  };
-}
-
 interface OrderItem {
   id: string;
   quantity: number;
@@ -75,7 +61,8 @@ interface OrderItem {
   product?: OrderItemProduct | null;
   variant?: OrderItemVariant | null;
   custom_product?: CustomProduct | null;
-  custom_field_values?: CustomFieldValue[];
+  /** Personalization snapshot rows (M4.0 §6); `custom_field` is null once the field was deleted. */
+  custom_field_values?: OrderFieldValueRow[];
   /** Server-resolved display image for this line (see OrdersService). */
   image_url?: string | null;
   customer_design_url?: string;
@@ -202,6 +189,8 @@ export default function StoreOrderDetailPage() {
   // Tax row labels; the 0 % row of an exempt order reads "VAT 0 % — Reverse charge".
   const taxLabel = useTaxLineLabel();
   const locale = useLocale();
+  // Label fallback of the snapshot rows (store primary locale).
+  const primaryLocale = useStorePrimaryLocale();
   const lp = useLocalePath();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -373,28 +362,20 @@ export default function StoreOrderDetailPage() {
                   </div>
                 </div>
 
-                {/* Custom field values */}
+                {/* Custom field values, from the order snapshot; labels fall back
+                    to the store primary locale, then 'en', then the first. */}
                 {fieldValues.length > 0 && (
-                  <div className="ml-15 pl-3 border-l-2 border-gray-100 space-y-0.5">
-                    {fieldValues.map((fv) => {
-                      // No store primary locale on this client page; the helper
-                      // still falls back to 'en' → first translation.
-                      const fieldTranslation = resolveCustomFieldTranslation(fv.custom_field, locale);
-                      const label = resolveCustomFieldLabel(fv.custom_field, locale);
-                      const displayValue = fv.value ? resolveOptionLabel(fieldTranslation, fv.value) : '';
-                      return (
-                        <p key={fv.id} className="text-[11px] text-gray-500">
-                          <span className="font-medium text-gray-600">{label}:</span>{' '}
-                          {displayValue || (fv.file_url ? 'File uploaded' : '—')}
-                        </p>
-                      );
-                    })}
-                  </div>
+                  <OrderFieldValues
+                    rows={fieldValues}
+                    locale={locale}
+                    primaryLocale={primaryLocale}
+                    className="ms-15 ps-3 border-s-2 border-gray-100 space-y-1"
+                  />
                 )}
 
                 {/* Design notes */}
                 {item.design_notes && (
-                  <p className="ml-15 text-[11px] text-gray-400 italic">Note: {item.design_notes}</p>
+                  <p className="ms-15 text-[11px] text-gray-400 italic">Note: {item.design_notes}</p>
                 )}
               </div>
             );

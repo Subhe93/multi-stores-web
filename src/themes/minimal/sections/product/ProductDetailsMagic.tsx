@@ -41,6 +41,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
     product.translations[0];
   const title = tr?.title || (content.fallback_title as string) || 'Product';
   const description = tr?.description;
+  const shortDescription = tr?.short_description;
 
   const c = currency || 'EUR';
   const formatPrice = (n: number) =>
@@ -137,6 +138,17 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
           )}
           <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} taxRateBp={product.tax_rate_bp} />
         </div>
+      )}
+
+      {/* Short description (M4.4): server-sanitized HTML, only when set. Same
+          block as ProductDetailClient: wraps long words, scales images, and
+          scrolls wide tables instead of overflowing the column (RTL-safe). */}
+      {shortDescription && (
+        <div
+          className="prose prose-sm max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+          style={{ color: 'var(--theme-colors-muted)' }}
+          dangerouslySetInnerHTML={{ __html: shortDescription }}
+        />
       )}
 
       {/* Description */}

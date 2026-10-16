@@ -165,7 +165,14 @@ export interface ProductContext {
   compare_at_price?: number;
   /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */
   tax_rate_bp?: number | null;
-  translations: Array<{ locale: string; title?: string; description?: string; slug?: string }>;
+  translations: Array<{
+    locale: string;
+    title?: string;
+    description?: string;
+    /** M4.4: short summary HTML (sanitized by the API), shown above the description. */
+    short_description?: string | null;
+    slug?: string;
+  }>;
   images: Array<{ url: string; alt_text?: string | null; sort_order?: number }>;
   variants?: Array<{
     id: string;

@@ -8,18 +8,22 @@ import { PriceDisplay } from '@/components/product/PriceDisplay';
 import { VariantSelector } from '@/components/product/VariantSelector';
 import { QuantitySelector } from '@/components/product/QuantitySelector';
 import { CustomerUpload } from '@/components/product/CustomerUpload';
-import { CustomFieldsForm, type CustomField } from '@/components/product/CustomFieldsForm';
+import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
+import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
+import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
+import { visibleFieldsAt } from '@/components/product/personalization/model';
+import type { POptionConfig } from '@/lib/personalization';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useCart } from '@/hooks/useCart';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
-import {
-  resolveCustomFieldLabel,
-  resolveCustomFieldTranslation,
-  type CustomFieldTranslationLike,
-} from '@/lib/customFields';
+import type { CustomFieldTranslationLike } from '@/lib/customFields';
+import { useStoreApp } from '@/hooks/useStoreApps';
+import { readDesignerPayload } from '@/lib/designer/api';
+import { DesignerLauncher } from '@/components/designer/DesignerLauncher';
+import type { DesignedLine } from '@/components/designer/DesignerEditor';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   Shield, RotateCcw, Star, Loader2, Tag, Zap, Gift, Percent, X,
@@ -36,7 +40,14 @@ export interface ProductData {
   allow_customer_upload?: boolean;
   product_type?: string;
   customization_type?: string;
-  translations: { locale: string; title: string; slug: string; description?: string }[];
+  translations: {
+    locale: string;
+    title: string;
+    slug: string;
+    description?: string;
+    /** M4.4: short summary HTML (sanitized by the API), shown above add-to-cart. */
+    short_description?: string | null;
+  }[];
   images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
   // Marketplace vendor - only present when the store shows vendor names.
   vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
@@ -66,10 +77,19 @@ export interface ProductData {
     is_required?: boolean;
     required?: boolean;
     name?: string;
+    sort_order?: number | null;
     translations: CustomFieldTranslationLike[];
     options?: unknown;
-    validation_rules?: { min_length?: number; max_length?: number; pattern?: string; allowed_chars?: string };
-    linked_validation?: { type: string; target_field_id: string; fill_char?: string };
+    validation_rules?: unknown;
+    /** `{type, target, fill_char?, max?}`; `target` is the sibling field name (legacy `target_field_id`). */
+    linked_validation?: unknown;
+    // Personalization app only (M4.1): the payload is a tree with these keys.
+    parent_id?: string | null;
+    conditions?: unknown;
+    pricing?: unknown;
+    repeat?: unknown;
+    ui?: unknown;
+    children?: unknown[];
   }[];
   tags?: { tag: string }[];
   category?: { translations: { locale: string; name: string }[] };
@@ -89,7 +109,17 @@ export interface ProductData {
     colorMap?: Record<string, string>;
     dualColorMap?: Record<string, [string, string]>;
     imageMap?: Record<string, string>;
+    /** Swatch-only image per value (M4.4 C38); never the product image. */
+    swatchMap?: Record<string, string>;
+    values?: string[];
+    /** Personalization app: per-value card texts (style 'card'). */
+    valueMeta?: Record<string, unknown>;
   }[];
+  /** Personalization app (M4.1): present only when the app is on for this product. */
+  personalization?: { enabled: boolean; free_shipping_threshold: number | null; currency?: string | null } | null;
+  /** Designer app (M4.2): present only when the app, the product link and the
+   *  template are active. Read through `readDesignerPayload`. */
+  designer?: unknown;
   shipping_profile?: {
     name: string;
     zones: {
@@ -215,7 +245,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   const t = useTranslations();
   const apiError = useApiError();
   const { addItem } = useCart();
-  const variants = product.variants || [];
+  const variants = useMemo(() => product.variants || [], [product.variants]);
 
   // Presentation toggles — default to "show everything" so the standalone
   // product page is unchanged; the builder section overrides per its settings.
@@ -230,17 +260,46 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     variants.length === 1 ? variants[0].id : undefined
   );
   const [quantity, setQuantity] = useState(1);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>(() => {
-    // Pre-fill values from creator-set field_values (custom products)
-    const initial: Record<string, unknown> = {};
-    if (product.field_values?.length) {
-      for (const fv of product.field_values) {
-        if (fv.value) initial[fv.custom_field_id] = fv.value;
-        else if (fv.file_url) initial[fv.custom_field_id] = fv.file_url;
-      }
-    }
-    return initial;
+  // Partial option picks (e.g. color chosen, size pending) — drives the
+  // gallery via value-level images before a full variant is resolved.
+  const [optionSelections, setOptionSelections] = useState<Record<string, string>>({});
+  // URL prefill of option picks (personalization app): remounts the selector once.
+  const [selectorInit, setSelectorInit] = useState<{ key: number; selections?: Record<string, string> }>({ key: 0 });
+
+  const selectedVariantForApp = variants.find((v) => v.id === selectedVariantId) ?? null;
+  const taxRateBp = product.tax_rate_bp ?? null;
+
+  // Personalization app (M4.1): gate, evaluator form, variation cards, URL
+  // prefill and price delta (shared with the theme's AddToCartMagic). Off =
+  // the M4.0 page, unchanged. Custom fields: values (creator-filled ones
+  // pre-set and hidden), the shared validator and the cart payload (M4.0 §2.2).
+  const app = usePersonalizationApp({
+    product,
+    personalization: product.personalization,
+    optionConfig: product.variant_option_config as POptionConfig[] | undefined,
+    variants,
+    variantOptions: selectedVariantForApp?.options,
+    optionSelections,
+    locale,
+    primaryLocale,
+    currency,
+    taxRateBp,
+    onPrefillOptions: (picks, variantId) => {
+      setOptionSelections(picks);
+      setSelectedVariantId(variantId);
+      setSelectorInit({ key: 1, selections: picks });
+    },
   });
+  const { appSettings, market, storeSlug, advanced, cardsConfig } = app;
+  const personalization = app.fields;
+  const {
+    fields: mappedCustomFields,
+    values: customFieldValues,
+    onChange: handleCustomFieldChange,
+    validateAll,
+    buildPayload,
+    applyServerError,
+  } = personalization;
   const [customerFile, setCustomerFile] = useState<File | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -248,9 +307,14 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('description');
   const [selectedBundleOfferId, setSelectedBundleOfferId] = useState<string | null>(null);
-  // Partial option picks (e.g. color chosen, size pending) — drives the
-  // gallery via value-level images before a full variant is resolved.
-  const [optionSelections, setOptionSelections] = useState<Record<string, string>>({});
+
+  // Designer app (M4.2): the editor replaces the personalization form and
+  // the add-to-cart button. Absent payload = the page exactly as before.
+  const designerApp = useStoreApp('designer');
+  const designer = useMemo(
+    () => (designerApp ? readDesignerPayload(product.designer) : null),
+    [designerApp, product.designer],
+  );
 
   // ── Memos ─────────────────────────────────────────────
 
@@ -317,12 +381,13 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     setActiveGalleryIndex(0);
   }, [leadImageUrl]);
 
+  // Personalization app: the per-unit modifier (0 when it is not shown).
+  const personalizationDelta = app.priceDelta;
   const baseUnitPrice = useMemo(() => {
-    return selectedVariant ? Number(selectedVariant.price) : Number(product.base_price);
-  }, [selectedVariant, product.base_price]);
+    return (selectedVariant ? Number(selectedVariant.price) : Number(product.base_price)) + personalizationDelta;
+  }, [selectedVariant, product.base_price, personalizationDelta]);
   // b2b app: company view shows net amounts (variants inherit the product rate).
   const display = useDisplayPrice();
-  const taxRateBp = product.tax_rate_bp ?? null;
 
   const selectedBundleOffer = useMemo(() => {
     if (!selectedBundleOfferId || !product.bundles?.length) return null;
@@ -374,42 +439,6 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     return selectedVariant ? selectedVariant.stock : undefined;
   }, [selectedVariant]);
 
-  // Fields the creator already filled (should not be shown to customers)
-  const creatorFilledFieldIds = useMemo(() => {
-    if (!product.field_values?.length) return new Set<string>();
-    return new Set(
-      product.field_values
-        .filter((fv) => fv.value || fv.file_url)
-        .map((fv) => fv.custom_field_id),
-    );
-  }, [product.field_values]);
-
-  const mappedCustomFields: CustomField[] = useMemo(() => {
-    if (!product.custom_fields?.length) return [];
-    return product.custom_fields
-      .filter((field) => !creatorFilledFieldIds.has(field.id)) // Hide creator-filled fields
-      .map((field) => {
-        // locale → store primary → 'en' → first; label never falls back to the id
-        const fieldTranslation = resolveCustomFieldTranslation(field, locale, primaryLocale);
-        return {
-          id: field.id,
-          type: field.type as CustomField['type'],
-          required: field.is_required ?? field.required ?? false,
-          label: resolveCustomFieldLabel(field, locale, primaryLocale),
-          placeholder: fieldTranslation?.placeholder ?? undefined,
-          options: Array.isArray(field.options) ? field.options : undefined,
-          optionLabels: fieldTranslation?.option_labels ?? undefined,
-          validation: field.validation_rules
-            ? {
-                min: field.validation_rules.min_length,
-                max: field.validation_rules.max_length,
-                pattern: field.validation_rules.pattern,
-              }
-            : undefined,
-        };
-      });
-  }, [product.custom_fields, locale, primaryLocale, creatorFilledFieldIds]);
-
   const isAddDisabled = useMemo(() => {
     if (variants.length > 0 && !selectedVariantId) return true;
     if (selectedVariant && selectedVariant.stock <= 0) return true;
@@ -417,10 +446,6 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   }, [variants, selectedVariantId, selectedVariant]);
 
   // ── Handlers ──────────────────────────────────────────
-
-  const handleCustomFieldChange = useCallback((fieldId: string, value: unknown) => {
-    setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
-  }, []);
 
   const handleSelectBundle = useCallback((offerId: string) => {
     setSelectedBundleOfferId((prev) => (prev === offerId ? null : offerId));
@@ -448,50 +473,24 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     if (addingToCart || isAddDisabled) return;
     setCustomFieldError('');
 
-    // Validate required custom fields before adding to cart
-    const missingRequired = mappedCustomFields.filter((field) => {
-      if (!field.required) return false;
-      const val = customFieldValues[field.id];
-      return val === undefined || val === null || val === '';
-    });
-    if (missingRequired.length > 0) {
-      setCustomFieldError(
-        t('product.requiredFieldsMissing'),
-      );
+    // Same rules as the API (shared validator): show every field error inline.
+    const check = validateAll();
+    if (!check.ok) {
+      setCustomFieldError(check.firstError || t('product.requiredFieldsMissing'));
+      // App form: move to the first field with an error.
+      if (advanced && check.fieldId) document.getElementById(`field-${check.fieldId}`)?.focus();
       return;
     }
 
     setAddingToCart(true);
     setAddToCartError('');
 
-    // Keep field IDs as keys so order creation can match them to custom_field_id
-    const fields =
-      Object.keys(customFieldValues).length > 0
-        ? Object.fromEntries(
-            Object.entries(customFieldValues)
-              .filter(([, v]) => v !== '' && v != null)
-          )
-        : undefined;
+    // Keep field IDs as keys so order creation can match them to custom_field_id;
+    // display lines are captured in the current locale for guest carts.
+    const { fields, display: customFieldDisplay } = buildPayload();
 
     const variantStr = selectedVariant
       ? Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ')
-      : undefined;
-
-    // Human-readable lines for the cart (guest carts have no server
-    // enrichment, so the labels are captured here in the current locale).
-    const customFieldDisplay = fields
-      ? Object.entries(fields).map(([fieldId, value]) => {
-          const def = mappedCustomFields.find((f) => f.id === fieldId);
-          return {
-            id: fieldId,
-            label: def?.label || fieldId,
-            value,
-            display:
-              typeof value === 'string' && def?.optionLabels
-                ? def.optionLabels[value] ?? null
-                : null,
-          };
-        })
       : undefined;
 
     try {
@@ -516,22 +515,86 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
           // b2b stores: keep the estimated rate on guest lines (L8).
           taxRateBp: taxRateBp ?? undefined,
+          // Personalization app (D14): guests validate on the server first and
+          // keep its values, unit price and display lines.
+          ...(advanced && storeSlug
+            ? {
+                personalizationCheck: {
+                  storeSlug,
+                  locale,
+                  market: market?.key ?? null,
+                  linePrice: (unit: number) =>
+                    selectedBundleOffer
+                      ? computeBundlePricing(unit, {
+                          quantity: selectedBundleOffer.offer.quantity,
+                          discount_type: selectedBundleOffer.offer.discount_type,
+                          discount_value: selectedBundleOffer.offer.discount_value,
+                        }).effectiveUnitPrice
+                      : unit,
+                },
+              }
+            : {}),
         },
       );
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 3000);
     } catch (err) {
+      // Field rule errors (K2) also show inline on their field.
+      const fieldMessage = applyServerError(err);
+      if (fieldMessage) setCustomFieldError(fieldMessage);
       // Coded API errors (e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET) are translated.
-      setAddToCartError((err as { code?: string })?.code ? apiError(err) : err instanceof Error ? err.message : t('common.error'));
+      setAddToCartError(fieldMessage || ((err as { code?: string })?.code ? apiError(err) : err instanceof Error ? err.message : t('common.error')));
     } finally {
       setAddingToCart(false);
     }
   }, [
     addingToCart, isAddDisabled, product.id, product.images,
     selectedVariantId, selectedVariant, quantity, translation,
-    currentPrice, galleryImages, customFieldValues, mappedCustomFields,
+    currentPrice, galleryImages, validateAll, buildPayload, applyServerError,
     customerFile, addItem, selectedBundleOfferId, selectedBundleOffer,
-    bundlePricing, baseUnitPrice, taxRateBp, apiError, t]);
+    bundlePricing, baseUnitPrice, taxRateBp, apiError, t, advanced, storeSlug, locale, market]);
+
+  // Designer app (M4.2): the approved design is the line (no field values).
+  const designerBlockedReason = isAddDisabled
+    ? variants.length > 0 && !selectedVariantId
+      ? t('product.selectOptions')
+      : t('product.outOfStock')
+    : null;
+
+  const handleDesignerAdd = useCallback(
+    async (line: DesignedLine) => {
+      const variantStr = selectedVariant
+        ? Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ')
+        : undefined;
+      await addItem(product.id, selectedVariantId || null, quantity, undefined, {
+        title: translation?.title || 'Product',
+        price: currentPrice,
+        imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
+        variant: variantStr,
+        customFieldDisplay: line.display,
+        customProductId: product._type === 'custom_product' ? product.id : undefined,
+        bundleOfferId: selectedBundleOfferId || undefined,
+        bundleOriginalUnitPrice: selectedBundleOffer ? baseUnitPrice : undefined,
+        bundleTitle: selectedBundleOffer?.translation?.title || undefined,
+        bundleLabel: selectedBundleOffer?.translation?.label || undefined,
+        bundleStickerText: selectedBundleOffer?.translation?.sticker_text || undefined,
+        bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
+        taxRateBp: taxRateBp ?? undefined,
+        design: { id: line.designId, token: line.token, proofUrl: line.proofUrl },
+      });
+    },
+    [
+      addItem, product.id, product.images, product._type, selectedVariantId, selectedVariant, quantity,
+      translation, currentPrice, galleryImages, selectedBundleOfferId, selectedBundleOffer, baseUnitPrice,
+      bundlePricing, taxRateBp,
+    ],
+  );
+
+  const handleDesignerDone = useCallback((kind: 'added' | 'saved') => {
+    if (kind !== 'added') return;
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 3000);
+  }, []);
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -654,6 +717,10 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
               locale={locale}
               taxRateBp={taxRateBp}
             />
+            {/* Personalization app: the modifier is priced in the cart outside the default market. */}
+            {app.deltaInCart && (
+              <p className="text-xs text-gray-500">{t('personalization.priceInCart')}</p>
+            )}
             {quantity > 1 && (
               <p className="text-xs text-gray-500">
                 {formatPrice(display(currentPrice, taxRateBp, currency).amount, currency, locale)} × {quantity}
@@ -668,6 +735,14 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
               <p className="text-xs text-gray-400 mt-1">SKU: {selectedVariant.sku}</p>
             )}
           </div>
+
+          {/* Short description (M4.4): server-sanitized HTML, only when set. */}
+          {translation?.short_description && (
+            <div
+              className="prose prose-gray prose-sm max-w-none text-gray-600 leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: translation.short_description }}
+            />
+          )}
 
           {/* Active Promotions */}
           {product.promotions && product.promotions.length > 0 && (
@@ -811,10 +886,25 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           {/* Divider */}
           <div className="border-t border-gray-100" />
 
+          {/* Personalization app: fields placed before the variants (namez A) */}
+          {advanced && !designer && (
+            <PersonalizationForm
+              model={advanced}
+              placement="before_variants"
+              showAllErrors={personalization.showAllErrors}
+              locale={locale}
+              primaryLocale={primaryLocale}
+              anchor
+            />
+          )}
+
           {/* Variant Selector */}
           {variants.length > 0 && (
             <div>
               <VariantSelector
+                key={selectorInit.key}
+                initialSelections={selectorInit.selections}
+                personalization={cardsConfig}
                 variants={variants}
                 selectedVariantId={selectedVariantId}
                 onSelect={setSelectedVariantId}
@@ -827,8 +917,27 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           )}
 
           {/* Design Selector */}
+          {/* Custom Fields — personalization app form */}
+          {advanced && !designer && (
+            <div className="space-y-3">
+              {visibleFieldsAt(advanced.defs, advanced.result.visibleIds, 'after_variants').length > 0 && (
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} />
+                  {t('product.customizeYourProduct')}
+                </h3>
+              )}
+              <PersonalizationForm
+                model={advanced}
+                placement="after_variants"
+                showAllErrors={personalization.showAllErrors}
+                locale={locale}
+                primaryLocale={primaryLocale}
+                showSummary={appSettings.validation_summary}
+              />
+            </div>
+          )}
           {/* Custom Fields */}
-          {mappedCustomFields.length > 0 && (
+          {!advanced && !designer && mappedCustomFields.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                 <span className="w-1 h-4 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} />
@@ -838,12 +947,16 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 fields={mappedCustomFields}
                 values={customFieldValues}
                 onChange={handleCustomFieldChange}
+                errors={personalization.errors}
+                showAllErrors={personalization.showAllErrors}
+                fillable={personalization.fillable}
+                onFill={personalization.onFill}
               />
             </div>
           )}
 
           {/* Customer Upload */}
-          {product.allow_customer_upload && (
+          {product.allow_customer_upload && !designer && (
             <div>
               <CustomerUpload
                 onFileSelect={handleFileSelect}
@@ -886,48 +999,88 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 step={bundlePricing?.cartQuantity ?? 1}
               />
 
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={isAddDisabled || addingToCart}
-                className={`flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
-                  addedToCart
-                    ? 'bg-green-600 text-white scale-[1.02]'
-                    : isAddDisabled
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : addingToCart
-                        ? 'opacity-80'
-                        : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
-                }`}
-                style={
-                  addedToCart || isAddDisabled
-                    ? undefined
-                    : buttonStyle === 'outline'
-                      ? {
-                          backgroundColor: 'transparent',
-                          color: 'var(--store-primary, #2563eb)',
-                          border: '2px solid var(--store-primary, #2563eb)',
-                        }
-                      : { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }
-                }
-              >
-                {addingToCart ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t('product.addingToCart')}
-                  </>
-                ) : addedToCart ? (
-                  <>
+              {designer ? (
+                addedToCart ? (
+                  <span className="flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm bg-green-600 text-white" role="status">
                     <Check className="w-4 h-4" />
                     {t('cart.itemAdded')}
-                  </>
+                  </span>
                 ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4" />
-                    {t('common.addToCart')}
-                  </>
-                )}
-              </button>
+                  <DesignerLauncher
+                    payload={designer}
+                    productId={product.id}
+                    locale={locale}
+                    productTitle={translation?.title || ''}
+                    priceLabel={formatPrice(display(displayPrice, taxRateBp, currency).amount, currency, locale)}
+                    blockedReason={designerBlockedReason}
+                    variantPicker={
+                      variants.length > 0 && !selectedVariantId ? (
+                        // Review step picker (the page's selector is under the
+                        // dialog). Its picks re-seed the page selector so both agree.
+                        <VariantSelector
+                          initialSelections={optionSelections}
+                          personalization={cardsConfig}
+                          variants={variants}
+                          selectedVariantId={selectedVariantId}
+                          onSelect={setSelectedVariantId}
+                          onSelectionsChange={(picks) => {
+                            setOptionSelections(picks);
+                            setSelectorInit((prev) => ({ key: prev.key + 1, selections: picks }));
+                          }}
+                          inStockText={t('product.inStock')}
+                          outOfStockText={t('product.outOfStock')}
+                          optionConfigs={product.variant_option_config}
+                        />
+                      ) : undefined
+                    }
+                    onAddToCart={handleDesignerAdd}
+                    onDone={handleDesignerDone}
+                  />
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isAddDisabled || addingToCart}
+                  className={`flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    addedToCart
+                      ? 'bg-green-600 text-white scale-[1.02]'
+                      : isAddDisabled
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : addingToCart
+                          ? 'opacity-80'
+                          : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
+                  }`}
+                  style={
+                    addedToCart || isAddDisabled
+                      ? undefined
+                      : buttonStyle === 'outline'
+                        ? {
+                            backgroundColor: 'transparent',
+                            color: 'var(--store-primary, #2563eb)',
+                            border: '2px solid var(--store-primary, #2563eb)',
+                          }
+                        : { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }
+                  }
+                >
+                  {addingToCart ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('product.addingToCart')}
+                    </>
+                  ) : addedToCart ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      {t('cart.itemAdded')}
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4" />
+                      {t('common.addToCart')}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             {customFieldError && (

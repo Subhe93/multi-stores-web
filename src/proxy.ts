@@ -7,6 +7,7 @@ import {
   isBotUserAgent,
   pickSuggestedMarket,
 } from '@/lib/market-routing';
+import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
 
 // Main platform hostnames — everything else is treated as a store subdomain
 // or a custom CNAME. Configurable via NEXT_PUBLIC_PLATFORM_HOSTS.
@@ -50,6 +51,9 @@ export type HostRoute = {
   market: MarketRoute | null;
   markets: MarketRoute[];
   redirectTo: string | null;
+  /** Store redirects version (M4.4 §6.4); null = no active redirects, and
+   *  then the proxy makes no redirect lookup at all. */
+  redirectsVersion: string | null;
   /** Platform host whose market-context call failed open (L11): cached with
    *  the negative TTL so a recovering API is picked up quickly. */
   legacy?: true;
@@ -91,6 +95,10 @@ function normalizeMarkets(raw: unknown): MarketRoute[] {
   return Array.isArray(raw) ? raw.filter(isLiveMarket) : [];
 }
 
+function readRedirectsVersion(raw: unknown): string | null {
+  return typeof raw === 'string' && raw ? raw : null;
+}
+
 /** Custom host → `GET /stores/by-domain/:host` (slug + market + redirect). */
 async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
   const controller = new AbortController();
@@ -109,6 +117,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
       redirect_to?: string | null;
       market?: unknown;
       markets?: unknown;
+      redirects_version?: unknown;
     };
     const body = (await res.json()) as ByDomain & { data?: ByDomain };
     const data = body.data ?? body;
@@ -120,6 +129,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
       market,
       markets: market ? normalizeMarkets(data.markets) : [],
       redirectTo: typeof data.redirect_to === 'string' && data.redirect_to ? data.redirect_to.toLowerCase() : null,
+      redirectsVersion: readRedirectsVersion(data.redirects_version),
     };
   } catch {
     // Network error — the caller caches the miss briefly so we don't stall
@@ -136,7 +146,14 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
  * without the app — or an API hiccup — never changes today's behaviour.
  */
 async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
-  const legacy: HostRoute = { slug, market: null, markets: [], redirectTo: null, legacy: true };
+  const legacy: HostRoute = {
+    slug,
+    market: null,
+    markets: [],
+    redirectTo: null,
+    redirectsVersion: null,
+    legacy: true,
+  };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HOST_LOOKUP_TIMEOUT_MS);
   try {
@@ -145,14 +162,28 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
       { cache: 'no-store', signal: controller.signal },
     );
     if (!res.ok) return legacy;
-    type Ctx = { enabled?: boolean; market?: unknown; markets?: unknown };
+    type Ctx = {
+      enabled?: boolean;
+      market?: unknown;
+      markets?: unknown;
+      redirects_version?: unknown;
+    };
     const body = (await res.json()) as Ctx & { data?: Ctx };
     const data = body.data ?? body;
+    const redirectsVersion = readRedirectsVersion(data.redirects_version);
     // App disabled is a definitive answer (positive TTL); only failures are
     // flagged legacy.
-    if (data.enabled !== true) return { slug, market: null, markets: [], redirectTo: null };
-    if (!isLiveMarket(data.market)) return legacy;
-    return { slug, market: data.market, markets: normalizeMarkets(data.markets), redirectTo: null };
+    if (data.enabled !== true) {
+      return { slug, market: null, markets: [], redirectTo: null, redirectsVersion };
+    }
+    if (!isLiveMarket(data.market)) return { ...legacy, redirectsVersion };
+    return {
+      slug,
+      market: data.market,
+      markets: normalizeMarkets(data.markets),
+      redirectTo: null,
+      redirectsVersion,
+    };
   } catch {
     return legacy;
   } finally {
@@ -228,6 +259,19 @@ export async function proxy(request: NextRequest) {
       `https://${route.redirectTo}${pathname}${request.nextUrl.search}`,
       301,
     );
+  }
+
+  // Store redirects (M4.4 §6.4): only when the host lookup reported a
+  // `redirects_version`, so stores without redirects make no extra fetch.
+  // Matching ignores the query; the Location keeps it. Fails open.
+  if (storeSlug && route?.redirectsVersion && !isSitemapOrRobots) {
+    const hit = await matchStoreRedirect(storeSlug, route.redirectsVersion, pathname);
+    if (hit) {
+      return NextResponse.redirect(
+        new URL(buildRedirectLocation(hit.to, request.nextUrl.search), request.url),
+        hit.status,
+      );
+    }
   }
 
   // /sitemap.xml and /robots.txt: subdomain serves the store-scoped routes;

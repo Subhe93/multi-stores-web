@@ -30,6 +30,11 @@ export interface KustomCartLine {
   bundle_offer_id?: string;
   quantity: number;
   custom_fields?: Record<string, unknown>;
+  /** Designer app (M4.2): the line's design; replaces `custom_fields`. */
+  design_id?: string;
+  /** Guest designer lines: the design's access token (a logged-in owner
+   *  is identified by the JWT instead). Only ever sent in request bodies. */
+  design_token?: string;
 }
 
 /** `totals` of a session response (API-CONTRACT-TAX §3): what the iframe
@@ -199,7 +204,12 @@ export function toKustomCartLines(items: CartItem[]): KustomCartLine[] {
     else if (item.productId) line.product_id = item.productId;
     if (item.variantId) line.variant_id = item.variantId;
     if (item.bundleOfferId) line.bundle_offer_id = item.bundleOfferId;
-    if (item.customFields && Object.keys(item.customFields).length > 0) {
+    if (item.designId) {
+      // Designer lines carry the design instead of field values; the API
+      // requires the guest token (server-cart lines only have the JWT owner).
+      line.design_id = item.designId;
+      if (item.designToken) line.design_token = item.designToken;
+    } else if (item.customFields && Object.keys(item.customFields).length > 0) {
       line.custom_fields = item.customFields;
     }
     return line;

@@ -13,6 +13,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
+import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle } from '@/lib/collectionSeo';
 
 interface ProductPromotion {
   type?: string;
@@ -37,6 +38,9 @@ interface CreatorCategoryTranslation {
   locale: string;
   name: string;
   description?: string | null;
+  // M4.4 category SEO (optional; absent on stores that never set them).
+  meta_title?: string | null;
+  meta_desc?: string | null;
 }
 
 interface CreatorCategory {
@@ -44,6 +48,8 @@ interface CreatorCategory {
   slug: string;
   is_active?: boolean;
   thumbnail_url?: string | null;
+  noindex_when_empty?: boolean;
+  published_product_count?: number;
   translations: CreatorCategoryTranslation[];
   children?: CreatorCategory[];
 }
@@ -506,9 +512,8 @@ export async function generateMetadata({
       storeSlug,
     });
 
-    const title = tr?.name || handle;
-    const description =
-      tr?.description?.replace(/<[^>]*>/g, '').slice(0, 160) || undefined;
+    const title = collectionMetaTitle(tr, handle);
+    const description = collectionMetaDescription(tr);
     const image = collection.thumbnail_url
       ? resolveMediaUrl(collection.thumbnail_url)
       : undefined;
@@ -524,6 +529,9 @@ export async function generateMetadata({
         type: 'website',
         url: alternates.canonical,
       },
+      // M4.4: a flagged collection with no published product stays out of
+      // the index (and out of the sitemap, filtered by the API).
+      ...(collectionIsNoindex(collection) ? { robots: { index: false, follow: true } } : {}),
     };
   } catch {
     return {};

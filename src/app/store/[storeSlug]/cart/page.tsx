@@ -5,17 +5,22 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useCart } from '@/hooks/useCart';
+import { useCart, type CartLineDesign } from '@/hooks/useCart';
+import { useCartDesign } from '@/components/designer/useCartDesign';
+import { DesignLineExtras } from '@/components/cart/DesignLineExtras';
 import { formatPrice } from '@/lib/format';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
-import { formatCartFieldValue } from '@/components/cart/CartItem';
+import { CartFieldValue } from '@/components/cart/CartItem';
+import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
+import { hasPersonalizationGroups } from '@/lib/personalization';
 import { RemoveUnavailableHint, UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
+import { useCodedApiError } from '@/lib/useApiError';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -93,7 +98,8 @@ interface CartItemRowProps {
     variant?: string;
     currency?: string;
     customFields?: Record<string, unknown>;
-    customFieldDisplay?: { id: string; label: string; value: unknown; display?: string | null }[];
+    customFieldDisplay?: SummaryDisplayLine[];
+    personalizationInvalid?: boolean;
     bundleOfferId?: string | null;
     bundleOriginalUnitPrice?: number | null;
     bundleTitle?: string | null;
@@ -103,6 +109,8 @@ interface CartItemRowProps {
     taxRateBp?: number | null;
     /** Markets app: hidden in the request market — no price, remove only. */
     unavailableInMarket?: boolean;
+    /** Designer app (M4.2): the line's design. */
+    design?: CartLineDesign;
   };
   onUpdateQuantity: (id: string, qty: number) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
@@ -115,7 +123,11 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
   const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
   const title = item.title || item.name || 'Product';
-  const img = resolveMediaUrl(item.imageUrl || item.image);
+  // Designer lines: the proof replaces the product image once it exists.
+  const designInfo = useCartDesign(item.design, item.id.startsWith('local_'));
+  const [proofFailed, setProofFailed] = useState(false);
+  const proofImg = item.design && designInfo.proofUrl && !proofFailed ? resolveMediaUrl(designInfo.proofUrl) : '';
+  const img = proofImg || resolveMediaUrl(item.imageUrl || item.image);
   // Company view (b2b app) prices the line net; persons see the gross.
   const unitShown = display(item.price, item.taxRateBp, currency).amount;
   const lineTotal = unitShown * item.quantity;
@@ -139,7 +151,12 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
       <div className="relative w-20 h-20 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
-            <img src={img} alt={title} className="w-full h-full object-cover" />
+            <img
+              src={img}
+              alt={title}
+              className={`w-full h-full ${proofImg ? 'object-contain bg-white' : 'object-cover'}`}
+              onError={proofImg ? () => setProofFailed(true) : undefined}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
               <ShoppingCart className="w-6 h-6" />
@@ -179,11 +196,13 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
             </button>
           </div>
         )}
-        {item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
+        {hasPersonalizationGroups(item.customFieldDisplay) ? (
+          <PersonalizationSummary display={item.customFieldDisplay!} className="flex flex-col gap-0.5 mt-0.5" />
+        ) : item.customFieldDisplay && item.customFieldDisplay.length > 0 ? (
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {item.customFieldDisplay.map((f) => (
               <span key={f.id} className="text-xs text-gray-400">
-                {f.label}: {formatCartFieldValue(f.value, f.display)}
+                {f.label}: <CartFieldValue value={f.value} display={f.display} />
               </span>
             ))}
           </div>
@@ -192,11 +211,17 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {Object.entries(item.customFields).map(([k, v]) => (
               <span key={k} className="text-xs text-gray-400">
-                {formatCartFieldValue(v)}
+                <CartFieldValue value={v} />
               </span>
             ))}
           </div>
         ) : null}
+
+        <DesignLineExtras design={item.design} info={designInfo} unavailable={unavailable} />
+
+        {item.personalizationInvalid && item.design?.invalid !== true && (
+          <p className="text-xs text-red-600 mt-0.5">{t('personalization.invalidLine')}</p>
+        )}
 
         {/* Quantity stepper (an unavailable line can only be removed) */}
         <div className="flex items-center gap-3 mt-auto pt-2">
@@ -258,11 +283,13 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, dismissPricesNotice,
+    items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
     taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
     itemCount, updateQuantity, removeItem, clearBundle, clearCart, applyCoupon, removeCoupon,
     hasUnavailableItems,
   } = useCart();
+  // Reason of the first line that could not be moved (coded API error).
+  const codedError = useCodedApiError();
   const display = useDisplayPrice();
   const { isCompany } = useBuyerType();
   const taxExclusive = taxPricingMode === 'EXCLUSIVE';
@@ -308,11 +335,12 @@ export default function StoreCartPage() {
         </h1>
 
         {/* Cross-market hand-off: lines re-priced / dropped for this market */}
-        {(pricesUpdated || handoffDropped > 0) && (
+        {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (
           <div role="status" className="mb-6 px-4 py-3 rounded-lg bg-amber-50 text-amber-800 text-sm flex items-start gap-3">
             <span className="flex-1">
               {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
               {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
+              {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
             </span>
             <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="text-xs underline hover:opacity-70">
               {t('market.suggest.dismiss')}

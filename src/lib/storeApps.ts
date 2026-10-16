@@ -8,7 +8,7 @@
 // (source of truth). Keep both lists in sync when adding an app — the repos
 // deploy separately and this package does not consume the shared one (D1).
 
-export const STORE_APP_KEYS = ['markets', 'b2b', 'invoices', 'importer'] as const;
+export const STORE_APP_KEYS = ['markets', 'b2b', 'invoices', 'importer', 'personalization', 'production', 'designer'] as const;
 
 export type StoreAppKey = (typeof STORE_APP_KEYS)[number];
 

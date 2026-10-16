@@ -12,6 +12,7 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
 import { RemoveUnavailableHint } from './UnavailableInMarket';
+import { useCodedApiError } from '@/lib/useApiError';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,9 +25,11 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const {
     items, itemCount, subtotal, total, coupon, currency,
     taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
-    updateQuantity, removeItem, pricesUpdated, handoffDropped, dismissPricesNotice,
+    updateQuantity, removeItem, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
     hasUnavailableItems,
   } = useCart();
+  // Reason of the first line that could not be moved (coded API error).
+  const codedError = useCodedApiError();
 
   // Portal the drawer to <body> so its `position: fixed` is relative to the
   // viewport, not a transformed/filtered ancestor. The header uses
@@ -128,11 +131,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           ) : (
             <>
               {/* Cross-market hand-off: lines re-priced / dropped for this market */}
-              {(pricesUpdated || handoffDropped > 0) && (
+              {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (
                 <div role="status" className="mx-6 mb-2 px-3 py-2 rounded-md bg-amber-50 text-amber-800 text-xs flex items-start gap-2">
                   <span className="flex-1">
                     {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
                     {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
+                    {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
                   </span>
                   <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="p-0.5 hover:opacity-70">
                     <X className="w-3.5 h-3.5" />
@@ -158,6 +162,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       currency,
                       taxRateBp: item.taxRateBp,
                       unavailableInMarket: item.unavailableInMarket,
+                      personalizationInvalid: item.personalizationInvalid,
                     }}
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}

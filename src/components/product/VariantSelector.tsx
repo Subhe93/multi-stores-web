@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { X, Check } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { VariantCards, type VariantCardsConfig } from '@/components/product/personalization/VariantCards';
 
 // ── Color utilities ────────────────────────────────────
 
@@ -56,6 +57,12 @@ interface OptionConfig {
   // Value-level image (one per option value, e.g. per color) — set in the
   // dashboard and shared by every variant carrying that value.
   imageMap?: Record<string, string>;
+  // Swatch-only image per value (M4.4 D14 / C38): drawn in the image swatch,
+  // never used as the product or variant image.
+  swatchMap?: Record<string, string>;
+  // Personalization app (M4.1 D9): per-value card texts; read only when the
+  // `personalization` prop is set (style 'card').
+  valueMeta?: Record<string, unknown>;
 }
 
 interface Variant {
@@ -65,6 +72,7 @@ interface Variant {
   stock: number;
   options: Record<string, string>;
   images?: { url: string }[];
+  is_active?: boolean;
 }
 
 interface VariantSelectorProps {
@@ -80,6 +88,11 @@ interface VariantSelectorProps {
   // Fires on every option click with the partial selection (e.g. color chosen,
   // size not yet) — lets the gallery react before a full variant is resolved.
   onSelectionsChange?: (selections: Record<string, string>) => void;
+  // Personalization app on: options with style 'card' render as variation
+  // cards. Undefined = today's behaviour ('card' falls back to text).
+  personalization?: VariantCardsConfig;
+  // Picks to start with (URL prefill, personalization app); read on mount.
+  initialSelections?: Record<string, string>;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -92,6 +105,8 @@ export function VariantSelector({
   outOfStockText = 'Out of Stock',
   optionConfigs,
   onSelectionsChange,
+  personalization,
+  initialSelections: initialSelectionsProp,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
 
@@ -153,7 +168,7 @@ export function VariantSelector({
     return {} as Record<string, string>;
   }, [selectedVariantId, variants]);
 
-  const [selections, setSelections] = useState<Record<string, string>>(initialSelections);
+  const [selections, setSelections] = useState<Record<string, string>>(initialSelectionsProp ?? initialSelections);
 
   const matchingVariant = useMemo(() => {
     if (Object.keys(selections).length < optionKeys.length) return null;
@@ -192,8 +207,9 @@ export function VariantSelector({
   };
   const hasSelections = Object.keys(selections).length > 0;
 
-  const getStyle = (key: string): 'color' | 'image' | 'text' => {
+  const getStyle = (key: string): 'color' | 'image' | 'text' | 'card' => {
     const cfg = configByName[key];
+    if (cfg?.style === 'card' && personalization) return 'card';
     if (cfg?.style === 'color') return 'color';
     if (cfg?.style === 'image') return 'image';
     if (isColorOptionKey(key)) return 'color';
@@ -201,9 +217,11 @@ export function VariantSelector({
   };
 
   const findVariantImage = (key: string, value: string): string | undefined => {
-    // Value-level image from the option config wins; fall back to the first
-    // variant that carries this value and has its own image.
-    const configured = configByName[key]?.imageMap?.[value];
+    // Swatch image first (M4.4 C38), then the value-level image from the
+    // option config; fall back to the first variant that carries this value
+    // and has its own image.
+    const cfg = configByName[key];
+    const configured = cfg?.swatchMap?.[value] ?? cfg?.imageMap?.[value];
     if (configured) return configured;
     const v = variants.find((v) => v.options?.[key] === value && v.images?.length);
     return v?.images?.[0]?.url;
@@ -366,6 +384,22 @@ export function VariantSelector({
                   );
                 })}
               </div>
+            )}
+
+            {/* ── Variation cards (personalization app) ── */}
+            {style === 'card' && personalization && (
+              <VariantCards
+                option={key}
+                values={values}
+                config={config}
+                selectedValue={selectedValue}
+                selections={selections}
+                optionNames={optionKeys}
+                variants={variants}
+                isAvailable={(value) => isOptionAvailable(key, value)}
+                onSelect={(value) => handleSelect(key, value)}
+                settings={personalization}
+              />
             )}
 
             {/* ── Text pills ── */}

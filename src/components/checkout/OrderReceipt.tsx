@@ -8,6 +8,9 @@ import { resolveMediaUrl } from '@/lib/api';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
+import { OrderFieldValues } from '@/components/account/OrderFieldValues';
+import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
+import type { OrderFieldValueRow } from '@/lib/customFields';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -27,6 +30,8 @@ export interface OrderReceiptItem {
     images?: { url: string }[];
   } | null;
   variant?: { options?: Record<string, string> } | null;
+  /** Personalization snapshot rows (M4.0 §6). */
+  custom_field_values?: OrderFieldValueRow[];
   custom_product?: {
     translations?: Translation[];
     mockup_images?: { url: string }[];
@@ -96,6 +101,8 @@ interface OrderReceiptProps {
 export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderReceiptProps) {
   const t = useTranslations();
   const locale = useLocale();
+  // Label fallback of the snapshot rows (store primary locale).
+  const primaryLocale = useStorePrimaryLocale();
   // Tax row labels; the 0 % row of an exempt order reads "VAT 0 % — Reverse charge".
   const taxLabel = useTaxLineLabel();
   const lp = useLocalePath();
@@ -152,6 +159,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
                     {vLabel && <p className="text-xs text-gray-500">{vLabel}</p>}
+                    <OrderFieldValues rows={item.custom_field_values} locale={locale} primaryLocale={primaryLocale} className="space-y-1 my-0.5" />
                     <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 shrink-0">
