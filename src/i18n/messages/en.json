@@ -33,7 +33,9 @@
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
     "free": "Free",
-    "clear": "Clear"
+    "clear": "Clear",
+    "yes": "Yes",
+    "no": "No"
   },
   "home": {
     "title": "{name} Marketplace",
@@ -146,7 +148,12 @@
     "estimatedDays": "{min}–{max} days",
     "freeShipping": "Free",
     "freeShippingOver": "Free over {amount}",
-    "pickup": "Pick up in store"
+    "pickup": "Pick up in store",
+    "stockCount": "{count} in stock",
+    "fileUploads": "File uploads",
+    "percentOff": "{percent}% off",
+    "amountOff": "{amount} off",
+    "buyQuantity": "Buy {count}"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -200,7 +207,8 @@
     "linesNotMoved": "{count, plural, one {# item could not be moved to your account because its personalization is no longer valid.} other {# items could not be moved to your account because their personalization is no longer valid.}}",
     "unavailableInMarket": "Not available in {market}",
     "unavailableHere": "Not available in this market",
-    "removeUnavailable": "Remove the unavailable items to continue to checkout."
+    "removeUnavailable": "Remove the unavailable items to continue to checkout.",
+    "viewCart": "View cart"
   },
   "checkout": {
     "title": "Checkout",
@@ -398,7 +406,11 @@
       "retry": "Try again"
     },
     "fileUploaded": "File uploaded",
-    "fileRemoved": "Removed after the retention period"
+    "fileRemoved": "Removed after the retention period",
+    "orderNotFound": "Order not found",
+    "backToOrders": "Back to orders",
+    "orderTitle": "Order #{number}",
+    "note": "Note"
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -754,6 +766,8 @@
     "fixErrors": "Please complete the highlighted fields.",
     "editDesign": "Edit design",
     "uploadFailed": "The upload failed. Please check your connection and try again.",
+    "cancelUpload": "Cancel upload",
+    "tryAgain": "Try again",
     "startAgain": "Start again from this design",
     "lockedInCart": "This design has already been ordered and can no longer be changed.",
     "incompleteInCart": "This design is in your cart but is not complete yet, so it cannot be ordered.",

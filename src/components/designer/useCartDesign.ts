@@ -17,13 +17,31 @@ import { designEditHref } from '@/lib/designer/storefront';
 
 const FRESH_MS = 45 * 60 * 1000;
 
-interface CacheEntry {
+export interface CacheEntry {
   at: number;
   proofUrl: string | null;
   editable: boolean;
   productSlug: string | null;
 }
+/** Upper bound of cached design views (D25): a long session must not grow it forever. */
+export const CART_DESIGN_CACHE_MAX = 50;
 const cache = new Map<string, CacheEntry>();
+
+/** Stores a view; the least recently stored entries are dropped past the bound. */
+export function rememberCartDesign(designId: string, entry: CacheEntry): void {
+  cache.delete(designId); // re-insert last (eviction order)
+  cache.set(designId, entry);
+  while (cache.size > CART_DESIGN_CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    if (oldest === undefined) break;
+    cache.delete(oldest);
+  }
+}
+
+/** Number of cached design views (tests). */
+export function cartDesignCacheSize(): number {
+  return cache.size;
+}
 
 /** Drops the cached design view(s) so the next render re-reads them (after an edit). */
 export function clearCartDesignCache(designId?: string): void {
@@ -71,7 +89,7 @@ export function useCartDesign(design: CartLineDesign | undefined, guestLine: boo
           editable: view.status !== 'ORDERED',
           productSlug: typeof view.product_slug === 'string' && view.product_slug ? view.product_slug : null,
         };
-        cache.set(id, entry);
+        rememberCartDesign(id, entry);
         if (!cancelled) setFresh(entry);
       })
       .catch(() => {

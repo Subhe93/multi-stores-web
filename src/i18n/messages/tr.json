@@ -33,7 +33,9 @@
     "decreaseQuantity": "Miktarı azalt",
     "increaseQuantity": "Miktarı artır",
     "free": "Ücretsiz",
-    "clear": "Temizle"
+    "clear": "Temizle",
+    "yes": "Evet",
+    "no": "Hayır"
   },
   "home": {
     "title": "{name} Pazar Yeri",
@@ -146,7 +148,12 @@
     "estimatedDays": "{min}–{max} gün",
     "freeShipping": "Ücretsiz",
     "freeShippingOver": "{amount} üzeri ücretsiz",
-    "pickup": "Mağazadan teslim al"
+    "pickup": "Mağazadan teslim al",
+    "stockCount": "Stokta {count} adet",
+    "fileUploads": "Dosya yükleme",
+    "percentOff": "%{percent} indirim",
+    "amountOff": "{amount} indirim",
+    "buyQuantity": "{count} adet al"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -161,8 +168,8 @@
     "close": "Kapat",
     "personalize": "Kişiselleştir",
     "freeShipping": "Ücretsiz kargo",
-    "fromPrice": "başlangıç {price}",
-    "required": "{label} zorunludur",
+    "fromPrice": "{price}'den itibaren",
+    "required": "{label} gereklidir",
     "invalidLine": "Bu ürünün kişiselleştirmesinin güncellenmesi gerekiyor. Lütfen ürünü kaldırıp tekrar ekleyin.",
     "priceInCart": "+ kişiselleştirme, nihai fiyat sepette"
   },
@@ -200,7 +207,8 @@
     "linesNotMoved": "{count, plural, one {# ürün, kişiselleştirmesi artık geçerli olmadığı için hesabınıza aktarılamadı.} other {# ürün, kişiselleştirmeleri artık geçerli olmadığı için hesabınıza aktarılamadı.}}",
     "unavailableInMarket": "{market} için mevcut değil",
     "unavailableHere": "Bu pazarda mevcut değil",
-    "removeUnavailable": "Ödemeye devam etmek için mevcut olmayan ürünleri kaldırın."
+    "removeUnavailable": "Ödemeye devam etmek için mevcut olmayan ürünleri kaldırın.",
+    "viewCart": "Sepeti görüntüle"
   },
   "checkout": {
     "title": "Ödeme",
@@ -398,7 +406,11 @@
       "retry": "Tekrar dene"
     },
     "fileUploaded": "Dosya yüklendi",
-    "fileRemoved": "Saklama süresi dolduktan sonra silindi"
+    "fileRemoved": "Saklama süresi dolduktan sonra silindi",
+    "orderNotFound": "Sipariş bulunamadı",
+    "backToOrders": "Siparişlere dön",
+    "orderTitle": "Sipariş #{number}",
+    "note": "Not"
   },
   "orderStatus": {
     "PENDING": "Beklemede",
@@ -754,6 +766,8 @@
     "fixErrors": "Lütfen işaretli alanları doldur.",
     "editDesign": "Tasarımı düzenle",
     "uploadFailed": "Yükleme başarısız oldu. Lütfen bağlantını kontrol edip tekrar dene.",
+    "cancelUpload": "Yüklemeyi iptal et",
+    "tryAgain": "Tekrar dene",
     "startAgain": "Bu tasarımdan yeniden başla",
     "lockedInCart": "Bu tasarım zaten sipariş edildi ve artık değiştirilemez.",
     "incompleteInCart": "Bu tasarım sepetinde ancak henüz tamamlanmadı, bu yüzden sipariş edilemez.",

@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
+import { formatPrice } from '@/lib/format';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
@@ -108,8 +109,8 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
   const lp = useLocalePath();
 
   const currency = order?.currency || 'EUR';
-  const fmt = (v: number) =>
-    new Intl.NumberFormat('en', { style: 'currency', currency }).format(v);
+  // Money in the storefront locale (M5 D4): `1 234,00 kr`, not `SEK 1,234.00`.
+  const fmt = (v: number) => formatPrice(v, currency, locale);
   const taxLines = order ? taxLinesFromLegacy(order, t('cart.tax')) : [];
   const taxExclusive = order?.tax_pricing_mode === 'EXCLUSIVE';
   // Company order on an INCLUSIVE store: net rows derived from the snapshot
@@ -152,15 +153,15 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
                       className="w-12 h-12 rounded-lg object-cover border border-gray-100"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px]">
-                      No img
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px] text-center leading-tight">
+                      {t('product.noImage')}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
                     {vLabel && <p className="text-xs text-gray-500">{vLabel}</p>}
                     <OrderFieldValues rows={item.custom_field_values} locale={locale} primaryLocale={primaryLocale} className="space-y-1 my-0.5" />
-                    <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                    <p className="text-xs text-gray-400">{t('product.quantity')}: {item.quantity}</p>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 shrink-0">
                     {fmt(lineTotal)}

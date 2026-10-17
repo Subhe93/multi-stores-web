@@ -11,7 +11,7 @@
     "login": "Logga in",
     "register": "Registrera",
     "logout": "Logga ut",
-    "addToCart": "Lägg i varukorg",
+    "addToCart": "Lägg i varukorgen",
     "buyNow": "Köp nu",
     "search": "Sök",
     "noProducts": "Inga produkter hittades",
@@ -33,7 +33,9 @@
     "decreaseQuantity": "Minska antal",
     "increaseQuantity": "Öka antal",
     "free": "Gratis",
-    "clear": "Rensa"
+    "clear": "Rensa",
+    "yes": "Ja",
+    "no": "Nej"
   },
   "home": {
     "title": "{name} Marknadsplats",
@@ -86,7 +88,7 @@
     "sortNewest": "Nyaste",
     "sortPriceLow": "Pris: lågt till högt",
     "sortPriceHigh": "Pris: högt till lågt",
-    "addToCart": "Lägg i varukorg",
+    "addToCart": "Lägg i varukorgen",
     "outOfStock": "Slut i lager",
     "inStock": "I lager",
     "options": "Alternativ",
@@ -146,7 +148,12 @@
     "estimatedDays": "{min}–{max} dagar",
     "freeShipping": "Gratis",
     "freeShippingOver": "Gratis över {amount}",
-    "pickup": "Hämta i butik"
+    "pickup": "Hämta i butik",
+    "stockCount": "{count} i lager",
+    "fileUploads": "Filuppladdning",
+    "percentOff": "{percent}% rabatt",
+    "amountOff": "{amount} rabatt",
+    "buyQuantity": "Köp {count}"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -200,7 +207,8 @@
     "linesNotMoved": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom dess personalisering inte längre är giltig.} other {# varor kunde inte flyttas till ditt konto eftersom deras personalisering inte längre är giltig.}}",
     "unavailableInMarket": "Inte tillgänglig i {market}",
     "unavailableHere": "Inte tillgänglig på den här marknaden",
-    "removeUnavailable": "Ta bort de varor som inte är tillgängliga för att gå vidare till kassan."
+    "removeUnavailable": "Ta bort de varor som inte är tillgängliga för att gå vidare till kassan.",
+    "viewCart": "Visa varukorgen"
   },
   "checkout": {
     "title": "Kassa",
@@ -282,7 +290,7 @@
       "countryRequired": "Land krävs",
       "shippingRequired": "Välj ett fraktsätt",
       "phoneInvalid": "Ange ett giltigt telefonnummer",
-      "fieldRequired": "Detta fält är obligatoriskt",
+      "fieldRequired": "Detta fält krävs",
       "companyNameRequired": "Företagsnamn krävs",
       "orgNumberRequired": "Organisationsnummer krävs",
       "orgNumberInvalid": "Ogiltigt organisationsnummer (förväntat format: {format})",
@@ -398,7 +406,11 @@
       "retry": "Försök igen"
     },
     "fileUploaded": "Fil uppladdad",
-    "fileRemoved": "Borttagen efter lagringstiden"
+    "fileRemoved": "Borttagen efter lagringstiden",
+    "orderNotFound": "Ordern hittades inte",
+    "backToOrders": "Tillbaka till ordrar",
+    "orderTitle": "Order #{number}",
+    "note": "Notering"
   },
   "orderStatus": {
     "PENDING": "Väntande",
@@ -656,7 +668,7 @@
     "CUSTOMER_UPLOAD_QUOTA": "Du har laddat upp för många filer i dag. Försök igen senare.",
     "CUSTOMER_UPLOAD_STORAGE_FULL": "Uppladdning är tillfälligt otillgänglig. Försök igen senare.",
     "CUSTOMER_UPLOAD_NOT_ALLOWED": "Den här filen kan inte användas. Ladda upp den igen.",
-    "PERSONALIZATION_INVALID": "Kontrollera dina personliga val",
+    "PERSONALIZATION_INVALID": "Kontrollera din personalisering.",
     "PERSONALIZATION_APP_REQUIRED": "Detta kräver appen Personalisering.",
     "PERSONALIZATION_CREATOR_PRODUCT_ONLY": "Avancerad personalisering finns bara för dina egna produkter.",
     "PERSONALIZATION_CONFIG_INVALID": "Personaliseringsinställningarna är ogiltiga.",
@@ -754,6 +766,8 @@
     "fixErrors": "Fyll i de markerade fälten.",
     "editDesign": "Redigera design",
     "uploadFailed": "Uppladdningen misslyckades. Kontrollera anslutningen och försök igen.",
+    "cancelUpload": "Avbryt uppladdningen",
+    "tryAgain": "Försök igen",
     "startAgain": "Börja om från den här designen",
     "lockedInCart": "Den här designen har redan beställts och kan inte längre ändras.",
     "incompleteInCart": "Den här designen ligger i varukorgen men är inte klar ännu, så den kan inte beställas.",

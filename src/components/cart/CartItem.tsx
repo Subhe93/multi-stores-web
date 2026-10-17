@@ -7,9 +7,11 @@ import { formatPrice } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/api';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { UnavailableInMarketNotice } from './UnavailableInMarket';
-import { hasPersonalizationGroups, isFileRefPath } from '@/lib/personalization';
+// Direct module imports (not the barrel) keep the evaluator out of the cart chunk (M5 D24).
+import { hasPersonalizationGroups } from '@/lib/personalization/display';
+import { isFileRefPath } from '@/lib/personalization/rules';
 import { PersonalizationSummary, type SummaryDisplayLine } from './PersonalizationSummary';
-import { useCart, type CartLineDesign } from '@/hooks/useCart';
+import type { CartLineDesign } from '@/hooks/useCart';
 import { useCartDesign } from '@/components/designer/useCartDesign';
 import { DesignLineExtras } from './DesignLineExtras';
 
@@ -25,7 +27,6 @@ export interface CartItemData {
   /** Resolved "label: value" lines; preferred over the raw id-keyed map.
    *  Personalization app lines also carry group keys (grouped rendering). */
   customFieldDisplay?: SummaryDisplayLine[];
-  customerFile?: string;
   currency?: string;
   /** b2b stores: estimated rate of the line, for the company net view. */
   taxRateBp?: number | null;
@@ -33,7 +34,7 @@ export interface CartItemData {
   unavailableInMarket?: boolean;
   /** Personalization app: the server could not validate the line any more. */
   personalizationInvalid?: boolean;
-  /** Designer app (M4.2): the line's design (read from the cart when omitted). */
+  /** Designer app (M4.2): the line's design (passed by the drawer from the cart line). */
   design?: CartLineDesign;
 }
 
@@ -91,8 +92,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
   // Company view (b2b app) shows the net line total; persons the gross.
   const lineTotal = display(item.price, item.taxRateBp, currency).amount * item.quantity;
   // Designer lines: the proof replaces the product image once it exists.
-  const { items: cartLines } = useCart();
-  const design = item.design ?? cartLines.find((l) => l.id === item.id)?.design;
+  const design = item.design;
   const designInfo = useCartDesign(design, item.id.startsWith('local_'));
   const [proofFailed, setProofFailed] = useState(false);
   const proofImg = design && designInfo.proofUrl && !proofFailed ? resolveMediaUrl(designInfo.proofUrl) : '';
@@ -123,7 +123,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             <div className="w-full h-full bg-gray-100" />
           )}
         </div>
-        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gray-600 text-white text-[9px] font-bold flex items-center justify-center z-10">
+        <span className="absolute -top-1.5 -inset-e-1.5 w-4 h-4 rounded-full bg-gray-600 text-white text-[9px] font-bold flex items-center justify-center z-10">
           {item.quantity}
         </span>
       </div>
@@ -177,7 +177,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             <button
               type="button"
               onClick={() => onRemove(item.id)}
-              className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:text-red-600 hover:border-red-200 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-3 min-h-11 text-xs font-medium text-gray-700 hover:text-red-600 hover:border-red-200 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {t('cart.remove')}
@@ -186,22 +186,23 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
         ) : (
         /* Quantity controls + remove */
         <div className="flex items-center justify-between mt-auto pt-2">
+          {/* 44px touch targets (M5 D18) */}
           <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
             <button
               onClick={() => handleQuantity(item.quantity - 1)}
               disabled={updating || item.quantity <= 1}
-              className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="size-11 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.decreaseQuantity')}
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="w-7 h-7 flex items-center justify-center text-xs font-medium text-gray-900 border-x border-gray-200">
+            <span className="min-w-8 h-11 px-1 flex items-center justify-center text-xs font-medium text-gray-900 border-x border-gray-200">
               {item.quantity}
             </span>
             <button
               onClick={() => handleQuantity(item.quantity + 1)}
               disabled={updating}
-              className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="size-11 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.increaseQuantity')}
             >
               <Plus className="w-3 h-3" />
@@ -210,7 +211,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
 
           <button
             onClick={() => onRemove(item.id)}
-            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+            className="size-11 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
             aria-label={t('cart.remove')}
           >
             <Trash2 className="w-3.5 h-3.5" />

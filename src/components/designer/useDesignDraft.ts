@@ -10,6 +10,9 @@
 //   from a copy of it (`duplicateFrom`, photos included).
 // Saves, uploads and photo removals run one at a time (`exclusive`), so a
 // PATCH never races an upload that bumps the version.
+// The client may be null while the customer session is restoring (M5 D2):
+// edits made meanwhile stay dirty and are saved once it exists, and creates /
+// uploads wait for it instead of failing.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -20,6 +23,7 @@ import {
   type TemplateSpecV1,
 } from '@/lib/designer/design-renderer';
 import {
+  DesignerApiError,
   designerErrorCode,
   forgetDesign,
   getDraftFor,
@@ -68,6 +72,18 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chainRef = useRef<Promise<unknown>>(Promise.resolve());
   const createRef = useRef<Promise<DesignView> | null>(null);
+  // Settles when the resume of `initialDesignId` finished (at once without one).
+  const resumeRef = useRef<Promise<void>>(Promise.resolve());
+
+  // ── Client availability (D2) ────────────────────────────────────────────
+  const clientRef = useRef<DesignerClient | null>(client);
+  const clientWaitersRef = useRef<((c: DesignerClient) => void)[]>([]);
+  /** Resolves with the client, now or once the session is restored. */
+  const awaitClient = useCallback((): Promise<DesignerClient> => {
+    const c = clientRef.current;
+    if (c) return Promise.resolve(c);
+    return new Promise((resolve) => clientWaitersRef.current.push(resolve));
+  }, []);
 
   const applyDesign = useCallback((view: DesignView | null) => {
     designRef.current = view;
@@ -110,6 +126,10 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     if (!client) return;
     let cancelled = false;
     setLoading(true);
+    let settle: () => void = () => undefined;
+    resumeRef.current = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
     client
       .get(initialDesignId)
       .then((view) => {
@@ -147,9 +167,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+        settle();
       });
     return () => {
       cancelled = true;
+      settle();
     };
     // Resume once per editor mount / design id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,11 +180,15 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
   // ── Create ──────────────────────────────────────────────────────────────
   const ensureDesign = useCallback(async (): Promise<DesignView> => {
     if (designRef.current) return designRef.current;
-    if (!client) throw new Error('DESIGNER_CLIENT_MISSING');
+    // No session yet: wait for it (and for the resume it triggers) rather
+    // than creating a draft the resumed design would then shadow.
+    const c = await awaitClient();
+    await resumeRef.current;
+    if (designRef.current) return designRef.current;
     if (!createRef.current) {
       const texts = validateState(spec, { v: 1, texts: localRef.current.texts, photos: {} }).normalized.texts;
       const sentTexts = JSON.stringify(texts);
-      createRef.current = client
+      createRef.current = c
         .create({ product_id: productId, template_version_id: templateVersionId, state: { v: 1, texts, photos: {} } })
         .then((view) => {
           applyDesign(view);
@@ -182,18 +208,25 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         });
     }
     return createRef.current;
-  }, [client, spec, productId, templateVersionId, applyDesign]);
+  }, [awaitClient, spec, productId, templateVersionId, applyDesign]);
 
   // ── Save ────────────────────────────────────────────────────────────────
+  /**
+   * Saves pending edits (after earlier saves/uploads). `keepalive` lets the
+   * PATCH outlive the page (tab hidden / closed).
+   */
   const saveNow = useCallback(
-    (): Promise<DesignView | null> =>
+    (opts?: { keepalive?: boolean }): Promise<DesignView | null> =>
       exclusive(async () => {
+        if (!dirtyRef.current) return designRef.current;
+        // Session still restoring: the edits stay dirty and are saved once
+        // the client exists (see the client effect below); an armed timer is
+        // left alone so that save still happens.
+        if (!client) return designRef.current;
         if (timerRef.current) {
           clearTimeout(timerRef.current);
           timerRef.current = null;
         }
-        if (!dirtyRef.current) return designRef.current;
-        if (!client) return designRef.current;
         const check = validateState(spec, localRef.current);
         // Out-of-rule input (too long, forbidden characters) is shown inline
         // and never sent: the server would reject the whole PATCH.
@@ -209,7 +242,12 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         dirtyRef.current = false;
         setSaving(true);
         try {
-          const view = await client.update(d.id, check.normalized, d.state_version);
+          const view = await client.update(
+            d.id,
+            check.normalized,
+            d.state_version,
+            opts?.keepalive ? { keepalive: true } : undefined,
+          );
           // Keep local edits made during the request; take the server's version and photo views.
           applyDesign(view);
           setSaveError(null);
@@ -252,13 +290,28 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     [client, spec, exclusive, ensureDesign, applyDesign, applyLocal, startFresh],
   );
 
+  // The autosave timer always runs the latest `saveNow` (the one that knows
+  // the current client), whichever render armed it.
+  const saveNowRef = useRef(saveNow);
+  saveNowRef.current = saveNow;
   const scheduleSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void saveNow();
+      void saveNowRef.current();
     }, AUTOSAVE_DELAY_MS);
-  }, [saveNow]);
+  }, []);
+
+  // The client appeared (session restored): release whoever waits for it and
+  // save the edits made meanwhile.
+  useEffect(() => {
+    clientRef.current = client;
+    if (!client) return;
+    const waiters = clientWaitersRef.current;
+    clientWaitersRef.current = [];
+    for (const resolve of waiters) resolve(client);
+    if (dirtyRef.current) scheduleSave();
+  }, [client, scheduleSave]);
 
   const updateLocal = useCallback(
     (fn: (s: DesignStateV1) => DesignStateV1) => {
@@ -289,7 +342,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     [updateLocal],
   );
 
-  /** Uploads a photo for a slot (after pending edits are saved). */
+  /**
+   * Uploads a photo for a slot (after pending edits are saved). Aborting
+   * `signal` rejects with a status-0 DesignerApiError, also while the upload
+   * still waits for the session or an earlier save.
+   */
   const uploadPhoto = useCallback(
     (
       slotId: string,
@@ -299,9 +356,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     ): Promise<UploadPhotoResult> =>
       saveNow().then(() =>
         exclusive(async () => {
-          if (!client) throw new Error('DESIGNER_CLIENT_MISSING');
+          if (signal?.aborted) throw new DesignerApiError(0, null);
+          const c = await awaitClient();
           const d = await ensureDesign();
-          const res = await client.uploadPhoto(
+          if (signal?.aborted) throw new DesignerApiError(0, null);
+          const res = await c.uploadPhoto(
             d.id,
             slotId,
             file,
@@ -323,7 +382,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
           return res;
         }),
       ),
-    [client, saveNow, exclusive, ensureDesign, applyDesign, applyLocal],
+    [awaitClient, saveNow, exclusive, ensureDesign, applyDesign, applyLocal],
   );
 
   const removePhoto = useCallback(
@@ -350,12 +409,12 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
   const duplicateFrom = useCallback(
     (sourceId: string): Promise<DesignView> =>
       exclusive(async () => {
-        if (!client) throw new Error('DESIGNER_CLIENT_MISSING');
+        const c = await awaitClient();
         if (timerRef.current) {
           clearTimeout(timerRef.current);
           timerRef.current = null;
         }
-        const view = await client.duplicate(sourceId);
+        const view = await c.duplicate(sourceId);
         createRef.current = null;
         applyDesign(view);
         applyLocal(cloneState(view.state ?? EMPTY_STATE));
@@ -371,26 +430,32 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         setSaveError(null);
         return view;
       }),
-    [client, exclusive, applyDesign, applyLocal, productId],
+    [awaitClient, exclusive, applyDesign, applyLocal, productId],
   );
 
-  // Save what is pending when the tab is hidden (mobile app switch) and on unmount.
+  // Save what is pending when the tab is hidden (mobile app switch) and on
+  // unmount. `keepalive` so the browser finishes the PATCH even when the page
+  // is discarded right after (D29).
+  // Mounted once (via the ref): re-subscribing on every client change would
+  // run the old cleanup's save against the client-less closure.
   useEffect(() => {
     const onHide = () => {
-      if (document.visibilityState === 'hidden' && dirtyRef.current) void saveNow();
+      if (document.visibilityState === 'hidden' && dirtyRef.current) void saveNowRef.current({ keepalive: true });
     };
     document.addEventListener('visibilitychange', onHide);
     return () => {
       document.removeEventListener('visibilitychange', onHide);
-      if (dirtyRef.current) void saveNow();
+      if (dirtyRef.current) void saveNowRef.current({ keepalive: true });
     };
-  }, [saveNow]);
+  }, []);
 
   const validation = useMemo(() => validateState(spec, local), [spec, local]);
 
   return {
     design,
     state: local,
+    /** False while the customer session is restoring (no requests possible yet). */
+    clientReady: client !== null,
     loading,
     saving,
     saveError,
@@ -408,7 +473,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     removePhoto,
     ensureDesign,
     /** Saves now and resolves with the saved design (null when saving failed). */
-    flush: saveNow,
+    flush: (): Promise<DesignView | null> => saveNow(),
   };
 }
 

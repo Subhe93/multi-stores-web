@@ -3,16 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Upload, Loader2, X } from 'lucide-react';
-import { compileAllowedChars } from '@/lib/personalization';
+import { compileAllowedChars } from '@/lib/personalization/rules';
 import { filterAllowedChars, type FormField } from '@/lib/personalization/form';
+import { absoluteUploadUrl, uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 
 /** Display label for a raw option value; falls back to the value itself. */
 function optionDisplayLabel(field: Pick<CustomField, 'optionLabels'>, value: string): string {
   return field.optionLabels?.[value] ?? value;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-const API_ORIGIN = API_URL.replace(/\/api$/, '');
 
 /** Form model of one field (built by `usePersonalizationFields`). */
 export type CustomField = FormField;
@@ -41,40 +39,10 @@ const CUSTOMER_FILE_ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,.ai';
 /** IMAGE / MULTI_IMAGE: the raster types the endpoint accepts (no gif, heic, svg…). */
 const CUSTOMER_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp';
 
-type UploadResult = { url: string; name: string } | { error: string };
-
-/** Pseudo code for a throttled upload (HTTP 429). */
-const RATE_LIMITED = 'RATE_LIMITED';
-
-/**
- * Uploads a customer file to `POST /uploads/customer` (M4.0 §8.2): the API
- * keeps the original privately and returns the public preview URL, which is
- * the value stored in the cart and the order. There is no fallback to the
- * public upload endpoint: originals must stay private (the API ships first).
- */
-async function uploadFile(file: File): Promise<UploadResult> {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch(`${API_URL}/uploads/customer`, { method: 'POST', body: formData });
-    // Throttled (10 uploads per minute): no coded body, shown as its own message.
-    if (res.status === 429) return { error: RATE_LIMITED };
-    const json = await res.json().catch(() => null);
-    const url = json?.data?.url;
-    if (res.ok && typeof url === 'string') {
-      const name = typeof json.data.original_name === 'string' ? json.data.original_name : file.name;
-      return { url: url.startsWith('http') ? url : `${API_ORIGIN}${url}`, name };
-    }
-    return { error: typeof json?.code === 'string' ? json.code : 'generic' };
-  } catch {
-    return { error: 'generic' };
-  }
-}
-
 function resolveDisplayUrl(val: unknown): string {
   if (!val) return '';
   if (typeof val === 'string') {
-    if (val.startsWith('http') || val.startsWith('/uploads')) return val.startsWith('http') ? val : `${API_ORIGIN}${val}`;
+    if (val.startsWith('http') || val.startsWith('/uploads')) return absoluteUploadUrl(val);
     return val;
   }
   return '';
@@ -105,12 +73,12 @@ function FileInput({ accept, images = false, multiple, value, onChange }: {
     setUploading(true);
     setUploadError('');
     const fail = (code: string) =>
-      setUploadError(code === RATE_LIMITED ? t('uploadTooManyRequests') : te.has(code) ? te(code) : te('generic'));
+      setUploadError(code === UPLOAD_RATE_LIMITED ? t('uploadTooManyRequests') : te.has(code) ? te(code) : te('generic'));
     try {
       if (multiple) {
         const uploaded: string[] = [...(Array.isArray(value) ? value : [])];
         for (const file of Array.from(files)) {
-          const res = await uploadFile(file);
+          const res = await uploadCustomerFile(file);
           if ('url' in res) {
             uploaded.push(res.url);
             setNames((prev) => ({ ...prev, [res.url]: res.name }));
@@ -118,7 +86,7 @@ function FileInput({ accept, images = false, multiple, value, onChange }: {
         }
         onChange(uploaded);
       } else {
-        const res = await uploadFile(files[0]!);
+        const res = await uploadCustomerFile(files[0]!);
         if ('url' in res) {
           setNames((prev) => ({ ...prev, [res.url]: res.name }));
           onChange(res.url);

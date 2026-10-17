@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { CartItem } from '@/hooks/useCart';
 import {
@@ -354,9 +354,13 @@ export function useKustomCheckout({
   );
 
   // Latest inputs for the async callbacks (avoids stale closures without
-  // re-creating the callbacks on every keystroke).
+  // re-creating the callbacks on every keystroke). Written in a layout
+  // effect, not during render (M5 D11), so a discarded render never leaks
+  // its inputs into the ref.
   const latest = useRef({ lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company });
-  latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company };
+  useLayoutEffect(() => {
+    latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company };
+  });
   // True once a create / update of this session was sent as a company, so
   // the next person update re-syncs once (see b2bUpdateBody).
   const sentAsCompanyRef = useRef(false);

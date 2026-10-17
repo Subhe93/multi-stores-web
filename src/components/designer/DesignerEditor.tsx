@@ -12,6 +12,7 @@
 // code only ships to designer products.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, Check, Loader2, RefreshCw, ShoppingCart, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,8 @@ import {
   type DesignerPayload,
 } from '@/lib/designer/api';
 import { loadDesignerFonts, missingFontKeys, payloadFontLookup } from '@/lib/designer/fonts';
+import { trapTabKey } from '@/lib/designer/focus-trap';
+import { lockBodyScroll } from '@/lib/designer/scroll-lock';
 import { clearCartDesignCache } from './useCartDesign';
 import { DesignerCanvas } from './DesignerCanvas';
 import { PhotoSlotControl, ACCEPTED_TYPES, type PhotoSlotHandle } from './PhotoSlotControl';
@@ -155,6 +158,9 @@ export default function DesignerEditor({
   const [pending, setPending] = useState<Record<string, { width: number; height: number }>>({});
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
+  // The picked file of a failed upload, so "Try again" needs no new pick (D14).
+  const [retryFiles, setRetryFiles] = useState<Record<string, File>>({});
+  const uploadAborts = useRef<Record<string, AbortController>>({});
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
 
   const renderState: DesignStateV1 = useMemo(() => {
@@ -170,9 +176,19 @@ export default function DesignerEditor({
   const slotRefs = useRef<Record<string, PhotoSlotHandle | null>>({});
   const textRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const forgetRetry = useCallback((slotId: string) => {
+    setRetryFiles((r) => {
+      if (!(slotId in r)) return r;
+      const n = { ...r };
+      delete n[slotId];
+      return n;
+    });
+  }, []);
+
   const handlePick = useCallback(
     async (slotId: string, file: File) => {
       setSlotErrors((e) => ({ ...e, [slotId]: '' }));
+      forgetRetry(slotId);
       if (file.type && !ACCEPTED_TYPES.split(',').includes(file.type)) {
         setSlotErrors((e) => ({ ...e, [slotId]: t('fileType') }));
         return;
@@ -181,6 +197,10 @@ export default function DesignerEditor({
         setSlotErrors((e) => ({ ...e, [slotId]: t('fileTooLarge', { max: payload.settings.max_upload_mb }) }));
         return;
       }
+      // A new pick replaces an upload still running for the slot.
+      uploadAborts.current[slotId]?.abort();
+      const controller = new AbortController();
+      uploadAborts.current[slotId] = controller;
       setProgress((p) => ({ ...p, [slotId]: 0 }));
       let preview: Awaited<ReturnType<typeof downscaleForPreview>> | null = null;
       try {
@@ -192,13 +212,23 @@ export default function DesignerEditor({
         preview = null; // undecodable here (e.g. HEIC): the server decides
       }
       try {
-        const res = await draft.uploadPhoto(slotId, file, (f) => setProgress((p) => ({ ...p, [slotId]: f })));
+        const res = await draft.uploadPhoto(
+          slotId,
+          file,
+          (f) => setProgress((p) => ({ ...p, [slotId]: f })),
+          controller.signal,
+        );
         if (preview) imgs.setLocal(res.asset_id, preview.bitmap);
         setActiveSlotId(slotId);
       } catch (err) {
-        // A network failure / abort never reached the API: no API code.
-        setSlotErrors((e) => ({ ...e, [slotId]: isUploadNetworkError(err) ? t('uploadFailed') : apiError(err) }));
+        // Cancelled by the customer (or superseded by a new pick): no error.
+        if (!controller.signal.aborted) {
+          // A network failure never reached the API: no API code.
+          setSlotErrors((e) => ({ ...e, [slotId]: isUploadNetworkError(err) ? t('uploadFailed') : apiError(err) }));
+          setRetryFiles((r) => ({ ...r, [slotId]: file }));
+        }
       } finally {
+        if (uploadAborts.current[slotId] === controller) delete uploadAborts.current[slotId];
         setPending((p) => {
           const n = { ...p };
           delete n[slotId];
@@ -212,8 +242,28 @@ export default function DesignerEditor({
         imgs.setLocal(`local:${slotId}`, null);
       }
     },
-    [draft, imgs, payload.settings.max_upload_mb, apiError, t],
+    [draft, imgs, payload.settings.max_upload_mb, apiError, t, forgetRetry],
   );
+
+  const handleCancelUpload = useCallback((slotId: string) => {
+    uploadAborts.current[slotId]?.abort();
+  }, []);
+
+  const handleRetry = useCallback(
+    (slotId: string) => {
+      const file = retryFiles[slotId];
+      if (file) void handlePick(slotId, file);
+    },
+    [retryFiles, handlePick],
+  );
+
+  // Uploads still running when the dialog unmounts are dropped.
+  useEffect(() => {
+    const aborts = uploadAborts.current;
+    return () => {
+      for (const c of Object.values(aborts)) c.abort();
+    };
+  }, []);
 
   const handleRemove = useCallback(
     async (slotId: string) => {
@@ -422,13 +472,11 @@ export default function DesignerEditor({
     finishClose();
   }, [inCart, closeWarning, spec, draft.state, finishClose]);
 
+  // iOS-safe page scroll lock (D15); released when the dialog unmounts.
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockBodyScroll();
     closeRef.current?.focus();
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return unlock;
   }, []);
 
   const onDialogKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -439,24 +487,13 @@ export default function DesignerEditor({
       else close();
       return;
     }
-    if (e.key !== 'Tab' || !dialogRef.current) return;
-    // Keep focus inside the dialog.
-    const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), canvas[tabindex="0"], [href], [tabindex="0"]',
-    );
-    if (focusables.length === 0) return;
-    const first = focusables[0]!;
-    const last = focusables[focusables.length - 1]!;
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
+    // Keep focus inside the dialog (D30: selects, textareas, role=button too).
+    if (dialogRef.current && trapTabKey(dialogRef.current, e)) e.preventDefault();
   };
 
-  const ready = fontsReady && !imgs.templatePending && !draft.loading;
+  // Editing needs the session (D2): before it is restored, a PATCH or an
+  // upload could not be sent, so the canvas stays a skeleton.
+  const ready = fontsReady && !imgs.templatePending && !draft.loading && draft.clientReady;
   const ratio = spec.width / spec.height;
   const emptySlotText = useCallback(() => t('tapToUpload'), [t]);
   const noticeText =
@@ -493,14 +530,16 @@ export default function DesignerEditor({
     />
   );
 
-  return (
+  // Rendered on document.body (D7): a transformed / overflow-clipped ancestor
+  // (sticky bars, animated sections) must not trap or clip the dialog.
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="designer-title"
       onKeyDown={onDialogKeyDown}
-      className="fixed inset-0 z-[100] flex flex-col bg-white text-start"
+      className="fixed inset-0 z-[100] flex flex-col overscroll-contain bg-white text-start"
       style={{ ['--dz-r' as string]: String(ratio) }}
     >
       {/* Header */}
@@ -618,7 +657,7 @@ export default function DesignerEditor({
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:w-[26rem] md:flex-none md:border-s md:border-gray-100">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:w-[26rem] md:flex-none md:border-s md:border-gray-100">
             <div className="space-y-4">
               {slots.map((el) => (
                 <PhotoSlotControl
@@ -636,6 +675,8 @@ export default function DesignerEditor({
                   maxUploadMb={payload.settings.max_upload_mb}
                   minDpi={payload.settings.min_effective_dpi_warning}
                   onPick={(f) => void handlePick(el.id, f)}
+                  onCancelUpload={() => handleCancelUpload(el.id)}
+                  onRetry={retryFiles[el.id] ? () => handleRetry(el.id) : undefined}
                   onAdj={(adj) => handleAdj(el.id, adj)}
                   onRemove={() => void handleRemove(el.id)}
                   onActivate={() => setActiveSlotId((cur) => (cur === el.id ? null : el.id))}
@@ -664,7 +705,7 @@ export default function DesignerEditor({
           </div>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto bg-gray-100 px-4 py-4 [--dz-h:60vh] md:[--dz-h:calc(100dvh-12rem)]">
+        <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto overscroll-contain bg-gray-100 px-4 py-4 [--dz-h:60vh] md:[--dz-h:calc(100dvh-12rem)]">
           <p className="mb-3 max-w-xl text-center text-sm text-gray-600">{t('reviewHint')}</p>
           {proofLoading ? (
             <div
@@ -697,7 +738,7 @@ export default function DesignerEditor({
       {/* Footer */}
       <div className="border-t border-gray-100 px-4 py-3">
         {step === 'review' && !inCart && blockedReason && variantPicker && (
-          <div className="mb-3 max-h-[40vh] overflow-y-auto">{variantPicker}</div>
+          <div className="mb-3 max-h-[40vh] overflow-y-auto overscroll-contain">{variantPicker}</div>
         )}
         {(submitError || (step === 'review' && blockedReason && !inCart)) && (
           <p className="mb-2 text-sm text-red-600" role="alert">
@@ -737,6 +778,7 @@ export default function DesignerEditor({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

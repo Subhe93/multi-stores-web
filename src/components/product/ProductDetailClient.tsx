@@ -12,11 +12,14 @@ import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { visibleFieldsAt } from '@/components/product/personalization/model';
-import type { POptionConfig } from '@/lib/personalization';
+import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
+import { useAddToCartLine } from '@/components/product/useAddToCartLine';
+import type { POptionConfig } from '@/lib/personalization/types';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
+import type { LineSource } from '@/lib/cartLine';
+import { uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
-import { useCart } from '@/hooks/useCart';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
@@ -197,6 +200,22 @@ interface ProductDetailClientProps {
   options?: ProductDetailOptions;
 }
 
+/**
+ * Promotion end date, identical on the server and the client (M5 D6): the
+ * storefront locale and a fixed UTC zone instead of the runtime defaults
+ * (`toLocaleDateString()` differed between Node and the browser and caused
+ * a hydration mismatch). An unparsable date renders nothing.
+ */
+function formatPromoDate(iso: string, locale: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
+
 // ── Tabs component ────────────────────────────────────────
 
 type TabId = 'description' | 'specifications' | 'faq';
@@ -225,11 +244,11 @@ function ProductTabs({
         >
           {tab.label}
           {tab.count !== undefined && (
-            <span className="ml-1.5 text-xs text-gray-400">({tab.count})</span>
+            <span className="ms-1.5 text-xs text-gray-400">({tab.count})</span>
           )}
           {activeTab === tab.id && (
             <span
-              className="absolute bottom-0 left-0 right-0 h-0.5"
+              className="absolute bottom-0 inset-x-0 h-0.5"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             />
           )}
@@ -244,7 +263,9 @@ function ProductTabs({
 export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
   const apiError = useApiError();
-  const { addItem } = useCart();
+  // Shared add-to-cart (M5 D31): same line metadata as the theme section,
+  // "added" confirmation with its timer cleared on unmount (D28).
+  const { addLine, addDesignLine, justAdded: addedToCart, markAdded } = useAddToCartLine();
   const variants = useMemo(() => product.variants || [], [product.variants]);
 
   // Presentation toggles — default to "show everything" so the standalone
@@ -261,10 +282,13 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   );
   const [quantity, setQuantity] = useState(1);
   // Partial option picks (e.g. color chosen, size pending) — drives the
-  // gallery via value-level images before a full variant is resolved.
-  const [optionSelections, setOptionSelections] = useState<Record<string, string>>({});
-  // URL prefill of option picks (personalization app): remounts the selector once.
-  const [selectorInit, setSelectorInit] = useState<{ key: number; selections?: Record<string, string> }>({ key: 0 });
+  // gallery via value-level images before a full variant is resolved. The
+  // selector is controlled by this state (M5 D11): a URL prefill or the
+  // designer's review-step picker updates it without remounting anything.
+  // A single variant is auto-selected, so its options start picked.
+  const [optionSelections, setOptionSelections] = useState<Record<string, string>>(() =>
+    variants.length === 1 ? { ...(variants[0].options || {}) } : {},
+  );
 
   const selectedVariantForApp = variants.find((v) => v.id === selectedVariantId) ?? null;
   const taxRateBp = product.tax_rate_bp ?? null;
@@ -287,7 +311,6 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     onPrefillOptions: (picks, variantId) => {
       setOptionSelections(picks);
       setSelectedVariantId(variantId);
-      setSelectorInit({ key: 1, selections: picks });
     },
   });
   const { appSettings, market, storeSlug, advanced, cardsConfig } = app;
@@ -300,9 +323,12 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     buildPayload,
     applyServerError,
   } = personalization;
-  const [customerFile, setCustomerFile] = useState<File | null>(null);
+  // Legacy "customer upload" block (M5 D17): the file goes to
+  // `POST /uploads/customer` and the returned preview URL is the line value.
+  const [customerFileUrl, setCustomerFileUrl] = useState<string | null>(null);
+  const [customerFileUploading, setCustomerFileUploading] = useState(false);
+  const [customerFileError, setCustomerFileError] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
   const [addToCartError, setAddToCartError] = useState('');
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('description');
@@ -463,22 +489,63 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     }
   }, [selectedBundleOfferId, bundlePricing]);
 
-  const handleFileSelect = useCallback((file: File) => {
-    setCustomerFile(file);
+  const handleFileSelect = useCallback(async (file: File) => {
+    setCustomerFileUploading(true);
+    setCustomerFileError('');
+    const res = await uploadCustomerFile(file);
+    setCustomerFileUploading(false);
+    if ('url' in res) {
+      setCustomerFileUrl(res.url);
+    } else {
+      setCustomerFileUrl(null);
+      setCustomerFileError(
+        res.error === UPLOAD_RATE_LIMITED ? t('product.uploadTooManyRequests') : apiError({ code: res.error }),
+      );
+    }
+  }, [t, apiError]);
+
+  const handleFileRemove = useCallback(() => {
+    setCustomerFileUrl(null);
+    setCustomerFileError('');
   }, []);
 
   const [customFieldError, setCustomFieldError] = useState('');
 
+  // What both add paths (fields / design) know about the line (M5 D31).
+  const lineSource = useMemo<LineSource>(
+    () => ({
+      title: translation?.title || 'Product',
+      unitPrice: currentPrice,
+      imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
+      variantOptions: selectedVariant?.options ?? null,
+      customProductId: product._type === 'custom_product' ? product.id : undefined,
+      // b2b stores: keep the estimated rate on guest lines (L8).
+      taxRateBp,
+      bundle: selectedBundleOffer
+        ? {
+            offerId: selectedBundleOffer.offer.id,
+            originalUnitPrice: baseUnitPrice,
+            title: selectedBundleOffer.translation?.title,
+            label: selectedBundleOffer.translation?.label,
+            stickerText: selectedBundleOffer.translation?.sticker_text,
+            cartQuantity: bundlePricing?.cartQuantity,
+          }
+        : null,
+      customerFile: customerFileUrl ?? undefined,
+    }),
+    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl],
+  );
+
   const handleAddToCart = useCallback(async () => {
-    if (addingToCart || isAddDisabled) return;
+    if (addingToCart || isAddDisabled || customerFileUploading) return;
     setCustomFieldError('');
 
     // Same rules as the API (shared validator): show every field error inline.
     const check = validateAll();
     if (!check.ok) {
       setCustomFieldError(check.firstError || t('product.requiredFieldsMissing'));
-      // App form: move to the first field with an error.
-      if (advanced && check.fieldId) document.getElementById(`field-${check.fieldId}`)?.focus();
+      // Move to the first field with an error (M5 D20).
+      if (check.fieldId) focusPersonalizationField(check.fieldId);
       return;
     }
 
@@ -489,70 +556,46 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     // display lines are captured in the current locale for guest carts.
     const { fields, display: customFieldDisplay } = buildPayload();
 
-    const variantStr = selectedVariant
-      ? Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ')
-      : undefined;
-
     try {
-      await addItem(
-        product.id,
-        selectedVariantId || null,
-        quantity,
-        fields,
-        {
-          title: translation?.title || 'Product',
-          price: currentPrice,
-          imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
-          variant: variantStr,
-          customerFile: customerFile ? customerFile.name : undefined,
-          customFieldDisplay,
-          customProductId: product._type === 'custom_product' ? product.id : undefined,
-          bundleOfferId: selectedBundleOfferId || undefined,
-          bundleOriginalUnitPrice: selectedBundleOffer ? baseUnitPrice : undefined,
-          bundleTitle: selectedBundleOffer?.translation?.title || undefined,
-          bundleLabel: selectedBundleOffer?.translation?.label || undefined,
-          bundleStickerText: selectedBundleOffer?.translation?.sticker_text || undefined,
-          bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
-          // b2b stores: keep the estimated rate on guest lines (L8).
-          taxRateBp: taxRateBp ?? undefined,
-          // Personalization app (D14): guests validate on the server first and
-          // keep its values, unit price and display lines.
-          ...(advanced && storeSlug
-            ? {
-                personalizationCheck: {
-                  storeSlug,
-                  locale,
-                  market: market?.key ?? null,
-                  linePrice: (unit: number) =>
-                    selectedBundleOffer
-                      ? computeBundlePricing(unit, {
-                          quantity: selectedBundleOffer.offer.quantity,
-                          discount_type: selectedBundleOffer.offer.discount_type,
-                          discount_value: selectedBundleOffer.offer.discount_value,
-                        }).effectiveUnitPrice
-                      : unit,
-                },
-              }
-            : {}),
-        },
-      );
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 3000);
+      await addLine({ productId: product.id, variantId: selectedVariantId || null, quantity, source: lineSource }, fields, {
+        customFieldDisplay,
+        // Personalization app (D14): guests validate on the server first and
+        // keep its values, unit price and display lines.
+        ...(advanced && storeSlug
+          ? {
+              personalizationCheck: {
+                storeSlug,
+                locale,
+                market: market?.key ?? null,
+                linePrice: (unit: number) =>
+                  selectedBundleOffer
+                    ? computeBundlePricing(unit, {
+                        quantity: selectedBundleOffer.offer.quantity,
+                        discount_type: selectedBundleOffer.offer.discount_type,
+                        discount_value: selectedBundleOffer.offer.discount_value,
+                      }).effectiveUnitPrice
+                    : unit,
+              },
+            }
+          : {}),
+      });
     } catch (err) {
       // Field rule errors (K2) also show inline on their field.
       const fieldMessage = applyServerError(err);
-      if (fieldMessage) setCustomFieldError(fieldMessage);
+      if (fieldMessage) {
+        setCustomFieldError(fieldMessage);
+        const fieldId = (err as { field_id?: unknown } | null)?.field_id;
+        if (typeof fieldId === 'string') focusPersonalizationField(fieldId);
+      }
       // Coded API errors (e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET) are translated.
       setAddToCartError(fieldMessage || ((err as { code?: string })?.code ? apiError(err) : err instanceof Error ? err.message : t('common.error')));
     } finally {
       setAddingToCart(false);
     }
   }, [
-    addingToCart, isAddDisabled, product.id, product.images,
-    selectedVariantId, selectedVariant, quantity, translation,
-    currentPrice, galleryImages, validateAll, buildPayload, applyServerError,
-    customerFile, addItem, selectedBundleOfferId, selectedBundleOffer,
-    bundlePricing, baseUnitPrice, taxRateBp, apiError, t, advanced, storeSlug, locale, market]);
+    addingToCart, isAddDisabled, customerFileUploading, product.id, selectedVariantId, quantity, lineSource,
+    validateAll, buildPayload, applyServerError, addLine, selectedBundleOffer,
+    apiError, t, advanced, storeSlug, locale, market]);
 
   // Designer app (M4.2): the approved design is the line (no field values).
   const designerBlockedReason = isAddDisabled
@@ -562,39 +605,14 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
     : null;
 
   const handleDesignerAdd = useCallback(
-    async (line: DesignedLine) => {
-      const variantStr = selectedVariant
-        ? Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ')
-        : undefined;
-      await addItem(product.id, selectedVariantId || null, quantity, undefined, {
-        title: translation?.title || 'Product',
-        price: currentPrice,
-        imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
-        variant: variantStr,
-        customFieldDisplay: line.display,
-        customProductId: product._type === 'custom_product' ? product.id : undefined,
-        bundleOfferId: selectedBundleOfferId || undefined,
-        bundleOriginalUnitPrice: selectedBundleOffer ? baseUnitPrice : undefined,
-        bundleTitle: selectedBundleOffer?.translation?.title || undefined,
-        bundleLabel: selectedBundleOffer?.translation?.label || undefined,
-        bundleStickerText: selectedBundleOffer?.translation?.sticker_text || undefined,
-        bundleCartQuantity: bundlePricing?.cartQuantity ?? undefined,
-        taxRateBp: taxRateBp ?? undefined,
-        design: { id: line.designId, token: line.token, proofUrl: line.proofUrl },
-      });
-    },
-    [
-      addItem, product.id, product.images, product._type, selectedVariantId, selectedVariant, quantity,
-      translation, currentPrice, galleryImages, selectedBundleOfferId, selectedBundleOffer, baseUnitPrice,
-      bundlePricing, taxRateBp,
-    ],
+    (line: DesignedLine) =>
+      addDesignLine({ productId: product.id, variantId: selectedVariantId || null, quantity, source: lineSource }, line),
+    [addDesignLine, product.id, selectedVariantId, quantity, lineSource],
   );
 
   const handleDesignerDone = useCallback((kind: 'added' | 'saved') => {
-    if (kind !== 'added') return;
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 3000);
-  }, []);
+    if (kind === 'added') markAdded();
+  }, [markAdded]);
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -611,7 +629,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
         </span>
       );
     }
-    if (type === 'BOOLEAN') return val ? 'Yes' : 'No';
+    if (type === 'BOOLEAN') return val ? t('common.yes') : t('common.no');
     if (type === 'DIMENSIONS' && typeof val === 'object') {
       return Object.entries(val as Record<string, unknown>).map(([, v]) => `${v}${unit || ''}`).join(' × ');
     }
@@ -769,10 +787,10 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                   : promo.type === 'BUY_X_GET_Y' ? 'text-purple-700'
                   : 'text-amber-700';
 
-                const label = promo.type === 'PERCENTAGE' ? `${promo.value}% off`
-                  : promo.type === 'FIXED_AMOUNT' ? `${formatPrice(promo.value, currency, locale)} off`
+                const label = promo.type === 'PERCENTAGE' ? t('product.percentOff', { percent: promo.value })
+                  : promo.type === 'FIXED_AMOUNT' ? t('product.amountOff', { amount: formatPrice(promo.value, currency, locale) })
                   : promo.type === 'FREE_SHIPPING' ? t('checkout.freeShippingLabel')
-                  : promo.type === 'FLASH_SALE' ? `${promo.value}% off`
+                  : promo.type === 'FLASH_SALE' ? t('product.percentOff', { percent: promo.value })
                   : '';
 
                 return (
@@ -788,10 +806,9 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                           dangerouslySetInnerHTML={{ __html: promoDesc }}
                         />
                       )}
-                      {!promoTitle && label && promoDesc && null}
                       {promo.expires_at && (
                         <p className="text-[10px] text-gray-500 mt-1">
-                          {t('product.endsOn')} {new Date(promo.expires_at).toLocaleDateString()}
+                          {t('product.endsOn')} {formatPromoDate(promo.expires_at, locale)}
                         </p>
                       )}
                     </div>
@@ -815,7 +832,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                       const tr =
                         offer.translations.find((t) => t.locale === locale) ||
                         offer.translations[0];
-                      const title = tr?.title || `Buy ${offer.quantity}`;
+                      const title = tr?.title || t('product.buyQuantity', { count: offer.quantity });
                       const label = tr?.label || '';
                       const sticker = tr?.sticker_text || '';
                       const pricing = computeBundlePricing(baseUnitPrice, {
@@ -830,14 +847,14 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                           type="button"
                           aria-pressed={isSelected}
                           onClick={() => handleSelectBundle(offer.id)}
-                          className={`relative flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition ${
+                          className={`relative flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-start transition ${
                             isSelected
                               ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300'
                               : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
                           }`}
                         >
                           {sticker && (
-                            <span className="absolute -top-2 right-3 rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                            <span className="absolute -top-2 inset-e-3 rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
                               {sticker}
                             </span>
                           )}
@@ -902,8 +919,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           {variants.length > 0 && (
             <div>
               <VariantSelector
-                key={selectorInit.key}
-                initialSelections={selectorInit.selections}
+                selections={optionSelections}
                 personalization={cardsConfig}
                 variants={variants}
                 selectedVariantId={selectedVariantId}
@@ -960,9 +976,12 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
             <div>
               <CustomerUpload
                 onFileSelect={handleFileSelect}
+                onRemove={handleFileRemove}
                 accept="image/*"
                 maxSizeMB={10}
-                label="File Uploads"
+                label={t('product.fileUploads')}
+                uploading={customerFileUploading}
+                error={customerFileError}
                 required
               />
             </div>
@@ -978,7 +997,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 <div className="flex items-center gap-2 min-w-0">
                   <Tag className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span className="text-xs font-medium text-blue-900 truncate">
-                    {selectedBundleOffer.translation?.title || `Buy ${selectedBundleOffer.offer.quantity}`}
+                    {selectedBundleOffer.translation?.title || t('product.buyQuantity', { count: selectedBundleOffer.offer.quantity })}
                   </span>
                 </div>
                 <button
@@ -1016,17 +1035,14 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                     variantPicker={
                       variants.length > 0 && !selectedVariantId ? (
                         // Review step picker (the page's selector is under the
-                        // dialog). Its picks re-seed the page selector so both agree.
+                        // dialog). Both are controlled by the same picks (D11).
                         <VariantSelector
-                          initialSelections={optionSelections}
+                          selections={optionSelections}
                           personalization={cardsConfig}
                           variants={variants}
                           selectedVariantId={selectedVariantId}
                           onSelect={setSelectedVariantId}
-                          onSelectionsChange={(picks) => {
-                            setOptionSelections(picks);
-                            setSelectorInit((prev) => ({ key: prev.key + 1, selections: picks }));
-                          }}
+                          onSelectionsChange={setOptionSelections}
                           inStockText={t('product.inStock')}
                           outOfStockText={t('product.outOfStock')}
                           optionConfigs={product.variant_option_config}
@@ -1173,7 +1189,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                           </p>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-end shrink-0">
                         <p className="text-sm font-semibold text-gray-800">
                           {row.cost > 0 ? formatPrice(row.cost, currency, locale) : t('product.freeShipping')}
                         </p>
@@ -1272,19 +1288,25 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
         </div>
       )}
 
-      {/* Floating toast: added to cart */}
+      {/* Floating toast: added to cart, with a way to the cart (M5 D5) */}
       {addedToCart && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <Check className="w-4 h-4 text-green-400" />
+        <div role="status" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-gray-900 text-white ps-5 pe-2 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Check className="w-4 h-4 text-green-400 shrink-0" />
           <span className="text-sm font-medium">{t('cart.itemAdded')}</span>
+          <Link
+            href={`${langPrefix}/cart`}
+            className="min-h-11 inline-flex items-center px-3 rounded-full bg-white/15 hover:bg-white/25 text-sm font-semibold whitespace-nowrap transition-colors"
+          >
+            {t('cart.viewCart')}
+          </Link>
         </div>
       )}
 
       {/* Floating toast: error */}
       {addToCartError && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="alert" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           <span className="text-sm font-medium">{addToCartError}</span>
-          <button onClick={() => setAddToCartError('')} className="text-white/70 hover:text-white ml-1">
+          <button onClick={() => setAddToCartError('')} aria-label={t('common.close')} className="size-11 -me-3 flex items-center justify-center text-white/70 hover:text-white ms-1">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

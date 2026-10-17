@@ -63,7 +63,7 @@ describe('personalization mirror parity', () => {
       vectors.fileRef.length +
       vectors.validate.length +
       vectors.generated.length;
-    expect(count).toBe(171);
+    expect(count).toBe(182);
   });
 });
 

@@ -61,7 +61,7 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
                   aria-label={nameOf(entry.value)}
                   title={nameOf(entry.value)}
                   onClick={() => onChange(entry.value)}
-                  className={`relative h-10 w-10 rounded-md transition-all ${
+                  className={`relative size-11 rounded-md transition-all ${
                     isSelected ? 'ring-2 ring-offset-2' : 'hover:ring-1 hover:ring-gray-300 hover:ring-offset-1'
                   }`}
                   style={{

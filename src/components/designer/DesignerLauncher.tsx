@@ -10,6 +10,7 @@
 // entry is pushed while it is open) and focus returns to the launcher.
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -22,11 +23,15 @@ import type { DesignedLine } from './DesignerEditor';
 
 const DesignerEditor = dynamic(() => import('./DesignerEditor'), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80">
-      <Loader2 className="h-6 w-6 animate-spin text-gray-500" aria-hidden="true" />
-    </div>
-  ),
+  // The overlay sits on document.body like the editor itself (D7), so a
+  // transformed ancestor cannot pin it to the launcher's box.
+  loading: () =>
+    createPortal(
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-500" aria-hidden="true" />
+      </div>,
+      document.body,
+    ),
 });
 
 /** Query parameter that opens the editor on an existing design (cart "Edit design"). */
@@ -70,7 +75,24 @@ function dropDesignParam(): void {
 }
 
 /** Marker of the history entry pushed while the editor is open. */
-const HISTORY_MARK = '__designerOpen';
+export const HISTORY_MARK = '__designerOpen';
+
+/**
+ * Drops a stale marker from the current entry (D16): after a reload on the
+ * entry pushed by an open editor, the editor is closed but the entry still
+ * says otherwise, and the next open would push on top of a marked entry.
+ */
+function clearStaleHistoryMark(): void {
+  const state = window.history.state;
+  if (!state || typeof state !== 'object' || !(state as Record<string, unknown>)[HISTORY_MARK]) return;
+  const next = { ...(state as Record<string, unknown>) };
+  delete next[HISTORY_MARK];
+  try {
+    window.history.replaceState(next, '');
+  } catch {
+    // Not fatal: Back closes nothing, it just leaves the page as usual.
+  }
+}
 
 export function DesignerLauncher({
   payload,
@@ -121,6 +143,7 @@ export function DesignerLauncher({
 
   // Client-only reads (localStorage / URL) after hydration.
   useEffect(() => {
+    clearStaleHistoryMark();
     const fromUrl = readDesignParam();
     const draft = getDraftFor(productId);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from browser storage
@@ -175,7 +198,17 @@ export function DesignerLauncher({
         style={style ?? { backgroundColor: 'var(--store-primary, #2563eb)' }}
       >
         <Paintbrush className="h-4 w-4" aria-hidden="true" />
-        {hasDraft ? t('continueDesign') : label}
+        {/* Both labels share one grid cell (D23): the button keeps the width
+            of the longer one, so switching to "Continue" after hydration
+            does not shift the layout. The hidden one is out of the a11y tree. */}
+        <span className="grid text-center">
+          <span className={`col-start-1 row-start-1 ${hasDraft ? 'invisible' : ''}`} aria-hidden={hasDraft}>
+            {label}
+          </span>
+          <span className={`col-start-1 row-start-1 ${hasDraft ? '' : 'invisible'}`} aria-hidden={!hasDraft}>
+            {t('continueDesign')}
+          </span>
+        </span>
       </button>
       {open && (
         <DesignerEditor

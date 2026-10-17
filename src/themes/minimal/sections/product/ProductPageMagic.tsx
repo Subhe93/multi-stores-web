@@ -1,7 +1,8 @@
 // Definition file — see FaqList.tsx for the RSC boundary rationale.
 
 import type { SectionDefinition } from '../../../types';
-import { ProductPageMagic } from './ProductPageMagic.client';
+// Lazy client chunk (M5 D24), see ./lazy.tsx.
+import { ProductPageMagic } from './lazy';
 
 export const productPageMagicSection: SectionDefinition = {
   schema: {

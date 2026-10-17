@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart, type CartLineDesign } from '@/hooks/useCart';
@@ -13,7 +13,7 @@ import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
 import { CartFieldValue } from '@/components/cart/CartItem';
 import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
-import { hasPersonalizationGroups } from '@/lib/personalization';
+import { hasPersonalizationGroups } from '@/lib/personalization/display';
 import { RemoveUnavailableHint, UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -119,6 +119,7 @@ interface CartItemRowProps {
 
 function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const { currency } = useCart();
   const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
@@ -223,25 +224,25 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           <p className="text-xs text-red-600 mt-0.5">{t('personalization.invalidLine')}</p>
         )}
 
-        {/* Quantity stepper (an unavailable line can only be removed) */}
+        {/* Quantity stepper (an unavailable line can only be removed); 44px touch targets (M5 D18) */}
         <div className="flex items-center gap-3 mt-auto pt-2">
           {!unavailable && (
-          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-8">
+          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-11">
             <button
               onClick={() => changeQty(item.quantity - 1)}
               disabled={updating || item.quantity <= 1 || hasBundle}
-              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="size-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.decreaseQuantity')}
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="w-8 h-8 flex items-center justify-center text-sm font-medium text-gray-900 border-x border-gray-300">
+            <span className="min-w-9 h-11 px-1 flex items-center justify-center text-sm font-medium text-gray-900 border-x border-gray-300">
               {item.quantity}
             </span>
             <button
               onClick={() => changeQty(item.quantity + 1)}
               disabled={updating || hasBundle}
-              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="size-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.increaseQuantity')}
             >
               <Plus className="w-3 h-3" />
@@ -252,8 +253,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           <button
             onClick={() => onRemove(item.id)}
             className={unavailable
-              ? 'text-xs font-medium text-gray-700 hover:text-red-600 transition-colors underline underline-offset-2'
-              : 'text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2'}
+              ? 'min-h-11 px-2 text-xs font-medium text-gray-700 hover:text-red-600 transition-colors underline underline-offset-2'
+              : 'min-h-11 px-2 text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2'}
           >
             {t('cart.remove')}
           </button>
@@ -263,14 +264,14 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
       {/* Line price (hidden for a line unavailable in this market) */}
       {!unavailable && (
       <div className="shrink-0 text-right">
-        <p className="text-sm font-semibold text-gray-900">{formatPrice(lineTotal, currency)}</p>
+        <p className="text-sm font-semibold text-gray-900">{formatPrice(lineTotal, currency, locale)}</p>
         {originalLineTotal !== null && originalLineTotal > lineTotal && (
           <p className="text-xs text-gray-400 line-through tabular-nums">
-            {formatPrice(originalLineTotal, currency)}
+            {formatPrice(originalLineTotal, currency, locale)}
           </p>
         )}
         {item.quantity > 1 && (
-          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(unitShown, currency)} {t('cart.each')}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{formatPrice(unitShown, currency, locale)} {t('cart.each')}</p>
         )}
       </div>
       )}
@@ -281,6 +282,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
 // ── Main Cart Page ─────────────────────────────────────────────────────────────
 export default function StoreCartPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const lp = useLocalePath();
   const {
     items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
@@ -417,7 +419,7 @@ export default function StoreCartPage() {
                       <p className={`flex-1 text-xs leading-snug line-clamp-1 ${item.unavailableInMarket ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{title}</p>
                       {!item.unavailableInMarket && (
                       <p className="text-xs font-semibold text-gray-900 shrink-0">
-                        {formatPrice(display(item.price, item.taxRateBp, currency).amount * item.quantity, currency)}
+                        {formatPrice(display(item.price, item.taxRateBp, currency).amount * item.quantity, currency, locale)}
                       </p>
                       )}
                     </div>
@@ -436,8 +438,8 @@ export default function StoreCartPage() {
                     </div>
                     <button
                       onClick={() => removeCoupon()}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                      aria-label="Remove coupon"
+                      className="size-11 -me-3 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label={t('cart.removeCoupon')}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -478,7 +480,7 @@ export default function StoreCartPage() {
                 {/* Totals */}
                 <div className="flex justify-between text-sm text-gray-600 py-1">
                   <span>{companyNet ? t('b2b.subtotalExclVat') : t('cart.subtotal')}</span>
-                  <span className="font-medium text-gray-900">{formatPrice(companyNet ? netItems ?? subtotal : subtotal, currency)}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(companyNet ? netItems ?? subtotal : subtotal, currency, locale)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm py-1">
@@ -489,11 +491,11 @@ export default function StoreCartPage() {
                 {discount > 0 && (
                   companyNet ? (
                     // Net subtotal is already post-discount (L4): informational only.
-                    <p className="text-xs text-gray-500 py-1">{t('b2b.includesDiscount', { amount: formatPrice(discount, currency) })}</p>
+                    <p className="text-xs text-gray-500 py-1">{t('b2b.includesDiscount', { amount: formatPrice(discount, currency, locale) })}</p>
                   ) : (
                   <div className="flex justify-between text-sm py-1">
                     <span className="text-green-600">{t('cart.discount')}</span>
-                    <span className="text-green-600 font-medium">-{formatPrice(discount, currency)}</span>
+                    <span className="text-green-600 font-medium">-{formatPrice(discount, currency, locale)}</span>
                   </div>
                   )
                 )}
@@ -503,7 +505,7 @@ export default function StoreCartPage() {
                     {b2bNet && (
                       <div className="flex justify-between text-sm py-1">
                         <span className="font-medium text-gray-900">{t('b2b.netTotal')}</span>
-                        <span className="font-medium text-gray-900">{formatPrice(b2bNet.net_total, currency)}</span>
+                        <span className="font-medium text-gray-900">{formatPrice(b2bNet.net_total, currency, locale)}</span>
                       </div>
                     )}
                     {taxLines.length > 0 ? (
@@ -513,7 +515,7 @@ export default function StoreCartPage() {
                     )}
                     <div className="flex justify-between py-2 border-t border-gray-200">
                       <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
-                      <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
+                      <span className="text-base font-bold text-gray-900">{formatPrice(total, currency, locale)}</span>
                     </div>
                     {taxLines.length > 0 && taxEstimated && (
                       <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
@@ -524,7 +526,7 @@ export default function StoreCartPage() {
                 <>
                 <div className="flex justify-between py-3 border-t border-gray-200 mt-1">
                   <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
-                  <span className="text-base font-bold text-gray-900">{formatPrice(total, currency)}</span>
+                  <span className="text-base font-bold text-gray-900">{formatPrice(total, currency, locale)}</span>
                 </div>
                 {taxExclusive ? (
                   taxLines.length > 0 && totalWithTax !== null ? (
@@ -533,7 +535,7 @@ export default function StoreCartPage() {
                       <TaxLineRows lines={taxLines} currency={currency} variant="row" />
                       <div className="flex justify-between py-2 border-t border-gray-200">
                         <span className="text-sm font-semibold text-gray-900">{t('cart.totalInclTax')}</span>
-                        <span className="text-sm font-bold text-gray-900">{formatPrice(totalWithTax, currency)}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatPrice(totalWithTax, currency, locale)}</span>
                       </div>
                       {taxEstimated && (
                         <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>

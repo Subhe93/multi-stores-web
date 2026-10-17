@@ -3,6 +3,10 @@ import type { CartItem } from '@/hooks/useCart';
 import {
   addGuestLine,
   createGuestCartMover,
+  GUEST_CART_KEY,
+  guestCartFromStorageEvent,
+  parseStoredGuestCart,
+  safeStorageWrite,
   guestLineToServerBody,
   isMigrationDropError,
   mergeHandoffLines,
@@ -240,5 +244,48 @@ describe('createGuestCartMover (login effect + checkout sync)', () => {
     const result = await move(async () => { calls += 1; return {}; });
     expect(calls).toBe(0);
     expect(result).toEqual({ moved: [], dropped: [], failed: [] });
+  });
+});
+
+describe('guest cart storage (M5 D1 / D12)', () => {
+  function fakeStorage(opts: { throwOnSet?: boolean } = {}) {
+    const map = new Map<string, string>();
+    return {
+      map,
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        if (opts.throwOnSet) throw new Error('QuotaExceededError');
+        map.set(k, v);
+      },
+      removeItem: (k: string) => { map.delete(k); },
+    };
+  }
+
+  it('safeStorageWrite stores, removes on null and reports success', () => {
+    const s = fakeStorage();
+    expect(safeStorageWrite(s, GUEST_CART_KEY, '[]')).toBe(true);
+    expect(s.map.get(GUEST_CART_KEY)).toBe('[]');
+    expect(safeStorageWrite(s, GUEST_CART_KEY, null)).toBe(true);
+    expect(s.map.has(GUEST_CART_KEY)).toBe(false);
+  });
+
+  it('safeStorageWrite never throws on a full or missing storage', () => {
+    expect(safeStorageWrite(fakeStorage({ throwOnSet: true }), GUEST_CART_KEY, '[1]')).toBe(false);
+    expect(safeStorageWrite(null, GUEST_CART_KEY, '[1]')).toBe(false);
+  });
+
+  it('parseStoredGuestCart tolerates garbage', () => {
+    expect(parseStoredGuestCart(null)).toEqual([]);
+    expect(parseStoredGuestCart('{not json')).toEqual([]);
+    expect(parseStoredGuestCart('{"a":1}')).toEqual([]);
+    expect(parseStoredGuestCart(JSON.stringify([line({ id: 'l1' })]))).toEqual([line({ id: 'l1' })]);
+  });
+
+  it('guestCartFromStorageEvent reads only the cart key', () => {
+    const lines = [line({ id: 'l1', quantity: 2 })];
+    expect(guestCartFromStorageEvent({ key: GUEST_CART_KEY, newValue: JSON.stringify(lines) })).toEqual(lines);
+    expect(guestCartFromStorageEvent({ key: GUEST_CART_KEY, newValue: null })).toEqual([]);
+    expect(guestCartFromStorageEvent({ key: 'guest_coupon', newValue: '{}' })).toBeNull();
+    expect(guestCartFromStorageEvent({ key: null, newValue: null })).toBeNull();
   });
 });

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
+import { formatPrice } from '@/lib/format';
 import { Package, ChevronRight } from 'lucide-react';
 
 interface Order {
@@ -38,6 +39,8 @@ function statusStyle(status: string): string {
 export default function StoreOrdersPage() {
   const t = useTranslations();
   const lp = useLocalePath();
+  // Money and dates in the storefront locale (M5 D4).
+  const locale = useLocale();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -103,13 +106,13 @@ export default function StoreOrdersPage() {
                   </div>
                   {date && (
                     <p className="text-xs text-gray-400">
-                      {new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    {new Intl.NumberFormat('en', { style: 'currency', currency: order.currency || 'EUR' }).format(Number(total))}
+                    {formatPrice(Number(total), order.currency || 'EUR', locale)}
                   </span>
                   <ChevronRight className="w-4 h-4 text-gray-300" />
                 </div>

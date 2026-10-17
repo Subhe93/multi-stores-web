@@ -168,6 +168,16 @@ describe('createDesignerClient', () => {
       expect(u).not.toContain('secret');
     }
     expect(JSON.parse(calls[1]![1].body as string)).toEqual({ state: { v: 1, texts: { name: 'Anna' }, photos: {} }, state_version: 4 });
+    expect(calls[1]![1].keepalive).toBeUndefined();
+  });
+
+  it('update can ask for a keepalive request (save on tab hide, D29)', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(200, { success: true, data: view }));
+    const c = createDesignerClient({ storeSlug: 'namez', storage: memoryStorage(), fetchImpl, apiUrl: 'https://api.x/api' });
+    await c.update('d1', { v: 1, texts: {}, photos: {} }, 4, { keepalive: true });
+    const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.keepalive).toBe(true);
+    expect(init.method).toBe('PATCH');
   });
 
   it('throws coded errors with details (STALE, STATE_INVALID, 503)', async () => {

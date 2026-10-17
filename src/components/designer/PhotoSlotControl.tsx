@@ -2,7 +2,7 @@
 
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { ImagePlus, Loader2, RotateCcw, Trash2, AlertTriangle, Move } from 'lucide-react';
+import { ImagePlus, Loader2, RotateCcw, Trash2, AlertTriangle, Move, X } from 'lucide-react';
 import {
   DEFAULT_ADJ,
   effectiveDpi,
@@ -33,6 +33,10 @@ interface Props {
   maxUploadMb: number;
   minDpi: number;
   onPick: (file: File) => void;
+  /** Aborts the running upload (D14). */
+  onCancelUpload?: () => void;
+  /** Re-uploads the last picked file after a failure; absent when there is none. */
+  onRetry?: () => void;
   onAdj: (adj: PhotoAdj) => void;
   onRemove: () => void;
   onActivate: () => void;
@@ -82,7 +86,7 @@ function Slider({
 }
 
 export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function PhotoSlotControl(
-  { el, photo, locale, active, progress, error, missing, maxUploadMb, minDpi, onPick, onAdj, onRemove, onActivate },
+  { el, photo, locale, active, progress, error, missing, maxUploadMb, minDpi, onPick, onCancelUpload, onRetry, onAdj, onRemove, onActivate },
   ref,
 ) {
   const t = useTranslations('designer');
@@ -146,9 +150,21 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
 
       {uploading ? (
         <div className="space-y-1.5" aria-live="polite">
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            {t('uploading', { percent: Math.round((progress ?? 0) * 100) })}
+          <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              {t('uploading', { percent: Math.round((progress ?? 0) * 100) })}
+            </span>
+            {onCancelUpload && (
+              <button
+                type="button"
+                onClick={onCancelUpload}
+                className="inline-flex min-h-11 items-center gap-1 px-2 font-medium text-gray-700 underline hover:text-red-600"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('cancelUpload')}
+              </button>
+            )}
           </div>
           <div
             className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
@@ -234,7 +250,21 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
           {t('lowRes', { dpi: Math.round(dpi) })}
         </p>
       )}
-      {error && <p className="text-xs text-red-600" role="alert">{error}</p>}
+      {error && (
+        <p className="flex flex-wrap items-center gap-x-3 text-xs text-red-600" role="alert">
+          <span>{error}</span>
+          {onRetry && !uploading && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex min-h-11 items-center gap-1 px-2 font-semibold text-gray-900 underline"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('tryAgain')}
+            </button>
+          )}
+        </p>
+      )}
       {!error && missing && <p className="text-xs text-red-600">{t('photoRequired')}</p>}
     </div>
   );

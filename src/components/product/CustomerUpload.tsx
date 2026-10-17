@@ -6,26 +6,36 @@ import { Upload, X } from 'lucide-react';
 
 interface CustomerUploadProps {
   onFileSelect: (file: File) => void;
+  /** The chosen file was removed again (the parent drops its upload). */
+  onRemove?: () => void;
   accept?: string;
   maxSizeMB?: number;
   previewUrl?: string;
   label?: string;
   required?: boolean;
+  /** The parent is uploading the file (M5 D17): actions are disabled meanwhile. */
+  uploading?: boolean;
+  /** Upload error from the parent, shown under the preview. */
+  error?: string | null;
 }
 
 export function CustomerUpload({
   onFileSelect,
+  onRemove,
   accept = 'image/*',
   maxSizeMB = 10,
   previewUrl: initialPreviewUrl,
   label,
   required,
+  uploading = false,
+  error: uploadError,
 }: CustomerUploadProps) {
   const t = useTranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(initialPreviewUrl ?? null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setError] = useState<string | null>(null);
+  const error = localError || uploadError || null;
   const [isDragging, setIsDragging] = useState(false);
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
@@ -99,7 +109,8 @@ export function CustomerUpload({
     setFileName(null);
     setError(null);
     if (inputRef.current) inputRef.current.value = '';
-  }, []);
+    onRemove?.();
+  }, [onRemove]);
 
   return (
     <div>
@@ -107,7 +118,7 @@ export function CustomerUpload({
       {label && (
         <p className="text-sm font-semibold text-gray-900 mb-3">
           {label}
-          {required && <span className="text-red-500 ml-0.5">*</span>}
+          {required && <span className="text-red-500 ms-0.5">*</span>}
         </p>
       )}
 
@@ -139,18 +150,22 @@ export function CustomerUpload({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={uploading}
+              className="flex-1 min-h-11 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {t('product.changeFile')}
+              {uploading ? t('product.uploading') : t('product.changeFile')}
             </button>
             <button
               type="button"
               onClick={handleRemove}
-              className="px-3 py-2 text-sm font-medium text-gray-400 bg-white border border-gray-200 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors"
+              disabled={uploading}
+              aria-label={t('cart.remove')}
+              className="min-w-11 min-h-11 px-3 py-2 text-sm font-medium text-gray-400 bg-white border border-gray-200 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
+          {error && <p className="px-3 pb-3 text-sm text-red-600">{error}</p>}
 
           <input ref={inputRef} type="file" accept={accept} onChange={handleInputChange} className="hidden" />
         </div>
@@ -179,7 +194,7 @@ export function CustomerUpload({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+                className="min-h-11 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
                 style={{ backgroundColor: 'var(--store-primary, #111827)' }}
               >
                 {t('product.browseFiles')}

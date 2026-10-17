@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -13,6 +13,8 @@ import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
 import { RemoveUnavailableHint } from './UnavailableInMarket';
 import { useCodedApiError } from '@/lib/useApiError';
+
+const subscribeNoop = () => () => {};
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -35,10 +37,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   // viewport, not a transformed/filtered ancestor. The header uses
   // `backdrop-blur` which creates a containing block for fixed descendants —
   // without the portal the drawer would be trapped inside the header box.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // False on the server and during hydration, true afterwards (no setState in an effect).
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   // Close on Escape key
   useEffect(() => {
@@ -100,8 +100,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </h2>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50"
-              aria-label="Close cart"
+              className="size-11 -me-2 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -158,11 +158,11 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       variant: item.variant,
                       customFields: item.customFields,
                       customFieldDisplay: item.customFieldDisplay,
-                      customerFile: item.customerFile,
                       currency,
                       taxRateBp: item.taxRateBp,
                       unavailableInMarket: item.unavailableInMarket,
                       personalizationInvalid: item.personalizationInvalid,
+                      design: item.design,
                     }}
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}

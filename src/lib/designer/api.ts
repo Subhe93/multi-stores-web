@@ -367,13 +367,20 @@ export function createDesignerClient(opts: DesignerClientOptions) {
   const doFetch = opts.fetchImpl ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
   const storage = opts.storage === undefined ? defaultStorage() : opts.storage;
 
-  async function json<T>(method: string, path: string, designId: string | null, body?: unknown): Promise<T> {
+  async function json<T>(
+    method: string,
+    path: string,
+    designId: string | null,
+    body?: unknown,
+    init?: Pick<RequestInit, 'keepalive'>,
+  ): Promise<T> {
     const headers: Record<string, string> = designHeaders(designId, opts.authToken, storage);
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     const res = await doFetch(`${base}${path}`, {
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(init?.keepalive ? { keepalive: true } : {}),
     });
     return readEnvelope<T>(res);
   }
@@ -406,12 +413,23 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       return json<DesignView>('GET', `/${encodeURIComponent(id)}`, id);
     },
 
-    /** 409 DESIGNER_DESIGN_STALE when `state_version` is not the current one. */
-    update(id: string, state: DesignStateV1, stateVersion: number): Promise<DesignView> {
-      return json<DesignView>('PATCH', `/${encodeURIComponent(id)}`, id, {
-        state,
-        state_version: stateVersion,
-      });
+    /**
+     * 409 DESIGNER_DESIGN_STALE when `state_version` is not the current one.
+     * `keepalive` lets the request outlive the page (save on tab hide / unload).
+     */
+    update(
+      id: string,
+      state: DesignStateV1,
+      stateVersion: number,
+      init?: { keepalive?: boolean },
+    ): Promise<DesignView> {
+      return json<DesignView>(
+        'PATCH',
+        `/${encodeURIComponent(id)}`,
+        id,
+        { state, state_version: stateVersion },
+        init,
+      );
     },
 
     deletePhoto(id: string, assetId: string): Promise<DesignView> {

@@ -33,7 +33,9 @@
     "decreaseQuantity": "إنقاص الكمية",
     "increaseQuantity": "زيادة الكمية",
     "free": "مجاني",
-    "clear": "مسح"
+    "clear": "مسح",
+    "yes": "نعم",
+    "no": "لا"
   },
   "home": {
     "title": "منصة المتاجر المتعددة",
@@ -146,7 +148,12 @@
     "estimatedDays": "{min}–{max} أيام",
     "freeShipping": "مجاني",
     "freeShippingOver": "مجاني للطلبات فوق {amount}",
-    "pickup": "استلام من المتجر"
+    "pickup": "استلام من المتجر",
+    "stockCount": "{count} متوفر",
+    "fileUploads": "رفع الملفات",
+    "percentOff": "خصم {percent}%",
+    "amountOff": "خصم {amount}",
+    "buyQuantity": "اشترِ {count}"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -200,7 +207,8 @@
     "linesNotMoved": "{count, plural, zero {لا توجد منتجات تعذّر نقلها إلى حسابك.} one {تعذّر نقل منتج واحد إلى حسابك لأن تخصيصه لم يعد صالحًا.} two {تعذّر نقل منتجين إلى حسابك لأن تخصيصهما لم يعد صالحًا.} few {تعذّر نقل # منتجات إلى حسابك لأن تخصيصها لم يعد صالحًا.} many {تعذّر نقل # منتجًا إلى حسابك لأن تخصيصها لم يعد صالحًا.} other {تعذّر نقل # منتج إلى حسابك لأن تخصيصها لم يعد صالحًا.}}",
     "unavailableInMarket": "غير متوفر في {market}",
     "unavailableHere": "غير متوفر في هذا السوق",
-    "removeUnavailable": "أزل المنتجات غير المتوفرة لمتابعة الدفع."
+    "removeUnavailable": "أزل المنتجات غير المتوفرة لمتابعة الدفع.",
+    "viewCart": "عرض السلة"
   },
   "checkout": {
     "title": "إتمام الشراء",
@@ -398,7 +406,11 @@
       "retry": "إعادة المحاولة"
     },
     "fileUploaded": "تم رفع ملف",
-    "fileRemoved": "تم الحذف بعد انتهاء مدة الاحتفاظ"
+    "fileRemoved": "تم الحذف بعد انتهاء مدة الاحتفاظ",
+    "orderNotFound": "الطلب غير موجود",
+    "backToOrders": "العودة إلى الطلبات",
+    "orderTitle": "الطلب #{number}",
+    "note": "ملاحظة"
   },
   "orderStatus": {
     "PENDING": "قيد الانتظار",
@@ -754,6 +766,8 @@
     "fixErrors": "يُرجى إكمال الحقول المحددة.",
     "editDesign": "تعديل التصميم",
     "uploadFailed": "فشل الرفع. يُرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+    "cancelUpload": "إلغاء الرفع",
+    "tryAgain": "إعادة المحاولة",
     "startAgain": "البدء من جديد بهذا التصميم",
     "lockedInCart": "تم طلب هذا التصميم بالفعل ولم يعد من الممكن تعديله.",
     "incompleteInCart": "هذا التصميم في سلتك لكنه غير مكتمل بعد، لذا لا يمكن طلبه.",

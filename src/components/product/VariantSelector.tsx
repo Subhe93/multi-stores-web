@@ -69,10 +69,16 @@ interface Variant {
   id: string;
   sku?: string;
   price: number;
-  stock: number;
+  /** Unknown stock (theme payloads) counts as in stock. */
+  stock?: number;
   options: Record<string, string>;
   images?: { url: string }[];
-  is_active?: boolean;
+  is_active?: boolean | null;
+}
+
+/** A variant that can be bought: active and not sold out. */
+function isPurchasable(v: Variant): boolean {
+  return v.is_active !== false && (typeof v.stock !== 'number' || v.stock > 0);
 }
 
 interface VariantSelectorProps {
@@ -93,6 +99,10 @@ interface VariantSelectorProps {
   personalization?: VariantCardsConfig;
   // Picks to start with (URL prefill, personalization app); read on mount.
   initialSelections?: Record<string, string>;
+  // Controlled picks (M5 D11): when set, the parent owns the selection and
+  // every change is reported through `onSelectionsChange` / `onSelect`, so a
+  // prefill or a second picker (designer review step) needs no remount.
+  selections?: Record<string, string>;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -107,6 +117,7 @@ export function VariantSelector({
   onSelectionsChange,
   personalization,
   initialSelections: initialSelectionsProp,
+  selections: controlledSelections,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
 
@@ -168,7 +179,10 @@ export function VariantSelector({
     return {} as Record<string, string>;
   }, [selectedVariantId, variants]);
 
-  const [selections, setSelections] = useState<Record<string, string>>(initialSelectionsProp ?? initialSelections);
+  const [internalSelections, setSelections] = useState<Record<string, string>>(
+    initialSelectionsProp ?? initialSelections,
+  );
+  const selections = controlledSelections ?? internalSelections;
 
   const matchingVariant = useMemo(() => {
     if (Object.keys(selections).length < optionKeys.length) return null;
@@ -179,7 +193,7 @@ export function VariantSelector({
     const hypothetical = { ...selections, [key]: value };
     return variants.some(
       (v) =>
-        v.stock > 0 &&
+        isPurchasable(v) &&
         Object.keys(hypothetical).every((k) => v.options?.[k] === hypothetical[k]),
     );
   };
@@ -240,7 +254,7 @@ export function VariantSelector({
             <p className="text-sm font-semibold text-gray-900 mb-3">
               {key}
               {selectedValue && (
-                <span className="font-normal text-gray-400 ml-1">— {selectedValue}</span>
+                <span className="font-normal text-gray-400 ms-1">— {selectedValue}</span>
               )}
             </p>
 
@@ -263,7 +277,7 @@ export function VariantSelector({
                           disabled={!available}
                           onClick={() => handleSelect(key, value)}
                           title={value}
-                          className={`relative w-10 h-10 rounded-full transition-all duration-200 ${
+                          className={`relative size-11 rounded-full transition-all duration-200 ${
                             !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                           } ${isSelected ? 'ring-2 ring-offset-3' : 'hover:ring-1 hover:ring-offset-2 hover:ring-gray-300'}`}
                           style={{
@@ -305,7 +319,7 @@ export function VariantSelector({
                       type="button"
                       disabled={!available}
                       onClick={() => handleSelect(key, value)}
-                      className={`px-4 py-2 text-sm rounded-lg border-2 font-medium transition-all duration-200 ${
+                      className={`min-h-11 px-4 py-2 text-sm rounded-lg border-2 font-medium transition-all duration-200 ${
                         isSelected
                           ? 'text-white border-transparent'
                           : available
@@ -362,7 +376,7 @@ export function VariantSelector({
                         )}
                         {isSelected && (
                           <div
-                            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
+                            className="absolute top-1 inset-e-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
                             style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
                           >
                             <Check className="w-3 h-3 text-white" strokeWidth={3} />
@@ -415,7 +429,7 @@ export function VariantSelector({
                       type="button"
                       disabled={!available}
                       onClick={() => handleSelect(key, value)}
-                      className={`min-w-12 px-4 py-2.5 text-sm rounded-lg border-2 font-medium text-center transition-all duration-200 ${
+                      className={`min-w-12 min-h-11 px-4 py-2.5 text-sm rounded-lg border-2 font-medium text-center transition-all duration-200 ${
                         isSelected
                           ? 'text-white border-transparent'
                           : available
@@ -439,7 +453,7 @@ export function VariantSelector({
         <button
           type="button"
           onClick={handleClear}
-          className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors w-fit"
+          className="inline-flex items-center gap-1 min-h-11 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors w-fit"
         >
           <X className="w-3 h-3" />
           {t('clear')}
@@ -447,7 +461,7 @@ export function VariantSelector({
       )}
 
       {/* Stock status */}
-      {matchingVariant && (
+      {matchingVariant && typeof matchingVariant.stock === 'number' && (
         <span
           className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full w-fit ${
             matchingVariant.stock > 0

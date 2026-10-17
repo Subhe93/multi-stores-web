@@ -32,6 +32,11 @@ import {
   patchGuestDesignLine,
   replaceGuestDesignLine,
   createGuestCartMover,
+  guestCartFromStorageEvent,
+  GUEST_CART_KEY,
+  GUEST_COUPON_KEY,
+  parseStoredGuestCart,
+  safeStorageWrite,
   type DroppedGuestLine,
   type GuestMigrationResult,
 } from '@/lib/guestCart';
@@ -261,28 +266,39 @@ interface CartContextValue extends CartState {
 
 // ── Local-storage helpers (guest cart) ─────────────────
 
-const CART_KEY = 'guest_cart';
-const COUPON_KEY = 'guest_coupon';
 // Stable reference so consumers' effects don't re-run on every render.
 const EMPTY_TAX_LINES: TaxLine[] = [];
 
-function loadLocalCart(): CartItem[] {
-  if (typeof window === 'undefined') return [];
+/** `localStorage` when usable; null on the server or when access throws. */
+function localStore(): Storage | null {
+  if (typeof window === 'undefined') return null;
   try {
-    return JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function loadLocalCart(): CartItem[] {
+  const store = localStore();
+  if (!store) return [];
+  try {
+    return parseStoredGuestCart(store.getItem(GUEST_CART_KEY));
   } catch {
     return [];
   }
 }
 
+// Never throws (M5 D1): a full / disabled storage keeps the in-memory cart.
 function saveLocalCart(items: CartItem[]) {
-  localStorage.setItem(CART_KEY, JSON.stringify(items));
+  safeStorageWrite(localStore(), GUEST_CART_KEY, JSON.stringify(items));
 }
 
 function loadLocalCoupon(): Coupon | null {
-  if (typeof window === 'undefined') return null;
+  const store = localStore();
+  if (!store) return null;
   try {
-    const raw = localStorage.getItem(COUPON_KEY);
+    const raw = store.getItem(GUEST_COUPON_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -290,11 +306,7 @@ function loadLocalCoupon(): Coupon | null {
 }
 
 function saveLocalCoupon(coupon: Coupon | null) {
-  if (coupon) {
-    localStorage.setItem(COUPON_KEY, JSON.stringify(coupon));
-  } else {
-    localStorage.removeItem(COUPON_KEY);
-  }
+  safeStorageWrite(localStore(), GUEST_COUPON_KEY, coupon ? JSON.stringify(coupon) : null);
 }
 
 // ── Normalize API cart response ───────────────────────
@@ -562,6 +574,31 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
   const isAuthenticated = Boolean(token);
 
+  // ── Guest cart persistence (M5 D1) ───────────────────
+  // The guest cart is written from an effect on `items`, never inside a
+  // state updater: a storage failure then only skips the write and the
+  // in-memory cart survives. `guestLoaded` keeps the initial empty state from
+  // wiping the stored cart before it was read.
+  const [guestLoaded, setGuestLoaded] = useState(false);
+  useEffect(() => {
+    if (isAuthenticated || !guestLoaded) return;
+    saveLocalCart(items);
+  }, [items, isAuthenticated, guestLoaded]);
+
+  // ── Cross-tab sync of the guest cart (M5 D12) ─────────
+  // Another tab (same origin) changed the stored cart or coupon: mirror it.
+  // Logged-in carts live on the server and refetch on their own.
+  useEffect(() => {
+    if (isAuthenticated || typeof window === 'undefined') return;
+    const onStorage = (event: StorageEvent) => {
+      const lines = guestCartFromStorageEvent(event);
+      if (lines) setItems(lines);
+      else if (event.key === GUEST_COUPON_KEY) setCoupon(loadLocalCoupon());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [isAuthenticated]);
+
   // ── Cross-market cart hand-off landing (markets app only) ──
   // `?c=` carries a guest's lines from another market domain (D10 / L9).
   // Waits for auth hydration so the guest / customer decision is final.
@@ -662,9 +699,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       if (incoming.length > 0) {
         setItems((prev) => {
           // Same line = same product, variant, bundle and personalization.
-          const next = mergeHandoffLines(prev, incoming);
-          saveLocalCart(next);
-          return next;
+          return mergeHandoffLines(prev, incoming);
         });
         setPricesUpdated(true);
       }
@@ -682,6 +717,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     prevTokenRef.current = token ?? null;
 
     if (isAuthenticated && token) {
+      // The server cart is authoritative now: stop mirroring `items` to storage.
+      setGuestLoaded(false);
       // Check if we just transitioned from guest to authenticated
       const wasGuest = prevToken === null || prevToken === undefined;
       const hasGuestItems = wasGuest && loadLocalCart().length > 0;
@@ -728,6 +765,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       setCoupon(loadLocalCoupon());
       setServerTax(null);
       setLoading(false);
+      setGuestLoaded(true);
     }
   }, [isAuthenticated, token, localeQuery, migrateLocalCart]);
 
@@ -787,9 +825,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         }
         setItems((prev) => {
           // Merges only into a line with the same personalization (line key).
-          const next = addGuestLine(prev, productId, variantId, quantity, fields, meta);
-          saveLocalCart(next);
-          return next;
+          return addGuestLine(prev, productId, variantId, quantity, fields, meta);
         });
       }
     },
@@ -823,11 +859,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         setServerTax(cart.tax);
       } else {
         setItems((prev) => {
-          const next = prev.map((item) =>
-            item.id === itemId ? { ...item, quantity } : item
-          );
-          saveLocalCart(next);
-          return next;
+          return prev.map((item) => (item.id === itemId ? { ...item, quantity } : item));
         });
       }
     },
@@ -853,7 +885,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         setServerTax(cart.tax);
       } else {
         setItems((prev) => {
-          const next = prev.map((item) => {
+          return prev.map((item) => {
             if (item.id !== itemId) return item;
             const restoredPrice =
               typeof item.bundleOriginalUnitPrice === 'number'
@@ -870,8 +902,6 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
               bundleCartQuantity: null,
             };
           });
-          saveLocalCart(next);
-          return next;
         });
       }
     },
@@ -893,9 +923,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         setServerTax(cart.tax);
       } else {
         setItems((prev) => {
-          const next = prev.filter((item) => item.id !== itemId);
-          saveLocalCart(next);
-          return next;
+          return prev.filter((item) => item.id !== itemId);
         });
       }
     },
@@ -916,9 +944,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         return;
       }
       setItems((prev) => {
-        const next = patchGuestDesignLine(prev, designId, patch);
-        if (next !== prev) saveLocalCart(next);
-        return next;
+        return patchGuestDesignLine(prev, designId, patch);
       });
     },
     [isAuthenticated, token, localeQuery]
@@ -950,9 +976,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         return;
       }
       setItems((prev) => {
-        const next = replaceGuestDesignLine(prev, oldDesignId, nextDesign);
-        if (next !== prev) saveLocalCart(next);
-        return next;
+        return replaceGuestDesignLine(prev, oldDesignId, nextDesign);
       });
     },
     [isAuthenticated, token, localeQuery, items]
@@ -975,9 +999,10 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setHandoffDropped(0);
     setMigrationDropped(0);
     setMigrationDropError(null);
+    // Also for logged-in customers (the guest effect does not run for them).
     saveLocalCart([]);
     saveLocalCoupon(null);
-  }, [isAuthenticated, token, localeQuery]);
+  }, [isAuthenticated, token]);
 
   // ── Apply coupon ───────────────────────────────────
 

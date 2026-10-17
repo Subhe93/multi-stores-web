@@ -330,6 +330,22 @@ export interface TextLimits {
  * Limits of a TEXT/TEXTAREA field. `siblings`/`siblingValues` are the field's
  * sibling set (top level, or one repeater item) for the equal_length target.
  */
+// Compiled `allowed_chars` by body (M5 D9): `textLimits` runs on every
+// keystroke (the linked length depends on the sibling values), and the regex
+// is stateless (no `g` flag), so one instance per body is shared.
+const ALLOWED_CHARS_CACHE = new Map<string, RegExp | null>();
+const ALLOWED_CHARS_CACHE_MAX = 200;
+
+/** `compileAllowedChars`, memoized by body. */
+export function cachedAllowedChars(body: string): RegExp | null {
+  const hit = ALLOWED_CHARS_CACHE.get(body);
+  if (hit !== undefined) return hit;
+  const compiled = compileAllowedChars(body);
+  if (ALLOWED_CHARS_CACHE.size >= ALLOWED_CHARS_CACHE_MAX) ALLOWED_CHARS_CACHE.clear();
+  ALLOWED_CHARS_CACHE.set(body, compiled);
+  return compiled;
+}
+
 export function textLimits(
   def: PFieldDef,
   siblings: readonly PFieldDef[],
@@ -359,7 +375,7 @@ export function textLimits(
     counter,
     insertChar,
     uppercase: ui.transform === 'uppercase',
-    allowed: allowedBody ? compileAllowedChars(allowedBody) : null,
+    allowed: allowedBody ? cachedAllowedChars(allowedBody) : null,
     allowedBody,
   };
 }

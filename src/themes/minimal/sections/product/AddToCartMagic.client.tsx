@@ -2,21 +2,24 @@
 
 // Component implementation. Definition lives in AddToCartMagic.tsx.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Check, Loader2, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { useCart } from '@/hooks/useCart';
 import { useApiError } from '@/lib/useApiError';
 import { resolveMediaUrl } from '@/lib/api';
+import type { LineSource } from '@/lib/cartLine';
 import type { ProductContext, SectionRenderProps } from '../../../types';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
+import { VariantSelector } from '@/components/product/VariantSelector';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import type { PersonalizationProduct } from '@/lib/personalization/form';
-import type { POptionConfig } from '@/lib/personalization';
+import type { POptionConfig } from '@/lib/personalization/types';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
-import { VariantCards } from '@/components/product/personalization/VariantCards';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
+import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
+import { useAddToCartLine } from '@/components/product/useAddToCartLine';
 import { useStoreApp } from '@/hooks/useStoreApps';
 import { readDesignerPayload } from '@/lib/designer/api';
 import { DesignerLauncher } from '@/components/designer/DesignerLauncher';
@@ -26,27 +29,15 @@ import {
   readApiPersonalizationErrors,
 } from '@/components/product/personalization/model';
 
-const COLOR_OPTION_NAMES = new Set(['color', 'colour', 'لون']);
-const NAMED_COLOR_MAP: Record<string, string> = {
-  black: '#000000', white: '#ffffff', red: '#ef4444', blue: '#3b82f6', green: '#22c55e',
-  yellow: '#eab308', orange: '#f97316', purple: '#a855f7', pink: '#ec4899', gray: '#6b7280',
-  grey: '#6b7280', brown: '#92400e', navy: '#1e3a8a', beige: '#d4b896', gold: '#eab308',
-  silver: '#cbd5e1', cream: '#fdf6e3',
-};
-
-function hexFor(name: string): string | null {
-  const v = name.trim().toLowerCase();
-  if (/^#?[0-9a-f]{6}$/i.test(v)) return v.startsWith('#') ? v : `#${v}`;
-  if (/^#?[0-9a-f]{3}$/i.test(v)) return v.startsWith('#') ? v : `#${v}`;
-  return NAMED_COLOR_MAP[v] || null;
-}
-
-/** `variant_option_config` entry (only the keys this section reads). */
+/** `variant_option_config` entry as `VariantSelector` reads it. */
 type SectionOptionConfig = POptionConfig & {
-  style?: string;
+  style: string;
   values?: string[];
   colorMap?: Record<string, string>;
-  valueMeta?: Record<string, unknown> | null;
+  dualColorMap?: Record<string, [string, string]>;
+  imageMap?: Record<string, string>;
+  swatchMap?: Record<string, string>;
+  valueMeta?: Record<string, unknown>;
 };
 
 interface NormalisedVariant {
@@ -101,32 +92,11 @@ function normaliseVariants(product: ProductContext): NormalisedVariant[] {
   });
 }
 
-/**
- * Option groups in the seller's order (`variant_option_config`), with values
- * not mentioned there appended (same rule as `VariantSelector`).
- */
-function optionGroupsOf(variants: NormalisedVariant[], configs: SectionOptionConfig[]): [string, string[]][] {
-  const discovered: Record<string, string[]> = {};
-  for (const v of variants) {
-    for (const [name, value] of Object.entries(v.options)) {
-      const list = (discovered[name] ||= []);
-      if (!list.includes(value)) list.push(value);
-    }
-  }
-  const ordered: [string, string[]][] = [];
-  const placed = new Set<string>();
-  for (const cfg of configs) {
-    const values = cfg && typeof cfg.name === 'string' ? discovered[cfg.name] : undefined;
-    if (!values || placed.has(cfg.name)) continue;
-    placed.add(cfg.name);
-    const configured = Array.isArray(cfg.values) ? cfg.values : [];
-    ordered.push([
-      cfg.name,
-      [...configured.filter((v) => values.includes(v)), ...values.filter((v) => !configured.includes(v))],
-    ]);
-  }
-  for (const [name, values] of Object.entries(discovered)) if (!placed.has(name)) ordered.push([name, values]);
-  return ordered;
+/** Option names the variants carry (the picker's groups). */
+function optionNamesOf(variants: NormalisedVariant[]): string[] {
+  const names: string[] = [];
+  for (const v of variants) for (const name of Object.keys(v.options)) if (!names.includes(name)) names.push(name);
+  return names;
 }
 
 /** The variant the picks resolve to: every option picked and a matching variant. */
@@ -139,9 +109,15 @@ function resolveVariant(
   return variants.find((v) => optionNames.every((n) => v.options[n] === picks[n]));
 }
 
+// The option picker is the page's `VariantSelector` (M5 D19), which reads the
+// store primary colour; map the theme token onto it for this section.
+const SCOPE_STYLE = { ['--store-primary' as string]: 'var(--theme-colors-primary)' } as CSSProperties;
+
 export function AddToCartMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
   const t = useTranslations();
-  const { addItem } = useCart();
+  // Shared add-to-cart (M5 D31): same line metadata as the product page,
+  // "added" confirmation with its timer cleared on unmount (D28).
+  const { addLine, addDesignLine, justAdded, markAdded } = useAddToCartLine();
   // b2b app: company view shows net amounts.
   const display = useDisplayPrice();
   const variants = useMemo(() => (product ? normaliseVariants(product) : []), [product]);
@@ -152,13 +128,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         : [],
     [product],
   );
-  const optionGroups = useMemo(() => optionGroupsOf(variants, optionConfigs), [variants, optionConfigs]);
-  const optionNames = useMemo(() => optionGroups.map(([name]) => name), [optionGroups]);
-  const configByName = useMemo(() => {
-    const map: Record<string, SectionOptionConfig> = {};
-    for (const cfg of optionConfigs) if (cfg && typeof cfg.name === 'string') map[cfg.name] = cfg;
-    return map;
-  }, [optionConfigs]);
+  const optionNames = useMemo(() => optionNamesOf(variants), [variants]);
 
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(variants[0]?.id ?? null);
   const [optionSelection, setOptionSelection] = useState<Record<string, string>>(() => ({
@@ -200,7 +170,6 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const personalization = app.fields;
   const [qty, setQty] = useState(1);
   const [busy, setBusy] = useState(false);
-  const [justAdded, setJustAdded] = useState(false);
   const [addError, setAddError] = useState('');
   const apiError = useApiError();
   // Designer app (M4.2): the editor replaces the form and the add button.
@@ -227,7 +196,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         }}
       >
         <div className="text-xs uppercase tracking-wide text-[var(--theme-colors-muted)]">
-          Add to cart
+          {t('common.addToCart')}
         </div>
       </div>
     );
@@ -252,18 +221,25 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
       }).format(display(Number(compareAt), taxRateBp, c).amount)
     : null;
 
-  const buttonLabel = (content.button_label as string) || (locale === 'ar' ? 'أضف للسلة' : 'Add to cart');
+  const buttonLabel = (content.button_label as string) || t('common.addToCart');
   const tr =
     product.translations.find((t) => t.locale === locale) ||
     product.translations.find((t) => t.locale === 'en') ||
     product.translations[0];
   const title = tr?.title || 'Product';
   const imageUrl = product.images?.[0]?.url ? resolveMediaUrl(product.images[0].url) : undefined;
+  // Secondary locales get a path prefix; the primary stays canonical.
+  const langPrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
 
-  /** Moves focus to a personalization input (ids from CustomFieldsForm). */
-  function focusField(fieldId: string) {
-    document.getElementById(`field-${fieldId}`)?.focus();
-  }
+  // What both add paths (fields / design) know about the line (M5 D31).
+  const lineSource: LineSource = {
+    title,
+    unitPrice: displayPrice,
+    imageUrl,
+    variantOptions: selectedVariant?.options ?? null,
+    currency: c,
+    taxRateBp,
+  };
 
   async function handleAdd() {
     if (!product || busy || needsVariant) return;
@@ -271,9 +247,9 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     // Same rules as the API; a missing required field blocks the add.
     const check = personalization.validateAll();
     if (!check.ok) {
-      // A field error already shows inline under its field: focus it instead
-      // of repeating the message below the button.
-      if (check.fieldId) focusField(check.fieldId);
+      // A field error already shows inline under its field: focus and scroll
+      // to it (D20) instead of repeating the message below the button.
+      if (check.fieldId) focusPersonalizationField(check.fieldId);
       else setAddError(check.firstError || '');
       return;
     }
@@ -281,174 +257,59 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     const { fields, display } = personalization.buildPayload();
     setBusy(true);
     try {
-      await addItem(
-        product.id,
-        selectedVariantId,
-        qty,
-        fields ?? {},
-        {
-          title,
-          price: displayPrice,
-          ...(selectedVariant && Object.keys(selectedVariant.options).length > 0
-            ? { variant: Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ') }
-            : {}),
-          imageUrl,
-          currency: c,
-          taxRateBp: taxRateBp ?? undefined,
-          ...(display ? { customFieldDisplay: display } : {}),
-          // Personalization app (D14): guests validate on the server first.
-          ...(advanced && storeSlug
-            ? { personalizationCheck: { storeSlug, locale, market: market?.key ?? null } }
-            : {}),
-        },
-      );
-      setJustAdded(true);
-      setTimeout(() => setJustAdded(false), 1800);
+      await addLine({ productId: product.id, variantId: selectedVariantId, quantity: qty, source: lineSource }, fields ?? {}, {
+        ...(display ? { customFieldDisplay: display } : {}),
+        // Personalization app (D14): guests validate on the server first.
+        ...(advanced && storeSlug
+          ? { personalizationCheck: { storeSlug, locale, market: market?.key ?? null } }
+          : {}),
+      });
     } catch (err) {
       // Field rule errors (K2) show inline on their field only; others
       // (e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET) are translated via errors.*
       const appErrors = advanced ? readApiPersonalizationErrors(err) : null;
       const fieldId = appErrors?.[0] ? errorKey(appErrors[0]) : (err as { field_id?: unknown } | null)?.field_id;
       if (personalization.applyServerError(err)) {
-        if (typeof fieldId === 'string') focusField(fieldId);
+        if (typeof fieldId === 'string') focusPersonalizationField(fieldId);
       } else setAddError(apiError(err));
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleDesignerAdd(line: DesignedLine) {
-    if (!product) return;
-    await addItem(product.id, selectedVariantId, qty, undefined, {
-      title,
-      price: displayPrice,
-      ...(selectedVariant && Object.keys(selectedVariant.options).length > 0
-        ? { variant: Object.entries(selectedVariant.options).map(([k, v]) => `${k}: ${v}`).join(' / ') }
-        : {}),
-      imageUrl,
-      currency: c,
-      taxRateBp: taxRateBp ?? undefined,
-      customFieldDisplay: line.display,
-      design: { id: line.designId, token: line.token, proofUrl: line.proofUrl },
-    });
+  function handleDesignerAdd(line: DesignedLine) {
+    if (!product) return Promise.resolve();
+    return addDesignLine({ productId: product.id, variantId: selectedVariantId, quantity: qty, source: lineSource }, line);
   }
 
   function handleDesignerDone(kind: 'added' | 'saved') {
-    if (kind !== 'added') return;
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1800);
-  }
-
-  function pickOption(name: string, value: string) {
-    const next = { ...optionSelection, [name]: value };
-    setOptionSelection(next);
-    // Keeping the old variant when nothing matches would add a combination
-    // the buyer is no longer looking at.
-    setSelectedVariantId(resolveVariant(variants, optionNames, next)?.id ?? null);
-  }
-
-  /** A value is pickable when an active, in-stock variant carries it with the other picks. */
-  function isOptionAvailable(name: string, value: string): boolean {
-    const hypothetical = { ...optionSelection, [name]: value };
-    return variants.some(
-      (v) =>
-        v.is_active !== false &&
-        (typeof v.stock !== 'number' || v.stock > 0) &&
-        optionNames.every((k) => hypothetical[k] === undefined || v.options[k] === hypothetical[k]),
-    );
+    if (kind === 'added') markAdded();
   }
 
   const oos = typeof stock === 'number' && stock <= 0;
   // A product with variants needs one resolved before it can be added.
   const needsVariant = variants.length > 0 && !selectedVariant;
 
-  // Option picker of the variants (page form; also the designer review step).
+  // Option picker of the variants (page form; also the designer review
+  // step): the page's selector, controlled by this section's picks (D19).
   const optionPicker = () =>
-    optionGroups.map(([name, values]) => {
-      const config = configByName[name];
-      // Variation cards only with the app on (D9/D10); 'card' is text otherwise.
-      const isCard = config?.style === 'card' && cardsConfig !== undefined;
-      const isColor = config?.style === 'color' || COLOR_OPTION_NAMES.has(name.toLowerCase());
-      return (
-        <div key={name} className="space-y-2">
-          <div className="flex items-baseline justify-between">
-            <span
-              className="text-xs font-medium uppercase tracking-wide"
-              style={{ color: 'var(--theme-colors-text)' }}
-            >
-              {name}
-            </span>
-            {optionSelection[name] && (
-              <span className="text-xs" style={{ color: 'var(--theme-colors-muted)' }}>
-                {optionSelection[name]}
-              </span>
-            )}
-          </div>
-          {isCard && cardsConfig ? (
-            <VariantCards
-              option={name}
-              values={values}
-              config={config}
-              selectedValue={optionSelection[name]}
-              selections={optionSelection}
-              optionNames={optionNames}
-              variants={variants}
-              isAvailable={(value) => isOptionAvailable(name, value)}
-              onSelect={(value) => pickOption(name, value)}
-              settings={cardsConfig}
-            />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {values.map((value) => {
-                const isActive = optionSelection[name] === value;
-                if (isColor) {
-                  const hex = config?.colorMap?.[value] || hexFor(value) || '#888';
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => pickOption(name, value)}
-                      title={value}
-                      aria-label={value}
-                      className="size-9 rounded-full transition-all"
-                      style={{
-                        backgroundColor: hex,
-                        outline: isActive
-                          ? '2px solid var(--theme-colors-primary)'
-                          : '1px solid var(--theme-colors-border)',
-                        outlineOffset: isActive ? '2px' : '0',
-                      }}
-                    />
-                  );
-                }
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => pickOption(name, value)}
-                    className="min-w-[44px] px-3 py-1.5 text-xs transition"
-                    style={{
-                      border: isActive
-                        ? '2px solid var(--theme-colors-primary)'
-                        : '1px solid var(--theme-colors-border)',
-                      borderRadius: 'var(--theme-radius-sm)',
-                      color: 'var(--theme-colors-text)',
-                      backgroundColor: 'var(--theme-colors-background)',
-                      fontWeight: isActive ? 'var(--theme-weight-bold)' : undefined,
-                    }}
-                  >
-                    {value}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      );
-    });
+    variants.length > 0 ? (
+      <VariantSelector
+        variants={variants}
+        selections={optionSelection}
+        selectedVariantId={selectedVariantId ?? undefined}
+        onSelect={(id) => setSelectedVariantId(id ?? null)}
+        onSelectionsChange={setOptionSelection}
+        optionConfigs={optionConfigs}
+        personalization={cardsConfig}
+        inStockText={t('product.inStock')}
+        outOfStockText={t('product.outOfStock')}
+      />
+    ) : null;
 
-  const designerCta = designer ? (
-    justAdded ? (
+  // "Added" confirmation with a way to the cart (M5 D5).
+  const addedState = (
+    <div className={`flex flex-col gap-2 ${fullWidth ? 'w-full' : ''}`}>
       <span
         role="status"
         className={`inline-flex items-center justify-center gap-2 px-6 py-3 ${fullWidth ? 'w-full' : ''}`}
@@ -462,6 +323,19 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         <Check className="w-4 h-4" />
         {t('cart.itemAdded')}
       </span>
+      <Link
+        href={`${langPrefix}/cart`}
+        className="min-h-11 inline-flex items-center justify-center text-sm underline underline-offset-4"
+        style={{ color: 'var(--theme-colors-primary)' }}
+      >
+        {t('cart.viewCart')}
+      </Link>
+    </div>
+  );
+
+  const designerCta = designer ? (
+    justAdded ? (
+      addedState
     ) : (
       <DesignerLauncher
         payload={designer}
@@ -495,12 +369,12 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     )
   ) : null;
 
-  const cta = designerCta ?? (
+  const cta = designerCta ?? (justAdded ? addedState : (
     <button
       type="button"
       onClick={handleAdd}
       disabled={busy || oos || needsVariant}
-      className={`inline-flex items-center justify-center gap-2 px-6 py-3 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
+      className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
         fullWidth ? 'w-full' : ''
       }`}
       style={
@@ -524,15 +398,10 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
       {busy ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          {locale === 'ar' ? 'جارٍ الإضافة…' : 'Adding…'}
-        </>
-      ) : justAdded ? (
-        <>
-          <Check className="w-4 h-4" />
-          {locale === 'ar' ? 'أُضيف' : 'Added'}
+          {t('product.addingToCart')}
         </>
       ) : oos ? (
-        locale === 'ar' ? 'نفدت الكمية' : 'Out of stock'
+        t('product.outOfStock')
       ) : (
         <>
           <ShoppingBag className="w-4 h-4" />
@@ -540,11 +409,11 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         </>
       )}
     </button>
-  );
+  ));
 
   return (
     <>
-      <section className="space-y-5">
+      <section className="space-y-5" style={SCOPE_STYLE}>
         {advanced && !designer && (
           <PersonalizationForm
             model={advanced}
@@ -583,10 +452,8 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             </span>
           )}
           {showStock && typeof stock === 'number' && (
-            <span className="text-xs ml-auto" style={{ color: stock > 0 ? 'var(--theme-colors-muted)' : '#dc2626' }}>
-              {stock > 0
-                ? `${stock} ${locale === 'ar' ? 'متوفر' : 'in stock'}`
-                : locale === 'ar' ? 'نفدت الكمية' : 'Out of stock'}
+            <span className="text-xs ms-auto" style={{ color: stock > 0 ? 'var(--theme-colors-muted)' : '#dc2626' }}>
+              {stock > 0 ? t('product.stockCount', { count: stock }) : t('product.outOfStock')}
             </span>
           )}
         </div>
@@ -616,8 +483,9 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         {showQuantity && (
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium" style={{ color: 'var(--theme-colors-text)' }}>
-              {locale === 'ar' ? 'الكمية' : 'Qty'}
+              {t('product.quantity')}
             </span>
+            {/* 44px touch targets (M5 D18) */}
             <div
               className="inline-flex items-center"
               style={{
@@ -628,7 +496,8 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
               <button
                 type="button"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-2.5 py-1.5"
+                aria-label={t('common.decreaseQuantity')}
+                className="size-11 inline-flex items-center justify-center"
                 style={{ color: 'var(--theme-colors-text)' }}
               >
                 <Minus className="size-3.5" />
@@ -642,7 +511,8 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
               <button
                 type="button"
                 onClick={() => setQty((q) => q + 1)}
-                className="px-2.5 py-1.5"
+                aria-label={t('common.increaseQuantity')}
+                className="size-11 inline-flex items-center justify-center"
                 style={{ color: 'var(--theme-colors-text)' }}
               >
                 <Plus className="size-3.5" />
@@ -664,6 +534,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             backgroundColor: 'var(--theme-colors-background)',
             borderTop: '1px solid var(--theme-colors-border)',
             boxShadow: 'var(--theme-shadow-lg)',
+            ...SCOPE_STYLE,
           }}
         >
           {cta}

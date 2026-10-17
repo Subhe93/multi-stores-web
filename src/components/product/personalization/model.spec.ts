@@ -4,6 +4,7 @@ import { filterAllowedChars } from '@/lib/personalization/form';
 import { addGuestLine } from '@/lib/guestCart';
 import {
   activeOptionValues,
+  cachedAllowedChars,
   cardMeta,
   cardPrice,
   DEFAULT_BADGE_COLOR,
@@ -450,5 +451,20 @@ describe('variation cards', () => {
     expect(cardMeta(cfg, '3 produkter', 'en', 'sv').label).toBe('3 products');
     expect(cardMeta(cfg, '2 produkter', 'sv', 'sv')).toMatchObject({ label: '2 produkter', badgeColor: DEFAULT_BADGE_COLOR });
     expect(cardMeta(null, '1 produkt', 'sv', 'sv')).toEqual({ label: '1 produkt', sublabel: undefined, badge: undefined, badgeColor: DEFAULT_BADGE_COLOR });
+  });
+});
+
+describe('cachedAllowedChars (M5 D9)', () => {
+  it('returns one RegExp instance per body and matches like compileAllowedChars', () => {
+    const a = cachedAllowedChars('A-Za-z ');
+    expect(a).toBe(cachedAllowedChars('A-Za-z '));
+    expect(a).not.toBe(cachedAllowedChars('A-Z'));
+    expect(a?.source).toBe(compileAllowedChars('A-Za-z ')?.source);
+    expect(a?.test('Anna')).toBe(true);
+    expect(a?.test('Ann4')).toBe(false);
+  });
+  it('caches a rejected body as null', () => {
+    expect(cachedAllowedChars('[')).toBeNull();
+    expect(cachedAllowedChars('[')).toBeNull();
   });
 });

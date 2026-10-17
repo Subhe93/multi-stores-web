@@ -6,9 +6,59 @@
  * match: `lineKey(customFields)` is '' without personalization, so carts of
  * products without custom fields merge exactly as before M4.0.
  */
-import { lineKey, normalizeFieldValues } from '@/lib/personalization';
+// Imported from the rules module directly (not the barrel) so the cart chunk
+// does not pull the M4.1 evaluator along (M5 D24).
+import { lineKey, normalizeFieldValues } from '@/lib/personalization/rules';
 import { isKnownRate } from '@/lib/b2bPrice';
 import type { CartItem, CartItemMetadata, DesignLinePatch, DesignLineReplacement } from '@/hooks/useCart';
+
+// ── Guest cart storage (localStorage) ────────────────────────────────────
+
+export const GUEST_CART_KEY = 'guest_cart';
+export const GUEST_COUPON_KEY = 'guest_coupon';
+
+/** The subset of `Storage` the guest cart uses (injectable for tests). */
+export interface KeyValueStorage {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+}
+
+/** Parses a stored guest cart; anything unreadable is an empty cart. */
+export function parseStoredGuestCart(raw: string | null): CartItem[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Writes a value to storage without ever throwing (M5 D1): a full or
+ * disabled storage (Safari private mode, quota) keeps the in-memory cart and
+ * returns false instead of blanking the page. `null` removes the key.
+ */
+export function safeStorageWrite(storage: KeyValueStorage | null | undefined, key: string, value: string | null): boolean {
+  if (!storage) return false;
+  try {
+    if (value === null) storage.removeItem(key);
+    else storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The guest cart carried by a cross-tab `storage` event (M5 D12): the new
+ * lines when the event is about the cart key, null for any other key.
+ */
+export function guestCartFromStorageEvent(event: { key: string | null; newValue: string | null }): CartItem[] | null {
+  if (event.key !== GUEST_CART_KEY) return null;
+  return parseStoredGuestCart(event.newValue);
+}
 
 /** Merge identity of a guest line: personalization values + design id (M4.2). */
 export function guestLineKey(item: Pick<CartItem, 'customFields' | 'designId'>): string {

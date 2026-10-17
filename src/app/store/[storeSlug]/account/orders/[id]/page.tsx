@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
+import { formatPrice } from '@/lib/format';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
@@ -218,10 +219,10 @@ export default function StoreOrderDetailPage() {
   if (!order) {
     return (
       <div className="store-surface store-bd rounded-2xl border p-8 text-center">
-        <p className="text-sm text-gray-500 mb-3">Order not found</p>
+        <p className="text-sm text-gray-500 mb-3">{t('account.orderNotFound')}</p>
         <Link href={lp('/account/orders')} className="text-sm font-medium hover:underline"
           style={{ color: 'var(--store-primary, #2563eb)' }}>
-          Back to Orders
+          {t('account.backToOrders')}
         </Link>
       </div>
     );
@@ -249,7 +250,8 @@ export default function StoreOrderDetailPage() {
   // back to the first step instead.
   const currentIdx = Math.max(0, STATUS_STEPS.indexOf(status));
 
-  const fmt = (v: number) => new Intl.NumberFormat('en', { style: 'currency', currency }).format(v);
+  // Money and dates in the storefront locale (M5 D4).
+  const fmt = (v: number) => formatPrice(v, currency, locale);
 
   return (
     <div className="space-y-5">
@@ -260,10 +262,10 @@ export default function StoreOrderDetailPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Order #{num}</h1>
+            <h1 className="text-lg font-semibold text-gray-900">{t('account.orderTitle', { number: num })}</h1>
             {date && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {new Date(date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             )}
           </div>
@@ -335,7 +337,7 @@ export default function StoreOrderDetailPage() {
                   {imgUrl ? (
                     <img src={resolveMediaUrl(imgUrl)} alt={title} className="w-12 h-12 rounded-lg object-cover border border-gray-100" />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px]">No img</div>
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px] text-center leading-tight">{t('product.noImage')}</div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
@@ -348,9 +350,9 @@ export default function StoreOrderDetailPage() {
                         {bundleTr?.label ? ` · ${bundleTr.label}` : ''}
                       </span>
                     )}
-                    <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                    <p className="text-xs text-gray-400">{t('product.quantity')}: {item.quantity}</p>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-end">
                     <p className="text-sm font-semibold text-gray-900">
                       {fmt(lineTotal)}
                     </p>
@@ -375,7 +377,7 @@ export default function StoreOrderDetailPage() {
 
                 {/* Design notes */}
                 {item.design_notes && (
-                  <p className="ms-15 text-[11px] text-gray-400 italic">Note: {item.design_notes}</p>
+                  <p className="ms-15 text-[11px] text-gray-400 italic">{t('account.note')}: {item.design_notes}</p>
                 )}
               </div>
             );

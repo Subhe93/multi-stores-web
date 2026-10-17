@@ -63,6 +63,20 @@ export interface PersonalizationAdvanced {
 }
 
 /**
+ * Moves focus to a personalization input and scrolls it into the middle of
+ * the viewport (M5 D20), so the inline error is visible on a long form.
+ * Input ids are `field-<key>` (`CustomFieldsForm` / `FieldRenderer`).
+ */
+export function focusPersonalizationField(fieldKey: string): boolean {
+  if (typeof document === 'undefined') return false;
+  const el = document.getElementById(`field-${fieldKey}`);
+  if (!el) return false;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return true;
+}
+
+/**
  * Personalization state of one product form (M4.0 §2.2): shared by the
  * product page (`ProductDetailClient`) and the theme's `AddToCartMagic`, so
  * both send the same values and run the same rules as the API. With the
@@ -119,12 +133,14 @@ export function usePersonalizationFields(
   if (pruned) setValues(pruned);
 
   // ── M4.0 mode ───────────────────────────────────────
-  const result = useMemo(() => validateFormValues(source, values), [source, values]);
+  // The M4.0 validator only runs without the app evaluator (M5 D8): in app
+  // mode the evaluator already validated every keystroke.
+  const result = useMemo(() => (evaluation ? null : validateFormValues(source, values)), [evaluation, source, values]);
   const clientErrors = useMemo(
     () =>
       evaluation
         ? errorMessages(evaluation.errors, defs, locale, primaryLocale, translate)
-        : fieldErrorsFrom(result.issues, source, locale, primaryLocale, translate),
+        : fieldErrorsFrom(result?.issues ?? [], source, locale, primaryLocale, translate),
     [evaluation, defs, result, source, locale, primaryLocale, translate],
   );
   const errors = useMemo(() => ({ ...clientErrors, ...serverErrors }), [clientErrors, serverErrors]);
@@ -180,7 +196,7 @@ export function usePersonalizationFields(
       const key = first ? errorKey(first) : '_form';
       return { ok: false, firstError: clientErrors[key], ...(first?.field_id ? { fieldId: key } : {}) };
     }
-    if (result.ok) return { ok: true };
+    if (!result || result.ok) return { ok: true };
     const first = result.issues[0];
     const key = first?.field_id || '_form';
     return { ok: false, firstError: clientErrors[key], ...(first?.field_id ? { fieldId: first.field_id } : {}) };

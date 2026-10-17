@@ -33,7 +33,9 @@
     "decreaseQuantity": "Diminuer la quantité",
     "increaseQuantity": "Augmenter la quantité",
     "free": "Gratuit",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "yes": "Oui",
+    "no": "Non"
   },
   "home": {
     "title": "Marché {name}",
@@ -146,7 +148,12 @@
     "estimatedDays": "{min}–{max} jours",
     "freeShipping": "Gratuit",
     "freeShippingOver": "Gratuit dès {amount}",
-    "pickup": "Retrait en boutique"
+    "pickup": "Retrait en boutique",
+    "stockCount": "{count} en stock",
+    "fileUploads": "Fichiers à envoyer",
+    "percentOff": "{percent}% de réduction",
+    "amountOff": "{amount} de réduction",
+    "buyQuantity": "Achetez-en {count}"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -162,7 +169,7 @@
     "personalize": "Personnaliser",
     "freeShipping": "Livraison gratuite",
     "fromPrice": "à partir de {price}",
-    "required": "{label} est obligatoire",
+    "required": "{label} est requis",
     "invalidLine": "La personnalisation de cet article doit être mise à jour. Retirez-le puis ajoutez-le à nouveau.",
     "priceInCart": "+ personnalisation, prix final dans le panier"
   },
@@ -200,7 +207,8 @@
     "linesNotMoved": "{count, plural, one {# article n'a pas pu être transféré vers votre compte car sa personnalisation n'est plus valide.} other {# articles n'ont pas pu être transférés vers votre compte car leur personnalisation n'est plus valide.}}",
     "unavailableInMarket": "Non disponible pour {market}",
     "unavailableHere": "Non disponible sur ce marché",
-    "removeUnavailable": "Retirez les articles indisponibles pour passer à la caisse."
+    "removeUnavailable": "Retirez les articles indisponibles pour passer à la caisse.",
+    "viewCart": "Voir le panier"
   },
   "checkout": {
     "title": "Paiement",
@@ -398,7 +406,11 @@
       "retry": "Réessayer"
     },
     "fileUploaded": "Fichier téléversé",
-    "fileRemoved": "Supprimé après la durée de conservation"
+    "fileRemoved": "Supprimé après la durée de conservation",
+    "orderNotFound": "Commande introuvable",
+    "backToOrders": "Retour aux commandes",
+    "orderTitle": "Commande #{number}",
+    "note": "Note"
   },
   "orderStatus": {
     "PENDING": "En attente",
@@ -754,6 +766,8 @@
     "fixErrors": "Veuillez compléter les champs signalés.",
     "editDesign": "Modifier le design",
     "uploadFailed": "L’importation a échoué. Vérifiez votre connexion et réessayez.",
+    "cancelUpload": "Annuler l’importation",
+    "tryAgain": "Réessayer",
     "startAgain": "Recommencer à partir de ce design",
     "lockedInCart": "Ce design a déjà été commandé et ne peut plus être modifié.",
     "incompleteInCart": "Ce design est dans votre panier mais n’est pas encore terminé : il ne peut donc pas être commandé.",

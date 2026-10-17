@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { isValueSet, type PFieldDef } from '@/lib/personalization';
 import { mapFormFields, type PersonalizationProduct } from '@/lib/personalization/form';
 import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
@@ -30,8 +30,10 @@ export interface FieldRendererProps {
  * One non-repeater field of the app form. TEXT/TEXTAREA, CHECKBOX_GROUP and
  * COLOR_PALETTE have app components; the other M4.0 types render through the
  * M4.0 `CustomFieldsForm` (uploads, selects, dates) with the same rules.
+ * Memoized (M5 D9): repeater items whose props did not change skip the
+ * re-render when another item is typed into.
  */
-export function FieldRenderer({
+export const FieldRenderer = memo(function FieldRenderer({
   def,
   fieldKey,
   siblings,
@@ -120,4 +122,4 @@ export function FieldRenderer({
         </div>
       );
   }
-}
+});

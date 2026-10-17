@@ -23,12 +23,12 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         onClick={() => canDecrement && onChange(value - step)}
         disabled={!canDecrement}
         aria-label={t('decreaseQuantity')}
-        className="w-10 h-10 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
+        className="size-11 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         &minus;
       </button>
 
-      <span className="min-w-10 h-10 flex items-center justify-center text-sm font-bold text-gray-900 select-none border-x border-gray-200">
+      <span className="min-w-10 h-11 flex items-center justify-center text-sm font-bold text-gray-900 select-none border-x border-gray-200">
         {value}
       </span>
 
@@ -37,7 +37,7 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         onClick={() => canIncrement && onChange(value + step)}
         disabled={!canIncrement}
         aria-label={t('increaseQuantity')}
-        className="w-10 h-10 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
+        className="size-11 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         +
       </button>
