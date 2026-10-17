@@ -109,7 +109,7 @@ function toHit(to: unknown, status: unknown): RedirectHit | null {
 type StoreRedirects =
   | { mode: 'map'; map: Map<string, RedirectHit> }
   | { mode: 'lookup' }
-  | { mode: 'none' }; // fetch failed: fail open until the entry expires
+  | { mode: 'none' }; // fetch failed or unversioned: fail open until the entry expires (FAILURE_TTL_MS)
 
 type CacheEntry<T> = { value: T; expiresAt: number };
 
@@ -186,7 +186,13 @@ async function loadStoreRedirects(slug: string, version: string): Promise<StoreR
       `${apiBase()}/stores/${encodeURIComponent(slug)}/redirects?v=${encodeURIComponent(version)}`,
     );
     if (!ok || !data || typeof data !== 'object') return { mode: 'none' };
-    const body = data as { mode?: unknown; items?: unknown };
+    const body = data as { version?: unknown; mode?: unknown; items?: unknown };
+    // The proxy only asks when the host lookup reported a version, so an
+    // answer without one is not "no redirects": it is a failed or stale
+    // answer and must expire after the short failure TTL, never after the
+    // 10-minute map TTL (the API answers 503 on a DB error, but an older API
+    // or a wrapped error could still deliver `version: null`).
+    if (typeof body.version !== 'string' || !body.version) return { mode: 'none' };
     if (body.mode === 'lookup') return { mode: 'lookup' };
     if (body.mode !== 'map' || !Array.isArray(body.items)) return { mode: 'none' };
     const map = new Map<string, RedirectHit>();

@@ -54,6 +54,49 @@ describe('proxy store redirects', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('a dotted path is matched against the redirects before the static bypass', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/market-context')) return json({ enabled: false, redirects_version: 'v1' });
+      if (url.includes('/redirects?v=v1')) {
+        return json({
+          version: 'v1',
+          mode: 'map',
+          items: [
+            ['/produkt/x.html', '/products/x', 301],
+            ['/feed.xml', '/', 301],
+          ],
+        });
+      }
+      throw new Error(`unexpected ${url}`);
+    });
+    const html = await proxy(req('redir-dot.localhost:3000', '/produkt/x.html'));
+    expect(html.status).toBe(301);
+    expect(html.headers.get('location')).toBe('http://redir-dot.localhost:3000/products/x');
+    const feed = await proxy(req('redir-dot.localhost:3000', '/Feed.xml?a=1'));
+    expect(feed.headers.get('location')).toBe('http://redir-dot.localhost:3000/?a=1');
+
+    // Other dotted paths keep the static bypass: no rewrite, no redirect.
+    const png = await proxy(req('redir-dot.localhost:3000', '/logo.png'));
+    expect(png.headers.get('location')).toBeNull();
+    expect(png.headers.get('x-middleware-rewrite')).toBeNull();
+    expect(png.headers.get('x-middleware-next')).toBe('1');
+    // Internal routes bypass before any lookup; the map was fetched once.
+    const calls = fetchMock.mock.calls.length;
+    const internal = await proxy(req('redir-dot.localhost:3000', '/_next/static/a.js'));
+    expect(internal.headers.get('x-middleware-next')).toBe('1');
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+    expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/redirects?v=v1'))).toHaveLength(1);
+  });
+
+  it('legacy store: a dotted path costs only the cached host lookup and is bypassed', async () => {
+    fetchMock.mockResolvedValue(json({ enabled: false }));
+    const png = await proxy(req('legacy-dot.localhost:3000', '/logo.png'));
+    expect(png.headers.get('x-middleware-next')).toBe('1');
+    expect(png.headers.get('x-middleware-rewrite')).toBeNull();
+    await proxy(req('legacy-dot.localhost:3000', '/style.css'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('redirect fetch failure fails open', async () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (url.includes('/market-context')) return json({ enabled: false, redirects_version: 'v1' });

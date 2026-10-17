@@ -233,33 +233,26 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // Bypass static files and internal Next.js routes BEFORE resolving the store
-  // slug — slug resolution can hit the API for custom domains, and we don't
-  // want that latency added to every /logo.png or /_next/* request. Sitemap
-  // and robots are excluded from the dot-bypass because they need slug routing.
+  // Internal Next.js routes bypass everything BEFORE resolving the store
+  // slug (slug resolution can hit the API for custom domains). Sitemap and
+  // robots need slug routing and are never bypassed.
   const isSitemapOrRobots =
     pathname === '/sitemap.xml' || pathname === '/robots.txt';
   if (
-    !isSitemapOrRobots &&
-    (pathname.startsWith('/_next') ||
-      pathname.startsWith('/api') ||
-      pathname.startsWith('/builder-preview') ||
-      pathname.includes('.'))
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/builder-preview')
   ) {
     return NextResponse.next();
   }
+  // Paths with a dot are static files (/logo.png) and are bypassed too, but
+  // only AFTER the store redirects are checked: imported WordPress URLs such
+  // as /produkt/x.html or /feed.xml must still 301. The host lookup this
+  // costs is cached per host (domainCache), so static requests stay cheap.
+  const isStaticLike = !isSitemapOrRobots && pathname.includes('.');
 
   const route = await resolveStoreHost(hostname);
   const storeSlug = route?.slug ?? null;
-
-  // A market domain configured as an alias (www → apex) 301s to its target
-  // host, keeping path + query.
-  if (route?.redirectTo) {
-    return NextResponse.redirect(
-      `https://${route.redirectTo}${pathname}${request.nextUrl.search}`,
-      301,
-    );
-  }
 
   // Store redirects (M4.4 §6.4): only when the host lookup reported a
   // `redirects_version`, so stores without redirects make no extra fetch.
@@ -272,6 +265,17 @@ export async function proxy(request: NextRequest) {
         hit.status,
       );
     }
+  }
+
+  if (isStaticLike) return NextResponse.next();
+
+  // A market domain configured as an alias (www → apex) 301s to its target
+  // host, keeping path + query.
+  if (route?.redirectTo) {
+    return NextResponse.redirect(
+      `https://${route.redirectTo}${pathname}${request.nextUrl.search}`,
+      301,
+    );
   }
 
   // /sitemap.xml and /robots.txt: subdomain serves the store-scoped routes;

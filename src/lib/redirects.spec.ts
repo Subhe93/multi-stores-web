@@ -205,6 +205,26 @@ describe('matchStoreRedirect', () => {
     expect(await matchStoreRedirect('t', 'v1', '/a')).toBeNull();
   });
 
+  it('an answer without a version is a failure (short TTL), never "no redirects"', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-16T00:00:00Z'));
+    try {
+      fetchMock
+        .mockResolvedValueOnce(ok({ version: null, mode: 'map', items: [] }))
+        .mockResolvedValueOnce(ok({ version: 'v1', mode: 'map', items: [['/a', '/b', 301]] }));
+      expect(await matchStoreRedirect('u', 'v1', '/a')).toBeNull();
+      // Cached as a failure, not refetched at once...
+      expect(await matchStoreRedirect('u', 'v1', '/a')).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // ...but retried after the short failure TTL, not the 10-minute map TTL.
+      vi.setSystemTime(Date.now() + 11_000);
+      expect(await matchStoreRedirect('u', 'v1', '/a')).toEqual({ to: '/b', status: 301 });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('makes no fetch without a version', async () => {
     expect(await matchStoreRedirect('s', '', '/a')).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
