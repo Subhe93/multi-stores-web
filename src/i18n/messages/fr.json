@@ -208,7 +208,11 @@
     "unavailableInMarket": "Non disponible pour {market}",
     "unavailableHere": "Non disponible sur ce marché",
     "removeUnavailable": "Retirez les articles indisponibles pour passer à la caisse.",
-    "viewCart": "Voir le panier"
+    "viewCart": "Voir le panier",
+    "couponAutoApplied": "Code promo {code} ajouté",
+    "couponAutoInvalid": "Le code promo {code} n’est pas valide",
+    "couponAutoPending": "Le code promo {code} sera appliqué à votre panier",
+    "couponNoticeDismiss": "Fermer"
   },
   "checkout": {
     "title": "Paiement",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "Le numéro d'entreprise est requis",
       "orgNumberInvalid": "Numéro d'entreprise invalide (format attendu : {format})",
       "vatNumberRequired": "Le numéro de TVA est requis",
-      "vatNumberInvalid": "Numéro de TVA invalide"
+      "vatNumberInvalid": "Numéro de TVA invalide",
+      "phoneRequired": "Le numéro de téléphone est obligatoire"
     },
     "estimatedDeliveryVaries": "Le délai de livraison estimé varie",
     "comingSoon": "Bientôt disponible",

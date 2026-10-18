@@ -208,7 +208,11 @@
     "unavailableInMarket": "In {market} nicht verfügbar",
     "unavailableHere": "In diesem Markt nicht verfügbar",
     "removeUnavailable": "Entfernen Sie die nicht verfügbaren Artikel, um zur Kasse zu gehen.",
-    "viewCart": "Warenkorb ansehen"
+    "viewCart": "Warenkorb ansehen",
+    "couponAutoApplied": "Rabattcode {code} hinzugefügt",
+    "couponAutoInvalid": "Der Rabattcode {code} ist ungültig",
+    "couponAutoPending": "Der Rabattcode {code} wird auf Ihren Warenkorb angewendet",
+    "couponNoticeDismiss": "Schließen"
   },
   "checkout": {
     "title": "Kasse",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "Handelsregisternummer ist erforderlich",
       "orgNumberInvalid": "Ungültige Handelsregisternummer (erwartet: {format})",
       "vatNumberRequired": "USt-IdNr. ist erforderlich",
-      "vatNumberInvalid": "Ungültige USt-IdNr."
+      "vatNumberInvalid": "Ungültige USt-IdNr.",
+      "phoneRequired": "Telefonnummer ist erforderlich"
     },
     "estimatedDeliveryVaries": "Voraussichtliche Lieferzeit variiert",
     "comingSoon": "Demnächst verfügbar",

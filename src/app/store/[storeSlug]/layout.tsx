@@ -12,6 +12,7 @@ import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarketKey, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
@@ -67,6 +68,8 @@ interface Store {
   /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Checkout behaviour overrides (M5.1): absent for stores on the defaults. */
+  checkout?: unknown;
   custom_domain?: string | null;
   description?: string;
   logo_url?: string;
@@ -453,7 +456,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} buyerType={buyerType} primaryLocale={primaryLocale}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

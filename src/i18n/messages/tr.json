@@ -208,7 +208,11 @@
     "unavailableInMarket": "{market} için mevcut değil",
     "unavailableHere": "Bu pazarda mevcut değil",
     "removeUnavailable": "Ödemeye devam etmek için mevcut olmayan ürünleri kaldırın.",
-    "viewCart": "Sepeti görüntüle"
+    "viewCart": "Sepeti görüntüle",
+    "couponAutoApplied": "{code} indirim kodu eklendi",
+    "couponAutoInvalid": "{code} indirim kodu geçerli değil",
+    "couponAutoPending": "{code} indirim kodu sepetinize uygulanacak",
+    "couponNoticeDismiss": "Kapat"
   },
   "checkout": {
     "title": "Ödeme",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "Ticaret sicil numarası zorunludur",
       "orgNumberInvalid": "Geçersiz ticaret sicil numarası (beklenen biçim: {format})",
       "vatNumberRequired": "KDV numarası zorunludur",
-      "vatNumberInvalid": "Geçersiz KDV numarası"
+      "vatNumberInvalid": "Geçersiz KDV numarası",
+      "phoneRequired": "Telefon numarası gerekli"
     },
     "estimatedDeliveryVaries": "Tahmini teslimat süresi değişir",
     "comingSoon": "Yakında",

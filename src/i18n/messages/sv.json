@@ -208,7 +208,11 @@
     "unavailableInMarket": "Inte tillgänglig i {market}",
     "unavailableHere": "Inte tillgänglig på den här marknaden",
     "removeUnavailable": "Ta bort de varor som inte är tillgängliga för att gå vidare till kassan.",
-    "viewCart": "Visa varukorgen"
+    "viewCart": "Visa varukorgen",
+    "couponAutoApplied": "Rabattkod {code} tillagd",
+    "couponAutoInvalid": "Rabattkoden {code} är inte giltig",
+    "couponAutoPending": "Rabattkoden {code} läggs till i din varukorg",
+    "couponNoticeDismiss": "Stäng"
   },
   "checkout": {
     "title": "Kassa",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "Organisationsnummer krävs",
       "orgNumberInvalid": "Ogiltigt organisationsnummer (förväntat format: {format})",
       "vatNumberRequired": "Momsregistreringsnummer krävs",
-      "vatNumberInvalid": "Ogiltigt momsregistreringsnummer"
+      "vatNumberInvalid": "Ogiltigt momsregistreringsnummer",
+      "phoneRequired": "Telefonnummer krävs"
     },
     "estimatedDeliveryVaries": "Beräknad leveranstid varierar",
     "comingSoon": "Kommer snart",

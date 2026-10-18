@@ -208,7 +208,11 @@
     "unavailableInMarket": "غير متوفر في {market}",
     "unavailableHere": "غير متوفر في هذا السوق",
     "removeUnavailable": "أزل المنتجات غير المتوفرة لمتابعة الدفع.",
-    "viewCart": "عرض السلة"
+    "viewCart": "عرض السلة",
+    "couponAutoApplied": "تمت إضافة كود الخصم {code}",
+    "couponAutoInvalid": "كود الخصم {code} غير صالح",
+    "couponAutoPending": "سيُطبَّق كود الخصم {code} على سلتك",
+    "couponNoticeDismiss": "إغلاق"
   },
   "checkout": {
     "title": "إتمام الشراء",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "رقم التسجيل التجاري مطلوب",
       "orgNumberInvalid": "رقم التسجيل التجاري غير صالح (الصيغة المتوقعة {format})",
       "vatNumberRequired": "الرقم الضريبي مطلوب",
-      "vatNumberInvalid": "الرقم الضريبي غير صالح"
+      "vatNumberInvalid": "الرقم الضريبي غير صالح",
+      "phoneRequired": "رقم الهاتف مطلوب"
     },
     "estimatedDeliveryVaries": "وقت التسليم المقدّر يختلف",
     "comingSoon": "قريباً",

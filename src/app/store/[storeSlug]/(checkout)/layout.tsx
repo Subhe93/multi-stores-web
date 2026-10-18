@@ -8,6 +8,7 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarketKey } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
@@ -25,6 +26,8 @@ interface Store {
   /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Checkout behaviour overrides (M5.1): absent for stores on the defaults. */
+  checkout?: unknown;
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
@@ -78,7 +81,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

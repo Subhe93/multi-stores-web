@@ -13,6 +13,8 @@ import type { StorefrontApps } from '@/lib/storeApps';
 import type { MarketRoute } from '@/lib/market';
 import type { BuyerType } from '@/lib/buyerType';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
+import { CheckoutSettingsProvider } from '@/hooks/useCheckoutSettings';
+import type { CheckoutSettings } from '@/lib/checkoutSettings';
 
 function CartProviderWithAuth({
   children,
@@ -61,6 +63,7 @@ export function StoreProviders({
   markets,
   buyerType,
   primaryLocale,
+  checkout,
 }: {
   children: ReactNode;
   locale?: string;
@@ -86,6 +89,9 @@ export function StoreProviders({
   buyerType?: BuyerType;
   /** The store's primary content locale (label fallback of snapshots). */
   primaryLocale?: string;
+  /** Checkout behaviour (`checkout` block of `storefront.getStore`, already
+   *  normalized). Undefined = the defaults, i.e. today's behaviour. */
+  checkout?: CheckoutSettings | null;
 }) {
   const b2bApp = storeApps?.b2b;
   // Stable settings object so the BuyerType context value only changes when
@@ -101,15 +107,17 @@ export function StoreProviders({
             settings={b2bSettings}
           >
             <MarketProvider market={market} markets={markets}>
-              <CartProviderWithAuth
-                locale={locale}
-                storeId={storeId}
-                storeCurrency={storeCurrency}
-                storeTax={storeTax}
-                marketKey={market?.key}
-              >
-                <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
-              </CartProviderWithAuth>
+              <CheckoutSettingsProvider value={checkout}>
+                <CartProviderWithAuth
+                  locale={locale}
+                  storeId={storeId}
+                  storeCurrency={storeCurrency}
+                  storeTax={storeTax}
+                  marketKey={market?.key}
+                >
+                  <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
+                </CartProviderWithAuth>
+              </CheckoutSettingsProvider>
             </MarketProvider>
           </BuyerTypeProvider>
         </StoreAppsProvider>

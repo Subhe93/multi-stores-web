@@ -24,6 +24,8 @@ import {
   type TaxPricingMode,
 } from '@/lib/tax';
 import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
+import { captureCouponFromSearch, pendingCouponStorageKey, type CouponAutoApplyNotice } from '@/lib/checkoutSettings';
 import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
 import {
   addGuestLine,
@@ -262,6 +264,10 @@ interface CartContextValue extends CartState {
   hasUnavailableItems: boolean;
   /** Hide the hand-off and login-migration notices. */
   dismissPricesNotice: () => void;
+  /** Coupon auto-apply (M5.1): the code captured from the URL and what
+   *  happened to it; null when nothing was captured or the notice was hidden. */
+  couponNotice: CouponAutoApplyNotice | null;
+  dismissCouponNotice: () => void;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
@@ -553,6 +559,20 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setMigrationDropError(null);
   }, []);
   const prevTokenRef = useRef<string | null | undefined>(undefined);
+
+  // ── Coupon auto-apply (M5 W2-A, M5.1) ────────────────
+  // A campaign link carries `?coupon=CODE` (or any key in `coupon_param`,
+  // e.g. Namez's legacy `coupon1`). With `coupon_autoapply` on, the code is
+  // captured on any store page, stripped from the URL, kept per store in
+  // localStorage and applied through the regular coupon flow as soon as the
+  // cart has a line (coupon rules such as a minimum subtotal are judged
+  // against real lines). Stores on the defaults never read the URL.
+  const checkoutSettings = useCheckoutSettings();
+  const couponAutoapply = checkoutSettings.coupon_autoapply;
+  const [pendingCoupon, setPendingCoupon] = useState<string | null>(null);
+  const [couponNotice, setCouponNotice] = useState<CouponAutoApplyNotice | null>(null);
+  const dismissCouponNotice = useCallback(() => setCouponNotice(null), []);
+  const autoApplyBusy = useRef(false);
 
   // ── Guest cart → server cart ────────────────────────
   // The login effect and the checkout sync share one in-flight run (no line
@@ -1004,6 +1024,35 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     saveLocalCoupon(null);
   }, [isAuthenticated, token]);
 
+  // ── Coupon auto-apply: capture from the URL ─────────
+  useEffect(() => {
+    if (!couponAutoapply || typeof window === 'undefined') return;
+    const key = pendingCouponStorageKey(storeId);
+    const hit = captureCouponFromSearch(window.location.search, checkoutSettings);
+    if (hit) {
+      const url = new URL(window.location.href);
+      url.search = hit.search;
+      window.history.replaceState(window.history.state, '', url.toString());
+      safeStorageWrite(localStore(), key, hit.code);
+      setPendingCoupon(hit.code);
+      setCouponNotice({ code: hit.code, status: 'pending' });
+      return;
+    }
+    // A code captured on an earlier page load that could not be applied yet
+    // (empty cart) is still waiting.
+    try {
+      const stored = localStore()?.getItem(key) ?? null;
+      if (stored) {
+        setPendingCoupon(stored);
+        setCouponNotice((n) => n ?? { code: stored, status: 'pending' });
+      }
+    } catch {
+      // Storage unavailable: nothing to resume.
+    }
+    // Runs once per store (the settings object is stable per page load).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couponAutoapply, storeId]);
+
   // ── Apply coupon ───────────────────────────────────
 
   const applyCoupon = useCallback(
@@ -1055,6 +1104,34 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     },
     [isAuthenticated, token, items, storeId]
   );
+
+  // ── Coupon auto-apply: apply once the cart has a line ──
+  const applyCouponRef = useRef(applyCoupon);
+  applyCouponRef.current = applyCoupon;
+  const couponRef = useRef(coupon);
+  couponRef.current = coupon;
+  useEffect(() => {
+    if (!couponAutoapply || !pendingCoupon || loading || autoApplyBusy.current) return;
+    if (availableLines(items).length === 0) return;
+    const code = pendingCoupon;
+    const key = pendingCouponStorageKey(storeId);
+    autoApplyBusy.current = true;
+    (async () => {
+      try {
+        const current = couponRef.current?.code;
+        if (!current || current.toUpperCase() !== code.toUpperCase()) await applyCouponRef.current(code);
+        setCouponNotice({ code, status: 'applied' });
+      } catch {
+        setCouponNotice({ code, status: 'invalid' });
+      } finally {
+        // One attempt per captured code: a rejected code is not retried on
+        // every cart change (the shopper can still type it manually).
+        autoApplyBusy.current = false;
+        setPendingCoupon(null);
+        safeStorageWrite(localStore(), key, null);
+      }
+    })();
+  }, [couponAutoapply, pendingCoupon, loading, items, storeId]);
 
   // ── Remove coupon ──────────────────────────────────
 
@@ -1186,6 +1263,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     migrationDropError,
     hasUnavailableItems: hasUnavailableLines(items),
     dismissPricesNotice,
+    couponNotice,
+    dismissCouponNotice,
   };
 
   return createElement(CartContext.Provider, { value }, children);

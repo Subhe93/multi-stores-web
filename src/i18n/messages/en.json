@@ -208,7 +208,11 @@
     "unavailableInMarket": "Not available in {market}",
     "unavailableHere": "Not available in this market",
     "removeUnavailable": "Remove the unavailable items to continue to checkout.",
-    "viewCart": "View cart"
+    "viewCart": "View cart",
+    "couponAutoApplied": "Discount code {code} added",
+    "couponAutoInvalid": "Discount code {code} is not valid",
+    "couponAutoPending": "Discount code {code} will be applied to your cart",
+    "couponNoticeDismiss": "Dismiss"
   },
   "checkout": {
     "title": "Checkout",
@@ -295,7 +299,8 @@
       "orgNumberRequired": "Organisation number is required",
       "orgNumberInvalid": "Invalid organisation number (expected {format})",
       "vatNumberRequired": "VAT number is required",
-      "vatNumberInvalid": "Invalid VAT number"
+      "vatNumberInvalid": "Invalid VAT number",
+      "phoneRequired": "Phone number is required"
     },
     "estimatedDeliveryVaries": "Estimated delivery time varies",
     "comingSoon": "Coming soon",

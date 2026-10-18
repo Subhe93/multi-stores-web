@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart, type CartCustomFieldDisplay } from '@/hooks/useCart';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import { buildLineMetadata, type LineSource } from '@/lib/cartLine';
 import type { GuestPersonalizationCheck } from '@/components/product/personalization/validateApi';
 import type { DesignedLine } from '@/components/designer/DesignerEditor';
@@ -26,6 +29,11 @@ export interface AddLineInput {
  */
 export function useAddToCartLine() {
   const { addItem } = useCart();
+  const router = useRouter();
+  const lp = useLocalePath();
+  // Store checkout settings (M5.1): where the shopper goes after adding.
+  // `stay` (the default) keeps today's confirmation toast.
+  const { after_add_to_cart: afterAdd } = useCheckoutSettings();
   const [justAdded, setJustAdded] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,10 +45,16 @@ export function useAddToCartLine() {
   );
 
   const markAdded = useCallback(() => {
+    if (afterAdd === 'cart' || afterAdd === 'checkout') {
+      // Both the personalization path and the designer path end here, so one
+      // branch covers them. The toast is skipped: the page is leaving.
+      router.push(lp(afterAdd === 'cart' ? '/cart' : '/checkout'));
+      return;
+    }
     if (timer.current) clearTimeout(timer.current);
     setJustAdded(true);
     timer.current = setTimeout(() => setJustAdded(false), ADDED_MS);
-  }, []);
+  }, [afterAdd, router, lp]);
 
   /** Personalization path: field values (`{}` without fields, G0) + guest display lines. */
   const addLine = useCallback(

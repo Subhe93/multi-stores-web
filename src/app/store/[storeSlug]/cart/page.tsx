@@ -21,6 +21,7 @@ import { useBuyerType } from '@/hooks/useBuyerType';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
+import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -335,6 +336,9 @@ export default function StoreCartPage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-8">
           {t('cart.title')}
         </h1>
+
+        {/* Coupon captured from a campaign link (M5.1) */}
+        <CouponAutoApplyNotice className="mb-6" />
 
         {/* Cross-market hand-off: lines re-priced / dropped for this market */}
         {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (

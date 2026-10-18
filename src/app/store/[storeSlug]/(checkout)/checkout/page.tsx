@@ -21,6 +21,9 @@ import { toKustomCartLines } from '@/hooks/useKustomCheckout';
 import { isLineErrorCode } from '@/lib/checkoutLineErrors';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
+import { resolvePayButtonLabel } from '@/lib/checkoutSettings';
+import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import {
   normalizeOrgNumber,
   normalizeVatNumber,
@@ -215,6 +218,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // defaults best-effort. `isCompany` is always false without the app, so
   // every request body below stays identical for other stores.
   const { isCompany, settings: b2bSettings } = useBuyerType();
+  // Store checkout settings (M5.1): phone requirement + pay button label.
+  // Defaults (today's behaviour) for stores that never set the card.
+  const checkoutSettings = useCheckoutSettings();
   // M2.5: the VAT field validates live and the quote / order carry the
   // number only on stores with reverse charge on (off = M2 bodies).
   const rcEnabled = isCompany && b2bSettings.reverse_charge_enabled;
@@ -576,8 +582,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       if (!form.city.trim()) errs.city = t('checkout.errors.cityRequired');
       if (!form.postal_code.trim()) errs.postal_code = t('checkout.errors.postalCodeRequired');
       if (!form.country_code) errs.country_code = t('checkout.errors.countryRequired');
+      // Phone is optional unless the store requires it (M5.1 checkout settings).
       const phoneErr = validatePhone(form.phone);
       if (phoneErr) errs.phone = t(phoneErr);
+      else if (checkoutSettings.phone_required && !form.phone.trim()) errs.phone = t('checkout.errors.phoneRequired');
     }
 
     if (isCompany) {
@@ -935,7 +943,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   };
 
   // Submit label per method: card pays inline, COD just places the order.
-  const submitLabel = paymentMethod === 'stripe' ? t('checkout.payAndPlaceOrder') : t('checkout.placeOrder');
+  // A store may override the card label per locale (M5.1, e.g. Namez's
+  // "Betala med kort"); the translated key stays the fallback.
+  const payButtonLabel = resolvePayButtonLabel(checkoutSettings, locale);
+  const submitLabel = paymentMethod === 'stripe' ? (payButtonLabel ?? t('checkout.payAndPlaceOrder')) : t('checkout.placeOrder');
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -994,6 +1005,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               <ChevronRight className="w-3 h-3" />
               <span>{t('checkout.paymentMethod')}</span>
             </nav>
+
+            {/* Coupon captured from a campaign link (M5.1) */}
+            <CouponAutoApplyNotice className="mb-5" />
 
               {/* ── Returning customer login ── */}
               {!isLoggedIn && (
@@ -1182,7 +1196,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                       {fieldErrors.postal_code && <p className="mt-1 text-xs text-red-500">{fieldErrors.postal_code}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="ck_phone">{t('checkout.phone')}</Label>
+                      <Label htmlFor="ck_phone" required={checkoutSettings.phone_required}>{t('checkout.phone')}</Label>
                       <input id="ck_phone" name="phone" type="tel" value={form.phone}
                         onChange={handleChange} className={inputCls(!!fieldErrors.phone)} />
                       {fieldErrors.phone && <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>}
