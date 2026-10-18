@@ -291,3 +291,16 @@ html, body {
     width: 100%;
   }
 }
+
+/*
+ * Designer UI keeps its own colours. The store layout emits unlayered
+ * typography rules (`.store-root main span { color: … }`) that beat every
+ * Tailwind utility, which live in cascade layers; inside the designer that
+ * painted white-on-dark pills and coloured hints in the body text colour.
+ * `revert-layer` from an unlayered rule falls back to the layered utilities
+ * (or to inheritance when an element has none). Fonts stay the store's.
+ */
+.store-root main [data-designer-ui] :is(p, li, span, label, button, a, h1, h2, h3, h4, h5, h6) {
+  color: revert-layer;
+  font-size: revert-layer;
+}

@@ -562,7 +562,7 @@ export function DesignerCanvasInline() {
   const ratio = s.spec.width / s.spec.height;
   const hasPhoto = s.slots.some((sl) => Boolean(s.renderState.photos[sl.id]));
   return (
-    <div>
+    <div data-designer-ui>
       <div className="relative w-full overflow-hidden rounded-xl bg-gray-100" style={{ aspectRatio: String(ratio) }}>
         <DesignerCanvas
           spec={s.spec}
@@ -662,7 +662,7 @@ export function DesignerFormInline({
   const saveState = draft.saving ? t('saving') : draft.saveError ? t('saveFailed') : draft.design ? t('savedShort') : '';
 
   return (
-    <div className="space-y-5" data-designer-form>
+    <div className="space-y-5" data-designer-form data-designer-ui>
       <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
         <span className="h-4 w-1 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} aria-hidden="true" />
         {heading}
@@ -763,7 +763,7 @@ export function DesignerFormInline({
                 buttonClassName ??
                 'flex min-h-11 min-w-48 flex-1 items-center justify-center gap-2.5 rounded-full px-6 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none'
               }
-              style={buttonStyle ?? { backgroundColor: 'var(--store-primary, #2563eb)' }}
+              style={buttonStyle ?? { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }}
             >
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
