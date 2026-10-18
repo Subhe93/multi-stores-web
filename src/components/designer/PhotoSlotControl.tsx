@@ -1,5 +1,11 @@
 'use client';
 
+// ── Designer: one photo slot of the inline form (M4.2 §7.1, M5.5) ─────────
+// NPP's upload card (icon, title, hint, "choose" pill) while the slot is
+// empty; once a photo is placed, its adjustment card: zoom / rotate and the
+// two pan sliders in a 2×2 grid, each with a reset, then replace / remove.
+// Every target is at least 44 px. The low-resolution warning shows inline.
+
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { ImagePlus, Loader2, RotateCcw, Trash2, AlertTriangle, Move, X } from 'lucide-react';
@@ -49,9 +55,11 @@ function Slider({
   min,
   max,
   step,
+  defaultValue,
   onChange,
   format,
   ltr,
+  resetLabel,
 }: {
   id: string;
   label: string;
@@ -59,28 +67,42 @@ function Slider({
   min: number;
   max: number;
   step: number;
+  defaultValue: number;
   onChange: (v: number) => void;
   format?: (v: number) => string;
   ltr?: boolean;
+  resetLabel: string;
 }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="flex justify-between text-xs text-gray-600">
+      <label htmlFor={id} className="flex justify-between text-[11px] font-semibold uppercase tracking-wide text-gray-600">
         <span>{label}</span>
-        {format && <span className="tabular-nums text-gray-400">{format(value)}</span>}
+        {format && <span className="font-normal normal-case tabular-nums text-gray-400">{format(value)}</span>}
       </label>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        // Pan sliders follow the canvas axes, which are never mirrored.
-        dir={ltr ? 'ltr' : undefined}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[var(--store-primary,#2563eb)]"
-      />
+      <div className="flex items-center gap-1">
+        <input
+          id={id}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          // Pan sliders follow the canvas axes, which are never mirrored.
+          dir={ltr ? 'ltr' : undefined}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="h-11 min-w-0 flex-1 accent-(--store-primary,#2563eb)"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(defaultValue)}
+          disabled={value === defaultValue}
+          aria-label={resetLabel}
+          title={resetLabel}
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent"
+        >
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -94,12 +116,18 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
   const boxRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => ({
     openPicker: () => inputRef.current?.click(),
-    focus: () => boxRef.current?.focus(),
+    focus: () => {
+      const box = boxRef.current;
+      if (!box) return;
+      if (typeof box.scrollIntoView === 'function') box.scrollIntoView({ block: 'center' });
+      box.focus({ preventScroll: true });
+    },
   }));
 
   const label = pickI18n(el.label, locale) || t('photoLabel');
   const limits = limitsOf(el);
-  const adj = photo?.adj ?? el.default_adj ?? DEFAULT_ADJ;
+  const defaults = el.default_adj ?? DEFAULT_ADJ;
+  const adj = photo?.adj ?? defaults;
   const set = (patch: Partial<PhotoAdj>) => onAdj(clampAdj({ ...adj, ...patch }, limits));
   const dpi = photo ? effectiveDpi(el, photo.width, photo.height, adj) : 0;
   const lowRes = photo ? dpi > 0 && dpi < minDpi : false;
@@ -110,15 +138,15 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
     <div
       ref={boxRef}
       tabIndex={-1}
-      className={`rounded-xl border p-3 space-y-3 outline-none ${
+      className={`space-y-3 rounded-xl border p-3 outline-none transition-colors motion-reduce:transition-none ${
         missing ? 'border-red-300 bg-red-50/40' : active ? 'border-gray-400' : 'border-gray-200'
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900">
           {label}
           {el.required && <span className="ms-0.5 text-red-500" aria-hidden="true">*</span>}
-        </h3>
+        </h4>
         {photo && !uploading && (
           <button
             type="button"
@@ -152,7 +180,7 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
         <div className="space-y-1.5" aria-live="polite">
           <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
             <span className="flex items-center gap-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
               {t('uploading', { percent: Math.round((progress ?? 0) * 100) })}
             </span>
             {onCancelUpload && (
@@ -175,55 +203,80 @@ export const PhotoSlotControl = forwardRef<PhotoSlotHandle, Props>(function Phot
             aria-label={t('uploadTitle')}
           >
             <div
-              className="h-full rounded-full transition-[width]"
+              className="h-full rounded-full transition-[width] motion-reduce:transition-none"
               style={{ width: `${Math.round((progress ?? 0) * 100)}%`, backgroundColor: 'var(--store-primary, #2563eb)' }}
             />
           </div>
         </div>
       ) : !photo ? (
+        // NPP's upload card: icon, title + hint, "choose" pill; the whole card picks.
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 px-3 py-5 text-center hover:border-gray-400 hover:bg-gray-50"
+          className="flex w-full items-center gap-3.5 rounded-xl border border-gray-200 bg-white p-3.5 text-start shadow-sm transition hover:border-gray-300 hover:shadow motion-reduce:transition-none"
         >
-          <ImagePlus className="h-6 w-6 text-gray-400" aria-hidden="true" />
-          <span className="text-sm font-medium text-gray-900">{t('chooseFile')}</span>
-          <span className="text-xs text-gray-500">{t('uploadHint', { max: maxUploadMb })}</span>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600" aria-hidden="true">
+            <ImagePlus className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-gray-900">{t('uploadTitle')}</span>
+            <span className="block text-xs text-gray-500">{t('uploadHint', { max: maxUploadMb })}</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-gray-900 px-3.5 py-2 text-xs font-semibold text-white">{t('chooseFile')}</span>
         </button>
       ) : (
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">{t('tapToAdjust')}</p>
-          <Slider
-            id={`${base}-zoom`}
-            label={t('zoom')}
-            value={adj.zoom}
-            min={limits.zoom[0]}
-            max={limits.zoom[1]}
-            step={0.05}
-            onChange={(v) => set({ zoom: v })}
-            format={(v) => `${Math.round(v * 100)}%`}
-          />
-          <Slider
-            id={`${base}-rot`}
-            label={t('rotate')}
-            value={adj.rot}
-            min={limits.rot[0]}
-            max={limits.rot[1]}
-            step={1}
-            onChange={(v) => set({ rot: v })}
-            format={(v) => `${Math.round(v)}°`}
-          />
-          <Slider id={`${base}-panx`} label={t('panX')} value={adj.panX} min={0} max={1} step={0.01} onChange={(v) => set({ panX: v })} ltr />
-          <Slider id={`${base}-pany`} label={t('panY')} value={adj.panY} min={0} max={1} step={0.01} onChange={(v) => set({ panY: v })} ltr />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
+            <Slider
+              id={`${base}-zoom`}
+              label={t('zoom')}
+              value={adj.zoom}
+              min={limits.zoom[0]}
+              max={limits.zoom[1]}
+              step={0.05}
+              defaultValue={defaults.zoom}
+              onChange={(v) => set({ zoom: v })}
+              format={(v) => `${Math.round(v * 100)}%`}
+              resetLabel={t('reset')}
+            />
+            <Slider
+              id={`${base}-rot`}
+              label={t('rotate')}
+              value={adj.rot}
+              min={limits.rot[0]}
+              max={limits.rot[1]}
+              step={1}
+              defaultValue={defaults.rot}
+              onChange={(v) => set({ rot: v })}
+              format={(v) => `${Math.round(v)}°`}
+              resetLabel={t('reset')}
+            />
+            <Slider
+              id={`${base}-panx`}
+              label={t('panX')}
+              value={adj.panX}
+              min={0}
+              max={1}
+              step={0.01}
+              defaultValue={defaults.panX}
+              onChange={(v) => set({ panX: v })}
+              resetLabel={t('reset')}
+              ltr
+            />
+            <Slider
+              id={`${base}-pany`}
+              label={t('panY')}
+              value={adj.panY}
+              min={0}
+              max={1}
+              step={0.01}
+              defaultValue={defaults.panY}
+              onChange={(v) => set({ panY: v })}
+              resetLabel={t('reset')}
+              ltr
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => onAdj({ ...(el.default_adj ?? DEFAULT_ADJ) })}
-              className="inline-flex min-h-11 items-center gap-1 rounded-md border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              {t('reset')}
-            </button>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}

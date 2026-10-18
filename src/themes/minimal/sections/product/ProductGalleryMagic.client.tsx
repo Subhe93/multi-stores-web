@@ -7,6 +7,7 @@
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { DesignerCanvasSlot, useDesignerSession } from '@/components/designer/DesignerSession';
 import type { SectionRenderProps } from '../../../types';
 
 type Layout = 'main-thumbnails' | 'grid' | 'stacked' | 'carousel';
@@ -45,6 +46,28 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
+  // Designer app (M5.5): the live canvas takes the gallery's place, with the
+  // product's featured image as a small thumbnail above it (NPP layout). The
+  // form lives in the add-to-cart section; both share the page's session.
+  const designer = useDesignerSession();
+
+  if (designer && product) {
+    const featured = images[0];
+    return (
+      <section className="space-y-4">
+        {featured && (
+          // eslint-disable-next-line @next/next/no-img-element -- store media, as the gallery itself renders it
+          <img
+            src={resolveMediaUrl(featured.url)}
+            alt={featured.alt_text || ''}
+            className="mx-auto block h-auto w-full max-w-67.5 object-cover"
+            style={{ borderRadius: 'var(--theme-radius-md)', boxShadow: 'var(--theme-shadow-sm)' }}
+          />
+        )}
+        <DesignerCanvasSlot />
+      </section>
+    );
+  }
 
   if (!product || images.length === 0) {
     return (

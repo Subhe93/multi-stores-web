@@ -20,10 +20,8 @@ import { PersonalizationForm } from '@/components/product/personalization/Person
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
 import { useAddToCartLine } from '@/components/product/useAddToCartLine';
-import { useStoreApp } from '@/hooks/useStoreApps';
-import { readDesignerPayload } from '@/lib/designer/api';
-import { DesignerLauncher } from '@/components/designer/DesignerLauncher';
-import type { DesignedLine } from '@/components/designer/DesignerEditor';
+import { DesignerFormSlot, useDesignerAddonsTotal, useDesignerSession } from '@/components/designer/DesignerSession';
+import type { DesignedLine } from '@/components/designer/DesignerInline';
 import {
   errorKey,
   readApiPersonalizationErrors,
@@ -172,12 +170,10 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const [busy, setBusy] = useState(false);
   const [addError, setAddError] = useState('');
   const apiError = useApiError();
-  // Designer app (M4.2): the editor replaces the form and the add button.
-  const designerApp = useStoreApp('designer');
-  const designer = useMemo(
-    () => (designerApp && product ? readDesignerPayload(product.designer) : null),
-    [designerApp, product],
-  );
+  // Designer app (M4.2 / M5.5): the inline form replaces the fields and the
+  // add button; the canvas renders in the gallery section (shared session).
+  const designer = useDesignerSession();
+  const designerAddons = useDesignerAddonsTotal();
 
   const buttonStyle = (settings.button_style as 'solid' | 'outline') || 'solid';
   const fullWidth = settings.full_width !== false;
@@ -208,11 +204,13 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const compareAt = selectedVariant?.compareAtPrice ?? product.compare_at_price;
   const stock = selectedVariant?.stock;
 
-  const priceLabel = new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
-    style: 'currency',
-    currency: c,
-    maximumFractionDigits: 2,
-  }).format(display(Number(displayPrice), taxRateBp, c).amount);
+  const money = (amount: number) =>
+    new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
+      style: 'currency',
+      currency: c,
+      maximumFractionDigits: 2,
+    }).format(display(amount, taxRateBp, c).amount);
+  const priceLabel = money(Number(displayPrice));
   const compareAtLabel = compareAt
     ? new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
         style: 'currency',
@@ -333,43 +331,79 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     </div>
   );
 
-  const designerCta = designer ? (
-    justAdded ? (
-      addedState
-    ) : (
-      <DesignerLauncher
-        payload={designer}
-        productId={product.id}
-        locale={locale}
-        productTitle={title}
-        priceLabel={priceLabel}
-        blockedReason={oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null}
-        variantPicker={!oos && needsVariant ? <div className="space-y-3">{optionPicker()}</div> : undefined}
-        onAddToCart={handleDesignerAdd}
-        onDone={handleDesignerDone}
-        className={`inline-flex items-center justify-center gap-2 px-6 py-3 transition-all hover:opacity-90 ${fullWidth ? 'w-full' : ''}`}
-        style={
-          buttonStyle === 'outline'
-            ? {
-                backgroundColor: 'transparent',
-                color: 'var(--theme-colors-primary)',
-                border: '2px solid var(--theme-colors-primary)',
-                borderRadius: 'var(--theme-radius-md)',
-                fontWeight: 'var(--theme-weight-bold)',
-              }
-            : {
-                backgroundColor: 'var(--theme-colors-primary)',
-                color: 'var(--theme-colors-primaryContrast, #fff)',
-                borderRadius: 'var(--theme-radius-md)',
-                fontWeight: 'var(--theme-weight-bold)',
-                boxShadow: 'var(--theme-shadow-md)',
-              }
-        }
-      />
-    )
+  const quantityPicker = showQuantity ? (
+    <div className="flex items-center gap-3">
+      <span className="text-xs font-medium" style={{ color: 'var(--theme-colors-text)' }}>
+        {t('product.quantity')}
+      </span>
+      {/* 44px touch targets (M5 D18) */}
+      <div
+        className="inline-flex items-center"
+        style={{
+          border: '1px solid var(--theme-colors-border)',
+          borderRadius: 'var(--theme-radius-sm)',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setQty((q) => Math.max(1, q - 1))}
+          aria-label={t('common.decreaseQuantity')}
+          className="size-11 inline-flex items-center justify-center"
+          style={{ color: 'var(--theme-colors-text)' }}
+        >
+          <Minus className="size-3.5" />
+        </button>
+        <span
+          className="px-3 py-1.5 text-sm tabular-nums"
+          style={{ minWidth: 40, textAlign: 'center', color: 'var(--theme-colors-text)' }}
+        >
+          {qty}
+        </span>
+        <button
+          type="button"
+          onClick={() => setQty((q) => q + 1)}
+          aria-label={t('common.increaseQuantity')}
+          className="size-11 inline-flex items-center justify-center"
+          style={{ color: 'var(--theme-colors-text)' }}
+        >
+          <Plus className="size-3.5" />
+        </button>
+      </div>
+    </div>
   ) : null;
 
-  const cta = designerCta ?? (justAdded ? addedState : (
+  // Inline designer form (M5.5): photos → texts → CTA with the live total,
+  // the section's quantity picker next to it (NPP has none).
+  const designerForm = designer ? (
+    <DesignerFormSlot
+      totalLabel={money((Number(displayPrice) + designerAddons) * qty)}
+      quantitySelector={quantityPicker}
+      blockedReason={oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null}
+      addedContent={justAdded ? addedState : undefined}
+      onAddToCart={handleDesignerAdd}
+      onDone={handleDesignerDone}
+      buttonClassName={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-6 py-3 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none ${fullWidth ? 'w-full' : ''}`}
+      buttonStyle={
+        buttonStyle === 'outline'
+          ? {
+              backgroundColor: 'transparent',
+              color: 'var(--theme-colors-primary)',
+              border: '2px solid var(--theme-colors-primary)',
+              borderRadius: 'var(--theme-radius-md)',
+              fontWeight: 'var(--theme-weight-bold)',
+            }
+          : {
+              backgroundColor: 'var(--theme-colors-primary)',
+              color: 'var(--theme-colors-primaryContrast, #fff)',
+              borderRadius: 'var(--theme-radius-md)',
+              fontWeight: 'var(--theme-weight-bold)',
+              boxShadow: 'var(--theme-shadow-md)',
+            }
+      }
+    />
+  ) : null;
+
+  const cta = justAdded ? addedState : (
     <button
       type="button"
       onClick={handleAdd}
@@ -409,7 +443,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
         </>
       )}
     </button>
-  ));
+  );
 
   return (
     <>
@@ -480,54 +514,19 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
           />
         )}
 
-        {showQuantity && (
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium" style={{ color: 'var(--theme-colors-text)' }}>
-              {t('product.quantity')}
-            </span>
-            {/* 44px touch targets (M5 D18) */}
-            <div
-              className="inline-flex items-center"
-              style={{
-                border: '1px solid var(--theme-colors-border)',
-                borderRadius: 'var(--theme-radius-sm)',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                aria-label={t('common.decreaseQuantity')}
-                className="size-11 inline-flex items-center justify-center"
-                style={{ color: 'var(--theme-colors-text)' }}
-              >
-                <Minus className="size-3.5" />
-              </button>
-              <span
-                className="px-3 py-1.5 text-sm tabular-nums"
-                style={{ minWidth: 40, textAlign: 'center', color: 'var(--theme-colors-text)' }}
-              >
-                {qty}
-              </span>
-              <button
-                type="button"
-                onClick={() => setQty((q) => q + 1)}
-                aria-label={t('common.increaseQuantity')}
-                className="size-11 inline-flex items-center justify-center"
-                style={{ color: 'var(--theme-colors-text)' }}
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </div>
-          </div>
+        {designerForm ?? (
+          <>
+            {quantityPicker}
+            {cta}
+          </>
         )}
-
-        {cta}
         {addError && (
           <p role="alert" className="text-sm text-red-600">{addError}</p>
         )}
       </section>
 
-      {showSticky && (
+      {/* The inline designer's CTA is at the end of its form (NPP); no sticky copy. */}
+      {showSticky && !designer && (
         <div
           className="fixed bottom-0 inset-x-0 z-30 p-3 md:hidden"
           style={{

@@ -23,10 +23,14 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
-import { useStoreApp } from '@/hooks/useStoreApps';
-import { readDesignerPayload } from '@/lib/designer/api';
-import { DesignerLauncher } from '@/components/designer/DesignerLauncher';
-import type { DesignedLine } from '@/components/designer/DesignerEditor';
+import {
+  DesignerCanvasSlot,
+  DesignerFormSlot,
+  DesignerSessionProvider,
+  useDesignerAddonsTotal,
+  useDesignerSession,
+} from '@/components/designer/DesignerSession';
+import type { DesignedLine } from '@/components/designer/DesignerInline';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   Shield, RotateCcw, Star, Loader2, Tag, Zap, Gift, Percent, X,
@@ -260,7 +264,20 @@ function ProductTabs({
 
 // ── Main component ────────────────────────────────────────
 
-export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
+/**
+ * The product page body. Designer app (M5.5): the page owns the design
+ * session (canvas in the gallery column, form in the summary column); inside
+ * a PRODUCT_TEMPLATE page the outer provider is reused.
+ */
+export function ProductDetailClient(props: ProductDetailClientProps) {
+  return (
+    <DesignerSessionProvider designer={props.product.designer} productId={props.product.id} locale={props.locale ?? 'en'}>
+      <ProductDetailBody {...props} />
+    </DesignerSessionProvider>
+  );
+}
+
+function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
   const apiError = useApiError();
   // Shared add-to-cart (M5 D31): same line metadata as the theme section,
@@ -334,13 +351,11 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
   const [activeTab, setActiveTab] = useState<TabId>('description');
   const [selectedBundleOfferId, setSelectedBundleOfferId] = useState<string | null>(null);
 
-  // Designer app (M4.2): the editor replaces the personalization form and
-  // the add-to-cart button. Absent payload = the page exactly as before.
-  const designerApp = useStoreApp('designer');
-  const designer = useMemo(
-    () => (designerApp ? readDesignerPayload(product.designer) : null),
-    [designerApp, product.designer],
-  );
+  // Designer app (M4.2 / M5.5): the inline designer replaces the gallery,
+  // the personalization form and the add-to-cart button. No session = the
+  // page exactly as before.
+  const designer = useDesignerSession();
+  const designerAddons = useDesignerAddonsTotal();
 
   // ── Memos ─────────────────────────────────────────────
 
@@ -683,19 +698,37 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           min-content width (72px × image count) would push the whole page
           wider than the viewport and clip the right side. min-w-0 on both
           children stops the same min-content propagation at the item level. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14">
+      {/* Designer app (M5.5, NPP layout): on desktop the live canvas takes the
+          gallery column (featured image as a thumbnail above it); on mobile
+          the column wrappers collapse (`contents`) so the items can be
+          ordered: featured image → title / price → canvas → form → CTA. */}
+      <div className={designer ? 'grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8 lg:gap-14' : 'grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14'}>
         {/* ─── Left: Gallery ─── */}
-        <div className="min-w-0 md:sticky md:top-24 md:self-start">
-          <ProductGallery
-            images={galleryImages}
-            activeIndex={activeGalleryIndex}
-            onIndexChange={setActiveGalleryIndex}
-            aspect={options?.galleryAspect}
-          />
+        <div className={designer ? 'contents md:block md:min-w-0 md:sticky md:top-24 md:self-start' : 'min-w-0 md:sticky md:top-24 md:self-start'}>
+          {designer ? (
+            <>
+              {galleryImages[0] && (
+                // eslint-disable-next-line @next/next/no-img-element -- store media, already sized by the API
+                <img
+                  src={galleryImages[0].url}
+                  alt={galleryImages[0].alt}
+                  className="-order-3 mx-auto block h-auto w-full max-w-67.5 rounded-xl shadow-sm md:order-0 md:mb-4"
+                />
+              )}
+              <DesignerCanvasSlot className="-order-1 min-w-0 md:order-0" />
+            </>
+          ) : (
+            <ProductGallery
+              images={galleryImages}
+              activeIndex={activeGalleryIndex}
+              onIndexChange={setActiveGalleryIndex}
+              aspect={options?.galleryAspect}
+            />
+          )}
         </div>
 
         {/* ─── Right: Product Info ─── */}
-        <div className="flex flex-col gap-5 min-w-0">
+        <div className={designer ? 'contents md:flex md:flex-col md:gap-5 md:min-w-0' : 'flex flex-col gap-5 min-w-0'}>
 
           {/* Creator collection (above title) */}
           {product.creator_categories && product.creator_categories.length > 0 && (() => {
@@ -708,7 +741,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
             return (
               <Link
                 href={`${langPrefix}/collections/${collection.slug}`}
-                className="text-xs font-medium uppercase tracking-widest hover:underline w-fit"
+                className="-order-2 text-xs font-medium uppercase tracking-widest hover:underline w-fit md:order-0"
                 style={{ color: 'var(--store-primary, #2563eb)' }}
               >
                 {collectionName}
@@ -717,17 +750,17 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
           })()}
 
           {/* Title */}
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
+          <h1 className="-order-2 text-3xl lg:text-4xl font-bold text-gray-900 leading-tight md:order-0">
             {translation?.title}
           </h1>
           {product.vendor?.company_name && (
-            <p className="-mt-3 text-sm text-gray-500">
+            <p className="-order-2 -mt-3 text-sm text-gray-500 md:order-0">
               {t('product.soldBy', { name: product.vendor.company_name })}
             </p>
           )}
 
           {/* Price + Savings */}
-          <div className="flex flex-col gap-1">
+          <div className="-order-2 flex flex-col gap-1 md:order-0">
             <PriceDisplay
               price={displayPrice}
               comparePrice={displayComparePrice}
@@ -1009,6 +1042,38 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 </button>
               </div>
             )}
+            {designer ? (
+              // Inline designer form (M5.5): photos → texts → CTA with the live
+              // total; our quantity picker sits next to the CTA (beyond NPP).
+              <DesignerFormSlot
+                totalLabel={formatPrice(display((currentPrice + designerAddons) * quantity, taxRateBp, currency).amount, currency, locale)}
+                quantitySelector={
+                  <QuantitySelector
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    min={bundlePricing?.cartQuantity ?? 1}
+                    max={maxStock}
+                    step={bundlePricing?.cartQuantity ?? 1}
+                  />
+                }
+                blockedReason={designerBlockedReason}
+                addedContent={
+                  addedToCart ? (
+                    <span className="flex min-h-11 items-center justify-center gap-2.5 rounded-full bg-green-600 py-3.5 text-sm font-semibold text-white" role="status">
+                      <Check className="h-4 w-4" />
+                      {t('cart.itemAdded')}
+                    </span>
+                  ) : undefined
+                }
+                onAddToCart={handleDesignerAdd}
+                onDone={handleDesignerDone}
+                buttonStyle={
+                  buttonStyle === 'outline'
+                    ? { backgroundColor: 'transparent', color: 'var(--store-primary, #2563eb)', border: '2px solid var(--store-primary, #2563eb)' }
+                    : undefined
+                }
+              />
+            ) : (
             <div className="flex items-center gap-3 flex-wrap">
               <QuantitySelector
                 value={quantity}
@@ -1018,42 +1083,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 step={bundlePricing?.cartQuantity ?? 1}
               />
 
-              {designer ? (
-                addedToCart ? (
-                  <span className="flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm bg-green-600 text-white" role="status">
-                    <Check className="w-4 h-4" />
-                    {t('cart.itemAdded')}
-                  </span>
-                ) : (
-                  <DesignerLauncher
-                    payload={designer}
-                    productId={product.id}
-                    locale={locale}
-                    productTitle={translation?.title || ''}
-                    priceLabel={formatPrice(display(displayPrice, taxRateBp, currency).amount, currency, locale)}
-                    blockedReason={designerBlockedReason}
-                    variantPicker={
-                      variants.length > 0 && !selectedVariantId ? (
-                        // Review step picker (the page's selector is under the
-                        // dialog). Both are controlled by the same picks (D11).
-                        <VariantSelector
-                          selections={optionSelections}
-                          personalization={cardsConfig}
-                          variants={variants}
-                          selectedVariantId={selectedVariantId}
-                          onSelect={setSelectedVariantId}
-                          onSelectionsChange={setOptionSelections}
-                          inStockText={t('product.inStock')}
-                          outOfStockText={t('product.outOfStock')}
-                          optionConfigs={product.variant_option_config}
-                        />
-                      ) : undefined
-                    }
-                    onAddToCart={handleDesignerAdd}
-                    onDone={handleDesignerDone}
-                  />
-                )
-              ) : (
+              {(
                 <button
                   type="button"
                   onClick={handleAddToCart}
@@ -1098,6 +1128,7 @@ export function ProductDetailClient({ product, locale = 'en', primaryLocale = 'e
                 </button>
               )}
             </div>
+            )}
 
             {customFieldError && (
               <p className="text-sm text-red-600 font-medium">{customFieldError}</p>

@@ -718,8 +718,6 @@
   },
   "designer": {
     "cta": "Designa din produkt",
-    "continueDesign": "Fortsätt designa",
-    "close": "Stäng",
     "dismiss": "Stäng",
     "loading": "Laddar designverktyget…",
     "canvasLabel": "Förhandsvisning av designen",
@@ -734,7 +732,6 @@
     "replacePhoto": "Byt bild",
     "uploading": "Laddar upp… {percent}%",
     "adjustPhoto": "Justera",
-    "tapToAdjust": "Dra bilden i förhandsvisningen för att flytta den; nyp eller använd reglagen för att zooma och rotera.",
     "tapToUpload": "Tryck för att lägga till en bild",
     "zoom": "Zooma in/ut",
     "rotate": "Rotera",
@@ -760,12 +757,6 @@
     "noticeLocked": "Den designen har redan beställts och kan inte längre ändras. Börja om från en kopia av den eller skapa en ny design.",
     "noticeOutdated": "Mallen har uppdaterats. Dina texter finns kvar; lägg till din bild igen.",
     "noticeNotFound": "Den designen finns inte längre. Du börjar på en ny design.",
-    "review": "Förhandsgranska och fortsätt",
-    "reviewTitle": "Kontrollera din design",
-    "reviewHint": "Så här kommer produkten att tryckas. Kontrollera stavningen och bildens placering.",
-    "backToEdit": "Tillbaka till redigering",
-    "preparingPreview": "Förbereder förhandsvisningen…",
-    "previewPending": "Den slutliga tryckförhandsvisningen förbereds. Detta är den levande förhandsvisningen av din design.",
     "addToCart": "Lägg i varukorgen",
     "saveChanges": "Spara ändringar",
     "fixErrors": "Fyll i de markerade fälten.",
@@ -775,10 +766,12 @@
     "tryAgain": "Försök igen",
     "startAgain": "Börja om från den här designen",
     "lockedInCart": "Den här designen har redan beställts och kan inte längre ändras.",
-    "incompleteInCart": "Den här designen ligger i varukorgen men är inte klar ännu, så den kan inte beställas.",
-    "keepEditing": "Fortsätt redigera",
-    "closeAnyway": "Stäng ändå",
     "loadingFonts": "Laddar typsnitt…",
-    "retryFonts": "Försök igen"
+    "retryFonts": "Försök igen",
+    "addToCartWithPrice": "Lägg i varukorgen — {price}",
+    "dragHint": "Dra bilden för att flytta den",
+    "savedShort": "Sparat",
+    "errorsSummary": "{count, plural, one {# fält behöver fyllas i.} other {# fält behöver fyllas i.}}",
+    "editingCartLine": "Du redigerar en design som redan ligger i varukorgen. Spara för att uppdatera den."
   }
 }

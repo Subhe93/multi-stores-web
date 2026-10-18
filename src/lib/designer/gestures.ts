@@ -254,3 +254,20 @@ export function backingScale(cssWidth: number, dpr: number, specWidth: number, m
   const px = Math.max(1, Math.min(Math.round(cssWidth * Math.max(1, dpr)), maxPx));
   return specWidth > 0 ? px / specWidth : 1;
 }
+
+export type TouchDecision = 'undecided' | 'scroll' | 'pan';
+
+/**
+ * Touch on a photo: scroll the page or pan the photo? NPP's rule, applied to
+ * the first movement: nothing is decided inside a `slopPx` square around the
+ * touch point; past it, a mostly vertical move is a page scroll (the finger
+ * is released to the browser) and anything else pans the photo. The canvas
+ * keeps `touch-action: pan-y`, so the browser reaches the same verdict for
+ * vertical moves and cancels the pointer.
+ */
+export function touchDirection(dx: number, dy: number, slopPx = 4): TouchDecision {
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ax < slopPx && ay < slopPx) return 'undecided';
+  return ay > ax ? 'scroll' : 'pan';
+}

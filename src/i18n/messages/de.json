@@ -718,8 +718,6 @@
   },
   "designer": {
     "cta": "Produkt gestalten",
-    "continueDesign": "Weiter gestalten",
-    "close": "Schließen",
     "dismiss": "Schließen",
     "loading": "Designer wird geladen…",
     "canvasLabel": "Designvorschau",
@@ -734,7 +732,6 @@
     "replacePhoto": "Foto ersetzen",
     "uploading": "Wird hochgeladen… {percent}%",
     "adjustPhoto": "Anpassen",
-    "tapToAdjust": "Ziehe das Foto in der Vorschau, um es zu verschieben; nutze zwei Finger oder die Regler zum Zoomen und Drehen.",
     "tapToUpload": "Tippen, um ein Foto hinzuzufügen",
     "zoom": "Vergrößern/Verkleinern",
     "rotate": "Drehen",
@@ -760,12 +757,6 @@
     "noticeLocked": "Dieses Design wurde bereits bestellt und kann nicht mehr geändert werden. Beginne mit einer Kopie davon neu oder erstelle ein neues Design.",
     "noticeOutdated": "Die Vorlage wurde aktualisiert. Deine Texte wurden übernommen; bitte füge dein Foto erneut hinzu.",
     "noticeNotFound": "Dieses Design ist nicht mehr verfügbar. Du beginnst ein neues Design.",
-    "review": "Vorschau und weiter",
-    "reviewTitle": "Design prüfen",
-    "reviewHint": "So wird dein Produkt gedruckt. Bitte prüfe die Schreibweise und die Position des Fotos.",
-    "backToEdit": "Zurück zur Bearbeitung",
-    "preparingPreview": "Vorschau wird erstellt…",
-    "previewPending": "Die endgültige Druckvorschau wird vorbereitet. Dies ist die Live-Vorschau deines Designs.",
     "addToCart": "In den Warenkorb",
     "saveChanges": "Änderungen speichern",
     "fixErrors": "Bitte fülle die markierten Felder aus.",
@@ -775,10 +766,12 @@
     "tryAgain": "Erneut versuchen",
     "startAgain": "Mit diesem Design neu beginnen",
     "lockedInCart": "Dieses Design wurde bereits bestellt und kann nicht mehr geändert werden.",
-    "incompleteInCart": "Dieses Design liegt im Warenkorb, ist aber noch nicht vollständig und kann daher nicht bestellt werden.",
-    "keepEditing": "Weiter bearbeiten",
-    "closeAnyway": "Trotzdem schließen",
     "loadingFonts": "Schriften werden geladen…",
-    "retryFonts": "Erneut versuchen"
+    "retryFonts": "Erneut versuchen",
+    "addToCartWithPrice": "In den Warenkorb — {price}",
+    "dragHint": "Ziehe das Foto, um es zu verschieben",
+    "savedShort": "Gespeichert",
+    "errorsSummary": "{count, plural, one {# Feld muss noch ausgefüllt werden.} other {# Felder müssen noch ausgefüllt werden.}}",
+    "editingCartLine": "Du bearbeitest ein Design, das bereits im Warenkorb liegt. Speichern, um es zu aktualisieren."
   }
 }

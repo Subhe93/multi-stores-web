@@ -718,8 +718,6 @@
   },
   "designer": {
     "cta": "Design your product",
-    "continueDesign": "Continue designing",
-    "close": "Close",
     "dismiss": "Dismiss",
     "loading": "Loading the designer…",
     "canvasLabel": "Design preview",
@@ -734,7 +732,6 @@
     "replacePhoto": "Replace photo",
     "uploading": "Uploading… {percent}%",
     "adjustPhoto": "Adjust",
-    "tapToAdjust": "Drag the photo in the preview to move it; pinch or use the sliders to zoom and rotate.",
     "tapToUpload": "Tap to add a photo",
     "zoom": "Zoom in/out",
     "rotate": "Rotate",
@@ -760,12 +757,6 @@
     "noticeLocked": "That design has already been ordered, so it can no longer be changed. Start again from a copy of it, or create a new design.",
     "noticeOutdated": "The template has been updated. Your texts were kept; please add your photo again.",
     "noticeNotFound": "That design is no longer available. You are starting a new design.",
-    "review": "Preview and continue",
-    "reviewTitle": "Check your design",
-    "reviewHint": "This is how your product will be printed. Please check the spelling and the photo placement.",
-    "backToEdit": "Back to editing",
-    "preparingPreview": "Preparing the preview…",
-    "previewPending": "The final print preview is being prepared. This is the live preview of your design.",
     "addToCart": "Add to cart",
     "saveChanges": "Save changes",
     "fixErrors": "Please complete the highlighted fields.",
@@ -775,10 +766,12 @@
     "tryAgain": "Try again",
     "startAgain": "Start again from this design",
     "lockedInCart": "This design has already been ordered and can no longer be changed.",
-    "incompleteInCart": "This design is in your cart but is not complete yet, so it cannot be ordered.",
-    "keepEditing": "Keep editing",
-    "closeAnyway": "Close anyway",
     "loadingFonts": "Loading fonts…",
-    "retryFonts": "Try again"
+    "retryFonts": "Try again",
+    "addToCartWithPrice": "Add to cart — {price}",
+    "dragHint": "Drag the photo to move it",
+    "savedShort": "Saved",
+    "errorsSummary": "{count, plural, one {# field needs your attention.} other {# fields need your attention.}}",
+    "editingCartLine": "You are editing a design that is already in your cart. Save to update it."
   }
 }

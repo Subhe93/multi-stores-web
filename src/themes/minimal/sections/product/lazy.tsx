@@ -7,6 +7,12 @@
 // dynamic imports. From here each section becomes its own async chunk that
 // only product pages fetch. Default `ssr: true`: the HTML is unchanged, only
 // the hydration script arrives separately.
+//
+// The designer app (M5.5) is split the same way one level down: these
+// sections import only the light `@/components/designer/DesignerSession`
+// module, whose `next/dynamic` imports load the renderer chunk
+// (`DesignerInline`) on designer products alone, so a product page without
+// a design template ships no renderer code.
 
 import dynamic from 'next/dynamic';
 

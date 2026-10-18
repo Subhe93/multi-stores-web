@@ -11,6 +11,7 @@ import {
   pinchStart,
   pinchUpdate,
   pxToMm,
+  touchDirection,
   wheelAdj,
 } from './gestures';
 import { DEFAULT_ADJ, type ImageSlotElement, type TemplateSpecV1 } from './design-renderer';
@@ -133,5 +134,31 @@ describe('coordinates and hit-testing', () => {
   it('caps the backing store width', () => {
     expect(backingScale(400, 2, 500)).toBeCloseTo(800 / 500);
     expect(backingScale(1000, 3, 500)).toBeCloseTo(1400 / 500);
+  });
+});
+
+describe('touchDirection (NPP scroll-vs-pan heuristic)', () => {
+  it('stays undecided inside the 4px slop square', () => {
+    expect(touchDirection(0, 0)).toBe('undecided');
+    expect(touchDirection(3, -3)).toBe('undecided');
+    expect(touchDirection(-3.9, 3.9)).toBe('undecided');
+  });
+
+  it('a mostly vertical move lets the page scroll', () => {
+    expect(touchDirection(0, 5)).toBe('scroll');
+    expect(touchDirection(2, -9)).toBe('scroll');
+    expect(touchDirection(4, 5)).toBe('scroll');
+  });
+
+  it('a horizontal or diagonal move pans the photo (ties pan)', () => {
+    expect(touchDirection(5, 0)).toBe('pan');
+    expect(touchDirection(-7, 2)).toBe('pan');
+    expect(touchDirection(5, 5)).toBe('pan');
+    expect(touchDirection(1, 4)).toBe('scroll');
+  });
+
+  it('honours a custom slop', () => {
+    expect(touchDirection(6, 0, 8)).toBe('undecided');
+    expect(touchDirection(9, 0, 8)).toBe('pan');
   });
 });

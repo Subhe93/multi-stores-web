@@ -7,7 +7,7 @@ import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { buildLineMetadata, type LineSource } from '@/lib/cartLine';
 import type { GuestPersonalizationCheck } from '@/components/product/personalization/validateApi';
-import type { DesignedLine } from '@/components/designer/DesignerEditor';
+import type { DesignedLine } from '@/components/designer/DesignerInline';
 
 /** How long the "added" confirmation stays visible. */
 const ADDED_MS = 3000;
@@ -69,7 +69,8 @@ export function useAddToCartLine() {
     [addItem, markAdded],
   );
 
-  /** Designer path (M4.2): the approved design is the line, no field values. */
+  /** Designer path (M4.2 / M5.5 inline): the saved design is the line, no field values;
+   *  its proof arrives in the cart later (`refreshDesignLine`). */
   const addDesignLine = useCallback(
     async (input: AddLineInput, line: DesignedLine) => {
       await addItem(

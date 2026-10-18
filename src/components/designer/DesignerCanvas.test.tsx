@@ -21,7 +21,7 @@ describe('DesignerCanvas (smoke)', () => {
     expect(canvas).toHaveAttribute('tabindex', '0');
     expect(canvas.parentElement).toHaveAttribute('dir', 'ltr');
     expect(canvas).toHaveAccessibleDescription('Press Enter to select a photo.');
-    // Page scroll stays possible until a photo is selected.
+    // Vertical swipes stay page scrolls (NPP); horizontal ones pan the photo.
     expect(canvas.style.touchAction).toBe('pan-y');
   });
 
@@ -49,7 +49,8 @@ describe('DesignerCanvas (smoke)', () => {
         onActivate={onActivate}
       />,
     );
-    expect(screen.getByRole('application').style.touchAction).toBe('none');
+    // An active photo does not take the page scroll away (the first-move rule decides).
+    expect(screen.getByRole('application').style.touchAction).toBe('pan-y');
     fireEvent.keyDown(canvas, { key: 'Escape' });
     expect(onActivate).toHaveBeenLastCalledWith(null);
   });

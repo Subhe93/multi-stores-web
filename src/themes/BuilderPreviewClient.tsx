@@ -7,6 +7,7 @@ import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
+import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
 // Only the builder that embedded this preview may drive it, and messages go
@@ -367,17 +368,21 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
             Add a section from the left panel to start building.
           </div>
         ) : (
-          <SectionRenderer
-            theme={theme}
-            sections={state.sections}
-            locale={state.locale}
-            primaryLocale={state.primaryLocale}
-            storeSlug={storeSlug}
-            product={state.product}
-            listing={state.listing}
-            currency={state.currency}
-            storeContext={state.storeContext}
-          />
+          // Designer app (M5.5): the sample product's design session, shared by
+          // the gallery (canvas) and add-to-cart (form) sections.
+          <DesignerSessionProvider designer={state.product?.designer} productId={state.product?.id ?? ''} locale={state.locale}>
+            <SectionRenderer
+              theme={theme}
+              sections={state.sections}
+              locale={state.locale}
+              primaryLocale={state.primaryLocale}
+              storeSlug={storeSlug}
+              product={state.product}
+              listing={state.listing}
+              currency={state.currency}
+              storeContext={state.storeContext}
+            />
+          </DesignerSessionProvider>
         )}
       </theme.Layout>
     </div>

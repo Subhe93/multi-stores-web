@@ -718,8 +718,6 @@
   },
   "designer": {
     "cta": "Ürününü tasarla",
-    "continueDesign": "Tasarıma devam et",
-    "close": "Kapat",
     "dismiss": "Kapat",
     "loading": "Tasarım aracı yükleniyor…",
     "canvasLabel": "Tasarım önizlemesi",
@@ -734,7 +732,6 @@
     "replacePhoto": "Fotoğrafı değiştir",
     "uploading": "Yükleniyor… %{percent}",
     "adjustPhoto": "Ayarla",
-    "tapToAdjust": "Taşımak için önizlemede fotoğrafı sürükle; yakınlaştırmak ve döndürmek için iki parmak ya da kaydırıcıları kullan.",
     "tapToUpload": "Fotoğraf eklemek için dokun",
     "zoom": "Yakınlaştır/Uzaklaştır",
     "rotate": "Döndür",
@@ -760,12 +757,6 @@
     "noticeLocked": "Bu tasarım zaten sipariş edildi ve artık değiştirilemez. Bir kopyasından yeniden başla ya da yeni bir tasarım oluştur.",
     "noticeOutdated": "Şablon güncellendi. Metinlerin korundu; lütfen fotoğrafını tekrar ekle.",
     "noticeNotFound": "Bu tasarım artık mevcut değil. Yeni bir tasarıma başlıyorsun.",
-    "review": "Önizle ve devam et",
-    "reviewTitle": "Tasarımını kontrol et",
-    "reviewHint": "Ürünün bu şekilde basılacak. Lütfen yazımı ve fotoğrafın konumunu kontrol et.",
-    "backToEdit": "Düzenlemeye dön",
-    "preparingPreview": "Önizleme hazırlanıyor…",
-    "previewPending": "Son baskı önizlemesi hazırlanıyor. Bu, tasarımının canlı önizlemesidir.",
     "addToCart": "Sepete ekle",
     "saveChanges": "Değişiklikleri kaydet",
     "fixErrors": "Lütfen işaretli alanları doldur.",
@@ -775,10 +766,12 @@
     "tryAgain": "Tekrar dene",
     "startAgain": "Bu tasarımdan yeniden başla",
     "lockedInCart": "Bu tasarım zaten sipariş edildi ve artık değiştirilemez.",
-    "incompleteInCart": "Bu tasarım sepetinde ancak henüz tamamlanmadı, bu yüzden sipariş edilemez.",
-    "keepEditing": "Düzenlemeye devam et",
-    "closeAnyway": "Yine de kapat",
     "loadingFonts": "Yazı tipleri yükleniyor…",
-    "retryFonts": "Tekrar dene"
+    "retryFonts": "Tekrar dene",
+    "addToCartWithPrice": "Sepete ekle — {price}",
+    "dragHint": "Taşımak için fotoğrafı sürükleyin",
+    "savedShort": "Kaydedildi",
+    "errorsSummary": "{count, plural, one {# alan doldurulmalı.} other {# alan doldurulmalı.}}",
+    "editingCartLine": "Zaten sepetinizde olan bir tasarımı düzenliyorsunuz. Güncellemek için kaydedin."
   }
 }

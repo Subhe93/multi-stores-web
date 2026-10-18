@@ -1,6 +1,6 @@
 // ── Designer app: tiny storefront helpers (M4.2) ──────────────────────────
 // Kept free of the renderer so product pages without a design template do
-// not ship it (DesignerLauncher imports from here).
+// not ship it (the light `DesignerSession` module and the cart import from here).
 
 /**
  * Custom shop button label of `shop_button_text` (an I18n map): the exact
@@ -30,4 +30,34 @@ export function designEditHref(
 ): string | null {
   const base = productSlug ? localePath(`/products/${encodeURIComponent(productSlug)}`) : storedPath;
   return base ? `${base}?design=${encodeURIComponent(designId)}` : null;
+}
+
+/** Query parameter that opens an existing design inline (cart "Edit design"). */
+export const DESIGN_QUERY_PARAM = 'design';
+
+/** The design id of `?design=<uuid>` on the current URL, or null. */
+export function readDesignParam(): string | null {
+  if (typeof window === 'undefined') return null;
+  const v = new URL(window.location.href).searchParams.get(DESIGN_QUERY_PARAM);
+  return v && /^[0-9a-f-]{36}$/i.test(v) ? v : null;
+}
+
+/**
+ * Removes `?design=` from the current history entry: a reload keeps the
+ * draft, not the link. The entry is replaced in place, so "back" still leaves
+ * the page. A null state goes through the app router's patched
+ * `replaceState`, which keeps its own tree and syncs its URL (passing the
+ * router's state would bypass that and the next router update could put
+ * the parameter back).
+ */
+export function dropDesignParam(): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(DESIGN_QUERY_PARAM)) return;
+  url.searchParams.delete(DESIGN_QUERY_PARAM);
+  try {
+    window.history.replaceState(null, '', url.toString());
+  } catch {
+    // Not fatal: the link simply stays in the address bar.
+  }
 }

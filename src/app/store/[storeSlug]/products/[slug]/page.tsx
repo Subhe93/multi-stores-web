@@ -9,6 +9,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarketKey } from '@/lib/market.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
+import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ProductContext, SectionInstance } from '@/themes/types';
@@ -204,15 +205,20 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplFaqLd) }}
           />
         )}
-        <SectionRenderer
-          theme={theme}
-          sections={templateSections}
-          locale={locale}
-          primaryLocale={primaryLocale}
-          storeSlug={storeSlug}
-          product={product as ProductContext}
-          currency={storeCurrency}
-        />
+        {/* Designer app (M5.5): one design session for the whole template, so a
+            theme that splits gallery (canvas) and add-to-cart (form) into
+            separate sections still edits one draft. */}
+        <DesignerSessionProvider designer={product.designer} productId={product.id} locale={locale}>
+          <SectionRenderer
+            theme={theme}
+            sections={templateSections}
+            locale={locale}
+            primaryLocale={primaryLocale}
+            storeSlug={storeSlug}
+            product={product as ProductContext}
+            currency={storeCurrency}
+          />
+        </DesignerSessionProvider>
       </div>
     );
   }

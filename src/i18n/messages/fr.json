@@ -718,8 +718,6 @@
   },
   "designer": {
     "cta": "Personnalisez votre produit",
-    "continueDesign": "Continuer la création",
-    "close": "Fermer",
     "dismiss": "Fermer",
     "loading": "Chargement de l’éditeur…",
     "canvasLabel": "Aperçu du design",
@@ -734,7 +732,6 @@
     "replacePhoto": "Remplacer la photo",
     "uploading": "Importation… {percent} %",
     "adjustPhoto": "Ajuster",
-    "tapToAdjust": "Faites glisser la photo dans l’aperçu pour la déplacer ; pincez ou utilisez les curseurs pour zoomer et pivoter.",
     "tapToUpload": "Touchez pour ajouter une photo",
     "zoom": "Zoom avant/arrière",
     "rotate": "Pivoter",
@@ -760,12 +757,6 @@
     "noticeLocked": "Ce design a déjà été commandé et ne peut plus être modifié. Recommencez à partir d’une copie ou créez un nouveau design.",
     "noticeOutdated": "Le modèle a été mis à jour. Vos textes ont été conservés ; veuillez ajouter à nouveau votre photo.",
     "noticeNotFound": "Ce design n’est plus disponible. Vous commencez un nouveau design.",
-    "review": "Aperçu et continuer",
-    "reviewTitle": "Vérifiez votre design",
-    "reviewHint": "Voici comment votre produit sera imprimé. Vérifiez l’orthographe et la position de la photo.",
-    "backToEdit": "Retour à l’édition",
-    "preparingPreview": "Préparation de l’aperçu…",
-    "previewPending": "L’aperçu d’impression final est en préparation. Voici l’aperçu en direct de votre design.",
     "addToCart": "Ajouter au panier",
     "saveChanges": "Enregistrer les modifications",
     "fixErrors": "Veuillez compléter les champs signalés.",
@@ -775,10 +766,12 @@
     "tryAgain": "Réessayer",
     "startAgain": "Recommencer à partir de ce design",
     "lockedInCart": "Ce design a déjà été commandé et ne peut plus être modifié.",
-    "incompleteInCart": "Ce design est dans votre panier mais n’est pas encore terminé : il ne peut donc pas être commandé.",
-    "keepEditing": "Continuer la modification",
-    "closeAnyway": "Fermer quand même",
     "loadingFonts": "Chargement des polices…",
-    "retryFonts": "Réessayer"
+    "retryFonts": "Réessayer",
+    "addToCartWithPrice": "Ajouter au panier — {price}",
+    "dragHint": "Faites glisser la photo pour la déplacer",
+    "savedShort": "Enregistré",
+    "errorsSummary": "{count, plural, one {# champ doit être complété.} other {# champs doivent être complétés.}}",
+    "editingCartLine": "Vous modifiez un design déjà dans votre panier. Enregistrez pour le mettre à jour."
   }
 }

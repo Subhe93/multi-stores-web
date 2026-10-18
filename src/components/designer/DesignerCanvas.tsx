@@ -1,12 +1,14 @@
 'use client';
 
-// ── Designer editor: live canvas (M4.2 §7.1/§7.2) ─────────────────────────
+// ── Designer: live canvas (M4.2 §7.1/§7.2, M5.5 NPP parity) ───────────────
 // DPR-aware backing store (≤ 1400 px wide), RAF-coalesced renderDesign, and
-// pointer handling: tap a photo slot to select it, then one finger pans, two
-// fingers pinch-zoom and rotate; mouse drag pans, wheel zooms, Shift+wheel
-// rotates; double-tap resets. Keyboard: Enter cycles photos, arrows pan,
-// +/- zoom, [ ] rotate, 0 reset, Escape deselects. The canvas is the print
-// layout, so it is never mirrored in RTL (`dir="ltr"`).
+// pointer handling like NPP: a photo pans as soon as it is dragged (no
+// activation tap). On touch the first 4 px decide: mostly vertical → the
+// page scrolls (`touch-action: pan-y` lets the browser take it), otherwise
+// the photo pans; two fingers pinch-zoom and rotate; mouse wheel zooms,
+// Shift+wheel rotates; double-tap resets. Keyboard: Enter cycles photos,
+// arrows pan, +/- zoom, [ ] rotate, 0 reset, Escape deselects. The canvas
+// is the print layout, so it is never mirrored in RTL (`dir="ltr"`).
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import {
@@ -32,6 +34,7 @@ import {
   pinchStart,
   pinchUpdate,
   pxToMm,
+  touchDirection,
   wheelAdj,
   type PinchStart,
   type Point,
@@ -52,6 +55,8 @@ interface Props {
   activeSlotId?: string | null;
   onActivate?: (slotId: string | null) => void;
   onAdjChange?: (slotId: string, adj: PhotoAdj) => void;
+  /** First pan of a photo by dragging (the page hides its "drag the photo" hint). */
+  onDragStart?: () => void;
   onEmptySlotTap?: (slotId: string) => void;
   onTextTap?: (elementId: string) => void;
   onReport?: (report: RenderReport) => void;
@@ -83,6 +88,7 @@ export function DesignerCanvas({
   activeSlotId = null,
   onActivate,
   onAdjChange,
+  onDragStart,
   onEmptySlotTap,
   onTextTap,
   onReport,
@@ -166,6 +172,10 @@ export function DesignerCanvas({
     last: Point;
     moved: boolean;
     pinch: PinchStart | null;
+    /** Touch pointer: scroll-or-pan not decided yet (first 4 px). */
+    undecided: boolean;
+    /** A pan was emitted during this gesture. */
+    dragged: boolean;
   } | null>(null);
   const lastTap = useRef<{ id: string; at: number } | null>(null);
 
@@ -198,6 +208,7 @@ export function DesignerCanvas({
       if (adj && a && b) {
         g.pinch = pinchStart(a, b, adj);
         g.moved = true;
+        g.undecided = false;
         g.tapTarget = null;
         canvas.setPointerCapture(e.pointerId);
       }
@@ -207,21 +218,22 @@ export function DesignerCanvas({
     const rect = canvas.getBoundingClientRect();
     const hit = hitTest(live.current.spec, clientToMm(e.clientX, e.clientY, rect, live.current.spec));
     const p = { x: e.clientX, y: e.clientY };
+    const base = { start: p, last: p, moved: false, pinch: null, undecided: false, dragged: false };
     if (hit?.type === 'image_slot') {
+      // A photo pans right away (NPP): no activation tap on any pointer. On
+      // touch the direction of the first move decides between page scroll
+      // and pan (see onPointerMove).
       const hasPhoto = Boolean(live.current.state.photos?.[hit.id]);
-      // Touch: the first tap selects (then the page stops scrolling over it);
-      // a mouse can drag a photo right away.
-      const drag = hasPhoto && (live.current.activeSlotId === hit.id || e.pointerType === 'mouse');
-      if (drag && live.current.activeSlotId !== hit.id) onActivate?.(hit.id);
-      gesture.current = { slotId: drag ? hit.id : null, tapTarget: { kind: 'slot', id: hit.id }, start: p, last: p, moved: false, pinch: null };
-      if (drag) {
+      if (hasPhoto && live.current.activeSlotId !== hit.id) onActivate?.(hit.id);
+      gesture.current = { ...base, slotId: hasPhoto ? hit.id : null, tapTarget: { kind: 'slot', id: hit.id }, undecided: hasPhoto && e.pointerType === 'touch' };
+      if (hasPhoto) {
         canvas.setPointerCapture(e.pointerId);
         e.preventDefault();
       }
     } else if (hit?.type === 'text') {
-      gesture.current = { slotId: null, tapTarget: { kind: 'text', id: hit.id }, start: p, last: p, moved: false, pinch: null };
+      gesture.current = { ...base, slotId: null, tapTarget: { kind: 'text', id: hit.id } };
     } else {
-      gesture.current = { slotId: null, tapTarget: { kind: 'none', id: null }, start: p, last: p, moved: false, pinch: null };
+      gesture.current = { ...base, slotId: null, tapTarget: { kind: 'none', id: null } };
     }
   };
 
@@ -242,11 +254,36 @@ export function DesignerCanvas({
       if (a && b) emit(slot.id, pinchUpdate(g.pinch, a, b, photo.adj, limits));
       return;
     }
+    if (g.undecided) {
+      // NPP's touch rule: mostly vertical → let the page scroll (the browser
+      // usually cancels the pointer itself under `touch-action: pan-y`;
+      // this covers the ones that do not), otherwise pan from the touch point.
+      const decision = touchDirection(p.x - g.start.x, p.y - g.start.y);
+      if (decision === 'undecided') return;
+      g.undecided = false;
+      if (decision === 'scroll') {
+        g.slotId = null;
+        g.tapTarget = null;
+        try {
+          canvasRef.current?.releasePointerCapture(e.pointerId);
+        } catch {
+          // Capture already gone (pointercancel): nothing to release.
+        }
+        return;
+      }
+      g.last = g.start;
+    }
     const rect = canvasRef.current!.getBoundingClientRect();
     const dx = pxToMm(p.x - g.last.x, rect.width, live.current.spec.width);
     const dy = pxToMm(p.y - g.last.y, rect.height, live.current.spec.height);
     g.last = p;
-    if (dx || dy) emit(slot.id, panByDrag(slot, photo.width, photo.height, photo.adj, dx, dy));
+    if (dx || dy) {
+      if (!g.dragged) {
+        g.dragged = true;
+        onDragStart?.();
+      }
+      emit(slot.id, panByDrag(slot, photo.width, photo.height, photo.adj, dx, dy));
+    }
   };
 
   const endPointer = (e: PointerEvent<HTMLCanvasElement>, cancelled: boolean) => {
@@ -342,10 +379,13 @@ export function DesignerCanvas({
         onPointerUp={(e) => endPointer(e, false)}
         onPointerCancel={(e) => endPointer(e, true)}
         onKeyDown={onKeyDown}
-        className="block h-full w-full rounded-md shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        className={`block h-full w-full rounded-md shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+          interactive ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         style={{
-          // Page scroll stays possible until a photo is selected for adjusting.
-          touchAction: interactive && activeSlotId ? 'none' : 'pan-y',
+          // Vertical swipes stay page scrolls (NPP); horizontal ones pan the
+          // photo and two fingers pinch, both handled here.
+          touchAction: 'pan-y',
           background: '#fff',
         }}
       />
