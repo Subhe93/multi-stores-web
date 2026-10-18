@@ -763,7 +763,8 @@ export function DesignerFormInline({
                 buttonClassName ??
                 'flex min-h-11 min-w-48 flex-1 items-center justify-center gap-2.5 rounded-full px-6 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none'
               }
-              style={buttonStyle ?? { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }}
+              style={buttonStyle ?? { backgroundColor: 'var(--store-primary, #2563eb)' }}
+              data-designer-cta
             >
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />

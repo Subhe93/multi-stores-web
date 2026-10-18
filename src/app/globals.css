@@ -304,3 +304,14 @@ html, body {
   color: revert-layer;
   font-size: revert-layer;
 }
+
+/*
+ * Designer CTA text: readable on any store primary colour. Black on a light
+ * primary (e.g. Namez yellow), white on a dark one, picked from the primary's
+ * OKLCH lightness. Browsers without relative colour syntax keep white. An
+ * inline colour (outline button style) still wins.
+ */
+.store-root main [data-designer-ui] [data-designer-cta] {
+  color: #fff;
+  color: oklch(from var(--store-primary, #2563eb) clamp(0, (0.6 - l) * 1000, 1) 0 0);
+}
