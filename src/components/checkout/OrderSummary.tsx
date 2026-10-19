@@ -11,7 +11,7 @@ import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { CartFieldValue } from '@/components/cart/CartItem';
 import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
-import { hasPersonalizationGroups } from '@/lib/personalization';
+import { hasPersonalizationGroups } from '@multi-stores/core/personalization';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 

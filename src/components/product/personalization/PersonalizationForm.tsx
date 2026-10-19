@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { readUi, splitFieldTree } from '@/lib/personalization';
+import { readUi, splitFieldTree } from '@multi-stores/core/personalization';
 import type { PersonalizationAdvanced } from '@/components/product/usePersonalizationFields';
 import { visibleFieldsAt, type Placement } from './model';
 import { FieldRenderer } from './fields/FieldRenderer';

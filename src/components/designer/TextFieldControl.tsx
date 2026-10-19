@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { designTextLength, pickI18n, type TextElement } from '@/lib/designer/design-renderer';
+import { designTextLength, pickI18n, type TextElement } from '@multi-stores/core/designer';
 
 interface Props {
   el: TextElement;

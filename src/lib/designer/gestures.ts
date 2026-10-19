@@ -12,7 +12,7 @@ import {
   type ImageSlotElement,
   type PhotoAdj,
   type TemplateSpecV1,
-} from './design-renderer';
+} from '@multi-stores/core/designer';
 
 const EPS = 1e-6;
 const DEG = Math.PI / 180;

@@ -23,7 +23,7 @@ import {
   type Mode,
   type RenderReport,
   type TemplateSpecV1,
-} from './design-renderer';
+} from '@multi-stores/core/designer';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const API_DESIGNER = resolve(here, '../../../../multi-stores-api/src/modules/designer');

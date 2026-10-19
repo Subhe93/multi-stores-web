@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { readRepeat, repeaterIndexes, type PFieldDef } from '@/lib/personalization';
+import { readRepeat, repeaterIndexes, type PFieldDef } from '@multi-stores/core/personalization';
 import type { PersonalizationAdvanced } from '@/components/product/usePersonalizationFields';
 import { fieldKey, groupHeading, repeaterItems } from '../model';
 import { FieldRenderer } from './FieldRenderer';

@@ -2,7 +2,7 @@
 // view and a designer client built on the `fetchImpl` / `storage` seams.
 import { vi } from 'vitest';
 import { createDesignerClient, type DesignerClient, type DesignView } from '@/lib/designer/api';
-import type { TemplateSpecV1 } from '@/lib/designer/design-renderer';
+import type { TemplateSpecV1 } from '@multi-stores/core/designer';
 
 export const SPEC = {
   schema: 'designer.template/1',

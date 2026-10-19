@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Upload, Loader2, X } from 'lucide-react';
-import { compileAllowedChars } from '@/lib/personalization/rules';
+import { compileAllowedChars } from '@multi-stores/core/personalization/rules';
 import { filterAllowedChars, type FormField } from '@/lib/personalization/form';
 import { absoluteUploadUrl, uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 

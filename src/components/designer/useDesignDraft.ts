@@ -21,7 +21,7 @@ import {
   type DesignStateV1,
   type PhotoAdj,
   type TemplateSpecV1,
-} from '@/lib/designer/design-renderer';
+} from '@multi-stores/core/designer';
 import {
   DesignerApiError,
   designerErrorCode,

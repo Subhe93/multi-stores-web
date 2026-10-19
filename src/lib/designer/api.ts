@@ -8,7 +8,7 @@
 // customers are identified by their JWT.
 
 import { API_URL, API_ORIGIN } from '@/lib/api';
-import type { DesignStateV1, TemplateSpecV1 } from './design-renderer';
+import type { DesignStateV1, TemplateSpecV1 } from '@multi-stores/core/designer';
 
 // ── Product payload ───────────────────────────────────────────────────────
 

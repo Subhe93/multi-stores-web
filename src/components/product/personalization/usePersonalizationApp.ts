@@ -7,7 +7,7 @@ import { useMarket } from '@/hooks/useMarket';
 import { usePersonalizationFields } from '@/components/product/usePersonalizationFields';
 import type { PersonalizationProduct } from '@/lib/personalization/form';
 import { readPrefill } from '@/lib/personalization/prefill';
-import { splitFieldTree, type PFieldDef, type POptionConfig } from '@/lib/personalization';
+import { splitFieldTree, type PFieldDef, type POptionConfig } from '@multi-stores/core/personalization';
 import type { VariantCardsConfig } from './VariantCards';
 import {
   activeOptionValues,

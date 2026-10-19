@@ -30,7 +30,7 @@ import {
   type PLine,
   type POptionConfig,
   type PResult,
-} from '@/lib/personalization';
+} from '@multi-stores/core/personalization';
 import { issueMessage, type Translate } from '@/lib/personalization/form';
 
 // ---------------------------------------------------------------------------

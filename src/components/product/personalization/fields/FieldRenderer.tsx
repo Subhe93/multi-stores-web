@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { isValueSet, type PFieldDef } from '@/lib/personalization';
+import { isValueSet, type PFieldDef } from '@multi-stores/core/personalization';
 import { mapFormFields, type PersonalizationProduct } from '@/lib/personalization/form';
 import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
 import type { PersonalizationAdvanced } from '@/components/product/usePersonalizationFields';

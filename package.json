@@ -12,6 +12,7 @@
     "test:dom": "vitest run --project dom"
   },
   "dependencies": {
+    "@multi-stores/core": "file:../multi-stores-shared/packages/core",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.1.0",
     "framer-motion": "^12.39.0",

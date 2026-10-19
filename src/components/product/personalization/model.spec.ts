@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileAllowedChars, lineKey, truncateChars, type PFieldDef, type POptionConfig } from '@/lib/personalization';
+import { compileAllowedChars, lineKey, truncateChars, type PFieldDef, type POptionConfig } from '@multi-stores/core/personalization';
 import { filterAllowedChars } from '@/lib/personalization/form';
 import { addGuestLine } from '@/lib/guestCart';
 import {

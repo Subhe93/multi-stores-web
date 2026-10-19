@@ -14,7 +14,7 @@ import {
   resolveLinkTarget,
   validatePersonalization,
   type FieldDef,
-} from './rules';
+} from '@multi-stores/core/personalization/rules';
 import {
   resolveCustomFieldLabel,
   resolveCustomFieldTranslation,

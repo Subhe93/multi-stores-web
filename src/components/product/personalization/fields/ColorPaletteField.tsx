@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
-import { resolvePalette, type PContext, type PFieldDef } from '@/lib/personalization';
+import { resolvePalette, type PContext, type PFieldDef } from '@multi-stores/core/personalization';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 

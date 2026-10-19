@@ -23,7 +23,7 @@ import {
   type PhotoAdj,
   type RenderReport,
   type TemplateSpecV1,
-} from '@/lib/designer/design-renderer';
+} from '@multi-stores/core/designer';
 import {
   backingScale,
   clientToMm,

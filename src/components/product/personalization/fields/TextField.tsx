@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { fieldMessage, insertAtCaret, truncateChars, type PFieldDef } from '@/lib/personalization';
+import { fieldMessage, insertAtCaret, truncateChars, type PFieldDef } from '@multi-stores/core/personalization';
 import { filterAllowedChars } from '@/lib/personalization/form';
 import { displayLength, textLimits, type FieldText } from '../model';
 import { FieldShell } from './FieldShell';

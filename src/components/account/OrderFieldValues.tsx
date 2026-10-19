@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { resolveMediaUrl } from '@/lib/api';
-import { buildPersonalizationGroups, hasPersonalizationGroups } from '@/lib/personalization';
+import { buildPersonalizationGroups, hasPersonalizationGroups } from '@multi-stores/core/personalization';
 import {
   snapshotLabel,
   sortOrderFieldValues,

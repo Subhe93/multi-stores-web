@@ -1,12 +1,7 @@
 /*
- * Personalization rules mirror (M4.0 K6, C12): runs every shared vector
- * against the web copy of rules.ts and checks that both files are unchanged
- * byte copies of multi-stores-shared/src/personalization/.
+ * Personalization rules (M4.0 K6, C12): runs every shared vector against
+ * @multi-stores/core as the web loads it (ESM build).
  */
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   charCount,
@@ -20,9 +15,8 @@ import {
   stripVariationSelectors,
   validatePersonalization,
   type FieldDef,
-} from './index';
-import { RULES_SHA256, VECTORS_SHA256 } from './rules.hash';
-import vectors from './personalization.vectors.json';
+} from '@multi-stores/core/personalization';
+import vectors from '@multi-stores/core/fixtures/personalization.vectors.json';
 
 interface ValidateVector {
   name: string;
@@ -32,26 +26,7 @@ interface ValidateVector {
   expected: { ok: boolean; issues: unknown[]; values?: Record<string, unknown> };
 }
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const sharedDir = resolve(here, '../../../../multi-stores-shared/src/personalization');
-const sha = (file: string) =>
-  createHash('sha256').update(readFileSync(file, 'utf8').replace(/\r\n/g, '\n'), 'utf8').digest('hex');
-
-describe('personalization mirror parity', () => {
-  it('rules.ts matches RULES_SHA256 (re-copy from shared, then update rules.hash.ts)', () => {
-    expect(sha(resolve(here, 'rules.ts'))).toBe(RULES_SHA256);
-  });
-
-  it('personalization.vectors.json matches VECTORS_SHA256', () => {
-    expect(sha(resolve(here, 'personalization.vectors.json'))).toBe(VECTORS_SHA256);
-  });
-
-  const sharedRules = resolve(sharedDir, 'rules.ts');
-  it.skipIf(!existsSync(sharedRules))('both files equal the shared source when the sibling repo is checked out', () => {
-    expect(sha(sharedRules)).toBe(RULES_SHA256);
-    expect(sha(resolve(sharedDir, 'personalization.vectors.json'))).toBe(VECTORS_SHA256);
-  });
-
+describe('personalization vectors', () => {
   it('runs all 171 vectors', () => {
     const count =
       vectors.charCount.length +

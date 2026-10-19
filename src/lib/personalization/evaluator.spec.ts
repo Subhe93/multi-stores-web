@@ -1,13 +1,8 @@
 /*
- * Personalization evaluator mirror (M4.1, contract C12): runs every shared
- * evaluator case against the web copy, proves the M4.0 parity on every M4.0
- * validate vector, and checks that the copies still match the pinned hashes
- * (and the shared source when the sibling repo is checked out).
+ * Personalization evaluator (M4.1, contract C12): runs every shared evaluator
+ * case against @multi-stores/core as the web loads it (ESM build) and proves
+ * the M4.0 parity on every M4.0 validate vector.
  */
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   APP_ONLY_TYPES,
@@ -29,20 +24,14 @@ import {
   type FieldDef,
   type PContext,
   type PFieldDef,
-} from './index';
-import { EVALUATOR_MIRROR_SHA256 } from './evaluator.hash';
-import casesJson from './personalization-cases.json';
-import m40Json from './personalization.vectors.json';
+} from '@multi-stores/core/personalization';
+import casesJson from '@multi-stores/core/fixtures/personalization-cases.json';
+import m40Json from '@multi-stores/core/fixtures/personalization.vectors.json';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Json = any;
 const cases: Json = casesJson;
 const m40: Json = m40Json;
-
-const here = fileURLToPath(new URL('.', import.meta.url));
-const sharedDir = resolve(here, '../../../../multi-stores-shared/src/personalization');
-const sha = (file: string) =>
-  createHash('sha256').update(readFileSync(file, 'utf8').replace(/\r\n/g, '\n'), 'utf8').digest('hex');
 
 const defsOf = (c: Json): PFieldDef[] => (typeof c.defs === 'string' ? cases.defs[c.defs] : c.defs);
 const ctxOf = (c: Json): PContext => ({ ...cases.baseContext, ...c.ctx });
@@ -52,26 +41,7 @@ const withoutMessage = (errors: Json[]): Json[] =>
     return rest;
   });
 
-describe('personalization evaluator mirror parity', () => {
-  const files = Object.keys(EVALUATOR_MIRROR_SHA256);
-
-  it('pins the four modules and the cases file', () => {
-    expect(files.sort()).toEqual(
-      ['conditions.ts', 'display.ts', 'evaluator.ts', 'personalization-cases.json', 'types.ts'].sort(),
-    );
-  });
-
-  it.each(files)('%s matches its pinned sha256 (re-run the shared sync script)', (file) => {
-    expect(sha(resolve(here, file))).toBe(EVALUATOR_MIRROR_SHA256[file]);
-  });
-
-  it.skipIf(!existsSync(resolve(sharedDir, 'evaluator.ts'))).each(files)(
-    '%s equals the shared source when the sibling repo is checked out',
-    (file) => {
-      expect(sha(resolve(sharedDir, file))).toBe(EVALUATOR_MIRROR_SHA256[file]);
-    },
-  );
-
+describe('personalization evaluator cases', () => {
   it('runs all 174 cases', () => {
     const count = ['evaluate', 'conditions', 'optionCount', 'money', 'formatMoney', 'truncate', 'insertAtCaret', 'display', 'groupLabels'].reduce(
       (n, k) => n + (cases[k] as Json[]).length,

@@ -13,7 +13,7 @@ import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
 import { CartFieldValue } from '@/components/cart/CartItem';
 import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
-import { hasPersonalizationGroups } from '@/lib/personalization/display';
+import { hasPersonalizationGroups } from '@multi-stores/core/personalization/display';
 import { RemoveUnavailableHint, UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';

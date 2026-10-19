@@ -14,7 +14,7 @@ import { usePersonalizationApp } from '@/components/product/personalization/useP
 import { visibleFieldsAt } from '@/components/product/personalization/model';
 import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
 import { useAddToCartLine } from '@/components/product/useAddToCartLine';
-import type { POptionConfig } from '@/lib/personalization/types';
+import type { POptionConfig } from '@multi-stores/core/personalization/types';
 import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import type { LineSource } from '@/lib/cartLine';

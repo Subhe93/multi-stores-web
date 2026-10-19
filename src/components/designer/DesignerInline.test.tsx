@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { Suspense, lazy, type ComponentType } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DESIGN_DRAFTS_KEY, type DesignerPayload } from '@/lib/designer/api';
-import type { TemplateSpecV1 } from '@/lib/designer/design-renderer';
+import type { TemplateSpecV1 } from '@multi-stores/core/designer';
 import { StoreAppsProvider } from '@/hooks/useStoreApps';
 import { fetchRouter, jsonResponse, makeView, SPEC, type RecordedCall } from '@/test/designer-fixtures';
 

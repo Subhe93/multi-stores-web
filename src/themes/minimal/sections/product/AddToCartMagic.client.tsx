@@ -15,7 +15,7 @@ import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
 import { VariantSelector } from '@/components/product/VariantSelector';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import type { PersonalizationProduct } from '@/lib/personalization/form';
-import type { POptionConfig } from '@/lib/personalization/types';
+import type { POptionConfig } from '@multi-stores/core/personalization/types';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';

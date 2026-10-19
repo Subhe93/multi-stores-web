@@ -5,7 +5,7 @@
  * server-normalized values, unit price and display lines. The local cart
  * never computes a price. Pure helpers; the request itself runs in `useCart`.
  */
-import { isPlainObject, type PError } from '@/lib/personalization';
+import { isPlainObject, type PError } from '@multi-stores/core/personalization';
 import type { CartItemMetadata } from '@/hooks/useCart';
 import { readApiPersonalizationErrors, type PersonalizationDisplayLine } from './model';
 

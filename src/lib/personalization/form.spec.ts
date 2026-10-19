@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileAllowedChars } from './rules';
+import { compileAllowedChars } from '@multi-stores/core/personalization/rules';
 import {
   buildCartPayload,
   fieldErrorFromApi,

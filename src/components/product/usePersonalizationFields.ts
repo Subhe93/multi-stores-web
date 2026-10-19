@@ -17,7 +17,7 @@ import {
   type MessageParams,
   type PersonalizationProduct,
 } from '@/lib/personalization/form';
-import type { PContext, PFieldDef, POptionConfig, PResult } from '@/lib/personalization';
+import type { PContext, PFieldDef, POptionConfig, PResult } from '@multi-stores/core/personalization';
 import {
   errorKey,
   errorMessages,

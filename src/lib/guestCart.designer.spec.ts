@@ -8,7 +8,7 @@ import {
   patchGuestDesignLine,
 } from './guestCart';
 import { encodeGuestCart, decodeGuestCart } from './cartHandoff';
-import { lineKey } from './personalization';
+import { lineKey } from '@multi-stores/core/personalization';
 import { normalizeCartItem, readCartLineDesign, type CartItem } from '@/hooks/useCart';
 
 let n = 0;

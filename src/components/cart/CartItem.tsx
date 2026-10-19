@@ -8,8 +8,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { UnavailableInMarketNotice } from './UnavailableInMarket';
 // Direct module imports (not the barrel) keep the evaluator out of the cart chunk (M5 D24).
-import { hasPersonalizationGroups } from '@/lib/personalization/display';
-import { isFileRefPath } from '@/lib/personalization/rules';
+import { hasPersonalizationGroups } from '@multi-stores/core/personalization/display';
+import { isFileRefPath } from '@multi-stores/core/personalization/rules';
 import { PersonalizationSummary, type SummaryDisplayLine } from './PersonalizationSummary';
 import type { CartLineDesign } from '@/hooks/useCart';
 import { useCartDesign } from '@/components/designer/useCartDesign';

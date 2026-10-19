@@ -16,7 +16,7 @@ import {
   type DesignPhoto,
   type ImageSlotElement,
   type PhotoAdj,
-} from '@/lib/designer/design-renderer';
+} from '@multi-stores/core/designer';
 import { clampAdj, limitsOf } from '@/lib/designer/gestures';
 
 export const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp';

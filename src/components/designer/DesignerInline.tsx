@@ -34,7 +34,7 @@ import {
   type RenderReport,
   type TemplateSpecV1,
   type TextElement,
-} from '@/lib/designer/design-renderer';
+} from '@multi-stores/core/designer';
 import {
   addonsTotal as sumAddons,
   createDesignerClient,

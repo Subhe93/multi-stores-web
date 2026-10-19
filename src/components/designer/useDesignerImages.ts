@@ -8,7 +8,7 @@
 // mode is needed on these loads.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ImageLookup, TemplateSpecV1 } from '@/lib/designer/design-renderer';
+import type { ImageLookup, TemplateSpecV1 } from '@multi-stores/core/designer';
 import { absoluteUrl, templateImageUrls, type DesignPhotoView } from '@/lib/designer/api';
 
 type Source = HTMLImageElement | ImageBitmap;

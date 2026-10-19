@@ -4,7 +4,7 @@
 // `document.fonts`. NPP waited up to 6 s; after that the editor renders with
 // whatever is ready and shows a notice, and re-renders when a late face lands.
 
-import type { FontLookup, FontStyle } from './design-renderer';
+import type { FontLookup, FontStyle } from '@multi-stores/core/designer';
 import { absoluteUrl, type DesignerFont } from './api';
 
 export const FONT_TIMEOUT_MS = 6000;

@@ -16,7 +16,7 @@ import {
   setDraftFor,
   templateImageUrls,
 } from './api';
-import type { TemplateSpecV1 } from './design-renderer';
+import type { TemplateSpecV1 } from '@multi-stores/core/designer';
 
 function memoryStorage() {
   const data = new Map<string, string>();

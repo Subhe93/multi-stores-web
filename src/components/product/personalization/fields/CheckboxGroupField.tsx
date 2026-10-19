@@ -1,6 +1,6 @@
 'use client';
 
-import { checkboxSelection, optionValues, type PFieldDef } from '@/lib/personalization';
+import { checkboxSelection, optionValues, type PFieldDef } from '@multi-stores/core/personalization';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 

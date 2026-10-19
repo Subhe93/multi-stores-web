@@ -8,7 +8,7 @@
  */
 // Imported from the rules module directly (not the barrel) so the cart chunk
 // does not pull the M4.1 evaluator along (M5 D24).
-import { lineKey, normalizeFieldValues } from '@/lib/personalization/rules';
+import { lineKey, normalizeFieldValues } from '@multi-stores/core/personalization/rules';
 import { isKnownRate } from '@/lib/b2bPrice';
 import type { CartItem, CartItemMetadata, DesignLinePatch, DesignLineReplacement } from '@/hooks/useCart';
 

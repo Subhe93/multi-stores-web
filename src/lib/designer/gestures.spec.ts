@@ -14,7 +14,7 @@ import {
   touchDirection,
   wheelAdj,
 } from './gestures';
-import { DEFAULT_ADJ, type ImageSlotElement, type TemplateSpecV1 } from './design-renderer';
+import { DEFAULT_ADJ, type ImageSlotElement, type TemplateSpecV1 } from '@multi-stores/core/designer';
 
 const slot = { x: 100, y: 100, w: 200, h: 200, rot: 0 };
 const adj = { ...DEFAULT_ADJ };
