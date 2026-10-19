@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "You have uploaded too many photos in a short time. Please wait a moment and try again.",
     "DESIGNER_STORAGE_FULL": "Photos cannot be uploaded right now. Please try again later.",
     "DESIGNER_UPLOAD_BUSY": "Too many images are being processed right now. Please try again in a moment.",
-    "DESIGNER_ASSET_NOT_FOUND": "This photo is no longer available. Please upload it again."
+    "DESIGNER_ASSET_NOT_FOUND": "This photo is no longer available. Please upload it again.",
+    "DESIGNER_ADDONS_INVALID": "The selected add-ons are not valid. Please choose them again."
   },
   "builderPreview": {
     "moveUp": "Move up",
@@ -772,6 +773,11 @@
     "dragHint": "Drag the photo to move it",
     "savedShort": "Saved",
     "errorsSummary": "{count, plural, one {# field needs your attention.} other {# fields need your attention.}}",
-    "editingCartLine": "You are editing a design that is already in your cart. Save to update it."
+    "editingCartLine": "You are editing a design that is already in your cart. Save to update it.",
+    "addonsTitle": "Add-ons",
+    "addonPrice": "+{price}",
+    "addonEach": "{price} each",
+    "addonQuantity": "Quantity",
+    "addonQuantityFor": "Quantity of {label}"
   }
 }

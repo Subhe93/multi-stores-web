@@ -9,7 +9,7 @@ import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus,
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { useMarket } from '@/hooks/useMarket';
+import { useMarket, useMarkets } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
 import { useApiError, useCodedApiError } from '@/lib/useApiError';
 import { getStripe } from '@/lib/stripe';
@@ -38,6 +38,7 @@ import { VatNumberField } from '@/components/checkout/VatNumberField';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
 import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { availableLines } from '@/lib/cartAvailability';
+import { checkoutCountryOptions } from '@/lib/checkoutCountries';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -241,6 +242,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     // b2b app: company section (only read when `isCompany`).
     company_name: '', org_number: '', vat_number: '', buyer_reference: '',
   });
+  // Markets app: the market's countries (the default market also serves
+  // every country no other market claims); the legacy list otherwise.
+  const markets = useMarkets();
+  const countryOptions = useMemo(
+    () => checkoutCountryOptions(COUNTRIES, market, markets, locale, form.country_code),
+    [market, markets, locale, form.country_code],
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
   // Availability is resolved by CheckoutRouter before either mode mounts.
@@ -432,6 +440,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         item_count: purchasable.reduce((s, i) => s + i.quantity, 0),
         subtotal,
         locale,
+        // Markets app: costs and the free threshold in the market currency.
+        ...(storeId && market?.key ? { store_id: storeId, market_key: market.key } : {}),
       }),
     })
       .then((res) => {
@@ -469,7 +479,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       })
       .finally(() => { if (!cancelled) setShippingLoading(false); });
     return () => { cancelled = true; };
-  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick]);
+  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick, storeId, market?.key]);
 
   // Quote the order (totals + itemized tax) once the destination country is
   // known, and again whenever the postcode, shipping method, coupon, cart or
@@ -1158,7 +1168,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                     <select id="ck_cc" name="country_code" value={form.country_code}
                       onChange={handleChange} className={inputCls(!!fieldErrors.country_code)}>
                       <option value="">{t('checkout.country')}...</option>
-                      {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                      {countryOptions.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                     </select>
                     {fieldErrors.country_code && <p className="mt-1 text-xs text-red-500">{fieldErrors.country_code}</p>}
                   </div>

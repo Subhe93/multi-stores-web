@@ -73,14 +73,23 @@ export function useAddToCartLine() {
    *  its proof arrives in the cart later (`refreshDesignLine`). */
   const addDesignLine = useCallback(
     async (input: AddLineInput, line: DesignedLine) => {
+      // M5.5: chosen add-ons raise the (guest, display-only) unit price; the
+      // server prices the line itself from the design.
+      const addons = line.addonsUnitPrice ?? 0;
+      const source = addons > 0 ? { ...input.source, unitPrice: Math.round((input.source.unitPrice + addons) * 100) / 100 } : input.source;
       await addItem(
         input.productId,
         input.variantId,
         input.quantity,
         undefined,
-        buildLineMetadata(input.source, {
+        buildLineMetadata(source, {
           customFieldDisplay: line.display,
-          design: { id: line.designId, token: line.token, proofUrl: line.proofUrl },
+          design: {
+            id: line.designId,
+            token: line.token,
+            proofUrl: line.proofUrl,
+            ...(addons > 0 ? { addonsUnitPrice: addons } : {}),
+          },
         }),
       );
     },

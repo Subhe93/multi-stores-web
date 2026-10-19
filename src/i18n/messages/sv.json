@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "Du har laddat upp för många foton på kort tid. Vänta en stund och försök igen.",
     "DESIGNER_STORAGE_FULL": "Det går inte att ladda upp foton just nu. Försök igen senare.",
     "DESIGNER_UPLOAD_BUSY": "För många bilder bearbetas just nu. Försök igen om en stund.",
-    "DESIGNER_ASSET_NOT_FOUND": "Fotot finns inte längre. Ladda upp det igen."
+    "DESIGNER_ASSET_NOT_FOUND": "Fotot finns inte längre. Ladda upp det igen.",
+    "DESIGNER_ADDONS_INVALID": "Valda tillval är inte giltiga. Välj dem igen."
   },
   "builderPreview": {
     "moveUp": "Flytta upp",
@@ -772,6 +773,11 @@
     "dragHint": "Dra bilden för att flytta den",
     "savedShort": "Sparat",
     "errorsSummary": "{count, plural, one {# fält behöver fyllas i.} other {# fält behöver fyllas i.}}",
-    "editingCartLine": "Du redigerar en design som redan ligger i varukorgen. Spara för att uppdatera den."
+    "editingCartLine": "Du redigerar en design som redan ligger i varukorgen. Spara för att uppdatera den.",
+    "addonsTitle": "Tillval",
+    "addonPrice": "+{price}",
+    "addonEach": "{price}/st",
+    "addonQuantity": "Antal",
+    "addonQuantityFor": "Antal {label}"
   }
 }

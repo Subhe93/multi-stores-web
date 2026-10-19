@@ -29,6 +29,7 @@ import {
   getDraftFor,
   setDesignPath,
   setDraftFor,
+  type AddonSelection,
   type DesignerClient,
   type DesignView,
   type UploadPhotoResult,
@@ -69,6 +70,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
   const designRef = useRef<DesignView | null>(null);
   const localRef = useRef<DesignStateV1>(EMPTY_STATE);
   const dirtyRef = useRef(false);
+  // M5.5 add-on selection: saved with the draft (`addons` on create / PATCH),
+  // sent only when it changed since the last save.
+  const [addons, setAddonsState] = useState<AddonSelection>({});
+  const addonsRef = useRef<AddonSelection>({});
+  const addonsDirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chainRef = useRef<Promise<unknown>>(Promise.resolve());
   const createRef = useRef<Promise<DesignView> | null>(null);
@@ -95,6 +101,13 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     setLocalState(next);
   }, []);
 
+  const applyAddons = useCallback((next: AddonSelection | undefined) => {
+    const v = { ...(next ?? {}) };
+    addonsRef.current = v;
+    addonsDirtyRef.current = false;
+    setAddonsState(v);
+  }, []);
+
   /** Runs `fn` after every earlier save/upload finished. */
   const exclusive = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
     const run = chainRef.current.then(fn, fn);
@@ -110,7 +123,10 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
       createRef.current = null;
       const next: DesignStateV1 = { v: 1, texts: carryTexts ? { ...carryTexts } : {}, photos: {} };
       applyLocal(next);
-      dirtyRef.current = Object.keys(next.texts).length > 0;
+      // The add-on choice survives like the texts (saved with the new draft).
+      const keepAddons = Object.keys(addonsRef.current).length > 0;
+      addonsDirtyRef.current = keepAddons;
+      dirtyRef.current = Object.keys(next.texts).length > 0 || keepAddons;
     },
     [productId, applyDesign, applyLocal],
   );
@@ -148,6 +164,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         }
         applyDesign(view);
         applyLocal(cloneState(view.state ?? EMPTY_STATE));
+        applyAddons(view.addons);
         dirtyRef.current = false;
         if (view.status === 'DRAFT') setDraftFor(productId, view.id);
       })
@@ -188,8 +205,15 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     if (!createRef.current) {
       const texts = validateState(spec, { v: 1, texts: localRef.current.texts, photos: {} }).normalized.texts;
       const sentTexts = JSON.stringify(texts);
+      const sentAddons = { ...addonsRef.current };
+      const hasAddons = Object.keys(sentAddons).length > 0;
       createRef.current = c
-        .create({ product_id: productId, template_version_id: templateVersionId, state: { v: 1, texts, photos: {} } })
+        .create({
+          product_id: productId,
+          template_version_id: templateVersionId,
+          state: { v: 1, texts, photos: {} },
+          ...(hasAddons ? { addons: sentAddons } : {}),
+        })
         .then((view) => {
           applyDesign(view);
           try {
@@ -199,7 +223,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
           }
           setDraftFor(productId, view.id);
           // Edits made while creating stay dirty and are saved next.
-          dirtyRef.current = JSON.stringify(localRef.current.texts) !== sentTexts || Object.keys(localRef.current.photos).length > 0;
+          addonsDirtyRef.current = JSON.stringify(addonsRef.current) !== JSON.stringify(sentAddons);
+          dirtyRef.current =
+            JSON.stringify(localRef.current.texts) !== sentTexts ||
+            Object.keys(localRef.current.photos).length > 0 ||
+            addonsDirtyRef.current;
           return view;
         })
         .catch((err) => {
@@ -240,13 +268,19 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         }
         if (!dirtyRef.current) return designRef.current;
         dirtyRef.current = false;
+        const sendAddons = addonsDirtyRef.current ? { ...addonsRef.current } : null;
+        addonsDirtyRef.current = false;
         setSaving(true);
         try {
+          const init = {
+            ...(opts?.keepalive ? { keepalive: true } : {}),
+            ...(sendAddons ? { addons: sendAddons } : {}),
+          };
           const view = await client.update(
             d.id,
             check.normalized,
             d.state_version,
-            opts?.keepalive ? { keepalive: true } : undefined,
+            Object.keys(init).length ? init : undefined,
           );
           // Keep local edits made during the request; take the server's version and photo views.
           applyDesign(view);
@@ -260,6 +294,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
               const fresh = await client.get(d.id);
               applyDesign(fresh);
               applyLocal(cloneState(fresh.state ?? EMPTY_STATE));
+              applyAddons(fresh.addons);
               setNotice('stale');
               setSaveError(null);
               return fresh;
@@ -281,13 +316,14 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
             return null;
           }
           dirtyRef.current = true;
+          if (sendAddons) addonsDirtyRef.current = true;
           setSaveError(err);
           return null;
         } finally {
           setSaving(false);
         }
       }),
-    [client, spec, exclusive, ensureDesign, applyDesign, applyLocal, startFresh],
+    [client, spec, exclusive, ensureDesign, applyDesign, applyLocal, applyAddons, startFresh],
   );
 
   // The autosave timer always runs the latest `saveNow` (the one that knows
@@ -330,6 +366,21 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         return s;
       }),
     [updateLocal],
+  );
+
+  /** Sets one add-on's quantity (0 removes it; toggles use 1) and autosaves. */
+  const setAddon = useCallback(
+    (key: string, qty: number) => {
+      const next = { ...addonsRef.current };
+      if (qty > 0) next[key] = qty;
+      else delete next[key];
+      addonsRef.current = next;
+      setAddonsState(next);
+      addonsDirtyRef.current = true;
+      dirtyRef.current = true;
+      scheduleSave();
+    },
+    [scheduleSave],
   );
 
   const setAdj = useCallback(
@@ -418,6 +469,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         createRef.current = null;
         applyDesign(view);
         applyLocal(cloneState(view.state ?? EMPTY_STATE));
+        applyAddons(view.addons);
         dirtyRef.current = false;
         try {
           setDesignPath(view.id, window.location.pathname);
@@ -430,7 +482,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         setSaveError(null);
         return view;
       }),
-    [awaitClient, exclusive, applyDesign, applyLocal, productId],
+    [awaitClient, exclusive, applyDesign, applyLocal, applyAddons, productId],
   );
 
   // Save what is pending when the tab is hidden (mobile app switch) and on
@@ -467,6 +519,9 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     /** Local edits not yet saved. */
     isDirty: () => dirtyRef.current,
     validation,
+    /** M5.5 add-on selection `{key: qty}` of the draft. */
+    addons,
+    setAddon,
     setText,
     setAdj,
     uploadPhoto,

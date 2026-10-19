@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "Du hast in kurzer Zeit zu viele Fotos hochgeladen. Bitte warte einen Moment und versuche es erneut.",
     "DESIGNER_STORAGE_FULL": "Fotos können gerade nicht hochgeladen werden. Bitte versuche es später erneut.",
     "DESIGNER_UPLOAD_BUSY": "Gerade werden zu viele Bilder verarbeitet. Bitte versuchen Sie es gleich noch einmal.",
-    "DESIGNER_ASSET_NOT_FOUND": "Dieses Foto ist nicht mehr verfügbar. Bitte lade es erneut hoch."
+    "DESIGNER_ASSET_NOT_FOUND": "Dieses Foto ist nicht mehr verfügbar. Bitte lade es erneut hoch.",
+    "DESIGNER_ADDONS_INVALID": "Die gewählten Extras sind ungültig. Bitte wähle sie erneut."
   },
   "builderPreview": {
     "moveUp": "Nach oben",
@@ -772,6 +773,11 @@
     "dragHint": "Ziehe das Foto, um es zu verschieben",
     "savedShort": "Gespeichert",
     "errorsSummary": "{count, plural, one {# Feld muss noch ausgefüllt werden.} other {# Felder müssen noch ausgefüllt werden.}}",
-    "editingCartLine": "Du bearbeitest ein Design, das bereits im Warenkorb liegt. Speichern, um es zu aktualisieren."
+    "editingCartLine": "Du bearbeitest ein Design, das bereits im Warenkorb liegt. Speichern, um es zu aktualisieren.",
+    "addonsTitle": "Extras",
+    "addonPrice": "+{price}",
+    "addonEach": "{price} pro Stück",
+    "addonQuantity": "Menge",
+    "addonQuantityFor": "Menge von {label}"
   }
 }

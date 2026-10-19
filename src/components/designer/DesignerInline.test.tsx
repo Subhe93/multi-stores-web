@@ -70,7 +70,7 @@ vi.mock('@/lib/designer/api', async (importOriginal) => {
   };
 });
 
-import { DesignerCanvasSlot, DesignerFormSlot, DesignerSessionProvider } from './DesignerSession';
+import { DesignerCanvasSlot, DesignerFormSlot, DesignerSessionProvider, useDesignerAddonsTotal } from './DesignerSession';
 import type { DesignedLine } from './DesignerInline';
 
 const payload: DesignerPayload = {
@@ -79,6 +79,7 @@ const payload: DesignerPayload = {
   spec_public: SPEC,
   fonts: [],
   settings: { max_upload_mb: 25, min_effective_dpi_warning: 100 },
+  addons: [],
 };
 
 /** SPEC with the name text required (for the validation path). */
@@ -230,5 +231,95 @@ describe('Designer inline (M5.5, NPP layout)', () => {
     expect(cta).toBeDisabled();
     fireEvent.click(cta);
     expect(h.calls).toHaveLength(0);
+  });
+  it('add-ons (M5.5): toggling updates the CTA total, the selection autosaves and the add carries it', async () => {
+    const user = userEvent.setup();
+    const ADDONS = [
+      { key: 'double', type: 'toggle' as const, label: { en: 'Double-sided' }, price: 149 },
+      { key: 'poster', type: 'quantity' as const, label: { en: 'Poster' }, price: 179, max_qty: 10 },
+    ];
+    let saved: Record<string, number> | undefined;
+    h.routes = {
+      'POST /designs': ({ body }) => {
+        saved = (body as { addons?: Record<string, number> }).addons;
+        return jsonResponse(201, {
+          data: { ...makeView({ state: (body as { state: never }).state, state_version: 1 }), ...(saved ? { addons: saved } : {}), token: 'tok' },
+        });
+      },
+      'PATCH /designs/d1': ({ body }) => {
+        const b = body as { state: never; addons?: Record<string, number> };
+        if (b.addons) saved = b.addons;
+        return jsonResponse(200, { data: { ...makeView({ state: b.state, state_version: 2 }), ...(saved ? { addons: saved } : {}) } });
+      },
+      'POST /designs/d1/proof': () => jsonResponse(200, { data: { proof_url: '/proofs/d1.jpg' } }),
+    };
+    const addDesignLine = vi.fn<(line: DesignedLine) => Promise<void>>(async () => undefined);
+    // The host adds the hook's total to the unit price, like the product page.
+    function Total() {
+      const addons = useDesignerAddonsTotal();
+      return <span data-testid="total">{349 + addons}</span>;
+    }
+    render(
+      <StoreAppsProvider value={{ designer: { enabled: true } }}>
+        <DesignerSessionProvider designer={{ ...payload, addons: ADDONS }} productId="p1" locale="en">
+          <Total />
+          <DesignerFormSlot totalLabel="349 kr" onAddToCart={addDesignLine} formatMoney={(n) => `${n} kr`} />
+        </DesignerSessionProvider>
+      </StoreAppsProvider>,
+    );
+    const legend = await screen.findByText('addonsTitle');
+    expect(legend.tagName).toBe('LEGEND');
+    expect(screen.getByTestId('total')).toHaveTextContent('349');
+    const double = screen.getByRole('checkbox', { name: /Double-sided/ });
+    await user.click(double);
+    expect(double).toBeChecked();
+    expect(screen.getByTestId('total')).toHaveTextContent('498');
+    await user.click(screen.getByRole('checkbox', { name: /Poster/ }));
+    const qty = screen.getByRole('combobox', { name: 'addonQuantityFor' });
+    await user.selectOptions(qty, '2');
+    expect(screen.getByTestId('total')).toHaveTextContent(String(349 + 149 + 2 * 179));
+    await user.type(screen.getByLabelText('Name'), 'Anna');
+    await user.click(screen.getByRole('button', { name: /addToCartWithPrice/ }));
+    await waitFor(() => expect(addDesignLine).toHaveBeenCalledTimes(1));
+    // The server got the selection with the draft; the line carries it.
+    expect(saved).toEqual({ double: 1, poster: 2 });
+    expect(addDesignLine).toHaveBeenCalledWith({
+      designId: 'd1',
+      token: 'tok',
+      proofUrl: null,
+      addonsUnitPrice: 149 + 358,
+      display: [
+        { id: 'name', label: 'Name', value: 'Anna' },
+        { id: 'addon:double', label: 'Double-sided', value: '+149 kr' },
+        { id: 'addon:poster', label: 'Poster', value: '× 2 (+358 kr)' },
+      ],
+    });
+  });
+
+  it('add-ons restore from ?design= (edit from the cart)', async () => {
+    window.history.replaceState({}, '', `/products/sign?design=${ID}`);
+    h.routes = {
+      [`GET /designs/${ID}`]: () =>
+        jsonResponse(200, { data: { ...makeView({ id: ID, state: { v: 1, texts: { name: 'Anna' }, photos: {} } }), addons: { double: 1 } } }),
+    };
+    render(
+      <StoreAppsProvider value={{ designer: { enabled: true } }}>
+        <DesignerSessionProvider
+          designer={{ ...payload, addons: [{ key: 'double', type: 'toggle', label: { en: 'Double-sided' }, price: 149 }] }}
+          productId="p1"
+          locale="en"
+        >
+          <DesignerFormSlot totalLabel="349 kr" onAddToCart={vi.fn(async () => undefined)} />
+        </DesignerSessionProvider>
+      </StoreAppsProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /Double-sided/ })).toBeChecked());
+  });
+
+  it('G0: no add-ons in the payload renders no add-ons block', async () => {
+    renderInline();
+    await screen.findByLabelText('Name');
+    expect(screen.queryByText('addonsTitle')).toBeNull();
+    expect(document.querySelector('[data-designer-addons]')).toBeNull();
   });
 });

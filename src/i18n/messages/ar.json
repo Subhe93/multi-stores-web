@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "لقد رفعت عدداً كبيراً من الصور خلال وقت قصير. يُرجى الانتظار قليلاً ثم المحاولة مرة أخرى.",
     "DESIGNER_STORAGE_FULL": "لا يمكن رفع الصور حالياً. يُرجى المحاولة لاحقاً.",
     "DESIGNER_UPLOAD_BUSY": "تتم معالجة صور كثيرة الآن. حاول مجدداً بعد قليل.",
-    "DESIGNER_ASSET_NOT_FOUND": "هذه الصورة لم تعد متاحة. يُرجى رفعها مرة أخرى."
+    "DESIGNER_ASSET_NOT_FOUND": "هذه الصورة لم تعد متاحة. يُرجى رفعها مرة أخرى.",
+    "DESIGNER_ADDONS_INVALID": "الإضافات المختارة غير صالحة. يرجى اختيارها من جديد."
   },
   "builderPreview": {
     "moveUp": "تحريك لأعلى",
@@ -772,6 +773,11 @@
     "dragHint": "اسحب الصورة لتحريكها",
     "savedShort": "تم الحفظ",
     "errorsSummary": "{count, plural, one {حقل واحد يحتاج إلى استكمال.} other {# حقول تحتاج إلى استكمال.}}",
-    "editingCartLine": "أنت تعدّل تصميماً موجوداً في سلتك بالفعل. احفظ لتحديثه."
+    "editingCartLine": "أنت تعدّل تصميماً موجوداً في سلتك بالفعل. احفظ لتحديثه.",
+    "addonsTitle": "إضافات",
+    "addonPrice": "+{price}",
+    "addonEach": "{price} للقطعة",
+    "addonQuantity": "الكمية",
+    "addonQuantityFor": "كمية {label}"
   }
 }

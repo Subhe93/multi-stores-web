@@ -5,6 +5,7 @@ import {
   guestLineKey,
   guestLineToServerBody,
   isSameGuestLine,
+  patchGuestDesignLine,
 } from './guestCart';
 import { encodeGuestCart, decodeGuestCart } from './cartHandoff';
 import { lineKey } from './personalization';
@@ -133,5 +134,41 @@ describe('GET /cart designer rows', () => {
     expect(item).not.toHaveProperty('design');
     expect(readCartLineDesign(null)).toBeNull();
     expect(readCartLineDesign({ id: '' })).toBeNull();
+  });
+});
+
+describe('designer add-ons on cart lines (M5.5)', () => {
+  it('the server design block lists its add-ons after the texts', () => {
+    const block = readCartLineDesign({
+      id: 'd1',
+      editable: true,
+      proof_url: null,
+      text_values: [{ element_id: 'namn', label: 'Namn', value: 'Anna' }],
+      addons: [
+        { key: 'double', type: 'toggle', label: 'Dubbelsidig', qty: 1, unit_price: 149, amount: 149, text: '+149 kr' },
+        { key: 'poster', type: 'quantity', label: 'Poster', qty: 2, unit_price: 179, amount: 358, text: '× 2 (+358 kr)' },
+      ],
+    });
+    expect(block?.display).toEqual([
+      { id: 'namn', label: 'Namn', value: 'Anna' },
+      { id: 'addon:double', label: 'Dubbelsidig', value: '+149 kr' },
+      { id: 'addon:poster', label: 'Poster', value: '× 2 (+358 kr)' },
+    ]);
+  });
+
+  it('a guest line keeps its add-on price and moves by the difference on edit', () => {
+    const lines = addGuestLine([], 'p1', null, 1, undefined, { price: 448, design: { id: 'd1', token: 't', proofUrl: null, addonsUnitPrice: 149 } }, makeId);
+    expect(lines[0].price).toBe(448);
+    expect(lines[0].design?.addonsUnitPrice).toBe(149);
+    const edited = patchGuestDesignLine(lines, 'd1', { addonsUnitPrice: 149 + 358 });
+    expect(edited[0].price).toBe(299 + 507);
+    const cleared = patchGuestDesignLine(edited, 'd1', { addonsUnitPrice: 0 });
+    expect(cleared[0].price).toBe(299);
+    expect(cleared[0].design && 'addonsUnitPrice' in cleared[0].design).toBe(false);
+  });
+
+  it('G0: a design line without add-ons keeps its exact shape', () => {
+    const lines = addGuestLine([], 'p1', null, 1, undefined, { price: 299, ...design('d2') }, makeId);
+    expect(lines[0].design).toEqual({ id: 'd2', editable: true, proofUrl: '/api/designer/files/p' });
   });
 });

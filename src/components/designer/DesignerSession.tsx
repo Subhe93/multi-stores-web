@@ -144,12 +144,13 @@ export function useDesignerHeading(locale: string): string {
 }
 
 /**
- * Per-unit total of the designer add-ons shown in the CTA. Add-ons
- * (double-sided, rain cover, poster, welcome sign) are M5.5 scope; until
- * they land the line is base + variant only, so this is 0.
+ * Per-unit total of the chosen designer add-ons (M5.5: double-sided, rain
+ * cover, poster copies), added to the CTA total by the host page. 0 without
+ * a designer session or add-ons. Display only: the server prices the line.
  */
 export function useDesignerAddonsTotal(): number {
-  return 0;
+  const session = useContext(SessionContext);
+  return session?.addonsTotal ?? 0;
 }
 
 /** The live canvas in the gallery column (lazy; the aspect box is reserved meanwhile). */

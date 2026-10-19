@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "Kısa sürede çok fazla fotoğraf yükledin. Lütfen biraz bekleyip tekrar dene.",
     "DESIGNER_STORAGE_FULL": "Şu anda fotoğraf yüklenemiyor. Lütfen daha sonra tekrar dene.",
     "DESIGNER_UPLOAD_BUSY": "Şu anda çok fazla görsel işleniyor. Lütfen biraz sonra tekrar deneyin.",
-    "DESIGNER_ASSET_NOT_FOUND": "Bu fotoğraf artık mevcut değil. Lütfen yeniden yükle."
+    "DESIGNER_ASSET_NOT_FOUND": "Bu fotoğraf artık mevcut değil. Lütfen yeniden yükle.",
+    "DESIGNER_ADDONS_INVALID": "Seçilen ekstralar geçerli değil. Lütfen yeniden seçin."
   },
   "builderPreview": {
     "moveUp": "Yukarı taşı",
@@ -772,6 +773,11 @@
     "dragHint": "Taşımak için fotoğrafı sürükleyin",
     "savedShort": "Kaydedildi",
     "errorsSummary": "{count, plural, one {# alan doldurulmalı.} other {# alan doldurulmalı.}}",
-    "editingCartLine": "Zaten sepetinizde olan bir tasarımı düzenliyorsunuz. Güncellemek için kaydedin."
+    "editingCartLine": "Zaten sepetinizde olan bir tasarımı düzenliyorsunuz. Güncellemek için kaydedin.",
+    "addonsTitle": "Ekstralar",
+    "addonPrice": "+{price}",
+    "addonEach": "adet {price}",
+    "addonQuantity": "Adet",
+    "addonQuantityFor": "{label} adedi"
   }
 }

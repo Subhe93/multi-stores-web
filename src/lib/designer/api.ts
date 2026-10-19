@@ -32,6 +32,62 @@ export interface DesignerPayload {
   spec_public: TemplateSpecV1;
   fonts: DesignerFont[];
   settings: DesignerSettings;
+  /** Paid add-ons (M5.5), enabled only, in display order; prices in the page currency. */
+  addons: DesignerAddon[];
+}
+
+/** One add-on of the product payload (`designer.addons[]`). */
+export interface DesignerAddon {
+  key: string;
+  type: 'toggle' | 'quantity';
+  label: Record<string, string>;
+  price: number;
+  /** Quantity add-ons only (1..20). */
+  max_qty?: number;
+}
+
+/** The customer's add-on choice `{key: qty}` (toggles use 1). */
+export type AddonSelection = Record<string, number>;
+
+/** Valid add-ons of the payload (malformed entries are dropped). */
+export function readDesignerAddons(raw: unknown): DesignerAddon[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DesignerAddon[] = [];
+  for (const a of raw) {
+    if (!isObj(a) || typeof a.key !== 'string' || !a.key) continue;
+    if (a.type !== 'toggle' && a.type !== 'quantity') continue;
+    const price = finite(a.price, -1);
+    if (price < 0 || !isObj(a.label)) continue;
+    const label: Record<string, string> = {};
+    for (const [k, v] of Object.entries(a.label)) if (typeof v === 'string' && v) label[k] = v;
+    out.push({
+      key: a.key,
+      type: a.type,
+      label,
+      price,
+      ...(a.type === 'quantity' ? { max_qty: Math.max(1, Math.min(20, Math.floor(finite(a.max_qty, 1)))) } : {}),
+    });
+  }
+  return out;
+}
+
+/** The selection reduced to the payload's add-ons (unknown keys dropped, quantities clamped). */
+export function normalizeAddonSelection(addons: DesignerAddon[], raw: unknown): AddonSelection {
+  const out: AddonSelection = {};
+  if (!isObj(raw)) return out;
+  for (const a of addons) {
+    const v = raw[a.key];
+    if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0) continue;
+    out[a.key] = a.type === 'toggle' ? 1 : Math.min(v, a.max_qty ?? 1);
+  }
+  return out;
+}
+
+/** Per-unit price of the selected add-ons (display only; the server prices the line). */
+export function addonsTotal(addons: DesignerAddon[], selection: AddonSelection): number {
+  let sum = 0;
+  for (const a of addons) sum += a.price * (selection[a.key] ?? 0);
+  return Math.round(sum * 100) / 100;
 }
 
 export const DEFAULT_DESIGNER_SETTINGS: DesignerSettings = {
@@ -90,6 +146,7 @@ export function readDesignerPayload(raw: unknown): DesignerPayload | null {
         DEFAULT_DESIGNER_SETTINGS.min_effective_dpi_warning,
       ),
     },
+    addons: readDesignerAddons(raw.addons),
   };
 }
 
@@ -132,6 +189,8 @@ export interface DesignView {
   proof_url: string | null;
   /** Product page slug, so links back to the editor work in any browser. */
   product_slug?: string | null;
+  /** M5.5 add-on selection; absent when none was chosen. */
+  addons?: AddonSelection;
   created_at?: string;
   updated_at?: string;
 }
@@ -391,6 +450,7 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       product_id: string;
       template_version_id: string;
       state?: DesignStateV1;
+      addons?: AddonSelection;
     }): Promise<DesignView> {
       const res = await json<DesignView & { token?: string }>('POST', '', null, input);
       const { token, ...view } = res;
@@ -421,14 +481,16 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       id: string,
       state: DesignStateV1,
       stateVersion: number,
-      init?: { keepalive?: boolean },
+      init?: { keepalive?: boolean; addons?: AddonSelection },
     ): Promise<DesignView> {
+      const { addons, ...rest } = init ?? {};
       return json<DesignView>(
         'PATCH',
         `/${encodeURIComponent(id)}`,
         id,
-        { state, state_version: stateVersion },
-        init,
+        // `addons` only when the selection changed (absent = kept).
+        { state, state_version: stateVersion, ...(addons ? { addons } : {}) },
+        init ? rest : undefined,
       );
     },
 

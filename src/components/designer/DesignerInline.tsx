@@ -36,8 +36,12 @@ import {
   type TextElement,
 } from '@/lib/designer/design-renderer';
 import {
+  addonsTotal as sumAddons,
   createDesignerClient,
   designerClientOptions,
+  normalizeAddonSelection,
+  type AddonSelection,
+  type DesignerAddon,
   getDesignToken,
   getDraftFor,
   isUploadNetworkError,
@@ -60,8 +64,10 @@ export interface DesignedLine {
   token: string | null;
   /** Signed proof path (relative); null until the background render landed. */
   proofUrl: string | null;
-  /** Text values as cart display lines ("Name: Anna"). */
+  /** Text values as cart display lines ("Name: Anna"), then the chosen add-ons. */
   display: CartCustomFieldDisplay[];
+  /** M5.5: per-unit price of the chosen add-ons (display only; 0/absent without). */
+  addonsUnitPrice?: number;
 }
 
 export interface SubmitOptions {
@@ -70,7 +76,12 @@ export interface SubmitOptions {
   onAddToCart: (line: DesignedLine) => Promise<void>;
   /** After the line was added (or the changes of a cart line were saved). */
   onDone?: (kind: 'added' | 'saved') => void;
+  /** Formats an amount in the page currency (add-on display lines). */
+  formatMoney?: (amount: number) => string;
 }
+
+/** Plain fallback when the host passes no money formatter. */
+const plainMoney = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 
 /** Everything the canvas and the form read from the shared session. */
 export interface DesignerSession {
@@ -121,6 +132,13 @@ export interface DesignerSession {
   submitting: boolean;
   submitError: string;
   submit: (o: SubmitOptions) => Promise<void>;
+  /** M5.5 paid add-ons of the product (enabled only, display order). */
+  addons: DesignerAddon[];
+  /** The draft's add-on choice, limited to `addons`. */
+  addonSelection: AddonSelection;
+  /** Per-unit price of the chosen add-ons (page currency). */
+  addonsTotal: number;
+  setAddon: (key: string, qty: number) => void;
   restarting: boolean;
   startAgain: () => Promise<void>;
 }
@@ -377,17 +395,36 @@ export function DesignerSessionHost() {
   const designId = draft.design?.id ?? null;
   const inCart = Boolean(designId && (draft.design?.status === 'IN_CART' || cartItems.some((i) => i.designId === designId)));
 
-  // Text values as cart display lines ("Name: Anna").
+  // ── Add-ons (M5.5) ─────────────────────────────────────────────────────
+  const addonList = payload.addons;
+  const addonSelection = useMemo(() => normalizeAddonSelection(addonList, draft.addons), [addonList, draft.addons]);
+  const addonsTotal = useMemo(() => sumAddons(addonList, addonSelection), [addonList, addonSelection]);
+  const setAddon = draft.setAddon;
+
+  // Text values as cart display lines ("Name: Anna"), then the chosen add-ons
+  // ("Dubbelsidig: +149 kr", "Poster: × 2 (+358 kr)").
   const displayLines = useCallback(
-    (): CartCustomFieldDisplay[] =>
-      texts
+    (formatMoney: (n: number) => string = plainMoney): CartCustomFieldDisplay[] => [
+      ...texts
         .map((el) => ({
           id: el.id,
           label: pickI18n(el.label, locale) || el.source_label || el.id,
           value: draft.state.texts[el.id] ?? '',
         }))
         .filter((l) => l.value !== ''),
-    [texts, locale, draft.state.texts],
+      ...addonList
+        .filter((a) => (addonSelection[a.key] ?? 0) > 0)
+        .map((a) => {
+          const qty = addonSelection[a.key];
+          const amount = formatMoney(Math.round(a.price * qty * 100) / 100);
+          return {
+            id: `addon:${a.key}`,
+            label: pickI18n(a.label, locale) || a.key,
+            value: a.type === 'quantity' ? `× ${qty} (+${amount})` : `+${amount}`,
+          };
+        }),
+    ],
+    [texts, locale, draft.state.texts, addonList, addonSelection],
   );
 
   // The proof is rendered after the add, never before it (NPP blocked the
@@ -409,7 +446,7 @@ export function DesignerSessionHost() {
   );
 
   const submit = useCallback(
-    async ({ blockedReason, onAddToCart, onDone }: SubmitOptions) => {
+    async ({ blockedReason, onAddToCart, onDone, formatMoney }: SubmitOptions) => {
       if (submittingRef.current) return;
       setSubmitError('');
       const full = validateState(spec, draft.state, { requireComplete: true });
@@ -439,11 +476,11 @@ export function DesignerSessionHost() {
           setSubmitError(draft.saveError ? apiError(draft.saveError) : t('saveFailed'));
           return;
         }
-        const display = displayLines();
+        const display = displayLines(formatMoney);
         if (inCart) {
           clearCartDesignCache(saved.id);
           try {
-            await refreshDesignLine(saved.id, { display });
+            await refreshDesignLine(saved.id, { display, addonsUnitPrice: addonsTotal });
           } catch {
             // The cart re-reads itself on the next visit.
           }
@@ -452,7 +489,13 @@ export function DesignerSessionHost() {
           router.push(lp('/cart'));
           return;
         }
-        await onAddToCart({ designId: saved.id, token: getDesignToken(saved.id), proofUrl: null, display });
+        await onAddToCart({
+          designId: saved.id,
+          token: getDesignToken(saved.id),
+          proofUrl: null,
+          display,
+          ...(addonsTotal > 0 ? { addonsUnitPrice: addonsTotal } : {}),
+        });
         // The design lives in the cart now; a later visit starts a new one.
         setDraftFor(productId, null);
         requestProof(saved.id, display);
@@ -464,7 +507,7 @@ export function DesignerSessionHost() {
         setSubmitting(false);
       }
     },
-    [spec, draft, inCart, focusElement, apiError, t, displayLines, refreshDesignLine, requestProof, router, lp, productId],
+    [spec, draft, inCart, focusElement, apiError, t, displayLines, addonsTotal, refreshDesignLine, requestProof, router, lp, productId],
   );
 
   // ── Start again from an ordered design ─────────────────────────────────
@@ -537,6 +580,10 @@ export function DesignerSessionHost() {
     submitting,
     submitError,
     submit,
+    addons: addonList,
+    addonSelection,
+    addonsTotal,
+    setAddon,
     restarting,
     startAgain,
   };
@@ -627,6 +674,8 @@ export interface DesignerFormProps {
   addedContent?: ReactNode;
   onAddToCart: (line: DesignedLine) => Promise<void>;
   onDone?: (kind: 'added' | 'saved') => void;
+  /** Formats an amount in the page currency (add-on prices, M5.5). */
+  formatMoney?: (amount: number) => string;
   buttonClassName?: string;
   buttonStyle?: CSSProperties;
 }
@@ -638,6 +687,7 @@ export function DesignerFormInline({
   addedContent,
   onAddToCart,
   onDone,
+  formatMoney,
   buttonClassName,
   buttonStyle,
 }: DesignerFormProps) {
@@ -740,6 +790,16 @@ export function DesignerFormInline({
         </div>
       )}
 
+      {s.addons.length > 0 && (
+        <AddonsBlock
+          addons={s.addons}
+          selection={s.addonSelection}
+          locale={ctx.locale}
+          formatMoney={formatMoney ?? plainMoney}
+          onChange={s.setAddon}
+        />
+      )}
+
       <div className="space-y-3">
         {s.errorCount > 0 && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
@@ -756,7 +816,7 @@ export function DesignerFormInline({
             {quantitySelector}
             <button
               type="button"
-              onClick={() => void s.submit({ blockedReason, onAddToCart, onDone })}
+              onClick={() => void s.submit({ blockedReason, onAddToCart, onDone, formatMoney })}
               disabled={!s.ready || busy || s.fontsMissing || blocked}
               aria-busy={busy || undefined}
               className={
@@ -780,5 +840,84 @@ export function DesignerFormInline({
         </p>
       </div>
     </div>
+  );
+}
+
+// ── Add-ons ("Tillval", M5.5, NPP parity) ─────────────────────────────────
+
+interface AddonsBlockProps {
+  addons: DesignerAddon[];
+  selection: AddonSelection;
+  locale: string;
+  formatMoney: (amount: number) => string;
+  onChange: (key: string, qty: number) => void;
+}
+
+/**
+ * NPP-style add-on cards between the fields and the CTA: a checkbox per
+ * add-on with its price; a quantity add-on shows a 1..max select once
+ * chosen. The CTA total follows through `useDesignerAddonsTotal()`.
+ */
+function AddonsBlock({ addons, selection, locale, formatMoney, onChange }: AddonsBlockProps) {
+  const t = useTranslations('designer');
+  return (
+    <fieldset className="space-y-2" data-designer-addons>
+      <legend className="mb-2 text-sm font-semibold text-gray-900">{t('addonsTitle')}</legend>
+      {addons.map((a) => {
+        const qty = selection[a.key] ?? 0;
+        const checked = qty > 0;
+        const label = pickI18n(a.label, locale) || a.key;
+        const price = formatMoney(a.price);
+        const inputId = `designer-addon-${a.key}`;
+        const qtyId = `${inputId}-qty`;
+        return (
+          <div
+            key={a.key}
+            className={`rounded-xl border p-3 transition-colors motion-reduce:transition-none ${checked ? 'bg-gray-50' : 'border-gray-200 bg-white'}`}
+            style={checked ? { borderColor: 'var(--store-primary, #2563eb)' } : undefined}
+          >
+            <label htmlFor={inputId} className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                id={inputId}
+                type="checkbox"
+                className="h-5 w-5 shrink-0 cursor-pointer rounded"
+                style={{ accentColor: 'var(--store-primary, #2563eb)' }}
+                checked={checked}
+                onChange={(e) => onChange(a.key, e.target.checked ? 1 : 0)}
+                data-addon={a.key}
+              />
+              <span className="min-w-0 flex-1 text-sm text-gray-900" dir="auto">
+                {label}
+              </span>
+              <span className="shrink-0 text-sm font-medium tabular-nums text-gray-700">
+                {a.type === 'quantity' ? t('addonEach', { price }) : t('addonPrice', { price })}
+              </span>
+            </label>
+            {a.type === 'quantity' && checked && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 ps-8">
+                <label htmlFor={qtyId} className="text-xs text-gray-600">
+                  {t('addonQuantity')}
+                </label>
+                <select
+                  id={qtyId}
+                  className="min-h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm tabular-nums"
+                  value={qty}
+                  onChange={(e) => onChange(a.key, Number(e.target.value))}
+                  aria-label={t('addonQuantityFor', { label })}
+                  data-addon-qty={a.key}
+                >
+                  {Array.from({ length: a.max_qty ?? 1 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs tabular-nums text-gray-500">{t('addonPrice', { price: formatMoney(Math.round(a.price * qty * 100) / 100) })}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </fieldset>
   );
 }

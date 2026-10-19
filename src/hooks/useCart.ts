@@ -110,12 +110,16 @@ export interface CartLineDesign {
   invalid?: boolean;
   /** API code of why the design is invalid (`DESIGNER_*`). */
   invalidCode?: string | null;
+  /** Guest lines (M5.5): the per-unit add-on price included in the line price. */
+  addonsUnitPrice?: number;
 }
 
 /** New display / proof of a designer line after its design was edited. */
 export interface DesignLinePatch {
   display?: CartCustomFieldDisplay[];
   proofUrl?: string | null;
+  /** M5.5 guest lines: the new per-unit add-on price (replaces the old one in the line price). */
+  addonsUnitPrice?: number;
 }
 
 /** The design that replaces a locked (ordered) design on a cart line. */
@@ -165,7 +169,7 @@ export interface CartItemMetadata {
   personalizationCheck?: GuestPersonalizationCheck;
   /** Designer app (M4.2): add the line with this design instead of field
    *  values. `token` is the guest token (claims the design server-side). */
-  design?: { id: string; token?: string | null; proofUrl?: string | null };
+  design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number };
 }
 
 interface Coupon {
@@ -374,6 +378,7 @@ export function readCartLineDesign(raw: unknown): { design: CartLineDesign; disp
     editable?: unknown;
     proof_url?: unknown;
     text_values?: unknown;
+    addons?: unknown;
     product_slug?: unknown;
     invalid?: unknown;
     invalid_code?: unknown;
@@ -385,6 +390,15 @@ export function readCartLineDesign(raw: unknown): { design: CartLineDesign; disp
       const v = tv as { element_id?: unknown; label?: unknown; value?: unknown } | null;
       if (v && typeof v.element_id === 'string' && typeof v.value === 'string' && v.value !== '') {
         display.push({ id: v.element_id, label: typeof v.label === 'string' ? v.label : v.element_id, value: v.value });
+      }
+    }
+  }
+  // M5.5: the priced add-ons ("Dubbelsidig: +149 kr"), formatted by the server in the cart currency.
+  if (Array.isArray(d.addons)) {
+    for (const a of d.addons) {
+      const v = a as { key?: unknown; label?: unknown; text?: unknown } | null;
+      if (v && typeof v.key === 'string' && typeof v.text === 'string' && v.text !== '') {
+        display.push({ id: `addon:${v.key}`, label: typeof v.label === 'string' && v.label ? v.label : v.key, value: v.text });
       }
     }
   }

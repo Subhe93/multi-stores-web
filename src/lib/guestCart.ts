@@ -148,7 +148,13 @@ export function addGuestLine(
       ? {
           designId: design.id,
           ...(design.token ? { designToken: design.token } : {}),
-          design: { id: design.id, editable: true, proofUrl: design.proofUrl ?? null },
+          design: {
+            id: design.id,
+            editable: true,
+            proofUrl: design.proofUrl ?? null,
+            // M5.5: only when add-ons were chosen (the line price includes them).
+            ...(design.addonsUnitPrice ? { addonsUnitPrice: design.addonsUnitPrice } : {}),
+          },
         }
       : {}),
   };
@@ -163,11 +169,25 @@ export function patchGuestDesignLine(prev: CartItem[], designId: string, patch: 
   if (!prev.some((i) => i.designId === designId)) return prev;
   return prev.map((item) => {
     if (item.designId !== designId) return item;
-    const design = item.design ?? { id: designId, editable: true, proofUrl: null };
+    const base = item.design ?? { id: designId, editable: true, proofUrl: null };
+    const withProof = patch.proofUrl !== undefined ? { ...base, proofUrl: patch.proofUrl } : base;
+    // M5.5: a changed add-on choice moves the line price by the difference.
+    if (patch.addonsUnitPrice === undefined) {
+      return {
+        ...item,
+        ...(patch.display !== undefined ? { customFieldDisplay: patch.display } : {}),
+        design: withProof,
+      };
+    }
+    const old = base.addonsUnitPrice ?? 0;
+    const next = patch.addonsUnitPrice;
+    const rest = { ...withProof };
+    delete rest.addonsUnitPrice;
     return {
       ...item,
+      price: Math.round((item.price - old + next) * 100) / 100,
       ...(patch.display !== undefined ? { customFieldDisplay: patch.display } : {}),
-      design: patch.proofUrl !== undefined ? { ...design, proofUrl: patch.proofUrl } : design,
+      design: next > 0 ? { ...rest, addonsUnitPrice: next } : rest,
     };
   });
 }

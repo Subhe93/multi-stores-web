@@ -377,6 +377,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const designerForm = designer ? (
     <DesignerFormSlot
       totalLabel={money((Number(displayPrice) + designerAddons) * qty)}
+      formatMoney={money}
       quantitySelector={quantityPicker}
       blockedReason={oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null}
       addedContent={justAdded ? addedState : undefined}

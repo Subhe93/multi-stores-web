@@ -707,7 +707,8 @@
     "DESIGNER_UPLOAD_QUOTA": "Vous avez importé trop de photos en peu de temps. Patientez un instant puis réessayez.",
     "DESIGNER_STORAGE_FULL": "Les photos ne peuvent pas être importées pour le moment. Réessayez plus tard.",
     "DESIGNER_UPLOAD_BUSY": "Trop d’images sont en cours de traitement. Veuillez réessayer dans un instant.",
-    "DESIGNER_ASSET_NOT_FOUND": "Cette photo n’est plus disponible. Veuillez l’importer à nouveau."
+    "DESIGNER_ASSET_NOT_FOUND": "Cette photo n’est plus disponible. Veuillez l’importer à nouveau.",
+    "DESIGNER_ADDONS_INVALID": "Les options choisies ne sont pas valides. Veuillez les choisir à nouveau."
   },
   "builderPreview": {
     "moveUp": "Monter",
@@ -772,6 +773,11 @@
     "dragHint": "Faites glisser la photo pour la déplacer",
     "savedShort": "Enregistré",
     "errorsSummary": "{count, plural, one {# champ doit être complété.} other {# champs doivent être complétés.}}",
-    "editingCartLine": "Vous modifiez un design déjà dans votre panier. Enregistrez pour le mettre à jour."
+    "editingCartLine": "Vous modifiez un design déjà dans votre panier. Enregistrez pour le mettre à jour.",
+    "addonsTitle": "Options",
+    "addonPrice": "+{price}",
+    "addonEach": "{price} l’unité",
+    "addonQuantity": "Quantité",
+    "addonQuantityFor": "Quantité de {label}"
   }
 }

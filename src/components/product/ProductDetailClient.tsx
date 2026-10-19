@@ -1047,6 +1047,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
               // total; our quantity picker sits next to the CTA (beyond NPP).
               <DesignerFormSlot
                 totalLabel={formatPrice(display((currentPrice + designerAddons) * quantity, taxRateBp, currency).amount, currency, locale)}
+                formatMoney={(amount) => formatPrice(display(amount, taxRateBp, currency).amount, currency, locale)}
                 quantitySelector={
                   <QuantitySelector
                     value={quantity}
@@ -1106,8 +1107,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                             color: 'var(--store-primary, #2563eb)',
                             border: '2px solid var(--store-primary, #2563eb)',
                           }
-                        : { backgroundColor: 'var(--store-primary, #2563eb)', color: '#fff' }
+                        : { backgroundColor: 'var(--store-primary, #2563eb)' }
                   }
+                  data-on-primary={addedToCart || isAddDisabled || buttonStyle === 'outline' ? undefined : ''}
                 >
                   {addingToCart ? (
                     <>
