@@ -98,7 +98,10 @@ export default async function CollectionPage({
   // We also need the store currency for product prices.
   // The store is read first (cached): without a locale prefix in the URL the
   // collection is rendered in the store's primary locale, not in English.
-  const storeData = (await storefront.getStore(storeSlug, await getRequestMarket())) as {
+  // Preview-aware market reference (a draft market on its preview host
+  // needs `preview=1` on every read, not just the store payload).
+  const marketRef = await getRequestMarket();
+  const storeData = (await storefront.getStore(storeSlug, marketRef)) as {
       currency?: string;
       custom_domain?: string | null;
       market?: MarketRoute | null;
@@ -134,7 +137,7 @@ export default async function CollectionPage({
   const products = (await storefront.getProducts(
     storeSlug,
     queryParams,
-    storeData?.market?.key,
+    marketRef,
   )) as Product[];
 
   // Sort client-side (cheap, mirrors /products page behavior)

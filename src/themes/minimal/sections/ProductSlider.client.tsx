@@ -12,6 +12,7 @@ import { colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { useMarket } from '@/hooks/useMarket';
 
 interface ProductRow {
   id: string;
@@ -60,13 +61,20 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const [loading, setLoading] = useState(true);
   const t = useTranslations('product');
 
+  // Markets app: prices come back in the market currency (and a draft
+  // market on its preview host needs the preview flag). Undefined without
+  // the app, so the request URL is unchanged for other stores.
+  const market = useMarket();
+  const marketKey = market?.key;
+  const marketPreview = market?.preview === true;
+  const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const params: Record<string, string> = { locale, limit: String(limit) };
     if (filter === 'featured') params.featured = 'true';
     storefront
-      .getProducts(storeSlug, params)
+      .getProducts(storeSlug, params, marketRef)
       .then((list) => {
         if (!cancelled) setProducts((list as ProductRow[]).slice(0, limit));
       })
@@ -79,7 +87,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     return () => {
       cancelled = true;
     };
-  }, [storeSlug, locale, limit, filter]);
+  }, [storeSlug, locale, limit, filter, marketKey, marketPreview]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.

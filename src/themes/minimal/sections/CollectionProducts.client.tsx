@@ -14,6 +14,7 @@ import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { useMarket } from '@/hooks/useMarket';
 
 interface ProductRow {
   id: string;
@@ -59,13 +60,20 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
 
   // Fetch on mount + whenever the category/locale/limit change. Public
   // storefront API so this also works inside the builder iframe (no token).
+  // Markets app: prices come back in the market currency (and a draft
+  // market on its preview host needs the preview flag). Undefined without
+  // the app, so the request URL is unchanged for other stores.
+  const market = useMarket();
+  const marketKey = market?.key;
+  const marketPreview = market?.preview === true;
+  const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const params: Record<string, string> = { locale, limit: String(limit) };
     if (categorySlug) params.creator_category = categorySlug;
     storefront
-      .getProducts(storeSlug, params)
+      .getProducts(storeSlug, params, marketRef)
       .then((list) => {
         if (!cancelled) setProducts((list as ProductRow[]).slice(0, limit));
       })
@@ -78,7 +86,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
     return () => {
       cancelled = true;
     };
-  }, [storeSlug, locale, limit, categorySlug]);
+  }, [storeSlug, locale, limit, categorySlug, marketKey, marketPreview]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.

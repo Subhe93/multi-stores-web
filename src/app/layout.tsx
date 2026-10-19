@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers, cookies } from "next/headers";
+import { requestMarketRef } from '@/lib/market';
 import { storefront } from "@/lib/api";
 import { getPlatformName } from "@/lib/platform";
 import { defaultLocale, rtlLocales } from "@/i18n/config";
@@ -47,7 +48,7 @@ async function resolveDocumentLocale(): Promise<string> {
     try {
       // `x-market` is only set for market stores (and those also carry the
       // locale cookie, so this fetch is normally skipped for them).
-      const store = (await storefront.getStore(storeSlug, requestHeaders.get('x-market') || undefined)) as {
+      const store = (await storefront.getStore(storeSlug, requestMarketRef(requestHeaders))) as {
         language_config?: { primary_locale?: string } | null;
       };
       return store.language_config?.primary_locale || defaultLocale;
