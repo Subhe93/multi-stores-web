@@ -89,6 +89,7 @@ export function useAddToCartLine() {
             token: line.token,
             proofUrl: line.proofUrl,
             ...(addons > 0 ? { addonsUnitPrice: addons } : {}),
+            ...(line.doubleSided ? { doubleSided: true, proofBackUrl: line.proofBackUrl ?? null } : {}),
           },
         }),
       );

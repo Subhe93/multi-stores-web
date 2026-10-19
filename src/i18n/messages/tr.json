@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "adet {price}",
     "addonQuantity": "Adet",
-    "addonQuantityFor": "{label} adedi"
+    "addonQuantityFor": "{label} adedi",
+    "backTitle": "Arka yüz",
+    "backSame": "Aynı tasarım",
+    "backSameHint": "Ön yüzle aynı",
+    "backOther": "Başka şablon",
+    "backOtherHint": "Başka bir tasarım seçin",
+    "backPickTemplate": "Arka yüz için şablon seçin",
+    "backNoTemplates": "Arka yüz için şablon yok.",
+    "backTemplateRequired": "Lütfen arka yüz için bir şablon seçin.",
+    "backLoading": "Şablon yükleniyor…",
+    "backPhotoTitle": "Arka yüz fotoğrafı",
+    "backDetails": "Arka yüz bilgileri",
+    "frontSide": "Ön yüz",
+    "backSide": "Arka yüz",
+    "backCanvasLabel": "Arka yüz önizlemesi",
+    "doubleSided": "Çift taraflı"
   }
 }

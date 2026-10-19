@@ -80,7 +80,47 @@ const payload: DesignerPayload = {
   fonts: [],
   settings: { max_upload_mb: 25, min_effective_dpi_warning: 100 },
   addons: [],
+  back_templates: [],
 };
+
+// ── M5.6 double-sided fixtures ──────────────────────────────────────────────
+const DOUBLE_ADDON = { key: 'double', type: 'toggle' as const, label: { en: 'Double-sided' }, price: 149, enables_back: true };
+const BACK_TEMPLATES = [
+  { template_id: 't1', template_version_id: 'v1', name: 'Front template', thumbnail_url: null },
+  { template_id: 't2', template_version_id: 'v2', name: 'Greeting back', thumbnail_url: 'http://api.test/thumb.webp' },
+];
+/** The back template: a required text "greeting" (no photo slot). */
+const BACK_SPEC = {
+  ...SPEC,
+  surfaces: [
+    {
+      ...SPEC.surfaces![0]!,
+      elements: SPEC.surfaces![0]!.elements
+        .filter((e) => e.id === 'name')
+        .map((e) => ({ ...e, id: 'greeting', label: { en: 'Greeting' }, required: true })),
+    },
+  ],
+} as unknown as TemplateSpecV1;
+const doublePayload = { ...payload, addons: [DOUBLE_ADDON], back_templates: BACK_TEMPLATES };
+/** Design routes that echo `back` like the server does. */
+function backRoutes() {
+  let back: unknown = undefined;
+  h.routes = {
+    'POST /designs': ({ body }) => {
+      const b = body as { state: never; back?: unknown };
+      if (b.back !== undefined) back = b.back;
+      return jsonResponse(201, { data: { ...makeView({ state: b.state, state_version: 1 }), addons: { double: 1 }, ...(back ? { back } : {}), token: 'tok' } });
+    },
+    'PATCH /designs/d1': ({ body }) => {
+      const b = body as { state: never; back?: unknown };
+      if (b.back !== undefined) back = b.back;
+      return jsonResponse(200, { data: { ...makeView({ state: b.state, state_version: 2 }), addons: { double: 1 }, ...(back ? { back } : {}) } });
+    },
+    'GET /back-templates/t2': () => jsonResponse(200, { data: { ...BACK_TEMPLATES[1], spec_public: BACK_SPEC, fonts: [] } }),
+    'POST /designs/d1/proof': () => jsonResponse(200, { data: { proof_url: '/proofs/d1.jpg', proof_back_url: '/proofs/d1-back.jpg' } }),
+  };
+  return { back: () => back };
+}
 
 /** SPEC with the name text required (for the validation path). */
 const REQUIRED_SPEC = {
@@ -95,9 +135,9 @@ const REQUIRED_SPEC = {
 
 const ID = '11111111-2222-3333-4444-555555555555';
 
-function renderInline(opts: { spec?: TemplateSpecV1; onAddToCart?: (line: DesignedLine) => Promise<void>; blockedReason?: string | null } = {}) {
+function renderInline(opts: { spec?: TemplateSpecV1; payload?: DesignerPayload; onAddToCart?: (line: DesignedLine) => Promise<void>; blockedReason?: string | null } = {}) {
   const onAddToCart: (line: DesignedLine) => Promise<void> = opts.onAddToCart ?? vi.fn(async () => undefined);
-  const designer = { ...payload, spec_public: opts.spec ?? SPEC };
+  const designer = { ...(opts.payload ?? payload), spec_public: opts.spec ?? SPEC };
   const utils = render(
     <StoreAppsProvider value={{ designer: { enabled: true } }}>
       <DesignerSessionProvider designer={designer} productId="p1" locale="en">
@@ -314,6 +354,81 @@ describe('Designer inline (M5.5, NPP layout)', () => {
       </StoreAppsProvider>,
     );
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /Double-sided/ })).toBeChecked());
+  });
+
+  it('M5.6: the "Baksida" block appears only while the enabling add-on is ticked, "Samma design" by default', async () => {
+    const user = userEvent.setup();
+    backRoutes();
+    renderInline({ payload: doublePayload });
+    await screen.findByLabelText('Name');
+    expect(document.querySelector('[data-designer-back]')).toBeNull();
+    const double = screen.getByRole('checkbox', { name: /Double-sided/ });
+    await user.click(double);
+    const block = await waitFor(() => document.querySelector('[data-designer-back]'));
+    expect(block).not.toBeNull();
+    expect(screen.getByRole('radio', { name: /backSame/ })).toHaveAttribute('aria-checked', 'true');
+    // Side thumbnails "Framsida / Baksida" and the desktop back canvas.
+    expect(document.querySelector('[data-designer-side-thumbs]')).not.toBeNull();
+    expect(screen.getAllByRole('img', { name: 'backCanvasLabel' }).length).toBeGreaterThan(0);
+    // No gallery while "Samma design".
+    expect(document.querySelector('[data-designer-back-gallery]')).toBeNull();
+    await user.click(double);
+    await waitFor(() => expect(document.querySelector('[data-designer-back]')).toBeNull());
+  });
+
+  it('M5.6: "Annan mall" shows the gallery; a pick loads that template\'s fields; an incomplete back blocks the add', async () => {
+    const user = userEvent.setup();
+    const routes = backRoutes();
+    const addDesignLine = vi.fn<(line: DesignedLine) => Promise<void>>(async () => undefined);
+    renderInline({ payload: doublePayload, onAddToCart: addDesignLine });
+    await screen.findByLabelText('Name');
+    await user.click(screen.getByRole('checkbox', { name: /Double-sided/ }));
+    await user.click(await screen.findByRole('radio', { name: /backOther/ }));
+    const gallery = await waitFor(() => document.querySelector('[data-designer-back-gallery]'));
+    expect(gallery).not.toBeNull();
+    expect(screen.getByRole('button', { name: /Greeting back/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Front template/ })).toBeInTheDocument();
+    // Nothing picked yet: the add points at the gallery.
+    await user.click(screen.getByRole('button', { name: /addToCartWithPrice/ }));
+    expect(await screen.findByText('backTemplateRequired')).toBeInTheDocument();
+    expect(addDesignLine).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: /Greeting back/ }));
+    // The picked template's own editable text, bound to back.state.
+    const greeting = await screen.findByLabelText(/^Greeting/);
+    expect(h.calls.some((c) => c.method === 'GET' && c.url.endsWith('/products/p1/back-templates/t2'))).toBe(true);
+    expect(document.querySelector('[data-designer-back-fields]')).not.toBeNull();
+    // Required back text empty: blocked, focused, counted in the summary.
+    await user.click(screen.getByRole('button', { name: /addToCartWithPrice/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('errorsSummary');
+    expect(greeting).toHaveFocus();
+    expect(addDesignLine).not.toHaveBeenCalled();
+    await user.type(greeting, 'Hej');
+    await user.click(screen.getByRole('button', { name: /addToCartWithPrice/ }));
+    await waitFor(() => expect(addDesignLine).toHaveBeenCalledTimes(1));
+    expect(addDesignLine.mock.calls[0]![0]).toMatchObject({ designId: 'd1', doubleSided: true, proofBackUrl: null });
+    // The server got the back with the draft; both proofs refresh the cart line.
+    expect(routes.back()).toEqual({ mode: 'other', template_id: 't2', template_version_id: 'v2', state: { v: 1, texts: { greeting: 'Hej' }, photos: {} } });
+    await waitFor(() => expect(h.refreshDesignLine).toHaveBeenCalledWith('d1', expect.objectContaining({ proofUrl: '/proofs/d1.jpg', proofBackUrl: '/proofs/d1-back.jpg' })));
+  });
+
+  it('M5.6: edit-from-cart restores the back (mode, template, texts)', async () => {
+    window.history.replaceState({}, '', `/products/sign?design=${ID}`);
+    h.routes = {
+      [`GET /designs/${ID}`]: () =>
+        jsonResponse(200, {
+          data: {
+            ...makeView({ id: ID, state: { v: 1, texts: { name: 'Anna' }, photos: {} } }),
+            addons: { double: 1 },
+            back: { mode: 'other', template_id: 't2', template_version_id: 'v2', state: { v: 1, texts: { greeting: 'Hej' }, photos: {} } },
+          },
+        }),
+      'GET /back-templates/t2': () => jsonResponse(200, { data: { ...BACK_TEMPLATES[1], spec_public: BACK_SPEC, fonts: [] } }),
+    };
+    renderInline({ payload: doublePayload });
+    expect(await screen.findByLabelText(/^Greeting/)).toHaveValue('Hej');
+    expect(screen.getByRole('radio', { name: /backOther/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('button', { name: /Greeting back/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('checkbox', { name: /Double-sided/ })).toBeChecked();
   });
 
   it('G0: no add-ons in the payload renders no add-ons block', async () => {

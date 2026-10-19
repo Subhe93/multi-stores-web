@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "{price} l’unité",
     "addonQuantity": "Quantité",
-    "addonQuantityFor": "Quantité de {label}"
+    "addonQuantityFor": "Quantité de {label}",
+    "backTitle": "Verso",
+    "backSame": "Même design",
+    "backSameHint": "Identique au recto",
+    "backOther": "Autre modèle",
+    "backOtherHint": "Choisir un autre design",
+    "backPickTemplate": "Choisir un modèle pour le verso",
+    "backNoTemplates": "Aucun modèle n’est disponible pour le verso.",
+    "backTemplateRequired": "Veuillez choisir un modèle pour le verso.",
+    "backLoading": "Chargement du modèle…",
+    "backPhotoTitle": "Photo du verso",
+    "backDetails": "Informations du verso",
+    "frontSide": "Recto",
+    "backSide": "Verso",
+    "backCanvasLabel": "Aperçu du verso",
+    "doubleSided": "Recto verso"
   }
 }

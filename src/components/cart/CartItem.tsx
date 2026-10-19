@@ -97,6 +97,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
   const [proofFailed, setProofFailed] = useState(false);
   const proofImg = design && designInfo.proofUrl && !proofFailed ? resolveMediaUrl(designInfo.proofUrl) : '';
   const img = proofImg || resolveMediaUrl(item.imageUrl);
+  // M5.6: a double-sided design shows its back proof as a second thumbnail.
+  const [backFailed, setBackFailed] = useState(false);
+  const backImg = design && designInfo.doubleSided && designInfo.proofBackUrl && !backFailed ? resolveMediaUrl(designInfo.proofBackUrl) : '';
   const unavailable = item.unavailableInMarket === true;
   // Designer app: the design's own message replaces the generic one.
   const designInvalid = design?.invalid === true;
@@ -126,6 +129,19 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
         <span className="absolute -top-1.5 -inset-e-1.5 w-4 h-4 rounded-full bg-gray-600 text-white text-[9px] font-bold flex items-center justify-center z-10">
           {item.quantity}
         </span>
+        {design && designInfo.doubleSided && (
+          <div
+            className="mt-1 w-full h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+            title={t('designer.backSide')}
+            data-cart-back-proof
+          >
+            {backImg ? (
+              <img src={backImg} alt={t('designer.backSide')} className="w-full h-full object-contain bg-white" onError={() => setBackFailed(true)} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[9px] text-gray-400">{t('designer.backSide')}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Details */}
@@ -142,6 +158,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
 
         {item.variant && (
           <p className="text-xs text-gray-500">{item.variant}</p>
+        )}
+        {design && designInfo.doubleSided && (
+          <p className="text-xs font-medium text-gray-600" data-cart-double-sided>{t('designer.doubleSided')}</p>
         )}
 
         {hasPersonalizationGroups(item.customFieldDisplay) ? (

@@ -22,6 +22,9 @@ export interface CacheEntry {
   proofUrl: string | null;
   editable: boolean;
   productSlug: string | null;
+  /** M5.6: the design has a back (its proof may still be null). */
+  doubleSided?: boolean;
+  proofBackUrl?: string | null;
 }
 /** Upper bound of cached design views (D25): a long session must not grow it forever. */
 export const CART_DESIGN_CACHE_MAX = 50;
@@ -88,6 +91,7 @@ export function useCartDesign(design: CartLineDesign | undefined, guestLine: boo
           proofUrl: view.proof_url,
           editable: view.status !== 'ORDERED',
           productSlug: typeof view.product_slug === 'string' && view.product_slug ? view.product_slug : null,
+          ...(view.back ? { doubleSided: true, proofBackUrl: view.proof_back_url ?? null } : {}),
         };
         rememberCartDesign(id, entry);
         if (!cancelled) setFresh(entry);
@@ -102,6 +106,9 @@ export function useCartDesign(design: CartLineDesign | undefined, guestLine: boo
 
   // A guest line's stored proof link may have expired: only a fresh read counts.
   const proofUrl = fresh ? fresh.proofUrl : guestLine ? null : design?.proofUrl ?? null;
+  // M5.6: the back thumbnail of a double-sided line (same freshness rule).
+  const doubleSided = fresh ? fresh.doubleSided === true : design?.doubleSided === true;
+  const proofBackUrl = fresh ? (fresh.proofBackUrl ?? null) : guestLine ? null : design?.proofBackUrl ?? null;
   const editable = fresh ? fresh.editable : design?.editable === true;
   const locked = Boolean(design) && (!editable || design?.invalidCode === 'DESIGNER_DESIGN_LOCKED');
   const productSlug = design?.productSlug ?? fresh?.productSlug ?? null;
@@ -128,5 +135,5 @@ export function useCartDesign(design: CartLineDesign | undefined, guestLine: boo
     }
   }, [id, storeSlug, authToken, restarting, replaceDesignLine, productSlug]);
 
-  return { proofUrl, editHref, locked, startAgain, restarting, restartError };
+  return { proofUrl, doubleSided, proofBackUrl, editHref, locked, startAgain, restarting, restartError };
 }

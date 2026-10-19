@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "{price} each",
     "addonQuantity": "Quantity",
-    "addonQuantityFor": "Quantity of {label}"
+    "addonQuantityFor": "Quantity of {label}",
+    "backTitle": "Back side",
+    "backSame": "Same design",
+    "backSameHint": "Identical to the front",
+    "backOther": "Another template",
+    "backOtherHint": "Choose another design",
+    "backPickTemplate": "Choose a template for the back",
+    "backNoTemplates": "No templates are available for the back.",
+    "backTemplateRequired": "Please choose a template for the back.",
+    "backLoading": "Loading the template…",
+    "backPhotoTitle": "Back photo",
+    "backDetails": "Back details",
+    "frontSide": "Front",
+    "backSide": "Back",
+    "backCanvasLabel": "Back preview",
+    "doubleSided": "Double-sided"
   }
 }

@@ -40,6 +40,80 @@ describe('useDesignDraft', () => {
     vi.useRealTimers();
   });
 
+  it('M5.6: the back round-trips (resume → edit → PATCH `back` once → server answer kept; null clears)', async () => {
+    const OTHER = { mode: 'other' as const, template_id: 't2', template_version_id: 'v2', state: { v: 1 as const, texts: { greeting: 'Hej' }, photos: {} } };
+    // The server keeps the stored back and echoes it in every view.
+    let stored: unknown = { mode: 'same' };
+    const router = fetchRouter({
+      [GET]: () => jsonResponse(200, { data: { ...makeView({ state_version: 3 }), back: stored } }),
+      [PATCH]: ({ body }) => {
+        const b = body as { state: never; back?: unknown };
+        if (b.back !== undefined) stored = b.back;
+        return jsonResponse(200, { data: { ...makeView({ state: b.state, state_version: 4 }), ...(stored ? { back: stored } : {}) } });
+      },
+    });
+    const { result } = setup(makeClient(router.impl));
+    await flush();
+    expect(result.current.back).toEqual({ mode: 'same' });
+    act(() => result.current.setBack(OTHER));
+    expect(result.current.back).toEqual(OTHER);
+    act(() => result.current.setBackText('greeting', 'Hej då'));
+    await tick();
+    await flush();
+    const patches = router.calls.filter((c) => c.method === 'PATCH');
+    expect(patches).toHaveLength(1);
+    expect(patches[0]!.body).toEqual({
+      state: { v: 1, texts: {}, photos: {} },
+      state_version: 3,
+      back: { ...OTHER, state: { v: 1, texts: { greeting: 'Hej då' }, photos: {} } },
+    });
+    expect(result.current.back).toEqual({ ...OTHER, state: { v: 1, texts: { greeting: 'Hej då' }, photos: {} } });
+    // A text edit alone sends no `back` (unchanged = kept).
+    act(() => result.current.setText('name', 'Anna'));
+    await tick();
+    await flush();
+    expect((router.calls.filter((c) => c.method === 'PATCH')[1]!.body as { back?: unknown }).back).toBeUndefined();
+    // Clearing sends `back: null`.
+    act(() => result.current.setBack(null));
+    await tick();
+    await flush();
+    expect((router.calls.filter((c) => c.method === 'PATCH')[2]!.body as { back?: unknown }).back).toBeNull();
+    expect(result.current.back).toBeNull();
+  });
+
+  it('M5.6: "Annan mall" without a picked template is never sent; the pick goes out once made', async () => {
+    let stored: unknown = { mode: 'same' };
+    const router = fetchRouter({
+      [GET]: () => jsonResponse(200, { data: { ...makeView({ state_version: 3 }), back: stored } }),
+      [PATCH]: ({ body }) => {
+        const b = body as { state: never; back?: unknown };
+        if (b.back !== undefined) stored = b.back;
+        return jsonResponse(200, { data: { ...makeView({ state: b.state, state_version: 4 }), ...(stored ? { back: stored } : {}) } });
+      },
+    });
+    const { result } = setup(makeClient(router.impl));
+    await flush();
+    const PENDING = { mode: 'other' as const, template_id: '', template_version_id: '', state: { v: 1 as const, texts: {}, photos: {} } };
+    act(() => result.current.setBack(PENDING));
+    // Another edit flushes a PATCH: the pending pick is left out (the server
+    // would answer 400) and the server's 'same' does not override the UI.
+    act(() => result.current.setText('name', 'Anna'));
+    await tick();
+    await flush();
+    const patches = router.calls.filter((c) => c.method === 'PATCH');
+    expect(patches).toHaveLength(1);
+    expect((patches[0]!.body as { back?: unknown }).back).toBeUndefined();
+    expect(result.current.back).toEqual(PENDING);
+    expect(result.current.saveError).toBeNull();
+    // The pick is sent as soon as it is made.
+    const PICKED = { ...PENDING, template_id: 't2', template_version_id: 'v2' };
+    act(() => result.current.setBack(PICKED));
+    await tick();
+    await flush();
+    expect((router.calls.filter((c) => c.method === 'PATCH')[1]!.body as { back?: unknown }).back).toEqual(PICKED);
+    expect(result.current.back).toEqual(PICKED);
+  });
+
   it('types then PATCHes after 800 ms with the resumed state_version', async () => {
     const router = fetchRouter({
       [GET]: () => jsonResponse(200, { data: makeView({ state_version: 3 }) }),
@@ -138,7 +212,7 @@ describe('useDesignDraft', () => {
       await done!;
     });
     expect(order).toEqual(['patch', 'upload']);
-    expect(client.uploadPhoto).toHaveBeenCalledWith('d1', 'photo', expect.any(Blob), expect.any(Function), undefined);
+    expect(client.uploadPhoto).toHaveBeenCalledWith('d1', 'photo', expect.any(Blob), expect.any(Function), undefined, 'front');
     expect(result.current.state.photos.photo?.asset_id).toBe('a1');
     expect(result.current.design?.state_version).toBe(5);
   });

@@ -34,7 +34,31 @@ export interface DesignerPayload {
   settings: DesignerSettings;
   /** Paid add-ons (M5.5), enabled only, in display order; prices in the page currency. */
   addons: DesignerAddon[];
+  /**
+   * M5.6: templates offered for the back side (the product's own first),
+   * present only when an add-on enables the back; empty otherwise.
+   */
+  back_templates: BackTemplateOption[];
 }
+
+/** One template of the back-side gallery (M5.6, NPP "Annan mall"). */
+export interface BackTemplateOption {
+  template_id: string;
+  template_version_id: string;
+  name: string;
+  thumbnail_url: string | null;
+}
+
+/** `GET …/products/:id/back-templates/:templateId`: the option plus what the editor renders. */
+export interface BackTemplatePayload extends BackTemplateOption {
+  spec_public: TemplateSpecV1;
+  fonts: DesignerFont[];
+}
+
+/** The back side of a design (M5.6): the front again, or another template with its own state. */
+export type DesignBack =
+  | { mode: 'same' }
+  | { mode: 'other'; template_id: string; template_version_id: string; state: DesignStateV1 };
 
 /** One add-on of the product payload (`designer.addons[]`). */
 export interface DesignerAddon {
@@ -44,6 +68,8 @@ export interface DesignerAddon {
   price: number;
   /** Quantity add-ons only (1..20). */
   max_qty?: number;
+  /** M5.6: choosing it opens the "back side" block. */
+  enables_back?: boolean;
 }
 
 /** The customer's add-on choice `{key: qty}` (toggles use 1). */
@@ -66,9 +92,31 @@ export function readDesignerAddons(raw: unknown): DesignerAddon[] {
       label,
       price,
       ...(a.type === 'quantity' ? { max_qty: Math.max(1, Math.min(20, Math.floor(finite(a.max_qty, 1)))) } : {}),
+      ...(a.enables_back === true ? { enables_back: true } : {}),
     });
   }
   return out;
+}
+
+/** Valid back-template options of the payload (malformed entries are dropped). */
+export function readBackTemplates(raw: unknown): BackTemplateOption[] {
+  if (!Array.isArray(raw)) return [];
+  const out: BackTemplateOption[] = [];
+  for (const t of raw) {
+    if (!isObj(t) || typeof t.template_id !== 'string' || typeof t.template_version_id !== 'string') continue;
+    out.push({
+      template_id: t.template_id,
+      template_version_id: t.template_version_id,
+      name: typeof t.name === 'string' ? t.name : '',
+      thumbnail_url: typeof t.thumbnail_url === 'string' && t.thumbnail_url ? t.thumbnail_url : null,
+    });
+  }
+  return out;
+}
+
+/** True when the selection holds an add-on that enables the back side. */
+export function backEnabledBy(addons: DesignerAddon[], selection: AddonSelection): boolean {
+  return addons.some((a) => a.enables_back === true && (selection[a.key] ?? 0) > 0);
 }
 
 /** The selection reduced to the payload's add-ons (unknown keys dropped, quantities clamped). */
@@ -147,6 +195,7 @@ export function readDesignerPayload(raw: unknown): DesignerPayload | null {
       ),
     },
     addons: readDesignerAddons(raw.addons),
+    back_templates: readBackTemplates(raw.back_templates),
   };
 }
 
@@ -191,6 +240,12 @@ export interface DesignView {
   product_slug?: string | null;
   /** M5.5 add-on selection; absent when none was chosen. */
   addons?: AddonSelection;
+  /** M5.6 back side; absent on single-sided designs. */
+  back?: DesignBack;
+  /** Photo views of the back state (with `back`, mode 'other'). */
+  back_photos?: Record<string, DesignPhotoView>;
+  /** Signed back proof; with `back` only, null until rendered. */
+  proof_back_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -208,6 +263,8 @@ export interface UploadPhotoResult {
 export interface ProofResult {
   proof_url: string;
   reused: boolean;
+  /** M5.6: the back proof of a double-sided design. */
+  proof_back_url?: string;
 }
 
 /** URLs from the API are relative (`/api/designer/files/…`): make them absolute. */
@@ -451,6 +508,7 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       template_version_id: string;
       state?: DesignStateV1;
       addons?: AddonSelection;
+      back?: DesignBack;
     }): Promise<DesignView> {
       const res = await json<DesignView & { token?: string }>('POST', '', null, input);
       const { token, ...view } = res;
@@ -481,17 +539,23 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       id: string,
       state: DesignStateV1,
       stateVersion: number,
-      init?: { keepalive?: boolean; addons?: AddonSelection },
+      init?: { keepalive?: boolean; addons?: AddonSelection; back?: DesignBack | null },
     ): Promise<DesignView> {
-      const { addons, ...rest } = init ?? {};
+      const { addons, back, ...rest } = init ?? {};
       return json<DesignView>(
         'PATCH',
         `/${encodeURIComponent(id)}`,
         id,
-        // `addons` only when the selection changed (absent = kept).
-        { state, state_version: stateVersion, ...(addons ? { addons } : {}) },
+        // `addons` / `back` only when they changed (absent = kept; `back: null` clears it).
+        { state, state_version: stateVersion, ...(addons ? { addons } : {}), ...(back !== undefined ? { back } : {}) },
         init ? rest : undefined,
       );
+    },
+
+    /** M5.6: the spec + fonts of a template the product offers for the back side. */
+    backTemplate(productId: string, templateId: string): Promise<BackTemplatePayload> {
+      const url = `${opts.apiUrl ?? API_URL}/designer/s/${encodeURIComponent(opts.storeSlug)}/products/${encodeURIComponent(productId)}/back-templates/${encodeURIComponent(templateId)}`;
+      return doFetch(url, { method: 'GET', headers: designHeaders(null, opts.authToken, storage) }).then((res) => readEnvelope<BackTemplatePayload>(res));
     },
 
     deletePhoto(id: string, assetId: string): Promise<DesignView> {
@@ -517,6 +581,8 @@ export function createDesignerClient(opts: DesignerClientOptions) {
       file: Blob,
       onProgress?: (p: UploadProgress) => void,
       signal?: AbortSignal,
+      /** M5.6: 'back' puts the photo into a slot of the back template. */
+      side: 'front' | 'back' = 'front',
     ): Promise<UploadPhotoResult> {
       const url = `${base}/${encodeURIComponent(id)}/photos`;
       const headers = designHeaders(id, opts.authToken, storage);
@@ -551,6 +617,7 @@ export function createDesignerClient(opts: DesignerClientOptions) {
         }
         const form = new FormData();
         form.append('element_id', elementId);
+        if (side === 'back') form.append('side', 'back');
         form.append('file', file);
         xhr.send(form);
       });

@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "{price} pro Stück",
     "addonQuantity": "Menge",
-    "addonQuantityFor": "Menge von {label}"
+    "addonQuantityFor": "Menge von {label}",
+    "backTitle": "Rückseite",
+    "backSame": "Gleiches Design",
+    "backSameHint": "Identisch mit der Vorderseite",
+    "backOther": "Andere Vorlage",
+    "backOtherHint": "Ein anderes Design wählen",
+    "backPickTemplate": "Vorlage für die Rückseite wählen",
+    "backNoTemplates": "Für die Rückseite sind keine Vorlagen verfügbar.",
+    "backTemplateRequired": "Bitte eine Vorlage für die Rückseite wählen.",
+    "backLoading": "Vorlage wird geladen…",
+    "backPhotoTitle": "Foto der Rückseite",
+    "backDetails": "Angaben der Rückseite",
+    "frontSide": "Vorderseite",
+    "backSide": "Rückseite",
+    "backCanvasLabel": "Vorschau der Rückseite",
+    "doubleSided": "Doppelseitig"
   }
 }

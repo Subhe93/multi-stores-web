@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "{price}/st",
     "addonQuantity": "Antal",
-    "addonQuantityFor": "Antal {label}"
+    "addonQuantityFor": "Antal {label}",
+    "backTitle": "Baksida",
+    "backSame": "Samma design",
+    "backSameHint": "Identisk med framsidan",
+    "backOther": "Annan mall",
+    "backOtherHint": "Välj en annan design",
+    "backPickTemplate": "Välj mall för baksidan",
+    "backNoTemplates": "Det finns inga mallar för baksidan.",
+    "backTemplateRequired": "Välj en mall för baksidan.",
+    "backLoading": "Laddar mallen…",
+    "backPhotoTitle": "Baksidans bild",
+    "backDetails": "Baksidans uppgifter",
+    "frontSide": "Framsida",
+    "backSide": "Baksida",
+    "backCanvasLabel": "Förhandsvisning av baksidan",
+    "doubleSided": "Dubbelsidig"
   }
 }

@@ -112,12 +112,18 @@ export interface CartLineDesign {
   invalidCode?: string | null;
   /** Guest lines (M5.5): the per-unit add-on price included in the line price. */
   addonsUnitPrice?: number;
+  /** M5.6: the line is double-sided ("Dubbelsidig" + both thumbnails). */
+  doubleSided?: boolean;
+  /** M5.6: signed back proof (relative API path); null until rendered. */
+  proofBackUrl?: string | null;
 }
 
 /** New display / proof of a designer line after its design was edited. */
 export interface DesignLinePatch {
   display?: CartCustomFieldDisplay[];
   proofUrl?: string | null;
+  /** M5.6: the back proof of a double-sided design. */
+  proofBackUrl?: string | null;
   /** M5.5 guest lines: the new per-unit add-on price (replaces the old one in the line price). */
   addonsUnitPrice?: number;
 }
@@ -169,7 +175,7 @@ export interface CartItemMetadata {
   personalizationCheck?: GuestPersonalizationCheck;
   /** Designer app (M4.2): add the line with this design instead of field
    *  values. `token` is the guest token (claims the design server-side). */
-  design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number };
+  design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number; doubleSided?: true; proofBackUrl?: string | null };
 }
 
 interface Coupon {
@@ -382,6 +388,8 @@ export function readCartLineDesign(raw: unknown): { design: CartLineDesign; disp
     product_slug?: unknown;
     invalid?: unknown;
     invalid_code?: unknown;
+    double_sided?: unknown;
+    proof_back_url?: unknown;
   };
   if (typeof d.id !== 'string' || d.id === '') return null;
   const display: CartCustomFieldDisplay[] = [];
@@ -411,6 +419,10 @@ export function readCartLineDesign(raw: unknown): { design: CartLineDesign; disp
       ...(typeof d.product_slug === 'string' && d.product_slug ? { productSlug: d.product_slug } : {}),
       ...(d.invalid === true
         ? { invalid: true, invalidCode: typeof d.invalid_code === 'string' && d.invalid_code ? d.invalid_code : null }
+        : {}),
+      // M5.6: double-sided lines carry their back proof.
+      ...(d.double_sided === true
+        ? { doubleSided: true, proofBackUrl: typeof d.proof_back_url === 'string' && d.proof_back_url ? d.proof_back_url : null }
         : {}),
     },
     display,

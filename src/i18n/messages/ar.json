@@ -782,6 +782,21 @@
     "addonPrice": "+{price}",
     "addonEach": "{price} للقطعة",
     "addonQuantity": "الكمية",
-    "addonQuantityFor": "كمية {label}"
+    "addonQuantityFor": "كمية {label}",
+    "backTitle": "الوجه الخلفي",
+    "backSame": "نفس التصميم",
+    "backSameHint": "مطابق للوجه الأمامي",
+    "backOther": "قالب آخر",
+    "backOtherHint": "اختر تصميماً آخر",
+    "backPickTemplate": "اختر قالباً للوجه الخلفي",
+    "backNoTemplates": "لا توجد قوالب متاحة للوجه الخلفي.",
+    "backTemplateRequired": "يرجى اختيار قالب للوجه الخلفي.",
+    "backLoading": "جارٍ تحميل القالب…",
+    "backPhotoTitle": "صورة الوجه الخلفي",
+    "backDetails": "بيانات الوجه الخلفي",
+    "frontSide": "الوجه الأمامي",
+    "backSide": "الوجه الخلفي",
+    "backCanvasLabel": "معاينة الوجه الخلفي",
+    "doubleSided": "وجهان"
   }
 }

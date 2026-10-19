@@ -154,6 +154,8 @@ export function addGuestLine(
             proofUrl: design.proofUrl ?? null,
             // M5.5: only when add-ons were chosen (the line price includes them).
             ...(design.addonsUnitPrice ? { addonsUnitPrice: design.addonsUnitPrice } : {}),
+            // M5.6: only on double-sided lines.
+            ...(design.doubleSided ? { doubleSided: true, proofBackUrl: design.proofBackUrl ?? null } : {}),
           },
         }
       : {}),
@@ -170,7 +172,9 @@ export function patchGuestDesignLine(prev: CartItem[], designId: string, patch: 
   return prev.map((item) => {
     if (item.designId !== designId) return item;
     const base = item.design ?? { id: designId, editable: true, proofUrl: null };
-    const withProof = patch.proofUrl !== undefined ? { ...base, proofUrl: patch.proofUrl } : base;
+    const withFront = patch.proofUrl !== undefined ? { ...base, proofUrl: patch.proofUrl } : base;
+    // M5.6: a back proof marks the line double-sided.
+    const withProof = patch.proofBackUrl !== undefined ? { ...withFront, doubleSided: true, proofBackUrl: patch.proofBackUrl } : withFront;
     // M5.5: a changed add-on choice moves the line price by the difference.
     if (patch.addonsUnitPrice === undefined) {
       return {

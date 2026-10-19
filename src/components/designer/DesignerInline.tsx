@@ -10,6 +10,14 @@
 // `?design=<id>` (edit from the cart) or from the product's stored draft and
 // autosaves while typing.
 //
+// M5.6 double-sided: ticking an add-on that enables the back opens the
+// "Baksida" block (./DesignerBack): "Samma design" (the front again) or
+// "Annan mall" (a template of the product's back gallery, loaded on pick,
+// with its own photo slots / texts bound to `draft.back.state`). The back
+// canvas renders under the front canvas (desktop) or under the back fields
+// (mobile); both sides are validated before the add and both proofs are
+// asked for after it.
+//
 // This is the heavy chunk (renderer, draft hook, gestures). It is reached
 // only through `./DesignerSession` (next/dynamic, ssr:false), so a product
 // page without a design template never downloads it.
@@ -37,11 +45,16 @@ import {
 } from '@multi-stores/core/designer';
 import {
   addonsTotal as sumAddons,
+  backEnabledBy,
   createDesignerClient,
   designerClientOptions,
   normalizeAddonSelection,
   type AddonSelection,
+  type BackTemplateOption,
+  type BackTemplatePayload,
+  type DesignBack,
   type DesignerAddon,
+  type DesignerClient,
   getDesignToken,
   getDraftFor,
   isUploadNetworkError,
@@ -55,6 +68,7 @@ import { PhotoSlotControl, ACCEPTED_TYPES, type PhotoSlotHandle } from './PhotoS
 import { TextFieldControl } from './TextFieldControl';
 import { useDesignDraft, type DesignDraft } from './useDesignDraft';
 import { downscaleForPreview, useDesignerImages } from './useDesignerImages';
+import { DesignerBackBlock, DesignerBackCanvas } from './DesignerBack';
 import { CanvasSkeleton, FormSkeleton, useDesignerConfig, useDesignerHeading, useDesignerSession } from './DesignerSession';
 
 /** What the host page adds to the cart: the saved design as the line. */
@@ -68,6 +82,9 @@ export interface DesignedLine {
   display: CartCustomFieldDisplay[];
   /** M5.5: per-unit price of the chosen add-ons (display only; 0/absent without). */
   addonsUnitPrice?: number;
+  /** M5.6: set on a double-sided line (the back proof lands with the front one). */
+  doubleSided?: true;
+  proofBackUrl?: string | null;
 }
 
 export interface SubmitOptions {
@@ -141,6 +158,114 @@ export interface DesignerSession {
   setAddon: (key: string, qty: number) => void;
   restarting: boolean;
   startAgain: () => Promise<void>;
+  // ── M5.6 back side ──
+  /** An add-on that enables the back is selected. */
+  backEnabled: boolean;
+  back: DesignBack | null;
+  backTemplates: BackTemplateOption[];
+  /** The back's template spec ('same': the front's); null until an 'other' template loaded. */
+  backSpec: TemplateSpecV1 | null;
+  backLoading: boolean;
+  backLoadError: string;
+  retryBackTemplate: () => void;
+  backSlots: ImageSlotElement[];
+  backTexts: TextElement[];
+  backRenderState: DesignStateV1;
+  backImages: ImageLookup;
+  backFonts: FontLookup;
+  backRenderKey: string;
+  backReady: boolean;
+  setBackMode: (mode: 'same' | 'other') => void;
+  pickBackTemplate: (templateId: string) => void;
+  setBackText: (id: string, value: string) => void;
+  adjustBack: (slotId: string, adj: PhotoAdj) => void;
+  pickBack: (slotId: string, file: File) => void;
+  cancelBackUpload: (slotId: string) => void;
+  retryBack: (slotId: string) => void;
+  hasBackRetry: (slotId: string) => boolean;
+  removeBack: (slotId: string) => void;
+  backProgress: Record<string, number>;
+  backSlotErrors: Record<string, string>;
+  backErrorFor: Record<string, string>;
+  backMissing: Set<string>;
+  /** 'template' when "Annan mall" has no template picked (after a submit attempt). */
+  backError: '' | 'template';
+  backFitted: Record<string, number>;
+  onBackReport: (r: RenderReport) => void;
+  activeBackSlotId: string | null;
+  setActiveBackSlotId: (id: string | null) => void;
+  toggleActiveBackSlot: (id: string) => void;
+  registerBackSlot: (id: string, handle: PhotoSlotHandle | null) => void;
+  registerBackText: (id: string, el: HTMLInputElement | null) => void;
+  registerBackGallery: (el: HTMLDivElement | null) => void;
+  openBackPicker: (slotId: string) => void;
+  focusBackText: (id: string) => void;
+}
+
+/** A spec with nothing to draw: the back image hook's input while no back template is loaded. */
+const EMPTY_SPEC: TemplateSpecV1 = {
+  schema: 'designer.template/1',
+  unit: 'mm',
+  width: 500,
+  height: 700,
+  bleed_mm: 0,
+  render: { preview_px_per_mm: 2, print_px_per_mm: 6, fit_ref_px_per_mm: 6 },
+  fonts: [],
+  surfaces: [],
+};
+const EMPTY_STATE: DesignStateV1 = { v: 1, texts: {}, photos: {} };
+
+/**
+ * M5.6: loads (and caches) the template of an 'other' back on pick, with its
+ * fonts. Returns the payload of the currently picked template, or null while
+ * it loads / failed / none is picked.
+ */
+function useBackTemplate(client: DesignerClient | null, productId: string, back: DesignBack | null, onFontsChange: () => void) {
+  const cache = useRef(new Map<string, BackTemplatePayload>());
+  const [loaded, setLoaded] = useState<BackTemplatePayload | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
+  const wanted = back?.mode === 'other' ? back.template_id : null;
+  useEffect(() => {
+    if (!wanted) {
+      setLoaded(null);
+      setFailed(null);
+      return;
+    }
+    const hit = cache.current.get(wanted);
+    if (hit) {
+      setLoaded(hit);
+      setFailed(null);
+      return;
+    }
+    if (!client) return;
+    let cancelled = false;
+    setLoading(true);
+    setFailed(null);
+    client
+      .backTemplate(productId, wanted)
+      .then(async (payload) => {
+        cache.current.set(wanted, payload);
+        await loadDesignerFonts(payload.fonts, { onLate: () => !cancelled && onFontsChange() });
+        if (cancelled) return;
+        setLoaded(payload);
+        onFontsChange();
+      })
+      .catch((err) => {
+        if (!cancelled) setFailed(err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // The font tick callback is stable enough; re-run on template / client / retry only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, productId, wanted, attempt]);
+  const current = wanted && loaded?.template_id === wanted ? loaded : null;
+  return { template: current, loading: !!wanted && !current && loading, failed, retry: () => setAttempt((n) => n + 1) };
 }
 
 function scrollAndFocus(el: HTMLElement | null | undefined): void {
@@ -179,6 +304,28 @@ export function DesignerSessionHost() {
   const draft = useDesignDraft({ client, productId, templateVersionId: payload.template_version_id, spec, initialDesignId });
   const imgs = useDesignerImages(spec, draft.design?.photos);
 
+  // ── Back side (M5.6): gate, template, images ───────────────────────────
+  const addonList = payload.addons;
+  const addonSelection = useMemo(() => normalizeAddonSelection(addonList, draft.addons), [addonList, draft.addons]);
+  const backEnabled = useMemo(() => backEnabledBy(addonList, addonSelection), [addonList, addonSelection]);
+  const back = backEnabled ? draft.back : null;
+  // Ticking the enabling add-on opens the block with "Samma design" (NPP's
+  // default); unticking it drops the back (the server does the same).
+  const setBack = draft.setBack;
+  useEffect(() => {
+    if (backEnabled && !draft.back) setBack({ mode: 'same' });
+    else if (!backEnabled && draft.back) setBack(null);
+  }, [backEnabled, draft.back, setBack]);
+  const [backFontTick, setBackFontTick] = useState(0);
+  const bumpBackFonts = useCallback(() => setBackFontTick((n) => n + 1), []);
+  const backTpl = useBackTemplate(client, productId, back, bumpBackFonts);
+  const backSpec: TemplateSpecV1 | null = back?.mode === 'same' ? spec : back?.mode === 'other' ? (backTpl.template?.spec_public ?? null) : null;
+  const backFontList = useMemo(
+    () => (back?.mode === 'same' ? payload.fonts : (backTpl.template?.fonts ?? [])),
+    [back?.mode, payload.fonts, backTpl.template],
+  );
+  const backImgs = useDesignerImages(back?.mode === 'other' ? (backSpec ?? EMPTY_SPEC) : EMPTY_SPEC, back?.mode === 'other' ? draft.design?.back_photos : undefined);
+
   // ── Fonts ───────────────────────────────────────────────────────────────
   const [fontsReady, setFontsReady] = useState(payload.fonts.length === 0);
   const [fontsSlow, setFontsSlow] = useState(false);
@@ -215,6 +362,9 @@ export function DesignerSessionHost() {
   const elements = useMemo(() => (spec.surfaces || []).find((s) => s.key === 'front')?.elements ?? [], [spec]);
   const slots = useMemo(() => elements.filter((e): e is ImageSlotElement => e.type === 'image_slot'), [elements]);
   const texts = useMemo(() => elements.filter((e): e is TextElement => e.type === 'text' && e.editable), [elements]);
+  const backElements = useMemo(() => (back?.mode === 'other' && backSpec ? (backSpec.surfaces || []).find((s) => s.key === 'front')?.elements ?? [] : []), [back?.mode, backSpec]);
+  const backSlots = useMemo(() => backElements.filter((e): e is ImageSlotElement => e.type === 'image_slot'), [backElements]);
+  const backTexts = useMemo(() => backElements.filter((e): e is TextElement => e.type === 'text' && e.editable), [backElements]);
 
   // ── Photos: local previews while uploading, progress, errors ───────────
   const [pending, setPending] = useState<Record<string, { width: number; height: number }>>({});
@@ -359,6 +509,167 @@ export function DesignerSessionHost() {
   const toggleActiveSlot = useCallback((id: string) => setActiveSlotId((cur) => (cur === id ? null : id)), []);
   const markDragged = useCallback(() => setDragged(true), []);
 
+  // ── Back photos / fields (M5.6): the front's machinery, bound to back.state ──
+  const [backPending, setBackPending] = useState<Record<string, { width: number; height: number }>>({});
+  const [backProgress, setBackProgress] = useState<Record<string, number>>({});
+  const [backSlotErrors, setBackSlotErrors] = useState<Record<string, string>>({});
+  const [backRetryFiles, setBackRetryFiles] = useState<Record<string, File>>({});
+  const backAborts = useRef<Record<string, AbortController>>({});
+  const [activeBackSlotId, setActiveBackSlotId] = useState<string | null>(null);
+  const backSlotRefs = useRef<Record<string, PhotoSlotHandle | null>>({});
+  const backTextRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const backGalleryRef = useRef<HTMLDivElement | null>(null);
+  const registerBackSlot = useCallback((id: string, h: PhotoSlotHandle | null) => {
+    backSlotRefs.current[id] = h;
+  }, []);
+  const registerBackText = useCallback((id: string, el: HTMLInputElement | null) => {
+    backTextRefs.current[id] = el;
+  }, []);
+  const registerBackGallery = useCallback((el: HTMLDivElement | null) => {
+    backGalleryRef.current = el;
+  }, []);
+  const openBackPicker = useCallback((id: string) => backSlotRefs.current[id]?.openPicker(), []);
+  const focusBackText = useCallback((id: string) => backTextRefs.current[id]?.focus(), []);
+  const toggleActiveBackSlot = useCallback((id: string) => setActiveBackSlotId((cur) => (cur === id ? null : id)), []);
+
+  const backRenderState: DesignStateV1 = useMemo(() => {
+    if (back?.mode === 'same') return renderState;
+    if (back?.mode !== 'other') return EMPTY_STATE;
+    if (Object.keys(backPending).length === 0) return back.state;
+    const photos = { ...back.state.photos };
+    for (const [slotId, p] of Object.entries(backPending)) {
+      const slot = backSlots.find((s) => s.id === slotId);
+      photos[slotId] = { asset_id: `local:back:${slotId}`, width: p.width, height: p.height, adj: { ...(slot?.default_adj ?? DEFAULT_ADJ) } };
+    }
+    return { ...back.state, photos };
+  }, [back, renderState, backPending, backSlots]);
+
+  const pickBack = useCallback(
+    async (slotId: string, file: File) => {
+      setBackSlotErrors((e) => ({ ...e, [slotId]: '' }));
+      setBackRetryFiles((r) => {
+        if (!(slotId in r)) return r;
+        const n = { ...r };
+        delete n[slotId];
+        return n;
+      });
+      if (file.type && !ACCEPTED_TYPES.split(',').includes(file.type)) {
+        setBackSlotErrors((e) => ({ ...e, [slotId]: t('fileType') }));
+        return;
+      }
+      if (file.size > payload.settings.max_upload_mb * 1024 * 1024) {
+        setBackSlotErrors((e) => ({ ...e, [slotId]: t('fileTooLarge', { max: payload.settings.max_upload_mb }) }));
+        return;
+      }
+      backAborts.current[slotId]?.abort();
+      const controller = new AbortController();
+      backAborts.current[slotId] = controller;
+      setBackProgress((p) => ({ ...p, [slotId]: 0 }));
+      let preview: Awaited<ReturnType<typeof downscaleForPreview>> | null = null;
+      try {
+        preview = await downscaleForPreview(file);
+        backImgs.setLocal(`local:back:${slotId}`, preview.bitmap);
+        setBackPending((p) => ({ ...p, [slotId]: { width: preview!.width, height: preview!.height } }));
+      } catch {
+        preview = null;
+      }
+      try {
+        const res = await draft.uploadPhoto(slotId, file, (f) => setBackProgress((p) => ({ ...p, [slotId]: f })), controller.signal, 'back');
+        if (preview) backImgs.setLocal(res.asset_id, preview.bitmap);
+        setActiveBackSlotId(slotId);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setBackSlotErrors((e) => ({ ...e, [slotId]: isUploadNetworkError(err) ? t('uploadFailed') : apiError(err) }));
+          setBackRetryFiles((r) => ({ ...r, [slotId]: file }));
+        }
+      } finally {
+        if (backAborts.current[slotId] === controller) delete backAborts.current[slotId];
+        setBackPending((p) => {
+          const n = { ...p };
+          delete n[slotId];
+          return n;
+        });
+        setBackProgress((p) => {
+          const n = { ...p };
+          delete n[slotId];
+          return n;
+        });
+        backImgs.setLocal(`local:back:${slotId}`, null);
+      }
+    },
+    [draft, backImgs, payload.settings.max_upload_mb, apiError, t],
+  );
+  const cancelBackUpload = useCallback((slotId: string) => backAborts.current[slotId]?.abort(), []);
+  const retryBack = useCallback(
+    (slotId: string) => {
+      const file = backRetryFiles[slotId];
+      if (file) void pickBack(slotId, file);
+    },
+    [backRetryFiles, pickBack],
+  );
+  useEffect(() => {
+    const aborts = backAborts.current;
+    return () => {
+      for (const c of Object.values(aborts)) c.abort();
+    };
+  }, []);
+  const removeBack = useCallback(
+    async (slotId: string) => {
+      setBackSlotErrors((e) => ({ ...e, [slotId]: '' }));
+      try {
+        await draft.removePhoto(slotId, 'back');
+        setActiveBackSlotId((cur) => (cur === slotId ? null : cur));
+      } catch (err) {
+        setBackSlotErrors((e) => ({ ...e, [slotId]: apiError(err) }));
+      }
+    },
+    [draft, apiError],
+  );
+  const adjustBack = useCallback(
+    (slotId: string, adj: PhotoAdj) => {
+      if (backPending[slotId]) return;
+      draft.setBackAdj(slotId, adj);
+    },
+    [draft, backPending],
+  );
+  const setBackMode = useCallback(
+    (mode: 'same' | 'other') => {
+      if (mode === 'same') setBack({ mode: 'same' });
+      else if (draft.back?.mode !== 'other') {
+        // Like NPP: "Annan mall" waits for a pick; a product with a single
+        // (own) template offers it right away.
+        const only = payload.back_templates.length === 1 ? payload.back_templates[0] : null;
+        setBack({ mode: 'other', template_id: only?.template_id ?? '', template_version_id: only?.template_version_id ?? '', state: { v: 1, texts: {}, photos: {} } });
+      }
+    },
+    [setBack, draft.back?.mode, payload.back_templates],
+  );
+  const pickBackTemplate = useCallback(
+    (templateId: string) => {
+      const tpl = payload.back_templates.find((x) => x.template_id === templateId);
+      if (!tpl || (draft.back?.mode === 'other' && draft.back.template_id === templateId)) return;
+      setActiveBackSlotId(null);
+      // A new template starts with its own empty state (its photos are its own).
+      setBack({ mode: 'other', template_id: tpl.template_id, template_version_id: tpl.template_version_id, state: { v: 1, texts: {}, photos: {} } });
+    },
+    [payload.back_templates, draft.back, setBack],
+  );
+  const [backFitted, setBackFitted] = useState<Record<string, number>>({});
+  const onBackReport = useCallback((r: RenderReport) => {
+    setBackFitted((prev) => {
+      const keys = Object.keys(r.fitted);
+      if (keys.length === Object.keys(prev).length && keys.every((k) => prev[k] === r.fitted[k])) return prev;
+      return { ...r.fitted };
+    });
+  }, []);
+  const backFontLookup = useMemo(() => payloadFontLookup(backFontList), [backFontList]);
+  const backFontsMissing = useMemo(
+    () => missingFontKeys(backFontList).length > 0,
+    // backFontTick bumps whenever a back face finished loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [backFontList, backFontTick],
+  );
+
   // ── Render report (text fitting hints) ─────────────────────────────────
   const [fitted, setFitted] = useState<Record<string, number>>({});
   const onReport = useCallback((r: RenderReport) => {
@@ -384,7 +695,31 @@ export function DesignerSessionHost() {
     for (const tx of texts) if (tx.required && !(draft.state.texts[tx.id] || '').trim()) m.add(tx.id);
     return m;
   }, [showAll, slots, texts, renderState.photos, draft.state.texts]);
-  const errorCount = showAll ? complete.errors.length : 0;
+  // The back ('other') is validated against its own template; its errors
+  // count with the front's ("3 fields need your attention").
+  const backValidation = useMemo(
+    () => (back?.mode === 'other' && backSpec ? validateState(backSpec, back.state) : null),
+    [back, backSpec],
+  );
+  const backErrorFor = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of backValidation?.errors ?? []) if (!map[e.element_id]) map[e.element_id] = e.rule;
+    return map;
+  }, [backValidation]);
+  const backComplete = useMemo(
+    () => (back?.mode === 'other' && backSpec ? validateState(backSpec, back.state, { requireComplete: true }) : null),
+    [back, backSpec],
+  );
+  const backMissing = useMemo(() => {
+    const m = new Set<string>();
+    if (!showAll || back?.mode !== 'other') return m;
+    for (const s of backSlots) if (s.required && !backRenderState.photos[s.id]) m.add(s.id);
+    for (const tx of backTexts) if (tx.required && !(back.state.texts[tx.id] || '').trim()) m.add(tx.id);
+    return m;
+  }, [showAll, back, backSlots, backTexts, backRenderState.photos]);
+  const backTemplateMissing = back?.mode === 'other' && !back.template_id;
+  const backError: '' | 'template' = showAll && backTemplateMissing ? 'template' : '';
+  const errorCount = showAll ? complete.errors.length + (backComplete?.errors.length ?? 0) + (backTemplateMissing ? 1 : 0) : 0;
 
   // ── Add to cart / save ─────────────────────────────────────────────────
   const [submitError, setSubmitError] = useState('');
@@ -396,8 +731,6 @@ export function DesignerSessionHost() {
   const inCart = Boolean(designId && (draft.design?.status === 'IN_CART' || cartItems.some((i) => i.designId === designId)));
 
   // ── Add-ons (M5.5) ─────────────────────────────────────────────────────
-  const addonList = payload.addons;
-  const addonSelection = useMemo(() => normalizeAddonSelection(addonList, draft.addons), [addonList, draft.addons]);
   const addonsTotal = useMemo(() => sumAddons(addonList, addonSelection), [addonList, addonSelection]);
   const setAddon = draft.setAddon;
 
@@ -438,7 +771,12 @@ export function DesignerSessionHost() {
         .proof(id)
         .then((res) => {
           clearCartDesignCache(id);
-          return refreshDesignLine(id, { display, proofUrl: res.proof_url });
+          // M5.6: the back proof travels with the front one (double-sided only).
+          return refreshDesignLine(id, {
+            display,
+            proofUrl: res.proof_url,
+            ...(res.proof_back_url ? { proofBackUrl: res.proof_back_url } : {}),
+          });
         })
         .catch(() => undefined);
     },
@@ -456,6 +794,29 @@ export function DesignerSessionHost() {
         const first = full.errors[0]?.element_id;
         if (first) focusElement(first);
         return;
+      }
+      // M5.6: the back must be complete too ('other': a picked, loaded
+      // template whose required slots / texts are filled).
+      if (back?.mode === 'other') {
+        if (!back.template_id) {
+          setShowAll(true);
+          scrollAndFocus(backGalleryRef.current?.querySelector<HTMLElement>('button') ?? backGalleryRef.current);
+          return;
+        }
+        if (!backSpec) {
+          setSubmitError(backTpl.failed ? apiError(backTpl.failed) : t('backLoading'));
+          return;
+        }
+        const backFull = validateState(backSpec, back.state, { requireComplete: true });
+        if (!backFull.ok) {
+          setShowAll(true);
+          const first = backFull.errors[0]?.element_id;
+          if (first) {
+            if (backSlotRefs.current[first]) backSlotRefs.current[first]!.focus();
+            else scrollAndFocus(backTextRefs.current[first]);
+          }
+          return;
+        }
       }
       if (!inCart && blockedReason) {
         setSubmitError(blockedReason);
@@ -495,6 +856,8 @@ export function DesignerSessionHost() {
           proofUrl: null,
           display,
           ...(addonsTotal > 0 ? { addonsUnitPrice: addonsTotal } : {}),
+          // M5.6: the line shows "Dubbelsidig" + both thumbnails once the proofs land.
+          ...(saved.back ? { doubleSided: true as const, proofBackUrl: null } : {}),
         });
         // The design lives in the cart now; a later visit starts a new one.
         setDraftFor(productId, null);
@@ -507,7 +870,7 @@ export function DesignerSessionHost() {
         setSubmitting(false);
       }
     },
-    [spec, draft, inCart, focusElement, apiError, t, displayLines, addonsTotal, refreshDesignLine, requestProof, router, lp, productId],
+    [spec, draft, inCart, focusElement, apiError, t, displayLines, addonsTotal, refreshDesignLine, requestProof, router, lp, productId, back, backSpec, backTpl.failed],
   );
 
   // ── Start again from an ordered design ─────────────────────────────────
@@ -539,6 +902,8 @@ export function DesignerSessionHost() {
   // Editing needs the session (D2): before it is restored, a PATCH or an
   // upload could not be sent, so the canvas stays a skeleton.
   const ready = fontsReady && !imgs.templatePending && !draft.loading && draft.clientReady;
+  const backReady = ready && !!backSpec && (back?.mode === 'same' || (!backImgs.templatePending && !backTpl.loading));
+  const backLoadError = backTpl.failed ? apiError(backTpl.failed) : '';
 
   const session: DesignerSession = {
     spec,
@@ -586,6 +951,44 @@ export function DesignerSessionHost() {
     setAddon,
     restarting,
     startAgain,
+    backEnabled,
+    back,
+    backTemplates: payload.back_templates,
+    backSpec,
+    backLoading: backTpl.loading,
+    backLoadError,
+    retryBackTemplate: backTpl.retry,
+    backSlots,
+    backTexts,
+    backRenderState,
+    backImages: back?.mode === 'same' ? imgs.images : backImgs.images,
+    backFonts: back?.mode === 'same' ? fontLookup : backFontLookup,
+    backRenderKey: back?.mode === 'same' ? `${imgs.version}:${fontTick}:${fontsReady ? 1 : 0}` : `${backImgs.version}:${backFontTick}:${backFontsMissing ? 0 : 1}`,
+    backReady,
+    setBackMode,
+    pickBackTemplate,
+    setBackText: draft.setBackText,
+    adjustBack,
+    pickBack: (id, file) => void pickBack(id, file),
+    cancelBackUpload,
+    retryBack,
+    hasBackRetry: (id) => Boolean(backRetryFiles[id]),
+    removeBack: (id) => void removeBack(id),
+    backProgress,
+    backSlotErrors,
+    backErrorFor,
+    backMissing,
+    backError,
+    backFitted,
+    onBackReport,
+    activeBackSlotId,
+    setActiveBackSlotId,
+    toggleActiveBackSlot,
+    registerBackSlot,
+    registerBackText,
+    registerBackGallery,
+    openBackPicker,
+    focusBackText,
   };
 
   // Published after every render (the host never reads the session context,
@@ -639,6 +1042,13 @@ export function DesignerCanvasInline() {
       </div>
       {s.ready && hasPhoto && !s.dragged && (
         <p className="mt-2 text-center text-xs italic text-gray-400">{t('dragHint')}</p>
+      )}
+      {/* M5.6: the back canvas under the front one on desktop (mobile: under the back fields). */}
+      {s.backEnabled && s.back && (
+        <div className="mt-4 hidden md:block">
+          <p className="mb-2 text-center text-xs font-medium text-gray-600">{t('backSide')}</p>
+          <DesignerBackCanvas />
+        </div>
       )}
       {s.ready && s.fontsMissing && (
         <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs text-gray-500" aria-live="polite">
@@ -797,6 +1207,11 @@ export function DesignerFormInline({
           locale={ctx.locale}
           formatMoney={formatMoney ?? plainMoney}
           onChange={s.setAddon}
+          backBlock={
+            s.backEnabled && s.back ? (
+              <DesignerBackBlock session={s} locale={ctx.locale} maxUploadMb={ctx.payload.settings.max_upload_mb} minDpi={ctx.payload.settings.min_effective_dpi_warning} />
+            ) : null
+          }
         />
       )}
 
@@ -851,6 +1266,8 @@ interface AddonsBlockProps {
   locale: string;
   formatMoney: (amount: number) => string;
   onChange: (key: string, qty: number) => void;
+  /** M5.6: the "Baksida" block, rendered right under the add-on that enables it. */
+  backBlock?: ReactNode;
 }
 
 /**
@@ -858,8 +1275,10 @@ interface AddonsBlockProps {
  * add-on with its price; a quantity add-on shows a 1..max select once
  * chosen. The CTA total follows through `useDesignerAddonsTotal()`.
  */
-function AddonsBlock({ addons, selection, locale, formatMoney, onChange }: AddonsBlockProps) {
+function AddonsBlock({ addons, selection, locale, formatMoney, onChange, backBlock }: AddonsBlockProps) {
   const t = useTranslations('designer');
+  // The block follows the first selected add-on that enables the back.
+  const backAfter = addons.find((a) => a.enables_back && (selection[a.key] ?? 0) > 0)?.key ?? null;
   return (
     <fieldset className="space-y-2" data-designer-addons>
       <legend className="mb-2 text-sm font-semibold text-gray-900">{t('addonsTitle')}</legend>
@@ -915,6 +1334,7 @@ function AddonsBlock({ addons, selection, locale, formatMoney, onChange }: Addon
                 <span className="text-xs tabular-nums text-gray-500">{t('addonPrice', { price: formatMoney(Math.round(a.price * qty * 100) / 100) })}</span>
               </div>
             )}
+            {backBlock && backAfter === a.key && <div className="mt-3">{backBlock}</div>}
           </div>
         );
       })}

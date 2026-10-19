@@ -13,6 +13,10 @@
 // The client may be null while the customer session is restoring (M5 D2):
 // edits made meanwhile stay dirty and are saved once it exists, and creates /
 // uploads wait for it instead of failing.
+// M5.6 double-sided: the back (`{mode:'same'}` or another template with its
+// own texts / photos) is kept beside the front state and sent with the
+// draft (`back` on create / PATCH, only when it changed; null clears it).
+// Back photos go through the same photo route with `side: 'back'`.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -30,6 +34,7 @@ import {
   setDesignPath,
   setDraftFor,
   type AddonSelection,
+  type DesignBack,
   type DesignerClient,
   type DesignView,
   type UploadPhotoResult,
@@ -56,6 +61,20 @@ function cloneState(s: DesignStateV1): DesignStateV1 {
   return { v: 1, texts: { ...(s.texts || {}) }, photos };
 }
 
+function cloneBack(b: DesignBack | null | undefined): DesignBack | null {
+  if (!b) return null;
+  if (b.mode === 'same') return { mode: 'same' };
+  return { mode: 'other', template_id: b.template_id, template_version_id: b.template_version_id, state: cloneState(b.state ?? EMPTY_STATE) };
+}
+
+const sameBack = (a: DesignBack | null, b: DesignBack | null) => JSON.stringify(a) === JSON.stringify(b);
+/**
+ * "Annan mall" without a picked template yet: a UI state only. The server
+ * would refuse it (400), so it is never sent; it stays dirty and goes out
+ * once a template is picked, and the server's answer never overrides it.
+ */
+const pendingBackPick = (b: DesignBack | null) => b?.mode === 'other' && !b.template_id;
+
 export function useDesignDraft({ client, productId, templateVersionId, spec, initialDesignId }: Options) {
   const [design, setDesign] = useState<DesignView | null>(null);
   const [local, setLocalState] = useState<DesignStateV1>(EMPTY_STATE);
@@ -75,6 +94,10 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
   const [addons, setAddonsState] = useState<AddonSelection>({});
   const addonsRef = useRef<AddonSelection>({});
   const addonsDirtyRef = useRef(false);
+  // M5.6 back side: saved with the draft like the add-ons.
+  const [back, setBackState] = useState<DesignBack | null>(null);
+  const backRef = useRef<DesignBack | null>(null);
+  const backDirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chainRef = useRef<Promise<unknown>>(Promise.resolve());
   const createRef = useRef<Promise<DesignView> | null>(null);
@@ -108,6 +131,14 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     setAddonsState(v);
   }, []);
 
+  /** Takes the server's back (resume, stale reload, duplicate, upload). */
+  const applyBack = useCallback((next: DesignBack | null | undefined) => {
+    const v = cloneBack(next);
+    backRef.current = v;
+    backDirtyRef.current = false;
+    setBackState(v);
+  }, []);
+
   /** Runs `fn` after every earlier save/upload finished. */
   const exclusive = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
     const run = chainRef.current.then(fn, fn);
@@ -126,7 +157,17 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
       // The add-on choice survives like the texts (saved with the new draft).
       const keepAddons = Object.keys(addonsRef.current).length > 0;
       addonsDirtyRef.current = keepAddons;
-      dirtyRef.current = Object.keys(next.texts).length > 0 || keepAddons;
+      // The back's photos belonged to the old design: keep only the mode
+      // and the texts of an 'other' back (saved with the new draft).
+      const oldBack = backRef.current;
+      const keptBack: DesignBack | null =
+        oldBack?.mode === 'other'
+          ? { ...oldBack, state: { v: 1, texts: { ...oldBack.state.texts }, photos: {} } }
+          : oldBack;
+      backRef.current = keptBack;
+      setBackState(keptBack);
+      backDirtyRef.current = keptBack !== null;
+      dirtyRef.current = Object.keys(next.texts).length > 0 || keepAddons || keptBack !== null;
     },
     [productId, applyDesign, applyLocal],
   );
@@ -165,6 +206,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         applyDesign(view);
         applyLocal(cloneState(view.state ?? EMPTY_STATE));
         applyAddons(view.addons);
+        applyBack(view.back);
         dirtyRef.current = false;
         if (view.status === 'DRAFT') setDraftFor(productId, view.id);
       })
@@ -207,12 +249,15 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
       const sentTexts = JSON.stringify(texts);
       const sentAddons = { ...addonsRef.current };
       const hasAddons = Object.keys(sentAddons).length > 0;
+      // The back travels with the create (photos come later through the photo route).
+      const sentBack = pendingBackPick(backRef.current) ? null : cloneBack(backRef.current);
       createRef.current = c
         .create({
           product_id: productId,
           template_version_id: templateVersionId,
           state: { v: 1, texts, photos: {} },
           ...(hasAddons ? { addons: sentAddons } : {}),
+          ...(sentBack ? { back: sentBack } : {}),
         })
         .then((view) => {
           applyDesign(view);
@@ -224,10 +269,12 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
           setDraftFor(productId, view.id);
           // Edits made while creating stay dirty and are saved next.
           addonsDirtyRef.current = JSON.stringify(addonsRef.current) !== JSON.stringify(sentAddons);
+          backDirtyRef.current = !sameBack(backRef.current, sentBack);
           dirtyRef.current =
             JSON.stringify(localRef.current.texts) !== sentTexts ||
             Object.keys(localRef.current.photos).length > 0 ||
-            addonsDirtyRef.current;
+            addonsDirtyRef.current ||
+            backDirtyRef.current;
           return view;
         })
         .catch((err) => {
@@ -270,11 +317,18 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         dirtyRef.current = false;
         const sendAddons = addonsDirtyRef.current ? { ...addonsRef.current } : null;
         addonsDirtyRef.current = false;
+        // `back` only when it changed; null clears the server's back. A
+        // template pick still pending is kept dirty and sent once picked.
+        const pendingPick = pendingBackPick(backRef.current);
+        const sendBack = backDirtyRef.current && !pendingPick;
+        const sentBack = cloneBack(backRef.current);
+        backDirtyRef.current = backDirtyRef.current && pendingPick;
         setSaving(true);
         try {
           const init = {
             ...(opts?.keepalive ? { keepalive: true } : {}),
             ...(sendAddons ? { addons: sendAddons } : {}),
+            ...(sendBack ? { back: sentBack } : {}),
           };
           const view = await client.update(
             d.id,
@@ -284,6 +338,10 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
           );
           // Keep local edits made during the request; take the server's version and photo views.
           applyDesign(view);
+          // The server may have dropped the back (add-on deselected) or
+          // resolved the back template version: take its answer unless the
+          // customer edited the back meanwhile.
+          if (!backDirtyRef.current && !sameBack(backRef.current, cloneBack(view.back))) applyBack(view.back);
           setSaveError(null);
           return view;
         } catch (err) {
@@ -295,6 +353,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
               applyDesign(fresh);
               applyLocal(cloneState(fresh.state ?? EMPTY_STATE));
               applyAddons(fresh.addons);
+              applyBack(fresh.back);
               setNotice('stale');
               setSaveError(null);
               return fresh;
@@ -317,13 +376,14 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
           }
           dirtyRef.current = true;
           if (sendAddons) addonsDirtyRef.current = true;
+          if (sendBack) backDirtyRef.current = true;
           setSaveError(err);
           return null;
         } finally {
           setSaving(false);
         }
       }),
-    [client, spec, exclusive, ensureDesign, applyDesign, applyLocal, applyAddons, startFresh],
+    [client, spec, exclusive, ensureDesign, applyDesign, applyLocal, applyAddons, applyBack, startFresh],
   );
 
   // The autosave timer always runs the latest `saveNow` (the one that knows
@@ -393,6 +453,51 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     [updateLocal],
   );
 
+  // ── Back side (M5.6) ────────────────────────────────────────────────────
+  /** Replaces the back (null = single-sided) and autosaves. */
+  const setBack = useCallback(
+    (next: DesignBack | null) => {
+      const v = cloneBack(next);
+      if (sameBack(v, backRef.current)) return;
+      backRef.current = v;
+      setBackState(v);
+      backDirtyRef.current = true;
+      dirtyRef.current = true;
+      scheduleSave();
+    },
+    [scheduleSave],
+  );
+
+  /** Edits the state of an 'other' back (no-op for 'same' / none). */
+  const updateBack = useCallback(
+    (fn: (s: DesignStateV1) => DesignStateV1) => {
+      const cur = backRef.current;
+      if (cur?.mode !== 'other') return;
+      setBack({ ...cur, state: fn(cloneState(cur.state)) });
+    },
+    [setBack],
+  );
+
+  const setBackText = useCallback(
+    (id: string, value: string) =>
+      updateBack((s) => {
+        if (value === '') delete s.texts[id];
+        else s.texts[id] = value;
+        return s;
+      }),
+    [updateBack],
+  );
+
+  const setBackAdj = useCallback(
+    (slotId: string, adj: PhotoAdj) =>
+      updateBack((s) => {
+        const p = s.photos[slotId];
+        if (p) s.photos[slotId] = { ...p, adj: { ...adj } };
+        return s;
+      }),
+    [updateBack],
+  );
+
   /**
    * Uploads a photo for a slot (after pending edits are saved). Aborting
    * `signal` rejects with a status-0 DesignerApiError, also while the upload
@@ -404,6 +509,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
       file: Blob,
       onProgress?: (fraction: number) => void,
       signal?: AbortSignal,
+      side: 'front' | 'back' = 'front',
     ): Promise<UploadPhotoResult> =>
       saveNow().then(() =>
         exclusive(async () => {
@@ -417,34 +523,64 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
             file,
             (p) => onProgress?.(p.total > 0 ? p.loaded / p.total : 0),
             signal,
+            side,
           );
           applyDesign(res.design);
+          const fallback: DesignPhoto = {
+            asset_id: res.asset_id,
+            width: res.width,
+            height: res.height,
+            adj: { zoom: 1, rot: 0, panX: 0.5, panY: 0.5 },
+          };
+          if (side === 'back') {
+            // The server's back (with the photo) wins unless the customer
+            // edited the back meanwhile; then the photo is merged into ours.
+            const serverBack = cloneBack(res.design?.back);
+            const cur = backRef.current;
+            if (cur?.mode === 'other') {
+              const serverPhoto = serverBack?.mode === 'other' ? serverBack.state.photos[slotId] : undefined;
+              const next = { ...cur, state: cloneState(cur.state) };
+              next.state.photos[slotId] = serverPhoto ? { ...serverPhoto, adj: { ...serverPhoto.adj } } : fallback;
+              backRef.current = next;
+              setBackState(next);
+            } else if (serverBack) {
+              applyBack(serverBack);
+            }
+            return res;
+          }
           const serverPhoto = res.design?.state?.photos?.[slotId];
           const next = cloneState(localRef.current);
-          next.photos[slotId] = serverPhoto
-            ? { ...serverPhoto, adj: { ...serverPhoto.adj } }
-            : {
-                asset_id: res.asset_id,
-                width: res.width,
-                height: res.height,
-                adj: { zoom: 1, rot: 0, panX: 0.5, panY: 0.5 },
-              };
+          next.photos[slotId] = serverPhoto ? { ...serverPhoto, adj: { ...serverPhoto.adj } } : fallback;
           applyLocal(next);
           return res;
         }),
       ),
-    [awaitClient, saveNow, exclusive, ensureDesign, applyDesign, applyLocal],
+    [awaitClient, saveNow, exclusive, ensureDesign, applyDesign, applyLocal, applyBack],
   );
 
   const removePhoto = useCallback(
-    (slotId: string): Promise<void> =>
+    (slotId: string, side: 'front' | 'back' = 'front'): Promise<void> =>
       saveNow().then(() =>
         exclusive(async () => {
           const d = designRef.current;
-          const p = localRef.current.photos[slotId];
+          const cur = backRef.current;
+          const p =
+            side === 'back'
+              ? cur?.mode === 'other'
+                ? cur.state.photos[slotId]
+                : undefined
+              : localRef.current.photos[slotId];
           if (!client || !d || !p) return;
           const view = await client.deletePhoto(d.id, p.asset_id);
           applyDesign(view);
+          if (side === 'back') {
+            if (cur?.mode !== 'other') return;
+            const next = { ...cur, state: cloneState(cur.state) };
+            delete next.state.photos[slotId];
+            backRef.current = next;
+            setBackState(next);
+            return;
+          }
           const next = cloneState(localRef.current);
           delete next.photos[slotId];
           applyLocal(next);
@@ -470,6 +606,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         applyDesign(view);
         applyLocal(cloneState(view.state ?? EMPTY_STATE));
         applyAddons(view.addons);
+        applyBack(view.back);
         dirtyRef.current = false;
         try {
           setDesignPath(view.id, window.location.pathname);
@@ -482,7 +619,7 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
         setSaveError(null);
         return view;
       }),
-    [awaitClient, exclusive, applyDesign, applyLocal, applyAddons, productId],
+    [awaitClient, exclusive, applyDesign, applyLocal, applyAddons, applyBack, productId],
   );
 
   // Save what is pending when the tab is hidden (mobile app switch) and on
@@ -522,6 +659,11 @@ export function useDesignDraft({ client, productId, templateVersionId, spec, ini
     /** M5.5 add-on selection `{key: qty}` of the draft. */
     addons,
     setAddon,
+    /** M5.6 back side of the draft (null = single-sided). */
+    back,
+    setBack,
+    setBackText,
+    setBackAdj,
     setText,
     setAdj,
     uploadPhoto,
