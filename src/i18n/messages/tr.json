@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "Ülke değiştir",
+    "preview": {
+      "banner": "{name} pazarının önizlemesi — ödeme kapalı",
+      "checkoutDisabled": "Bu bir pazar önizlemesidir — burada sipariş verilemez."
+    },
     "suggest": {
       "title": "Görünüşe göre {country} konumundasınız. {market} sürümüne geçmek ister misiniz?",
       "cta": "{market} sürümüne geç",

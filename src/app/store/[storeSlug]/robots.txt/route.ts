@@ -1,5 +1,6 @@
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { storefront } from '@/lib/api';
+import { requestMarketRef } from '@/lib/market';
 
 interface RouteCtx {
   params: Promise<{ storeSlug: string }>;
@@ -13,8 +14,10 @@ interface RouteCtx {
  */
 export async function GET(req: Request, ctx: RouteCtx) {
   const { storeSlug } = await ctx.params;
-  // Market of the request host (markets app) — forwarded by the proxy.
-  const marketKey = req.headers.get('x-market') || undefined;
+  // Market of the request host (markets app) — forwarded by the proxy. A
+  // market-preview host never reaches this handler (the proxy answers a
+  // disallow-all robots itself); the flag is read for completeness.
+  const marketKey = requestMarketRef(req.headers);
 
   // Resolve the store's canonical origin (market hostname → custom_domain →
   // subdomain).

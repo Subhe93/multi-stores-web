@@ -14,8 +14,9 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey, getRequestSuggestedMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
+import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -175,7 +176,7 @@ export async function generateMetadata({
     const cookieStore = await cookies();
     const requestHeaders = await headers();
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
-    const store = await storefront.getStore(storeSlug, await getRequestMarketKey()) as Store;
+    const store = await storefront.getStore(storeSlug, await getRequestMarket()) as Store;
     const primaryLocale = store.language_config?.primary_locale || 'en';
     const lang = urlLocale || primaryLocale;
     const trans = store.theme?.translations?.[lang];
@@ -229,7 +230,7 @@ export default async function StoreLayout({
 
   // Market of the request host (markets app) + the proxy's geo suggestion.
   // Both are undefined/null for stores without the app.
-  const marketKey = await getRequestMarketKey();
+  const marketKey = await getRequestMarket();
   const suggestedMarket = marketKey ? await getRequestSuggestedMarket() : null;
 
   let store: Store;
@@ -470,6 +471,11 @@ export default async function StoreLayout({
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
+        {/* Market preview host: never indexable (React hoists the meta into
+            <head>; the proxy also sends X-Robots-Tag). Pages own `robots` in
+            their metadata, so a layout-level metadata value would be
+            overridden — the tag is emitted here instead. */}
+        {store.market?.preview && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
@@ -490,6 +496,8 @@ export default async function StoreLayout({
           {typographyCss && (
             <style dangerouslySetInnerHTML={{ __html: typographyCss }} />
           )}
+          {/* Market preview strip (nothing for other hosts). */}
+          <MarketPreviewBanner />
           {/* Site-wide structured data: Organization + WebSite. */}
           <script
             type="application/ld+json"

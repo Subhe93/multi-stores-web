@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { marketQuery, type MarketRef } from './market';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -105,26 +106,24 @@ const cacheOpts = cache(async (slug: string): Promise<FetchOptions> => {
     : { cache: 'no-store' };
 });
 
-// Market key → `?market=` suffix (markets app, M1-DESIGN §4.2). Appended to
-// the URL so each market has its own cache entry; the store tag is unchanged,
-// so on-demand revalidation still covers every market of the store. Without a
-// key the URL — and therefore the request — is byte-identical to before.
-function marketQuery(market: string | undefined, hasQuery: boolean): string {
-  if (!market) return '';
-  return `${hasQuery ? '&' : '?'}market=${encodeURIComponent(market)}`;
-}
+// Market → `?market=` suffix (markets app, M1-DESIGN §4.2), `marketQuery`
+// of `src/lib/market.ts`. Appended to the URL so each market has its own
+// cache entry (a preview adds `&preview=1`, its own entry again); the store
+// tag is unchanged, so on-demand revalidation still covers every market of
+// the store. Without a key the URL — and therefore the request — is
+// byte-identical to before.
 
 // Storefront API helpers
 export const storefront = {
-  getStore: async (slug: string, market?: string) =>
+  getStore: async (slug: string, market?: MarketRef) =>
     api(`/storefront/${slug}${marketQuery(market, false)}`, await cacheOpts(slug)),
 
-  getProducts: async (slug: string, params?: Record<string, string>, market?: string) => {
+  getProducts: async (slug: string, params?: Record<string, string>, market?: MarketRef) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return api(`/storefront/${slug}/products${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
   },
 
-  getProduct: async (slug: string, productSlug: string, locale?: string, market?: string) => {
+  getProduct: async (slug: string, productSlug: string, locale?: string, market?: MarketRef) => {
     const query = locale ? `?locale=${locale}` : '';
     return api(`/storefront/${slug}/products/${productSlug}${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
   },
@@ -179,7 +178,7 @@ export const storefront = {
     api(`/storefront/${slug}/v2/sample-product`, await cacheOpts(slug)),
 
   // Aggregated URL list for the storefront's sitemap.xml route.
-  getSitemapData: async (slug: string, market?: string) =>
+  getSitemapData: async (slug: string, market?: MarketRef) =>
     api(`/storefront/${slug}/sitemap-data${marketQuery(market, false)}`, await cacheOpts(slug)),
 };
 

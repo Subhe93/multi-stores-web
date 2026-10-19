@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { storefront } from '@/lib/api';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 
 // The cart page itself is a client component and so cannot export metadata.
 // This layout exists only to mark the route noindex: a cart is per-visitor and
@@ -23,7 +23,7 @@ export async function generateMetadata({
     const cookieStore = await cookies();
     const requestHeaders = await headers();
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
-    const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as {
+    const store = (await storefront.getStore(storeSlug, await getRequestMarket())) as {
       name?: string;
       language_config?: { primary_locale?: string } | null;
       theme?: { translations?: Record<string, { name?: string }> };

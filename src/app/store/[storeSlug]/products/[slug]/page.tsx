@@ -6,7 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
@@ -82,7 +82,7 @@ export async function generateMetadata({
   const { storeSlug, slug: productSlug } = await params;
   const { lang } = await searchParams;
   try {
-    const marketKey = await getRequestMarketKey();
+    const marketKey = await getRequestMarket();
     const [product, storeData] = await Promise.all([
       storefront.getProduct(storeSlug, productSlug, undefined, marketKey) as Promise<ProductRecord>,
       storefront.getStore(storeSlug, marketKey) as Promise<StoreRecord | null>,
@@ -103,6 +103,7 @@ export async function generateMetadata({
       secondaryLocales: secondary,
       path: `/products/${productSlug}`,
       markets: storeData?.markets,
+      market: storeData?.market,
       storeSlug,
       pathByLocale: storeData?.market ? productPathByLocale(product) : null,
     });
@@ -146,7 +147,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // primary locale, not in English — so the store is read first (it is cached).
   let locale = lang || 'en';
   try {
-    const marketKey = await getRequestMarketKey();
+    const marketKey = await getRequestMarket();
     storeData = (await storefront.getStore(storeSlug, marketKey)) as StoreRecord | null;
     locale = lang || storeData?.language_config?.primary_locale || 'en';
     [product, template] = await Promise.all([

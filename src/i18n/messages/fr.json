@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "Changer de pays",
+    "preview": {
+      "banner": "Aperçu du marché {name} — le paiement est désactivé",
+      "checkoutDisabled": "Ceci est un aperçu du marché — aucune commande ne peut être passée ici."
+    },
     "suggest": {
       "title": "Il semble que vous soyez en {country}. Passer à {market} ?",
       "cta": "Passer à {market}",

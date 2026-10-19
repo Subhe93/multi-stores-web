@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { legal, storefront, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is
@@ -35,7 +35,7 @@ async function resolveLocale(storeSlug: string, lang: string | undefined): Promi
 }> {
   let store: StoreLite | null = null;
   try {
-    store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as StoreLite;
+    store = (await storefront.getStore(storeSlug, await getRequestMarket())) as StoreLite;
   } catch {
     store = null;
   }

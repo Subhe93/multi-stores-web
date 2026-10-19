@@ -5,7 +5,7 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
@@ -98,7 +98,7 @@ export default async function CollectionPage({
   // We also need the store currency for product prices.
   // The store is read first (cached): without a locale prefix in the URL the
   // collection is rendered in the store's primary locale, not in English.
-  const storeData = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as {
+  const storeData = (await storefront.getStore(storeSlug, await getRequestMarket())) as {
       currency?: string;
       custom_domain?: string | null;
       market?: MarketRoute | null;
@@ -484,7 +484,7 @@ export async function generateMetadata({
   try {
     const [tree, store] = await Promise.all([
       storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
-      storefront.getStore(storeSlug, await getRequestMarketKey()) as Promise<{
+      storefront.getStore(storeSlug, await getRequestMarket()) as Promise<{
         custom_domain?: string | null;
         market?: MarketRoute | null;
         markets?: MarketRoute[];
@@ -509,6 +509,7 @@ export async function generateMetadata({
       secondaryLocales: secondary,
       path: `/collections/${handle}`,
       markets: store?.markets,
+      market: store?.market,
       storeSlug,
     });
 

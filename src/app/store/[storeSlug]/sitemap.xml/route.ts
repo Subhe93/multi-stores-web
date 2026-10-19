@@ -1,6 +1,6 @@
 import { storefront } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/storeUrl';
-import type { MarketRoute } from '@/lib/market';
+import { requestMarketRef, type MarketRoute } from '@/lib/market';
 
 interface SitemapPage {
   slug: string;
@@ -47,8 +47,10 @@ function toIso(d: string | Date): string {
  */
 export async function GET(req: Request, ctx: RouteCtx) {
   const { storeSlug } = await ctx.params;
-  // Market of the request host (markets app) — forwarded by the proxy.
-  const marketKey = req.headers.get('x-market') || undefined;
+  // Market of the request host (markets app) — forwarded by the proxy. A
+  // market-preview host never reaches this handler (the proxy answers an
+  // empty sitemap itself); the flag is read for completeness.
+  const marketKey = requestMarketRef(req.headers);
   let data: SitemapData;
   try {
     data = (await storefront.getSitemapData(storeSlug, marketKey)) as SitemapData;

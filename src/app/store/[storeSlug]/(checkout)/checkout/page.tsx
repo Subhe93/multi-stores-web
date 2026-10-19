@@ -9,8 +9,10 @@ import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus,
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { useMarket, useMarkets } from '@/hooks/useMarket';
+import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
+import { marketBody, marketQuery } from '@/lib/market';
+import { MarketPreviewCheckoutNotice } from '@/components/layout/MarketPreviewBanner';
 import { useApiError, useCodedApiError } from '@/lib/useApiError';
 import { getStripe } from '@/lib/stripe';
 import { formatPrice } from '@/lib/format';
@@ -146,10 +148,12 @@ const COUNTRIES = [
 // an independent store the connected Stripe account was never resolved.
 
 // Build the payment-config endpoint, scoped to the current store when known so
-// the API can return the store's connected-account details (independent stores).
-function paymentConfigPath(storeSlug: string): string {
+// the API can return the store's connected-account details (independent stores)
+// and, for market stores, to the request market (`?market=`, `&preview=1` on a
+// market-preview host) so `kustomEnabled` reflects the market currency.
+function paymentConfigPath(storeSlug: string, market: ReturnType<typeof useMarket>): string {
   return storeSlug
-    ? `/payments/config?store=${encodeURIComponent(storeSlug)}`
+    ? `/payments/config?store=${encodeURIComponent(storeSlug)}${marketQuery(market, true)}`
     : '/payments/config';
 }
 
@@ -230,8 +234,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // then carry `market_key` + the hostname/locale the order was placed on
   // (M1-DESIGN D1); non-market stores send exactly the previous bodies.
   const market = useMarket();
-  // Evaluated at submit time: `window` is unavailable during SSR.
-  const marketBody = () =>
+  // Market preview host: every read below carries `preview: true`; the pay
+  // button is disabled and the API would refuse the order anyway
+  // (MARKET_NOT_LIVE — order creation is LIVE-only and never previews).
+  const previewMode = useMarketPreview();
+  // Evaluated at submit time: `window` is unavailable during SSR. Deliberately
+  // NOT `marketBody()` of lib/market: the order body never carries `preview`.
+  const orderMarketBody = () =>
     market ? { market_key: market.key, hostname: window.location.hostname, locale } : {};
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -440,8 +449,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         item_count: purchasable.reduce((s, i) => s + i.quantity, 0),
         subtotal,
         locale,
-        // Markets app: costs and the free threshold in the market currency.
-        ...(storeId && market?.key ? { store_id: storeId, market_key: market.key } : {}),
+        // Markets app: costs and the free threshold in the market currency
+        // (`preview: true` on a market-preview host).
+        ...(storeId && market?.key ? { store_id: storeId, ...marketBody(market) } : {}),
       }),
     })
       .then((res) => {
@@ -491,6 +501,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     selectedShippingMethod && !selectedShippingMethod.legacy ? selectedShippingMethod.id : null;
   const quoteCouponCode = coupon?.code ?? null;
   const quoteMarketKey = market?.key;
+  const quoteMarketPreview = Boolean(market?.preview);
   // M2.5: the (format-valid) VAT number goes with a company quote on reverse
   // charge stores; each settled VIES check re-quotes so the server's cached
   // verdict is picked up.
@@ -512,7 +523,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         token: token ?? undefined,
         body: JSON.stringify({
           store_id: storeId,
-          ...(quoteMarketKey ? { market_key: quoteMarketKey } : {}),
+          ...(quoteMarketKey ? { market_key: quoteMarketKey, ...(quoteMarketPreview ? { preview: true } : {}) } : {}),
           // Guest lines travel as the serialised key so the effect depends on
           // their content, not on the array identity.
           ...(isLoggedInForQuote ? {} : { lines: JSON.parse(quoteLinesKey) }),
@@ -543,7 +554,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   }, [
     storeId, token, isLoggedInForQuote, quoteLinesKey, items.length,
     shippingCountryCode, shippingPostcode, shippingRegion, quoteShippingMethodId, quoteCouponCode, locale, requoteTick,
-    quoteMarketKey, isCompany, quoteVatNumber, vatCheckSettledKey,
+    quoteMarketKey, quoteMarketPreview, isCompany, quoteVatNumber, vatCheckSettledKey,
   ]);
 
   // Track viewport so only the active layout mounts the CardElement.
@@ -816,7 +827,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'STRIPE',
-            ...marketBody(),
+            ...orderMarketBody(),
             ...b2bBody(),
             ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
@@ -850,7 +861,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             address_id: addressId,
             store_id: storeId,
             payment_method: 'COD',
-            ...marketBody(),
+            ...orderMarketBody(),
             ...b2bBody(),
             ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
@@ -1429,7 +1440,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1438,6 +1449,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
+            {previewMode && <MarketPreviewCheckoutNotice className="mt-2" />}
             {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
             {personalizationBlocked && <InvalidPersonalizationHint items={items} className="mt-2" />}
 
@@ -1502,7 +1514,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {errorBox('mb-4')}
             <button
               type="submit"
-              disabled={loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
             >
@@ -1511,6 +1523,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                 : <><Lock className="w-4 h-4" />{submitLabel}</>
               }
             </button>
+            {previewMode && <MarketPreviewCheckoutNotice className="mt-2" />}
             {hasUnavailableItems && <RemoveUnavailableHint className="mt-2" />}
             {personalizationBlocked && <InvalidPersonalizationHint items={items} className="mt-2" />}
             <p className="mt-3 text-xs text-gray-400 text-center flex items-center justify-center gap-1">
@@ -1563,7 +1576,11 @@ function CheckoutRouter() {
   const wantsClassic = searchParams.get('method') === 'classic';
   const [availability, setAvailability] = useState<PaymentAvailability | null>(null);
   // Markets app: `kustom_enabled` / currency must reflect the request market.
-  const routerMarketKey = useMarket()?.key;
+  const routerMarket = useMarket();
+  const routerMarketKey = routerMarket?.key;
+  // Market preview: a Kustom session is LIVE-only (the API refuses it), so
+  // the preview always shows the classic form with its pay button disabled.
+  const previewMode = useMarketPreview();
 
   useEffect(() => {
     let cancelled = false;
@@ -1575,7 +1592,7 @@ function CheckoutRouter() {
       let storeKustomEnabled = true;
       if (storeSlug) {
         try {
-          const store = await storefront.getStore(storeSlug, routerMarketKey) as {
+          const store = await storefront.getStore(storeSlug, routerMarket) as {
             id: string;
             card_payments_enabled?: boolean;
             cod_enabled?: boolean;
@@ -1592,7 +1609,7 @@ function CheckoutRouter() {
       }
       let config: PaymentConfig | null = null;
       try {
-        config = await api<PaymentConfig>(paymentConfigPath(storeSlug));
+        config = await api<PaymentConfig>(paymentConfigPath(storeSlug, routerMarket));
       } catch {
         config = null;
       }
@@ -1612,13 +1629,14 @@ function CheckoutRouter() {
     }
     init();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `routerMarket` only changes with its key
   }, [storeSlug, routerMarketKey]);
 
   if (!availability) return <LoadingState />;
 
   const classicPossible = availability.cod || availability.stripe;
   // `?method=classic` is honoured only when there is something to pay with there.
-  const mode = availability.kustom && (!wantsClassic || !classicPossible) ? 'kustom' : 'classic';
+  const mode = !previewMode && availability.kustom && (!wantsClassic || !classicPossible) ? 'kustom' : 'classic';
 
   if (mode === 'kustom') {
     return <KustomCheckout storeSlug={storeSlug} classicAvailable={classicPossible} />;

@@ -26,10 +26,16 @@ export interface MarketUrlInput {
 export function buildStoreOrigin(
   storeSlug: string,
   customDomain?: string | null,
-  market?: { primary_hostname?: string | null } | null,
+  market?: { primary_hostname?: string | null; preview?: boolean; key?: string } | null,
 ): string {
   if (market?.primary_hostname) {
     return `https://${market.primary_hostname}`;
+  }
+  // A market previewed before any hostname is configured has no public URL
+  // but its own preview host; the default market's hosts below would be
+  // the wrong origin for its pages.
+  if (market?.preview && market.key) {
+    return previewOrigin(storeSlug, market.key);
   }
   if (customDomain) {
     return `https://${customDomain}`;
@@ -40,6 +46,21 @@ export function buildStoreOrigin(
     return `${url.protocol}//${storeSlug}.${url.host}`;
   } catch {
     return `http://${storeSlug}.localhost:3003`;
+  }
+}
+
+/**
+ * Origin of the market-preview host: `<slug>--<key>` as ONE label under the
+ * platform host of NEXT_PUBLIC_WEB_URL, so the wildcard record and the
+ * certificate of `<slug>.<platform host>` cover it.
+ */
+export function previewOrigin(storeSlug: string, marketKey: string): string {
+  const base = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3003';
+  try {
+    const url = new URL(base);
+    return `${url.protocol}//${storeSlug}--${marketKey}.${url.host}`;
+  } catch {
+    return `http://${storeSlug}--${marketKey}.localhost:3003`;
   }
 }
 
@@ -137,9 +158,22 @@ export function buildStoreAlternates(opts: {
   storeSlug?: string;
   /** Per-locale sub-path (translated product slugs); `path` is the fallback. */
   pathByLocale?: Record<string, string | undefined> | null;
+  /**
+   * The request market. On a market PREVIEW (`preview: true`) the page is
+   * noindex: the canonical points at the market's real hostname (origin,
+   * i.e. its configured primary, else the preview host itself) and no
+   * hreflang is advertised at all. Null/undefined/LIVE: no effect.
+   */
+  market?: { preview?: boolean } | null;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
+
+  if (opts.market?.preview) {
+    const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
+    const selfPath = opts.pathByLocale?.[selfLocale] ?? path;
+    return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath), languages: {} };
+  }
 
   // Only LIVE markets, and a non-default market needs its own hostname: the
   // platform subdomain always serves the default market, so a hostless

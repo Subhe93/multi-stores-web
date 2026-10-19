@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "Switch country",
+    "preview": {
+      "banner": "Preview of the {name} market — checkout is disabled",
+      "checkoutDisabled": "This is a market preview — orders cannot be placed here."
+    },
     "suggest": {
       "title": "It looks like you are in {country}. Switch to {market}?",
       "cta": "Switch to {market}",

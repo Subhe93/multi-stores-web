@@ -1,6 +1,6 @@
 import 'server-only';
 import { headers } from 'next/headers';
-import { MARKET_GEO_HEADER, MARKET_HEADER, MARKET_SUGGEST_HEADER } from './market';
+import { MARKET_GEO_HEADER, MARKET_HEADER, MARKET_PREVIEW_HEADER, MARKET_SUGGEST_HEADER } from './market';
 
 // Request-scoped readers of the headers `src/proxy.ts` sets for market
 // stores. Server components / route handlers only — `src/lib/market.ts`
@@ -12,6 +12,23 @@ export async function getRequestMarketKey(): Promise<string | undefined> {
   try {
     const value = (await headers()).get(MARKET_HEADER);
     return value || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The market of the current request as a `MarketRef` for the API helpers:
+ * `{ key }` on a market host, `{ key, preview: true }` on a market-preview
+ * host (`x-market-preview: 1`), undefined for non-market stores. Pass it
+ * wherever a bare key was passed before — `marketQuery` adds `preview=1`.
+ */
+export async function getRequestMarket(): Promise<{ key: string; preview?: true } | undefined> {
+  try {
+    const reqHeaders = await headers();
+    const key = reqHeaders.get(MARKET_HEADER);
+    if (!key) return undefined;
+    return reqHeaders.get(MARKET_PREVIEW_HEADER) === '1' ? { key, preview: true } : { key };
   } catch {
     return undefined;
   }

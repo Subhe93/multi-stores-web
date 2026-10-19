@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -64,7 +64,7 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
   const { storeSlug } = await params;
   const { lang } = await searchParams;
   try {
-    const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as StoreRecord | null;
+    const store = (await storefront.getStore(storeSlug, await getRequestMarket())) as StoreRecord | null;
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     const locale = lang || primaryLocale;
     const t = await getTranslations({ locale });
@@ -76,6 +76,7 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
       secondaryLocales: secondary,
       path: '/collections',
       markets: store?.markets,
+      market: store?.market,
       storeSlug,
     });
     return {
@@ -95,7 +96,7 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
 
   // The store is read first (cached): without a locale prefix in the URL the
   // page is rendered in the store's primary locale.
-  const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as StoreRecord | null;
+  const store = (await storefront.getStore(storeSlug, await getRequestMarket())) as StoreRecord | null;
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const locale = lang || primaryLocale;
   const isRTL = locale === 'ar';

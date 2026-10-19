@@ -54,6 +54,15 @@ export function useMarket(): MarketRoute | null {
   return useContext(MarketContext).market;
 }
 
+/**
+ * True on a market-preview host (`<slug>--<key>.<platform host>`): the
+ * market may be DRAFT and the checkout is view-only (orders, Kustom and
+ * Stripe stay LIVE-only on the API).
+ */
+export function useMarketPreview(): boolean {
+  return Boolean(useContext(MarketContext).market?.preview);
+}
+
 /** Every reachable LIVE market of the store (including the current one); `[]` without the app. */
 export function useMarkets(): MarketRoute[] {
   return useContext(MarketContext).markets;

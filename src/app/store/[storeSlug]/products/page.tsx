@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -67,7 +67,7 @@ export async function generateMetadata({
   const { lang, search, category, creator_category, sort } = await searchParams;
   try {
     const [store, t] = await Promise.all([
-      storefront.getStore(storeSlug, await getRequestMarketKey()) as Promise<{
+      storefront.getStore(storeSlug, await getRequestMarket()) as Promise<{
         name?: string;
         description?: string | null;
         custom_domain?: string | null;
@@ -90,6 +90,7 @@ export async function generateMetadata({
       secondaryLocales: secondary,
       path: '/products',
       markets: store?.markets,
+      market: store?.market,
       storeSlug,
     });
 
@@ -122,7 +123,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // The store is read first (cached): without a locale prefix in the URL the
   // catalogue is rendered in the store's primary locale, not in English.
-  const marketKey = await getRequestMarketKey();
+  const marketKey = await getRequestMarket();
   const storeData = (await storefront.getStore(storeSlug, marketKey)) as {
     currency?: string;
     custom_domain?: string | null;

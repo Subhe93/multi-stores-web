@@ -4,7 +4,7 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildTwitterMeta } from '@/lib/jsonld';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance } from '@/themes/types';
@@ -64,7 +64,7 @@ const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account
 
 async function fetchData(storeSlug: string, pageSlug: string) {
   const [store, v2, legacy] = await Promise.all([
-    storefront.getStore(storeSlug, await getRequestMarketKey()).catch(() => null) as Promise<StoreLite | null>,
+    storefront.getStore(storeSlug, await getRequestMarket()).catch(() => null) as Promise<StoreLite | null>,
     storefront.getPublishedPage(storeSlug, pageSlug, 'STATIC').catch(() => null) as Promise<V2Page | null>,
     storefront.getPage(storeSlug, pageSlug).catch(() => null) as Promise<LegacyPage | null>,
   ]);
@@ -94,6 +94,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     secondaryLocales: secondary,
     path: subpath,
     markets: store?.markets,
+    market: store?.market,
     storeSlug,
   });
 

@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "Land wechseln",
+    "preview": {
+      "banner": "Vorschau des Marktes {name} — die Kasse ist deaktiviert",
+      "checkoutDisabled": "Dies ist eine Marktvorschau — Bestellungen sind hier nicht möglich."
+    },
     "suggest": {
       "title": "Sie scheinen sich in {country} zu befinden. Zu {market} wechseln?",
       "cta": "Zu {market} wechseln",

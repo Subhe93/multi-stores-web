@@ -5,7 +5,7 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildTwitterMeta } from '@/lib/jsonld';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
@@ -52,7 +52,7 @@ interface LandingProps {
 
 async function fetchData(storeSlug: string, slug: string) {
   const [store, published] = await Promise.all([
-    storefront.getStore(storeSlug, await getRequestMarketKey()).catch(() => null) as Promise<StoreLite | null>,
+    storefront.getStore(storeSlug, await getRequestMarket()).catch(() => null) as Promise<StoreLite | null>,
     storefront.getPublishedPage(storeSlug, slug, 'LANDING').catch(() => null) as Promise<PublishedPage | null>,
   ]);
   return { store, published };
@@ -90,6 +90,7 @@ export async function generateMetadata({ params, searchParams }: LandingProps): 
     secondaryLocales: secondaryLocales,
     path: subpath,
     markets: store?.markets,
+    market: store?.market,
     storeSlug,
   });
 

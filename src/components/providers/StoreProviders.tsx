@@ -23,6 +23,7 @@ function CartProviderWithAuth({
   storeCurrency,
   storeTax,
   marketKey,
+  marketPreview,
 }: {
   children: ReactNode;
   locale?: string;
@@ -30,6 +31,7 @@ function CartProviderWithAuth({
   storeCurrency?: string;
   storeTax?: StoreTaxConfig | null;
   marketKey?: string;
+  marketPreview?: boolean;
 }) {
   const { token, loading } = useAuth();
   // b2b app: the company view asks the API for per-line rates + net totals
@@ -45,6 +47,7 @@ function CartProviderWithAuth({
       storeCurrency={storeCurrency}
       storeTax={storeTax}
       marketKey={marketKey}
+      marketPreview={marketPreview}
       buyer={isCompany ? 'company' : undefined}
     >
       {children}
@@ -114,6 +117,7 @@ export function StoreProviders({
                   storeCurrency={storeCurrency}
                   storeTax={storeTax}
                   marketKey={market?.key}
+                  marketPreview={Boolean(market?.preview)}
                 >
                   <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
                 </CartProviderWithAuth>

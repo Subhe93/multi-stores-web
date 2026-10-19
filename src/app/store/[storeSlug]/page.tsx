@@ -10,7 +10,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
 
 interface Product {
   id: string;
@@ -79,7 +79,7 @@ export async function generateMetadata({
   const { storeSlug } = await params;
   const { lang } = await searchParams;
   try {
-    const marketKey = await getRequestMarketKey();
+    const marketKey = await getRequestMarket();
     const [store, published] = await Promise.all([
       storefront.getStore(storeSlug, marketKey) as Promise<{
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
@@ -110,6 +110,7 @@ export async function generateMetadata({
       secondaryLocales: secondary,
       path: '',
       markets: store.markets,
+      market: store.market,
       storeSlug,
     });
 
@@ -170,7 +171,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // endpoint hiccups — collections are decorative on this page, not load-bearing.
   // publishedHome may be null when the creator hasn't built a v2 home yet — in
   // that case we fall through to the hardcoded default below.
-  const marketKey = await getRequestMarketKey();
+  const marketKey = await getRequestMarket();
   const [store, creatorCategoriesResult, publishedHome] = await Promise.all([
     storefront.getStore(storeSlug, marketKey) as Promise<Store>,
     storefront.getCreatorCategories(storeSlug).catch(() => [] as CreatorCategory[]) as Promise<CreatorCategory[]>,

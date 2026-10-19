@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "تغيير الدولة",
+    "preview": {
+      "banner": "معاينة السوق {name} — صفحة الدفع معطّلة",
+      "checkoutDisabled": "هذه معاينة للسوق — لا يمكن إتمام الطلبات هنا."
+    },
     "suggest": {
       "title": "يبدو أنك في {country}. هل تريد الانتقال إلى {market}؟",
       "cta": "الانتقال إلى {market}",

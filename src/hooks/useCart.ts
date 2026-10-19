@@ -533,6 +533,9 @@ interface CartProviderProps {
    *  appended as `market=` to every /cart call so lines are priced in the
    *  market currency. Undefined for stores without the app. */
   marketKey?: string;
+  /** Market-preview host: `preview=1` goes with `market=` so a DRAFT market
+   *  prices the cart (display only; the checkout is disabled there). */
+  marketPreview?: boolean;
   /** b2b app (M2-DESIGN D1): `'company'` appends `buyer=company` to every
    *  /cart call so lines carry `tax_rate_bp` and the response a `b2b` net
    *  block. Undefined for persons and stores without the app. */
@@ -543,7 +546,7 @@ interface CartProviderProps {
   authReady?: boolean;
 }
 
-export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax, marketKey, buyer, authReady = true }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax, marketKey, marketPreview, buyer, authReady = true }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering (and,
   // for market stores, prices lines for the request market).
@@ -551,6 +554,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     const params: string[] = [];
     if (locale) params.push(`locale=${encodeURIComponent(locale)}`);
     if (marketKey) params.push(`market=${encodeURIComponent(marketKey)}`);
+    if (marketKey && marketPreview) params.push('preview=1');
     if (buyer === 'company') params.push('buyer=company');
     return params.length ? `?${params.join('&')}` : '';
   })();
@@ -676,6 +680,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           body: JSON.stringify({
             store_id: storeId,
             market_key: marketKey,
+            ...(marketPreview ? { preview: true } : {}),
             lines: qLines.map(toQuoteLine),
             ...(buyer === 'company' ? { buyer_type: 'COMPANY' } : {}),
           }),
@@ -742,7 +747,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     return () => { cancelled = true; };
     // Runs once auth is hydrated: the param is consumed on that pass.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketKey, authReady, buyer]);
+  }, [marketKey, marketPreview, authReady, buyer]);
 
   // ── Initial load + guest cart migration on login ────
 

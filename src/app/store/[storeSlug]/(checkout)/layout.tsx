@@ -10,7 +10,8 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarketKey } from '@/lib/market.server';
+import { getRequestMarket } from '@/lib/market.server';
+import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
@@ -56,7 +57,7 @@ export default async function CheckoutLayout({
   const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
 
   // Market of the request host (markets app); undefined for other stores.
-  const marketKey = await getRequestMarketKey();
+  const marketKey = await getRequestMarket();
 
   let store: Store;
   try {
@@ -93,6 +94,7 @@ export default async function CheckoutLayout({
           }
         `}</style>
 
+        {store.market?.preview && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
@@ -103,6 +105,7 @@ export default async function CheckoutLayout({
             ...(fontFamily ? { fontFamily } : {}),
           } as React.CSSProperties}
         >
+          <MarketPreviewBanner />
           {/* ── Shopify-style minimal checkout header ── */}
           <header className="store-surface store-bd border-b">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -193,7 +196,7 @@ export async function generateMetadata({
     const cookieStore = await cookies();
     const requestHeaders = await headers();
     const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
-    const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as Store;
+    const store = (await storefront.getStore(storeSlug, await getRequestMarket())) as Store;
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     const locale = urlLocale || primaryLocale;
     const t = await getTranslations({ locale });

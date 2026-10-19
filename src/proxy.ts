@@ -57,6 +57,9 @@ export type HostRoute = {
   /** Platform host whose market-context call failed open (L11): cached with
    *  the negative TTL so a recovering API is picked up quickly. */
   legacy?: true;
+  /** Market-preview host (`<slug>--<key>.<platform host>`): `market` may be
+   *  DRAFT, the pages are noindex and the checkout is view-only. */
+  preview?: true;
 };
 type DomainCacheEntry = { route: HostRoute | null; expiresAt: number };
 const POSITIVE_TTL_MS = 60_000;
@@ -72,8 +75,9 @@ const HOST_LOOKUP_TIMEOUT_MS = 2_000;
 const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 // Inbound copies of the headers we set must never be trusted (a client could
-// spoof a market); every branch strips them before forwarding.
-const MARKET_REQUEST_HEADERS = ['x-market', 'x-market-locale', 'x-market-suggest', 'x-market-geo'];
+// spoof a market, or a preview of a DRAFT one); every branch strips them
+// before forwarding.
+const MARKET_REQUEST_HEADERS = ['x-market', 'x-market-locale', 'x-market-suggest', 'x-market-geo', 'x-market-preview'];
 function stripMarketHeaders(h: Headers): Headers {
   for (const name of MARKET_REQUEST_HEADERS) h.delete(name);
   return h;
@@ -93,6 +97,34 @@ function isLiveMarket(value: unknown): value is MarketRoute {
 
 function normalizeMarkets(raw: unknown): MarketRoute[] {
   return Array.isArray(raw) ? raw.filter(isLiveMarket) : [];
+}
+
+/** A market the API resolved in preview mode (any status, `preview: true`). */
+function isPreviewMarket(value: unknown): value is MarketRoute {
+  if (!value || typeof value !== 'object') return false;
+  const m = value as Partial<MarketRoute>;
+  return (
+    m.preview === true &&
+    typeof m.key === 'string' &&
+    typeof m.default_locale === 'string' &&
+    Array.isArray(m.locales) &&
+    Array.isArray(m.countries)
+  );
+}
+
+// Market-preview host: `<slug>--<key>` as ONE label under a platform host,
+// so the wildcard DNS record + certificate of `<slug>.<platform host>` cover
+// it. Store slugs and market keys are both `[a-z0-9-]` with no leading /
+// trailing hyphen; market keys never contain `--` (API validation), so the
+// label splits on its only `--`. A label with no `--`, more than one, or an
+// invalid half is not a preview (null) and keeps today's behaviour.
+const PREVIEW_PART_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+export function parsePreviewLabel(label: string): { slug: string; key: string } | null {
+  const parts = label.split('--');
+  if (parts.length !== 2) return null;
+  const [slug, key] = parts as [string, string];
+  if (!PREVIEW_PART_RE.test(slug) || !PREVIEW_PART_RE.test(key)) return null;
+  return { slug, key };
 }
 
 function readRedirectsVersion(raw: unknown): string | null {
@@ -191,15 +223,63 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
   }
 }
 
-async function resolveHost(host: string, platformSlug: string | null): Promise<HostRoute | null> {
+/**
+ * Market-preview host → `GET /stores/:slug/market-context?market=<key>&preview=1`.
+ * Definitive (store or market unknown, app off, non-2xx) and failed lookups
+ * both yield null: the caller then falls back to the plain platform-subdomain
+ * resolution of the whole label, i.e. the usual store-not-found (or a store
+ * whose slug genuinely contains `--`).
+ */
+async function fetchPreviewHostRoute(slug: string, key: string): Promise<HostRoute | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HOST_LOOKUP_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `${API_URL}/stores/${encodeURIComponent(slug)}/market-context?market=${encodeURIComponent(key)}&preview=1`,
+      { cache: 'no-store', signal: controller.signal },
+    );
+    if (!res.ok) return null;
+    type Ctx = {
+      enabled?: boolean;
+      preview?: boolean;
+      market?: unknown;
+      markets?: unknown;
+      redirects_version?: unknown;
+    };
+    const body = (await res.json()) as Ctx & { data?: Ctx };
+    const data = body.data ?? body;
+    if (data.enabled !== true || data.preview !== true) return null;
+    if (!isPreviewMarket(data.market) || data.market.key !== key) return null;
+    return {
+      slug,
+      market: data.market,
+      markets: normalizeMarkets(data.markets),
+      redirectTo: null,
+      redirectsVersion: readRedirectsVersion(data.redirects_version),
+      preview: true,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveHost(
+  host: string,
+  platformSlug: string | null,
+  preview: { slug: string; key: string } | null = null,
+): Promise<HostRoute | null> {
   if (!platformSlug && !HOSTNAME_RE.test(host)) return null;
 
   const now = Date.now();
   const cached = domainCache.get(host);
   if (cached && cached.expiresAt > now) return cached.route;
 
+  // A preview label that does not resolve is treated as the plain label.
   const route = platformSlug
-    ? await fetchPlatformHostRoute(platformSlug)
+    ? (preview ? await fetchPreviewHostRoute(preview.slug, preview.key) : null) ??
+      (await fetchPlatformHostRoute(platformSlug))
     : await fetchCustomHostRoute(host);
 
   const ttl = route && !route.legacy ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS;
@@ -221,7 +301,8 @@ async function resolveStoreHost(hostname: string): Promise<HostRoute | null> {
       const subdomain = host.slice(0, -(platformHost.length + 1));
       const slug = subdomain.split('.')[0] || null;
       if (!slug) return null;
-      return await resolveHost(host, slug);
+      // `<slug>--<key>`: market preview (checked before anything else).
+      return await resolveHost(host, slug, parsePreviewLabel(slug));
     }
   }
 
@@ -299,6 +380,24 @@ export async function proxy(request: NextRequest) {
     );
   }
 
+  // Market preview host: never crawlable. robots.txt disallows everything
+  // and sitemap.xml is empty, answered here so no crawler ever sees the
+  // draft market's URLs; every page below also gets X-Robots-Tag.
+  if (isSitemapOrRobots && route?.preview) {
+    const body =
+      pathname === '/robots.txt'
+        ? 'User-agent: *\nDisallow: /\n'
+        : '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n';
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        'content-type': pathname === '/robots.txt' ? 'text/plain; charset=utf-8' : 'application/xml; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-robots-tag': 'noindex, nofollow',
+      },
+    });
+  }
+
   // /sitemap.xml and /robots.txt: subdomain serves the store-scoped routes;
   // platform domain serves them at the root (passthrough).
   if (isSitemapOrRobots) {
@@ -339,6 +438,10 @@ export async function proxy(request: NextRequest) {
     const requestHeaders = stripMarketHeaders(new Headers(request.headers));
     requestHeaders.set('x-store-slug', storeSlug);
     requestHeaders.set('x-market', market.key);
+    // Preview host: the server components forward `preview=1` to the API
+    // (so a DRAFT market renders) and the pages are noindex.
+    const preview = route.preview === true;
+    if (preview) requestHeaders.set('x-market-preview', '1');
 
     if (decision.kind === 'notfound') {
       const newUrl = request.nextUrl.clone();
@@ -348,6 +451,7 @@ export async function proxy(request: NextRequest) {
         status: decision.status,
       });
       response.headers.set('x-store-slug', storeSlug);
+      if (preview) response.headers.set('x-robots-tag', 'noindex, nofollow');
       response.cookies.set('x-store-locale', market.default_locale, { path: '/' });
       return response;
     }
@@ -360,10 +464,11 @@ export async function proxy(request: NextRequest) {
     }
 
     // Geo suggestion (L7): CDN country header first, Accept-Language region
-    // as a weak fallback; never redirects, skipped for bots and once the
-    // visitor dismissed the banner.
+    // as a weak fallback; never redirects, skipped for bots, once the
+    // visitor dismissed the banner, and on a preview host (the merchant is
+    // looking at one specific market on purpose).
     const dismissed = request.cookies.get('ms-market-suggest-dismissed')?.value === '1';
-    if (!dismissed && !isBotUserAgent(request.headers.get('user-agent'))) {
+    if (!preview && !dismissed && !isBotUserAgent(request.headers.get('user-agent'))) {
       const country = detectVisitorCountry({
         cfCountry: request.headers.get('cf-ipcountry'),
         vercelCountry: request.headers.get('x-vercel-ip-country'),
@@ -381,6 +486,10 @@ export async function proxy(request: NextRequest) {
     });
     response.headers.set('x-store-slug', storeSlug);
     response.headers.set('x-market', market.key);
+    if (preview) {
+      response.headers.set('x-market-preview', '1');
+      response.headers.set('x-robots-tag', 'noindex, nofollow');
+    }
     // The cookie carries the effective locale (market default when the URL
     // is unprefixed) so request.ts / app/layout.tsx resolve it without a
     // store fetch. Legacy stores keep writing '' below.

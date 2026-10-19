@@ -454,6 +454,10 @@
   },
   "market": {
     "switchCountry": "Byt land",
+    "preview": {
+      "banner": "Förhandsvisning av marknaden {name} — kassan är avstängd",
+      "checkoutDisabled": "Det här är en förhandsvisning av marknaden — inga beställningar kan läggas här."
+    },
     "suggest": {
       "title": "Det verkar som att du befinner dig i {country}. Byt till {market}?",
       "cta": "Byt till {market}",
