@@ -6,6 +6,7 @@
 // interactivity (autoplay, scroll listener, arrow buttons).
 
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
@@ -152,7 +153,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
           )}
           {slide.cta_text && (
             <a
-              href={slide.cta_url || '#'}
+              href={storeHref(slide.cta_url || '#')}
               className="inline-flex items-center justify-center px-8 py-3 mt-2 transition-all hover:opacity-90 hover:-translate-y-px self-start"
               style={{
                 ...ctaStyle,

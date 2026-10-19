@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
@@ -23,9 +24,9 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = (settings.cta_url as string) || '#';
+  const ctaUrl = storeHref((settings.cta_url as string) || '#');
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const ctaSecondaryUrl = (settings.cta_secondary_url as string) || '#';
+  const ctaSecondaryUrl = storeHref((settings.cta_secondary_url as string) || '#');
   const eyebrow = (content.eyebrow as string) || '';
   const resolvedImage = image ? resolveMediaUrl(image) : '';
 

@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 
@@ -9,7 +10,7 @@ function CallToAction({ settings, content }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = (settings.cta_url as string) || '#';
+  const ctaUrl = storeHref((settings.cta_url as string) || '#');
   const image = (settings.image as string) || '';
   const resolvedImage = image ? resolveMediaUrl(image) : '';
 

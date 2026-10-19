@@ -43,6 +43,44 @@ export function buildStoreOrigin(
   }
 }
 
+/** Platform host from NEXT_PUBLIC_WEB_URL (lower-case, no port, no `www.`). */
+function platformHost(): string | null {
+  const base = process.env.NEXT_PUBLIC_WEB_URL;
+  if (!base) return null;
+  try {
+    return new URL(base).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Make a stored link safe for the host it is rendered on. Builder content
+ * sometimes carries an absolute platform URL (`https://iwings-digital.com/
+ * products`, `https://<slug>.iwings-digital.com/cart`): on a custom domain
+ * that sends the visitor to another host and loses the cart cookie. A URL
+ * whose host is the platform host, any `<slug>.` subdomain of it, or the
+ * `www.` form of either, becomes a relative path (path + query + hash).
+ * Everything else — external links, mailto/tel, relative paths — is returned
+ * unchanged.
+ */
+export function storeHref(raw: string): string {
+  if (typeof raw !== 'string') return raw;
+  const trimmed = raw.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return raw;
+  const platform = platformHost();
+  if (!platform) return raw;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return raw;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  if (host !== platform && !host.endsWith(`.${platform}`)) return raw;
+  return `${url.pathname}${url.search}${url.hash}` || '/';
+}
+
 /**
  * Build a locale-prefixed URL for the store storefront. The primary locale has
  * NO prefix (e.g. `https://mystore.com/products/foo`); secondary locales use

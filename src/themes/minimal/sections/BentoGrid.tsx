@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
@@ -65,7 +66,7 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
           return (
             <StaggerItem key={i} className={`${SPAN[size]} min-h-[170px]`}>
               <Wrapper
-                {...(t.url ? { href: t.url } : {})}
+                {...(t.url ? { href: storeHref(t.url) } : {})}
                 className="card-lift relative flex h-full flex-col justify-end overflow-hidden p-5"
                 style={{
                   borderRadius: 'var(--theme-radius-lg)',

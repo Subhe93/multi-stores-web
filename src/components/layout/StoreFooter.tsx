@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 
 interface StoreFooterProps {
   storeName?: string;
@@ -98,6 +99,8 @@ export function StoreFooter({
 
   const legalPages = (pages ?? []).filter((p) => isLegalPage(p.slug));
 
+  // Scheme-less values (`facebook.com/namez.se`) and bare handles are
+  // normalised to absolute profile URLs; an empty value resolves to '#'.
   const socialEntries = (
     [
       { key: 'instagram', label: 'Instagram' },
@@ -106,7 +109,9 @@ export function StoreFooter({
       { key: 'tiktok', label: 'TikTok' },
       { key: 'youtube', label: 'YouTube' },
     ] as const
-  ).filter(({ key }) => !!socials?.[key]);
+  )
+    .filter(({ key }) => !!socials?.[key])
+    .map((entry) => ({ ...entry, href: resolveSocialHref(entry.key, socials![entry.key]!) }));
 
   const hasContact = contact && (contact.email || contact.phone || contact.address);
 
@@ -132,10 +137,10 @@ export function StoreFooter({
             {/* Social icons */}
             {socialEntries.length > 0 && (
               <div className="flex items-center gap-2 mt-1">
-                {socialEntries.map(({ key, label }) => (
+                {socialEntries.map(({ key, label, href }) => (
                   <a
                     key={key}
-                    href={socials![key]}
+                    href={href}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}

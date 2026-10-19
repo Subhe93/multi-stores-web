@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { buildStoreAlternates, buildStoreOrigin, type MarketUrlInput } from './storeUrl';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buildStoreAlternates, buildStoreOrigin, storeHref, type MarketUrlInput } from './storeUrl';
 
 // hreflang matrix for the markets app (M1-DESIGN §8): 2 markets × locales,
 // collision handling, x-default, translated slugs, and — above all — that a
@@ -135,5 +135,53 @@ describe('buildStoreAlternates (markets)', () => {
     });
     expect(res.languages['sv-SE']).toBe(`${platformOrigin}/products/metal-card`);
     expect(res.languages['de']).toBeUndefined();
+  });
+});
+
+describe('storeHref', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('turns a platform-host URL into a relative path (path + query + hash)', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'https://iwings-digital.com');
+    expect(storeHref('https://iwings-digital.com/products')).toBe('/products');
+    expect(storeHref('https://www.iwings-digital.com/products?sort=new#top')).toBe('/products?sort=new#top');
+    expect(storeHref('https://iwings-digital.com')).toBe('/');
+    expect(storeHref('http://IWINGS-DIGITAL.com/cart')).toBe('/cart');
+  });
+
+  it('treats every <slug>.<platformHost> subdomain (and its www. form) as the platform', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'https://iwings-digital.com');
+    expect(storeHref('https://naturalcotton.iwings-digital.com/cart')).toBe('/cart');
+    expect(storeHref('https://www.naturalcotton.iwings-digital.com/cart')).toBe('/cart');
+  });
+
+  it('leaves external links, custom domains, mailto/tel and relative paths unchanged', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'https://iwings-digital.com');
+    for (const raw of [
+      'https://namez.se/products',
+      'https://instagram.com/namez.se',
+      'https://notiwings-digital.com/x',
+      'mailto:hi@example.com',
+      'tel:+4670',
+      '/products',
+      '#top',
+      '',
+      'not a url',
+    ]) {
+      expect(storeHref(raw)).toBe(raw);
+    }
+  });
+
+  it('is a no-op when NEXT_PUBLIC_WEB_URL is unset or invalid', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', '');
+    expect(storeHref('https://iwings-digital.com/products')).toBe('https://iwings-digital.com/products');
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'nonsense');
+    expect(storeHref('https://iwings-digital.com/products')).toBe('https://iwings-digital.com/products');
+  });
+
+  it('ignores the www. prefix of the configured platform host too', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'https://www.iwings-digital.com');
+    expect(storeHref('https://iwings-digital.com/products')).toBe('/products');
+    expect(storeHref('https://shop.iwings-digital.com/products')).toBe('/products');
   });
 });

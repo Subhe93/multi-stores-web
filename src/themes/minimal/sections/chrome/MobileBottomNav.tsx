@@ -15,6 +15,7 @@ import {
   User,
   type LucideIcon,
 } from 'lucide-react';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
 import { ActiveLink } from './ActiveLink.client';
@@ -71,7 +72,9 @@ function defaultUrl(type: ItemKey, lp: string): string {
 
 // Prefix an internal nav target with the active locale; leave external links
 // and anchors untouched, and never double-prefix an already-localized path.
-function localizeUrl(url: string, lp: string, locale: string): string {
+function localizeUrl(rawUrl: string, lp: string, locale: string): string {
+  // An absolute platform URL becomes a same-host path first (see storeHref).
+  const url = storeHref(rawUrl);
   if (!url.startsWith('/') || url.startsWith('//')) return url;
   if (!lp) return url;
   if (url === `/${locale}` || url.startsWith(`/${locale}/`)) return url;

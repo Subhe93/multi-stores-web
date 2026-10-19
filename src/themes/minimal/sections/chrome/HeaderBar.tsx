@@ -10,6 +10,7 @@
 import Link from 'next/link';
 import { Search, User, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
@@ -63,8 +64,10 @@ function buildNavTree(flat: NavMenuItem[], lp: string, locale: string): NavNode[
 // locales carry a `/[locale]` prefix while the primary locale stays bare.
 // `lp` is that prefix ('' for primary, '/ar' etc. for secondary). Internal
 // nav targets are prefixed with it; external links and anchors are left as-is.
-function localizeUrl(url: string | undefined, lp: string, locale: string): string {
-  if (!url) return '#';
+function localizeUrl(rawUrl: string | undefined, lp: string, locale: string): string {
+  if (!rawUrl) return '#';
+  // An absolute platform URL becomes a same-host path first (see storeHref).
+  const url = storeHref(rawUrl);
   // External (http/mailto/tel), protocol-relative, and in-page anchors: untouched.
   if (!url.startsWith('/') || url.startsWith('//')) return url;
   if (!lp) return url; // primary locale needs no prefix

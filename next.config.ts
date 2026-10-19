@@ -10,9 +10,32 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // the parent folder that holds all four repos, here and on the server.
 const workspaceRoot = path.join(__dirname, '..');
 
+// Security headers for every storefront response. No CSP here (the dashboard
+// and API are handled separately). `/builder-preview` is framed by the
+// dashboard's builder, so it gets everything except X-Frame-Options.
+const SECURITY_HEADERS = [
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+];
+
 const nextConfig: NextConfig = {
   turbopack: { root: workspaceRoot },
   outputFileTracingRoot: workspaceRoot,
+  poweredByHeader: false,
+  // The trailing-slash 308 ran before the proxy, so an imported WordPress URL
+  // (`/produkt/x/`) needed two hops (308 → 301). The proxy now strips the
+  // slash itself, after the store redirects (see stripTrailingSlash).
+  skipTrailingSlashRedirect: true,
+  async headers() {
+    return [
+      { source: '/builder-preview/:path*', headers: SECURITY_HEADERS },
+      {
+        source: '/((?!builder-preview).*)',
+        headers: [...SECURITY_HEADERS, { key: 'X-Frame-Options', value: 'SAMEORIGIN' }],
+      },
+    ];
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -15,6 +15,7 @@
 
 import { useEffect, useId, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
 
@@ -89,7 +90,7 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
       <span>{msg.text}</span>
       {msg.link_label && msg.link_url && (
         <a
-          href={msg.link_url}
+          href={storeHref(msg.link_url)}
           className="underline font-medium hover:opacity-80 transition"
           style={{ color: linkColor }}
         >

@@ -97,6 +97,47 @@ describe('proxy store redirects', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('a WordPress trailing-slash URL 301s to its target in one hop', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/market-context')) return json({ enabled: false, redirects_version: 'v1' });
+      if (url.includes('/redirects?v=v1')) {
+        return json({ version: 'v1', mode: 'map', items: [['/produkt/x', '/products/x', 301]] });
+      }
+      throw new Error(`unexpected ${url}`);
+    });
+    // Both forms hit the redirect directly — no 308 slash-strip first.
+    const slash = await proxy(req('redir-slash.localhost:3000', '/produkt/x/'));
+    expect(slash.status).toBe(301);
+    expect(slash.headers.get('location')).toBe('http://redir-slash.localhost:3000/products/x');
+    const plain = await proxy(req('redir-slash.localhost:3000', '/produkt/x?utm=1'));
+    expect(plain.status).toBe(301);
+    expect(plain.headers.get('location')).toBe('http://redir-slash.localhost:3000/products/x?utm=1');
+
+    // A path without a redirect keeps Next's behaviour: 308 to the
+    // slash-less path, query kept, then the normal rewrite.
+    const other = await proxy(req('redir-slash.localhost:3000', '/products/y/?a=1'));
+    expect(other.status).toBe(308);
+    expect(other.headers.get('location')).toBe('http://redir-slash.localhost:3000/products/y?a=1');
+    const root = await proxy(req('redir-slash.localhost:3000', '/'));
+    expect(root.headers.get('location')).toBeNull();
+    expect(root.headers.get('x-middleware-rewrite')).toContain('/store/redir-slash');
+  });
+
+  it('trailing slashes are stripped with a 308 for every other host and path', async () => {
+    fetchMock.mockResolvedValue(json({ enabled: false }));
+    const legacy = await proxy(req('legacy-slash.localhost:3000', '/about/'));
+    expect(legacy.status).toBe(308);
+    expect(legacy.headers.get('location')).toBe('http://legacy-slash.localhost:3000/about');
+    const platform = await proxy(req('localhost:3000', '/ar/about/?x=1'));
+    expect(platform.status).toBe(308);
+    expect(platform.headers.get('location')).toBe('http://localhost:3000/ar/about?x=1');
+    const internal = await proxy(req('localhost:3000', '/api/health/'));
+    expect(internal.status).toBe(308);
+    expect(internal.headers.get('location')).toBe('http://localhost:3000/api/health');
+    // Only the host lookup for the store; none for the platform host.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('redirect fetch failure fails open', async () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (url.includes('/market-context')) return json({ enabled: false, redirects_version: 'v1' });

@@ -769,7 +769,7 @@
     "lockedInCart": "Den här designen har redan beställts och kan inte längre ändras.",
     "loadingFonts": "Laddar typsnitt…",
     "retryFonts": "Försök igen",
-    "addToCartWithPrice": "Lägg i varukorgen — {price}",
+    "addToCartWithPrice": "Lägg i varukorgen – {price}",
     "dragHint": "Dra bilden för att flytta den",
     "savedShort": "Sparat",
     "errorsSummary": "{count, plural, one {# fält behöver fyllas i.} other {# fält behöver fyllas i.}}",

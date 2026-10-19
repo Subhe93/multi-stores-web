@@ -7,6 +7,7 @@ import { useEffect, useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
@@ -48,7 +49,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   // Storefront routes are exposed under the store's subdomain (see proxy.ts);
   // the secondary-locale prefix is the only thing we add to the public path.
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
-  const linkUrl = (settings.link_url as string) || `${localePrefix}/products`;
+  const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other FeaturedProducts instances on
   // the same page.

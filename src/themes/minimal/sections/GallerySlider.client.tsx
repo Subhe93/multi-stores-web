@@ -1,6 +1,7 @@
 'use client';
 
 import { resolveMediaUrl } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
 
@@ -65,7 +66,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
       </div>
     );
     return item.href ? (
-      <a key={i} href={item.href} className="block">
+      <a key={i} href={storeHref(item.href)} className="block">
         {inner}
       </a>
     ) : (

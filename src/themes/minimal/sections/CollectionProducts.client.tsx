@@ -9,6 +9,7 @@ import { useEffect, useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
@@ -49,7 +50,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
   const linkLabel = (content.link_label as string) || (locale === 'ar' ? 'عرض الكل' : 'View all');
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
-  const linkUrl = (settings.link_url as string) || `${localePrefix}/products`;
+  const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
   const scopeClass = `cp-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const [products, setProducts] = useState<ProductRow[]>([]);

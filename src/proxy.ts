@@ -229,6 +229,21 @@ async function resolveStoreHost(hostname: string): Promise<HostRoute | null> {
   return await resolveHost(host, null);
 }
 
+/**
+ * Next's default trailing-slash redirect (`/:path+/` → `/:path+`, 308, query
+ * kept), re-implemented because `skipTrailingSlashRedirect` is on so the
+ * store redirects get to see `/produkt/x/` first. Null when nothing to do.
+ */
+function stripTrailingSlash(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (pathname.length < 2 || !pathname.endsWith('/')) return null;
+  // A plain URL, not `nextUrl.clone()`: NextURL remembers the trailing slash
+  // of the original request and puts it back when `pathname` is assigned.
+  const target = new URL(request.url);
+  target.pathname = pathname.replace(/\/+$/, '') || '/';
+  return NextResponse.redirect(target, 308);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
@@ -243,7 +258,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname.startsWith('/builder-preview')
   ) {
-    return NextResponse.next();
+    return stripTrailingSlash(request) ?? NextResponse.next();
   }
   // Paths with a dot are static files (/logo.png) and are bypassed too, but
   // only AFTER the store redirects are checked: imported WordPress URLs such
@@ -266,6 +281,12 @@ export async function proxy(request: NextRequest) {
       );
     }
   }
+
+  // Trailing slash (Next's own 308, moved here — `skipTrailingSlashRedirect`):
+  // it runs AFTER the store redirects so an imported WordPress URL such as
+  // `/produkt/x/` 301s to its target in one hop instead of 308 → 301.
+  const slashRedirect = stripTrailingSlash(request);
+  if (slashRedirect) return slashRedirect;
 
   if (isStaticLike) return NextResponse.next();
 

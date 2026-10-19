@@ -4,6 +4,7 @@
 // server-side theme registry resolves `.Component` to a ClientReference.
 
 import { motion } from 'framer-motion';
+import { storeHref } from '@/lib/storeUrl';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
 
@@ -29,9 +30,9 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = (settings.cta_url as string) || '#';
+  const ctaUrl = storeHref((settings.cta_url as string) || '#');
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const ctaSecondaryUrl = (settings.cta_secondary_url as string) || '#';
+  const ctaSecondaryUrl = storeHref((settings.cta_secondary_url as string) || '#');
 
   const headingColor = colorOr(settings.heading_color, '#ffffff');
   const subheadingColor = colorOr(settings.subheading_color, 'rgba(255,255,255,0.82)');

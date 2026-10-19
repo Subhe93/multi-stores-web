@@ -26,6 +26,7 @@ import { mergeTokens, tokensToCssVars, tokenFonts } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
+import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 
 // ---------- Type definitions ----------
 
@@ -434,8 +435,11 @@ export default async function StoreLayout({
   // page inside this store inherits them. The url is the store's subdomain
   // (custom_domain wins) — never the internal /store/{slug} path.
   const storeUrl = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
-  const sameAs = [socials?.instagram, socials?.facebook, socials?.twitter, socials?.tiktok, socials?.youtube]
-    .filter((u): u is string => !!u && /^https?:\/\//i.test(u));
+  // Values are normalised first (`facebook.com/namez.se` → `https://…`) so a
+  // scheme-less profile still counts; only absolute http(s) URLs are emitted.
+  const sameAs = (['instagram', 'facebook', 'twitter', 'tiktok', 'youtube'] as const)
+    .map((platform) => resolveSocialHref(platform, socials?.[platform] || ''))
+    .filter((u) => /^https?:\/\//i.test(u));
   const organizationLd = buildOrganization({
     name: storeName,
     url: storeUrl,
@@ -512,6 +516,7 @@ export default async function StoreLayout({
               menus: storeMenus,
               apps: storeApps,
               ...(store.market ? { market: store.market, markets: store.markets ?? [] } : {}),
+              ...(socials ? { socials } : {}),
             };
 
             const headerSections = publishedHeader?.snapshot?.sections;

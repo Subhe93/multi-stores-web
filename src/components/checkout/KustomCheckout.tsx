@@ -320,14 +320,14 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <label htmlFor="kc_company" className="block text-xs font-medium text-gray-700 mb-1">
-                    {t('b2b.companyName')}<span className="text-red-500 ml-0.5">*</span>
+                    {t('b2b.companyName')}<span className="text-red-500 ms-0.5">*</span>
                   </label>
                   <input id="kc_company" name="company_name" type="text" value={rcName} required aria-required
                     onChange={onRcChange} onBlur={applyRcCompany} className={inputCls(rcMissingCompany && !rcAppliedName)} autoComplete="organization" />
                 </div>
                 <div>
                   <label htmlFor="kc_org" className="block text-xs font-medium text-gray-700 mb-1">
-                    {t('b2b.orgNumber')}<span className="text-red-500 ml-0.5">*</span>
+                    {t('b2b.orgNumber')}<span className="text-red-500 ms-0.5">*</span>
                   </label>
                   <input id="kc_org" name="org_number" type="text" value={rcOrg} required aria-required
                     onChange={onRcChange} onBlur={applyRcCompany} className={inputCls(rcMissingCompany && !rcAppliedOrg)} />

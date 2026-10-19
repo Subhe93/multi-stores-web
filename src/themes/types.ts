@@ -279,6 +279,9 @@ export interface StoreContext {
   market?: MarketRoute | null;
   /** Every LIVE market of the store (markets app); absent otherwise. */
   markets?: MarketRoute[];
+  /** Store-level social profile URLs (`theme.socials`, keyed by platform).
+   *  Fallback for a SocialIcons item left at its platform-root default. */
+  socials?: Partial<Record<string, string>>;
 }
 
 /** Resolve a menu's items by key from a StoreContext. When `locale` is

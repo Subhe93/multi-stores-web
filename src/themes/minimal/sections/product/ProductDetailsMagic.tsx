@@ -140,7 +140,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
         </div>
       )}
 
-      {/* Short description (M4.4): server-sanitized HTML, only when set. Same
+      {/* Short description: HTML sanitized by the API on every write (sanitizeCreatorHtml), only when set. Same
           block as ProductDetailClient: wraps long words, scales images, and
           scrolls wide tables instead of overflowing the column (RTL-safe). */}
       {shortDescription && (

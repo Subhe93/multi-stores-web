@@ -50,12 +50,26 @@ function HEADING_FROM(content: Record<string, unknown>) {
   };
 }
 
-function SocialIcons({ settings, content, locale }: SectionRenderProps) {
+function SocialIcons({ settings, content, locale, storeContext }: SectionRenderProps) {
   const { heading, subheading } = HEADING_FROM(content);
   const items = ((content.items as SocialItem[]) || []).filter(
     (i): i is SocialItem & { platform: SocialPlatform } =>
       !!i?.platform && !!PLATFORMS[i.platform as SocialPlatform],
   );
+  // Resolve each item's destination. An item left at its default (`https://
+  // facebook.com/`, no handle) or with no URL resolves to '#': it then falls
+  // back to the store's own profile (theme.socials via storeContext) and is
+  // skipped when there is none, instead of linking to the platform root.
+  const links = items
+    .map((item) => {
+      let href = resolveSocialHref(item.platform, item.url || '');
+      if (href === '#') {
+        const fallback = storeContext?.socials?.[item.platform];
+        if (fallback) href = resolveSocialHref(item.platform, fallback);
+      }
+      return { item, href };
+    })
+    .filter((l) => l.href !== '#');
 
   const layout = (settings.layout as Layout) || 'horizontal';
   const alignment = (settings.alignment as Alignment) || 'center';
@@ -155,6 +169,10 @@ function SocialIcons({ settings, content, locale }: SectionRenderProps) {
   const gridStyle =
     layout === 'grid' ? { gridTemplateColumns: `repeat(auto-fit, minmax(${size}px, max-content))` } : undefined;
 
+  // Items exist but none has a destination (untouched defaults, no store
+  // socials): render nothing on the storefront rather than dead icons.
+  if (items.length > 0 && links.length === 0) return null;
+
   if (items.length === 0) {
     // Empty-state placeholder — the builder needs SOMETHING to click to open
     // the inspector when adding a brand-new SocialIcons section.
@@ -207,9 +225,8 @@ function SocialIcons({ settings, content, locale }: SectionRenderProps) {
         className={wrapperClass}
         style={{ gap: `${gapPx}px`, listStyle: 'none', padding: 0, margin: 0, ...gridStyle }}
       >
-        {items.map((item, i) => {
+        {links.map(({ item, href }, i) => {
           const platform = item.platform;
-          const href = resolveSocialHref(platform, item.url || '');
           const def = PLATFORMS[platform];
           const accessibleLabel = item.label || def.label[locale === 'ar' ? 'ar' : 'en'] || def.label.en;
           const showLabel = labelMode !== 'never';

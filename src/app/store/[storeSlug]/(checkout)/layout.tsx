@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -178,6 +178,28 @@ export default async function CheckoutLayout({
 // Transactional / private surface — never indexable. robots.txt already
 // disallows these paths; the meta tag covers URLs a crawler reaches anyway
 // (e.g. from an external link), which robots.txt alone cannot suppress.
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+const robots: Metadata['robots'] = { index: false, follow: false };
+
+// Without a title of its own the route inherited the store SEO meta title
+// (English). Locale resolution mirrors the layout above: `?lang` forwarded
+// by the proxy (cookie / x-locale header), else the store primary locale.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ storeSlug: string }>;
+}): Promise<Metadata> {
+  const { storeSlug } = await params;
+  try {
+    const cookieStore = await cookies();
+    const requestHeaders = await headers();
+    const urlLocale = cookieStore.get('x-store-locale')?.value || requestHeaders.get('x-locale');
+    const store = (await storefront.getStore(storeSlug, await getRequestMarketKey())) as Store;
+    const primaryLocale = store?.language_config?.primary_locale || 'en';
+    const locale = urlLocale || primaryLocale;
+    const t = await getTranslations({ locale });
+    const storeName = store?.theme?.translations?.[locale]?.name || store?.name || storeSlug;
+    return { title: `${t('checkout.title')} | ${storeName}`, robots };
+  } catch {
+    return { robots };
+  }
+}

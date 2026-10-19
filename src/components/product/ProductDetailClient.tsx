@@ -787,7 +787,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             )}
           </div>
 
-          {/* Short description (M4.4): server-sanitized HTML, only when set. */}
+          {/* Short description: HTML sanitized by the API on every write (sanitizeCreatorHtml), only when set. */}
           {translation?.short_description && (
             <div
               className="prose prose-gray prose-sm max-w-none text-gray-600 leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"

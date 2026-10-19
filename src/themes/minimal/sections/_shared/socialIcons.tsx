@@ -193,11 +193,111 @@ export function SocialIconSvg({
   );
 }
 
-/** Resolve the final href for a platform — auto-prefixes mailto: / tel:. */
+// Hosts a platform's links live on (no `www.`). Used both to recognise a
+// pasted scheme-less URL (`facebook.com/namez.se` → `https://…`) and to spot
+// an untouched platform root (`https://facebook.com/`, the section default).
+const PLATFORM_HOSTS: Partial<Record<SocialPlatform, string[]>> = {
+  instagram: ['instagram.com'],
+  facebook: ['facebook.com', 'fb.com', 'm.facebook.com', 'fb.me'],
+  twitter: ['x.com', 'twitter.com'],
+  tiktok: ['tiktok.com'],
+  youtube: ['youtube.com', 'youtu.be'],
+  whatsapp: ['wa.me', 'whatsapp.com', 'api.whatsapp.com'],
+  snapchat: ['snapchat.com'],
+  telegram: ['t.me', 'telegram.me'],
+  pinterest: ['pinterest.com'],
+  linkedin: ['linkedin.com'],
+  discord: ['discord.gg', 'discord.com'],
+  reddit: ['reddit.com'],
+  twitch: ['twitch.tv'],
+  github: ['github.com'],
+  threads: ['threads.net', 'threads.com'],
+};
+
+// Profile URL for a bare handle (`@namez.se` / `namez.se`). Platforms without
+// an entry have no well-known handle scheme and keep the handle as typed.
+const PROFILE_URL: Partial<Record<SocialPlatform, (handle: string) => string>> = {
+  instagram: (h) => `https://instagram.com/${h}`,
+  facebook: (h) => `https://facebook.com/${h}`,
+  twitter: (h) => `https://x.com/${h}`,
+  tiktok: (h) => `https://tiktok.com/@${h}`,
+  youtube: (h) => `https://youtube.com/@${h}`,
+  whatsapp: (h) => `https://wa.me/${h.replace(/[^\d]/g, '')}`,
+  snapchat: (h) => `https://snapchat.com/add/${h}`,
+  telegram: (h) => `https://t.me/${h}`,
+  pinterest: (h) => `https://pinterest.com/${h}`,
+  linkedin: (h) => `https://linkedin.com/in/${h}`,
+  reddit: (h) => `https://reddit.com/u/${h}`,
+  twitch: (h) => `https://twitch.tv/${h}`,
+  github: (h) => `https://github.com/${h}`,
+  threads: (h) => `https://threads.net/@${h}`,
+};
+
+function bareHost(host: string): string {
+  return host.toLowerCase().replace(/^www\./, '');
+}
+
+/**
+ * Normalise a stored social value to an absolute URL:
+ * - `https://…`, `http://…`, `mailto:`, `tel:` → unchanged (trimmed);
+ * - `//host/…` → `https://host/…`;
+ * - a scheme-less URL (`facebook.com/namez.se`, `linktr.ee/x`) → `https://` + value;
+ * - a bare handle (`@namez.se`, `namez.se`, `namez`) → the platform's profile URL.
+ * A value whose first label is a dotted domain and that has a path is a URL;
+ * without a path it is a handle unless the label is a known host of the
+ * platform (`instagram.com` is a root, `namez.se` on Instagram is a handle).
+ * Returns '' for an empty value.
+ */
+export function normalizeSocialUrl(platform: SocialPlatform, rawUrl: string): string {
+  const trimmed = (rawUrl ?? '').trim();
+  if (!trimmed) return '';
+  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  const slash = trimmed.indexOf('/');
+  const firstLabel = slash >= 0 ? trimmed.slice(0, slash) : trimmed;
+  const hasDot = firstLabel.includes('.');
+  const knownHost = (PLATFORM_HOSTS[platform] ?? []).includes(bareHost(firstLabel));
+  const isUrl =
+    !trimmed.startsWith('@') &&
+    (knownHost || (hasDot && slash >= 0) || (hasDot && platform === 'website'));
+  if (isUrl) return `https://${trimmed}`;
+  const toProfile = PROFILE_URL[platform];
+  const handle = trimmed.replace(/^@/, '');
+  if (!toProfile || !handle) return hasDot ? `https://${trimmed}` : trimmed;
+  return toProfile(handle);
+}
+
+/**
+ * True when the URL is just a platform root (`https://facebook.com/`,
+ * `https://tiktok.com/@`, `https://wa.me/`): the SocialIcons default content
+ * the creator never filled in. Such an item carries no destination.
+ */
+export function isSocialPlatformRoot(platform: SocialPlatform, url: string): boolean {
+  const hosts = PLATFORM_HOSTS[platform];
+  if (!hosts || !/^https?:\/\//i.test(url)) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (!hosts.includes(bareHost(parsed.hostname))) return false;
+  const path = parsed.pathname.replace(/\/+$/, '').replace(/^\/@$/, '');
+  return (path === '' || path === '/') && !parsed.search;
+}
+
+/**
+ * Resolve the final href for a platform. Email/phone auto-prefix mailto: /
+ * tel:; other platforms get a normalised absolute URL (see normalizeSocialUrl).
+ * Returns '#' when the value is empty or an untouched platform root, so the
+ * caller can treat the item as unset.
+ */
 export function resolveSocialHref(platform: SocialPlatform, rawUrl: string): string {
   const def = PLATFORMS[platform];
   if (def.prefixUrl) return def.prefixUrl(rawUrl);
-  return rawUrl?.trim() || '#';
+  const url = normalizeSocialUrl(platform, rawUrl);
+  if (!url || isSocialPlatformRoot(platform, url)) return '#';
+  return url;
 }
 
 /** Brand colour lookup with a safe fallback. */

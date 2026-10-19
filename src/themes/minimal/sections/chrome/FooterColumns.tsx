@@ -3,6 +3,7 @@
 // links. A separate CopyrightBar section handles the bottom strip.
 
 import Link from 'next/link';
+import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr } from '../../../elementStyles';
@@ -84,7 +85,7 @@ function FooterColumns({ settings, content, locale, storeContext }: SectionRende
                     .map((link, j) => (
                       <li key={j}>
                         <Link
-                          href={link.url || '#'}
+                          href={storeHref(link.url || '#')}
                           className="text-sm hover:opacity-70 transition-opacity"
                           style={{ color: linkColor }}
                         >
