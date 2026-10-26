@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '@/i18n/config';
-import type { MarketRoute } from '@/lib/market';
+import { STORE_NOINDEX_HEADER, type MarketRoute } from '@/lib/market';
 import {
   decideStoreRoute,
   detectVisitorCountry,
@@ -8,6 +8,7 @@ import {
   pickSuggestedMarket,
 } from '@/lib/market-routing';
 import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
+import { marketPublicHostname } from '@/lib/storeUrl';
 
 // Main platform hostnames — everything else is treated as a store subdomain
 // or a custom CNAME. Configurable via NEXT_PUBLIC_PLATFORM_HOSTS.
@@ -60,6 +61,13 @@ export type HostRoute = {
   /** Market-preview host (`<slug>--<key>.<platform host>`): `market` may be
    *  DRAFT, the pages are noindex and the checkout is view-only. */
   preview?: true;
+  /** Where the route came from (M6.1): a custom domain (`/stores/by-domain`),
+   *  the platform subdomain (`market-context`) or a market-preview host. The
+   *  effective indexing rule of an AUTO market depends on it. */
+  hostKind: 'custom' | 'platform' | 'preview';
+  /** Legacy `Store.custom_domain` sent by the API with the app on (M6.1):
+   *  the default market's public host when it has no StoreDomain row. */
+  customDomain: string | null;
 };
 type DomainCacheEntry = { route: HostRoute | null; expiresAt: number };
 const POSITIVE_TTL_MS = 60_000;
@@ -77,7 +85,7 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,
 // Inbound copies of the headers we set must never be trusted (a client could
 // spoof a market, or a preview of a DRAFT one); every branch strips them
 // before forwarding.
-const MARKET_REQUEST_HEADERS = ['x-market', 'x-market-locale', 'x-market-suggest', 'x-market-geo', 'x-market-preview'];
+const MARKET_REQUEST_HEADERS = ['x-market', 'x-market-locale', 'x-market-suggest', 'x-market-geo', 'x-market-preview', STORE_NOINDEX_HEADER];
 function stripMarketHeaders(h: Headers): Headers {
   for (const name of MARKET_REQUEST_HEADERS) h.delete(name);
   return h;
@@ -131,6 +139,10 @@ function readRedirectsVersion(raw: unknown): string | null {
   return typeof raw === 'string' && raw ? raw : null;
 }
 
+function readCustomDomain(raw: unknown): string | null {
+  return typeof raw === 'string' && raw ? raw.toLowerCase() : null;
+}
+
 /** Custom host → `GET /stores/by-domain/:host` (slug + market + redirect). */
 async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
   const controller = new AbortController();
@@ -150,6 +162,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
       market?: unknown;
       markets?: unknown;
       redirects_version?: unknown;
+      custom_domain?: unknown;
     };
     const body = (await res.json()) as ByDomain & { data?: ByDomain };
     const data = body.data ?? body;
@@ -162,6 +175,8 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
       markets: market ? normalizeMarkets(data.markets) : [],
       redirectTo: typeof data.redirect_to === 'string' && data.redirect_to ? data.redirect_to.toLowerCase() : null,
       redirectsVersion: readRedirectsVersion(data.redirects_version),
+      hostKind: 'custom',
+      customDomain: market ? readCustomDomain(data.custom_domain) : null,
     };
   } catch {
     // Network error — the caller caches the miss briefly so we don't stall
@@ -185,6 +200,8 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
     redirectTo: null,
     redirectsVersion: null,
     legacy: true,
+    hostKind: 'platform',
+    customDomain: null,
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HOST_LOOKUP_TIMEOUT_MS);
@@ -199,6 +216,7 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
       market?: unknown;
       markets?: unknown;
       redirects_version?: unknown;
+      custom_domain?: unknown;
     };
     const body = (await res.json()) as Ctx & { data?: Ctx };
     const data = body.data ?? body;
@@ -206,7 +224,7 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
     // App disabled is a definitive answer (positive TTL); only failures are
     // flagged legacy.
     if (data.enabled !== true) {
-      return { slug, market: null, markets: [], redirectTo: null, redirectsVersion };
+      return { slug, market: null, markets: [], redirectTo: null, redirectsVersion, hostKind: 'platform', customDomain: null };
     }
     if (!isLiveMarket(data.market)) return { ...legacy, redirectsVersion };
     return {
@@ -215,6 +233,8 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
       markets: normalizeMarkets(data.markets),
       redirectTo: null,
       redirectsVersion,
+      hostKind: 'platform',
+      customDomain: readCustomDomain(data.custom_domain),
     };
   } catch {
     return legacy;
@@ -257,6 +277,8 @@ async function fetchPreviewHostRoute(slug: string, key: string): Promise<HostRou
       redirectTo: null,
       redirectsVersion: readRedirectsVersion(data.redirects_version),
       preview: true,
+      hostKind: 'preview',
+      customDomain: null,
     };
   } catch {
     return null;
@@ -308,6 +330,32 @@ async function resolveStoreHost(hostname: string): Promise<HostRoute | null> {
 
   // Not a platform host → treat as custom CNAME, resolve via API
   return await resolveHost(host, null);
+}
+
+/**
+ * Effective search-indexing verdict of a market host (M6.1 contract). Only
+ * the proxy can compute it: the market's `indexing` mode alone does not say
+ * which host the request came in on.
+ *  - preview host → noindex (never redirected);
+ *  - `NEVER` → noindex on any host; `ALWAYS` → indexable on any host;
+ *  - `AUTO` (default): custom domain → indexable; platform subdomain →
+ *    301 to the market's public hostname when it has one (Shopify
+ *    behaviour), else noindex. The public hostname is `primary_hostname`,
+ *    or — default market without a StoreDomain row — the store's legacy
+ *    `custom_domain` (`marketPublicHostname`).
+ * Legacy routes (no market) are not consulted at all.
+ */
+export function resolveIndexing(route: HostRoute): { noindex: boolean; redirectHost: string | null } {
+  const market = route.market;
+  if (!market) return { noindex: false, redirectHost: null };
+  if (route.preview || route.hostKind === 'preview') return { noindex: true, redirectHost: null };
+  const mode = market.indexing ?? 'AUTO';
+  if (mode === 'NEVER') return { noindex: true, redirectHost: null };
+  if (mode === 'ALWAYS') return { noindex: false, redirectHost: null };
+  if (route.hostKind === 'custom') return { noindex: false, redirectHost: null };
+  const host = marketPublicHostname(market, route.customDomain);
+  if (host) return { noindex: false, redirectHost: host };
+  return { noindex: true, redirectHost: null };
 }
 
 /**
@@ -380,10 +428,27 @@ export async function proxy(request: NextRequest) {
     );
   }
 
+  // Indexing verdict for market hosts (M6.1). An AUTO market reached on the
+  // platform subdomain while it owns a custom domain 301s there, path +
+  // query kept. robots.txt / sitemap.xml are never redirected (the market's
+  // own routes answer them); /api, /_next and /builder-preview bailed out
+  // above, static files just above. Legacy stores: `{ noindex: false }`.
+  // Loop guard: the API refuses platform hosts as custom domains, but the two
+  // host lists are only mirrored via env, so a target equal to the request
+  // host is served in place (the host IS the market's public one) instead.
+  const indexing = route ? resolveIndexing(route) : { noindex: false, redirectHost: null };
+  const requestHost = hostname.split(':')[0]!.toLowerCase();
+  if (indexing.redirectHost && indexing.redirectHost !== requestHost && !isSitemapOrRobots) {
+    return NextResponse.redirect(
+      `https://${indexing.redirectHost}${pathname}${request.nextUrl.search}`,
+      301,
+    );
+  }
+
   // Market preview host: never crawlable. robots.txt disallows everything
   // and sitemap.xml is empty, answered here so no crawler ever sees the
   // draft market's URLs; every page below also gets X-Robots-Tag.
-  // (A `noindex` market is NOT answered here: its robots.txt must keep
+  // (A noindex market is NOT answered here: its robots.txt must keep
   // allowing crawls so Google can read the noindex, see the robots route.)
   if (isSitemapOrRobots && route?.preview) {
     const body =
@@ -409,6 +474,8 @@ export async function proxy(request: NextRequest) {
       const requestHeaders = stripMarketHeaders(new Headers(request.headers));
       requestHeaders.set('x-store-slug', storeSlug);
       if (route?.market) requestHeaders.set('x-market', route.market.key);
+      // The sitemap route answers an empty urlset for a noindex market.
+      if (indexing.noindex) requestHeaders.set(STORE_NOINDEX_HEADER, '1');
       return NextResponse.rewrite(newUrl, { request: { headers: requestHeaders } });
     }
     return NextResponse.next();
@@ -444,9 +511,11 @@ export async function proxy(request: NextRequest) {
     // (so a DRAFT market renders) and the pages are noindex.
     const preview = route.preview === true;
     if (preview) requestHeaders.set('x-market-preview', '1');
-    // Market with indexing switched off (M6 §1): same robots header as a
-    // preview host, but the pages themselves stay fully functional.
-    const noindex = preview || market.noindex === true;
+    // Effective indexing verdict (M6.1, `resolveIndexing`): the pages read
+    // the request header (meta robots, canonical/hreflang) and crawlers the
+    // response header; the pages themselves stay fully functional.
+    const noindex = preview || indexing.noindex;
+    if (noindex) requestHeaders.set(STORE_NOINDEX_HEADER, '1');
 
     if (decision.kind === 'notfound') {
       const newUrl = request.nextUrl.clone();

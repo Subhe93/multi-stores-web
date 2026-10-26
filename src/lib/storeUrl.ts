@@ -1,4 +1,5 @@
 import { marketHreflangCode } from './market-routing';
+import type { MarketIndexing } from './market';
 
 /** The slice of a market needed to build URLs for it (M1-DESIGN §4.3). */
 export interface MarketUrlInput {
@@ -9,8 +10,8 @@ export interface MarketUrlInput {
   locales: string[];
   primary_hostname: string | null;
   status?: string;
-  /** Indexing switched off (M6 §1): left out of hreflang lists. */
-  noindex?: boolean;
+  /** Indexing mode (M6.1); absent = AUTO. See `isIndexableMarket`. */
+  indexing?: MarketIndexing;
 }
 
 /**
@@ -177,21 +178,34 @@ export function buildStoreAlternates(opts: {
   /** Needed with `markets` to build the platform origin of a market without
    *  its own hostname. Falls back to `origin`. */
   storeSlug?: string;
+  /**
+   * Legacy `Store.custom_domain` (M6.1): the default market's public host
+   * when it has no StoreDomain row. Makes that market indexable / advertised
+   * in hreflang on that domain exactly like a `primary_hostname`.
+   */
+  storeCustomDomain?: string | null;
   /** Per-locale sub-path (translated product slugs); `path` is the fallback. */
   pathByLocale?: Record<string, string | undefined> | null;
   /**
    * The request market. On a market PREVIEW (`preview: true`) the page is
    * noindex: the canonical points at the market's real hostname (origin,
    * i.e. its configured primary, else the preview host itself) and no
-   * hreflang is advertised at all. A market with `noindex: true` (M6 §1)
-   * is treated the same way. Null/undefined/LIVE: no effect.
+   * hreflang is advertised at all. Null/undefined/LIVE: no effect.
    */
-  market?: { preview?: boolean; noindex?: boolean } | null;
+  market?: { preview?: boolean } | null;
+  /**
+   * The proxy's per-request indexing verdict (M6.1, `x-store-noindex`
+   * header read via `getRequestNoindex` / `requestNoindex`). True is
+   * treated exactly like a preview: self canonical, no hreflang. Callers
+   * pass it explicitly because the rule depends on the request host, which
+   * the market payload alone cannot tell.
+   */
+  noindex?: boolean;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
 
-  if (opts.market?.preview || opts.market?.noindex) {
+  if (opts.market?.preview || opts.noindex) {
     const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
     const selfPath = opts.pathByLocale?.[selfLocale] ?? path;
     return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath), languages: {} };
@@ -199,9 +213,11 @@ export function buildStoreAlternates(opts: {
 
   // Only LIVE markets, and a non-default market needs its own hostname: the
   // platform subdomain always serves the default market, so a hostless
-  // secondary market has no URL to advertise (L5). Markets with indexing
-  // switched off are never advertised either (M6 §1).
-  const liveMarkets = (opts.markets ?? []).filter(isIndexableMarket);
+  // secondary market has no URL to advertise (L5). Markets whose indexing
+  // mode makes them noindex on their public host are not advertised either
+  // (M6.1, see `isIndexableMarket`).
+  const storeCustomDomain = opts.storeCustomDomain ?? null;
+  const liveMarkets = (opts.markets ?? []).filter((m) => isIndexableMarket(m, storeCustomDomain));
   if (liveMarkets.length > 0) {
     return buildMarketAlternates({
       origin,
@@ -211,6 +227,7 @@ export function buildStoreAlternates(opts: {
       path,
       markets: liveMarkets,
       platformOrigin: opts.storeSlug ? buildStoreOrigin(opts.storeSlug, null) : origin,
+      storeCustomDomain,
       pathByLocale: opts.pathByLocale ?? {},
     });
   }
@@ -230,6 +247,20 @@ export function buildStoreAlternates(opts: {
   };
 }
 
+/**
+ * Public hostname a market is served on (M6.1): its own `primary_hostname`,
+ * else — for the DEFAULT market only — the store's legacy `custom_domain`
+ * (a store migrated before StoreDomain rows existed, or one whose default
+ * market never got a row: Namez on resumely.net). Null = platform subdomain.
+ */
+export function marketPublicHostname(
+  m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname'>,
+  storeCustomDomain?: string | null,
+): string | null {
+  if (m.primary_hostname) return m.primary_hostname;
+  return m.is_default && storeCustomDomain ? storeCustomDomain : null;
+}
+
 /** LIVE and reachable: the default market always is; others need a hostname. */
 export function isServableMarket(m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status'>): boolean {
   if (m.status && m.status !== 'LIVE') return false;
@@ -237,18 +268,35 @@ export function isServableMarket(m: Pick<MarketUrlInput, 'is_default' | 'primary
 }
 
 /**
- * Servable AND indexable: a `noindex` market is still reachable (the country
- * switcher keeps listing it) but must never appear in hreflang sets.
+ * Servable AND indexable on its public host (M6.1): `NEVER` is never
+ * indexable, `ALWAYS` is indexable wherever it is served, and `AUTO`
+ * (default) is indexable only on a custom domain — a hostless AUTO market
+ * lives on the platform subdomain, which the proxy marks noindex. A
+ * non-indexable market is still reachable (the country switcher keeps
+ * listing it) but must never appear in hreflang sets.
  */
 export function isIndexableMarket(
-  m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status' | 'noindex'>,
+  m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status' | 'indexing'>,
+  /** Legacy `Store.custom_domain`: counts as the default market's host. */
+  storeCustomDomain?: string | null,
 ): boolean {
-  return isServableMarket(m) && m.noindex !== true;
+  if (!isServableMarket(m)) return false;
+  const mode = m.indexing ?? 'AUTO';
+  if (mode === 'NEVER') return false;
+  return mode === 'ALWAYS' || Boolean(marketPublicHostname(m, storeCustomDomain));
 }
 
-/** Origin a market is served on: its own hostname, else the platform subdomain. */
-export function marketOrigin(market: Pick<MarketUrlInput, 'primary_hostname'>, platformOrigin: string): string {
-  return market.primary_hostname ? `https://${market.primary_hostname}` : platformOrigin;
+/**
+ * Origin a market is served on: its own hostname, else (default market) the
+ * store's legacy custom domain when given, else the platform subdomain.
+ */
+export function marketOrigin(
+  market: Pick<MarketUrlInput, 'primary_hostname'> & Partial<Pick<MarketUrlInput, 'is_default'>>,
+  platformOrigin: string,
+  storeCustomDomain?: string | null,
+): string {
+  const host = marketPublicHostname({ is_default: market.is_default === true, primary_hostname: market.primary_hostname }, storeCustomDomain);
+  return host ? `https://${host}` : platformOrigin;
 }
 
 // Markets branch of buildStoreAlternates (kept apart so the legacy body above
@@ -261,9 +309,10 @@ function buildMarketAlternates(opts: {
   path: string;
   markets: MarketUrlInput[];
   platformOrigin: string;
+  storeCustomDomain: string | null;
   pathByLocale: Record<string, string | undefined>;
 }): { canonical: string; languages: Record<string, string> } {
-  const { origin, locale, primaryLocale, allLocales, path, markets, platformOrigin, pathByLocale } = opts;
+  const { origin, locale, primaryLocale, allLocales, path, markets, platformOrigin, storeCustomDomain, pathByLocale } = opts;
   const defaultMarket = markets.find((m) => m.is_default) ?? markets[0]!;
 
   const languages: Record<string, string> = {};
@@ -271,7 +320,7 @@ function buildMarketAlternates(opts: {
   // non-default market never overwrites the default market's URL.
   const owner: Record<string, MarketUrlInput> = {};
   for (const m of markets) {
-    const mOrigin = marketOrigin(m, platformOrigin);
+    const mOrigin = marketOrigin(m, platformOrigin, storeCustomDomain);
     for (const l of Array.from(new Set([m.default_locale, ...m.locales]))) {
       const code = marketHreflangCode(m, l);
       const existing = owner[code];
@@ -281,7 +330,7 @@ function buildMarketAlternates(opts: {
     }
   }
   languages['x-default'] = storeLocalePath(
-    marketOrigin(defaultMarket, platformOrigin),
+    marketOrigin(defaultMarket, platformOrigin, storeCustomDomain),
     defaultMarket.default_locale,
     defaultMarket.default_locale,
     pathByLocale[defaultMarket.default_locale] ?? path,

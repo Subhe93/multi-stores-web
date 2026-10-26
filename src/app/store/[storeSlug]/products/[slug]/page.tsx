@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
@@ -105,6 +105,8 @@ export async function generateMetadata({
       path: `/products/${productSlug}`,
       markets: storeData?.markets,
       market: storeData?.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: storeData?.custom_domain ?? null,
       storeSlug,
       pathByLocale: storeData?.market ? productPathByLocale(product) : null,
     });

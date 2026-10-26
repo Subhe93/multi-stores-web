@@ -64,6 +64,7 @@ export function StoreProviders({
   storeApps,
   market,
   markets,
+  storeCustomDomain,
   buyerType,
   primaryLocale,
   checkout,
@@ -86,6 +87,9 @@ export function StoreProviders({
   market?: MarketRoute | null;
   /** Every LIVE market of the store (`markets` of `storefront.getStore`). */
   markets?: MarketRoute[] | null;
+  /** Legacy `Store.custom_domain` (M6.1): default market's host when it has
+   *  no StoreDomain row; the country switcher targets it directly. */
+  storeCustomDomain?: string | null;
   /** b2b app: buyer type resolved on the server from the `ms-buyer-type`
    *  cookie / the app's default (M2-DESIGN §4.1). Only passed for stores
    *  with the app; ignored otherwise. */
@@ -109,7 +113,7 @@ export function StoreProviders({
             initial={buyerType}
             settings={b2bSettings}
           >
-            <MarketProvider market={market} markets={markets}>
+            <MarketProvider market={market} markets={markets} storeCustomDomain={storeCustomDomain}>
               <CheckoutSettingsProvider value={checkout}>
                 <CartProviderWithAuth
                   locale={locale}

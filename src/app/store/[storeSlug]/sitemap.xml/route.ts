@@ -1,6 +1,6 @@
 import { storefront } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/storeUrl';
-import { requestMarketRef, type MarketRoute } from '@/lib/market';
+import { requestMarketRef, requestNoindex, type MarketRoute } from '@/lib/market';
 
 interface SitemapPage {
   slug: string;
@@ -69,9 +69,10 @@ export async function GET(req: Request, ctx: RouteCtx) {
     customDomain = null;
   }
 
-  // Market with indexing switched off (M6 §1): nothing to advertise. robots.txt
-  // still allows crawling so the pages' noindex can be read.
-  const xml = data.market?.noindex
+  // Request the proxy flagged noindex (M6.1 `x-store-noindex`: NEVER, or
+  // AUTO on the platform subdomain): nothing to advertise. robots.txt still
+  // allows crawling so the pages' noindex can be read.
+  const xml = requestNoindex(req.headers)
     ? wrapUrlset([])
     : marketKey && data.market
       ? buildMarketSitemap(storeSlug, data, data.market, customDomain)
@@ -167,6 +168,7 @@ function buildMarketSitemap(
         path,
         markets,
         storeSlug,
+        storeCustomDomain: customDomain,
         pathByLocale,
       });
       const alternates = Object.entries(languages)

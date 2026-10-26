@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -91,6 +91,8 @@ export async function generateMetadata({
       path: '/products',
       markets: store?.markets,
       market: store?.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: store?.custom_domain ?? null,
       storeSlug,
     });
 

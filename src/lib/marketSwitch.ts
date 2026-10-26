@@ -17,7 +17,13 @@ import { appendHandoffParam, CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM } fr
 export function buildMarketSwitchUrl(opts: {
   storeSlug: string;
   current: Pick<MarketRoute, 'default_locale' | 'locales'>;
-  target: Pick<MarketRoute, 'default_locale' | 'locales' | 'primary_hostname'>;
+  target: Pick<MarketRoute, 'default_locale' | 'locales' | 'primary_hostname' | 'is_default'>;
+  /**
+   * Legacy `Store.custom_domain` (M6.1): public host of the DEFAULT market
+   * when it has no StoreDomain row, so the switch lands there directly
+   * instead of on the platform subdomain (which would 301 anyway).
+   */
+  storeCustomDomain?: string | null;
   /** Browser pathname (user-visible, may carry a locale prefix). */
   pathname: string;
   /** Browser query string (`window.location.search`), preserved on the target. */
@@ -29,7 +35,7 @@ export function buildMarketSwitchUrl(opts: {
   /** Lines `encodeGuestCart` had to drop; surfaced on the landing side. */
   cartDropped?: number;
 }): string {
-  const { storeSlug, current, target, pathname, search = '', locale, pathByLocale, cartParam, cartDropped = 0 } = opts;
+  const { storeSlug, current, target, pathname, search = '', locale, pathByLocale, cartParam, cartDropped = 0, storeCustomDomain = null } = opts;
 
   const currentLocales = [current.default_locale, ...current.locales];
   const prefix = currentLocales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`);
@@ -39,7 +45,7 @@ export function buildMarketSwitchUrl(opts: {
   const targetLocale = targetLocales.includes(locale) ? locale : target.default_locale;
   const path = pathByLocale?.[targetLocale] ?? cleanPath;
 
-  const origin = marketOrigin(target, buildStoreOrigin(storeSlug, null));
+  const origin = marketOrigin(target, buildStoreOrigin(storeSlug, null), storeCustomDomain);
   const url = storeLocalePath(origin, targetLocale, target.default_locale, path === '/' ? '' : path);
   // Drop a stale hand-off param from the current URL before appending ours.
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);

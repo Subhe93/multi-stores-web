@@ -10,7 +10,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 
 interface Product {
   id: string;
@@ -111,6 +111,8 @@ export async function generateMetadata({
       path: '',
       markets: store.markets,
       market: store.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: store.custom_domain ?? null,
       storeSlug,
     });
 

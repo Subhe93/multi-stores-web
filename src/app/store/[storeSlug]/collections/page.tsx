@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
@@ -77,6 +77,8 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
       path: '/collections',
       markets: store?.markets,
       market: store?.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: store?.custom_domain ?? null,
       storeSlug,
     });
     return {

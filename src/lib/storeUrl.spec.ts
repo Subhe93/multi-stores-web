@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, storeHref, type MarketUrlInput } from './storeUrl';
+import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, marketPublicHostname, storeHref, type MarketUrlInput } from './storeUrl';
 
 // hreflang matrix for the markets app (M1-DESIGN §8): 2 markets × locales,
 // collision handling, x-default, translated slugs, and — above all — that a
@@ -127,39 +127,116 @@ describe('buildStoreAlternates (markets)', () => {
     expect(res.languages['x-default']).toBe('https://namez.se/products/metallkort');
   });
 
-  it('uses the platform origin for a market without its own hostname and skips non-LIVE markets', () => {
+  it('uses the platform origin for a hostless ALWAYS market and skips non-LIVE markets', () => {
     const platformOrigin = buildStoreOrigin('namez', null);
     const res = buildStoreAlternates({
       ...onSe,
-      markets: [{ ...se, primary_hostname: null }, { ...eu, status: 'DRAFT' }],
+      markets: [{ ...se, primary_hostname: null, indexing: 'ALWAYS' }, { ...eu, status: 'DRAFT' }],
     });
     expect(res.languages['sv-SE']).toBe(`${platformOrigin}/products/metal-card`);
     expect(res.languages['de']).toBeUndefined();
   });
 
-  it('M6: a noindex market gets a self canonical and no hreflang, and is left out of other hreflang lists', () => {
-    const euNoindex: MarketUrlInput = { ...eu, noindex: true };
-    // On the noindex market itself: canonical only.
-    const onEu = buildStoreAlternates({
-      ...onSe,
-      origin: 'https://namez.shop',
-      locale: 'de',
-      primaryLocale: 'en',
-      secondaryLocales: ['de', 'fr', 'ar'],
-      markets: [se, euNoindex],
-      market: euNoindex,
+  describe('M6.1 indexing modes', () => {
+    it('isIndexableMarket: NEVER never, ALWAYS anywhere, AUTO only with a custom domain', () => {
+      // AUTO (explicit and absent) needs a hostname: the platform subdomain is noindex.
+      expect(isIndexableMarket(se)).toBe(true);
+      expect(isIndexableMarket({ ...se, indexing: 'AUTO' })).toBe(true);
+      expect(isIndexableMarket({ ...se, primary_hostname: null })).toBe(false);
+      expect(isIndexableMarket({ ...se, primary_hostname: null, indexing: 'AUTO' })).toBe(false);
+      // ALWAYS: indexable on the platform subdomain too.
+      expect(isIndexableMarket({ ...se, primary_hostname: null, indexing: 'ALWAYS' })).toBe(true);
+      // NEVER: not indexable even with a hostname, but still servable.
+      const euNever: MarketUrlInput = { ...eu, indexing: 'NEVER' };
+      expect(isIndexableMarket(euNever)).toBe(false);
+      expect(isServableMarket(euNever)).toBe(true);
+      // Servability still wins: a hostless secondary market or a DRAFT one is out.
+      expect(isIndexableMarket({ ...eu, primary_hostname: null, indexing: 'ALWAYS' })).toBe(false);
+      expect(isIndexableMarket({ ...eu, status: 'DRAFT', indexing: 'ALWAYS' })).toBe(false);
     });
-    expect(onEu.canonical).toBe('https://namez.shop/de/products/metal-card');
-    expect(onEu.languages).toEqual({});
-    // On another market: the noindex market is not advertised.
-    const res = buildStoreAlternates({ ...onSe, markets: [se, euNoindex] });
-    expect(res.languages['sv-SE']).toBe('https://namez.se/products/metal-card');
-    expect(res.languages['de']).toBeUndefined();
-    expect(res.languages['x-default']).toBe('https://namez.se/products/metal-card');
-    // Still reachable (country switcher) but not indexable.
-    expect(isServableMarket(euNoindex)).toBe(true);
-    expect(isIndexableMarket(euNoindex)).toBe(false);
-    expect(isIndexableMarket(se)).toBe(true);
+
+    it("a NEVER market is left out of other markets' hreflang lists", () => {
+      const euNever: MarketUrlInput = { ...eu, indexing: 'NEVER' };
+      const res = buildStoreAlternates({ ...onSe, markets: [se, euNever] });
+      expect(res.languages['sv-SE']).toBe('https://namez.se/products/metal-card');
+      expect(res.languages['de']).toBeUndefined();
+      expect(res.languages['x-default']).toBe('https://namez.se/products/metal-card');
+    });
+
+    it('a hostless AUTO default market is left out, the same market as ALWAYS is advertised', () => {
+      const hostless: MarketUrlInput = { ...se, primary_hostname: null };
+      const auto = buildStoreAlternates({ ...onSe, markets: [hostless, eu] });
+      expect(auto.languages['sv-SE']).toBeUndefined();
+      expect(auto.languages['de']).toBe('https://namez.shop/de/products/metal-card');
+      const always = buildStoreAlternates({ ...onSe, markets: [{ ...hostless, indexing: 'ALWAYS' }, eu] });
+      expect(always.languages['sv-SE']).toBe(`${buildStoreOrigin('namez', null)}/products/metal-card`);
+    });
+
+    it('a default AUTO market without a StoreDomain row counts the legacy custom_domain as its host (Namez on resumely.net)', () => {
+      const hostless: MarketUrlInput = { ...se, primary_hostname: null };
+      expect(marketPublicHostname(hostless, 'resumely.net')).toBe('resumely.net');
+      expect(marketPublicHostname(hostless, null)).toBeNull();
+      // Only the default market inherits the legacy domain; its own row wins.
+      expect(marketPublicHostname({ ...eu, primary_hostname: null }, 'resumely.net')).toBeNull();
+      expect(marketPublicHostname(se, 'resumely.net')).toBe('namez.se');
+      expect(isIndexableMarket(hostless, 'resumely.net')).toBe(true);
+      expect(isIndexableMarket(hostless, null)).toBe(false);
+      expect(isIndexableMarket({ ...hostless, indexing: 'NEVER' }, 'resumely.net')).toBe(false);
+
+      // On the EU market: the default market is advertised on the custom domain.
+      const onEu = buildStoreAlternates({
+        ...onSe,
+        origin: 'https://namez.shop',
+        locale: 'de',
+        primaryLocale: 'en',
+        secondaryLocales: ['de', 'fr', 'ar'],
+        markets: [hostless, eu],
+        storeCustomDomain: 'resumely.net',
+      });
+      expect(onEu.languages['sv-SE']).toBe('https://resumely.net/products/metal-card');
+      expect(onEu.languages['en-SE']).toBe('https://resumely.net/en/products/metal-card');
+      expect(onEu.languages['x-default']).toBe('https://resumely.net/products/metal-card');
+      expect(onEu.languages['de']).toBe('https://namez.shop/de/products/metal-card');
+      // On the default market itself (origin = custom domain via buildStoreOrigin).
+      const onSelf = buildStoreAlternates({
+        ...onSe,
+        origin: buildStoreOrigin('namez', 'resumely.net', hostless),
+        markets: [hostless, eu],
+        storeCustomDomain: 'resumely.net',
+      });
+      expect(onSelf.canonical).toBe('https://resumely.net/products/metal-card');
+      expect(onSelf.languages['sv-SE']).toBe('https://resumely.net/products/metal-card');
+      // Without the legacy domain the same market is dropped (platform subdomain = noindex).
+      expect(buildStoreAlternates({ ...onSe, markets: [hostless, eu] }).languages['sv-SE']).toBeUndefined();
+    });
+
+    it('the explicit `noindex` verdict (proxy header) yields a self canonical and no hreflang, like a preview', () => {
+      const onEu = buildStoreAlternates({
+        ...onSe,
+        origin: 'https://namez.shop',
+        locale: 'de',
+        primaryLocale: 'en',
+        secondaryLocales: ['de', 'fr', 'ar'],
+        markets: [se, eu],
+        market: { preview: false },
+        noindex: true,
+      });
+      expect(onEu.canonical).toBe('https://namez.shop/de/products/metal-card');
+      expect(onEu.languages).toEqual({});
+      // Without the verdict the same page advertises the full set.
+      const indexable = buildStoreAlternates({ ...onSe, market: { preview: false }, noindex: false });
+      expect(Object.keys(indexable.languages).length).toBeGreaterThan(1);
+      // Legacy callers (no markets) are affected the same way, nothing else changes.
+      const legacy = buildStoreAlternates({
+        origin: 'https://shop.example.com',
+        locale: 'ar',
+        primaryLocale: 'en',
+        secondaryLocales: ['ar'],
+        path: '/x',
+        noindex: true,
+      });
+      expect(legacy).toEqual({ canonical: 'https://shop.example.com/ar/x', languages: {} });
+    });
   });
 });
 

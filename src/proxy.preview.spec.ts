@@ -184,9 +184,11 @@ describe('proxy market preview host', () => {
   });
 
   it('normal hosts: no preview lookup, and a spoofed x-market-preview is stripped', async () => {
+    // ALWAYS so the hostless platform subdomain stays indexable in this test.
+    const always = { ...defaultMarket, indexing: 'ALWAYS' };
     fetchMock.mockImplementation(async (url: string) => {
       if (url.includes('preview=1')) throw new Error('must not preview');
-      return json({ enabled: true, market: defaultMarket, markets: [defaultMarket] });
+      return json({ enabled: true, market: always, markets: [always] });
     });
     const res = await proxy(req('plain-shop.localhost:3000', '/', { 'x-market-preview': '1', 'x-market': 'eu' }));
     expect(String(fetchMock.mock.calls[0]![0])).toContain('/stores/plain-shop/market-context');
@@ -197,25 +199,218 @@ describe('proxy market preview host', () => {
     expect(res.headers.get('x-robots-tag')).toBeNull();
   });
 
-  it('M6: a LIVE market with noindex gets X-Robots-Tag on every page (prefixed and 404) without the preview flag', async () => {
-    const noindexMarket = { ...defaultMarket, noindex: true };
+  it('forwards x-store-noindex on a preview host', async () => {
+    previewOk();
+    const res = await proxy(req(host(), '/'));
+    expect(forwarded(res, 'x-store-noindex')).toBe('1');
+    expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+  });
+});
+
+// M6.1: the effective indexing rule is computed by the proxy per host type.
+describe('proxy market indexing mode (M6.1)', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let n = 0;
+  const platformHost = () => `shop-${++n}.localhost:3000`;
+  const customHost = () => `custom-${++n}.example.com`;
+
+  beforeEach(() => {
+    __resetRedirectCaches();
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** Platform subdomain → market-context; custom domain → by-domain. */
+  function serve(market: Record<string, unknown>, slug = 'namez', customDomain: string | null = null) {
     fetchMock.mockImplementation(async (url: string) => {
       if (url.includes('preview=1')) throw new Error('must not preview');
-      return json({ enabled: true, market: noindexMarket, markets: [noindexMarket] });
+      if (url.includes('/stores/by-domain/')) {
+        return json({ slug, market, markets: [market], redirect_to: null, custom_domain: customDomain });
+      }
+      if (url.includes('/market-context')) {
+        return json({ enabled: true, market, markets: [market], custom_domain: customDomain });
+      }
+      throw new Error(`unexpected ${url}`);
     });
-    const home = await proxy(req('noindex-shop.localhost:3000', '/'));
-    expect(home.headers.get('x-robots-tag')).toBe('noindex, nofollow');
-    expect(home.headers.get('x-market-preview')).toBeNull();
+  }
+
+  function expectNoindex(res: Response) {
+    expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(forwarded(res, 'x-store-noindex')).toBe('1');
+  }
+  function expectIndexable(res: Response) {
+    expect(res.headers.get('x-robots-tag')).toBeNull();
+    expect(forwarded(res, 'x-store-noindex')).toBeNull();
+  }
+
+  it('NEVER: noindex on the platform subdomain and on the custom domain (prefixed pages and 404s too)', async () => {
+    serve({ ...defaultMarket, primary_hostname: 'namez.se', indexing: 'NEVER' });
+    const h = platformHost();
+    const slug = h.split('.')[0];
+    const home = await proxy(req(h, '/'));
+    expect(home.status).toBe(200);
+    expect(home.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}`);
+    expectNoindex(home);
     expect(forwarded(home, 'x-market-preview')).toBeNull();
-    const en = await proxy(req('noindex-shop.localhost:3000', '/en/products/x'));
-    expect(en.headers.get('x-middleware-rewrite')).toContain('/store/noindex-shop/products/x');
-    expect(en.headers.get('x-robots-tag')).toBe('noindex, nofollow');
-    // A locale this market does not serve is a 404 — still noindex.
-    const nf = await proxy(req('noindex-shop.localhost:3000', '/de/products/x'));
+    const en = await proxy(req(h, '/en/products/x'));
+    expect(en.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}/products/x`);
+    expectNoindex(en);
+    const nf = await proxy(req(h, '/de/products/x'));
     expect(nf.status).toBe(404);
-    expect(nf.headers.get('x-robots-tag')).toBe('noindex, nofollow');
-    // robots.txt is NOT answered by the proxy (the route keeps Allow).
-    const robots = await proxy(req('noindex-shop.localhost:3000', '/robots.txt'));
-    expect(robots.headers.get('x-middleware-rewrite')).toContain('/store/noindex-shop/robots.txt');
+    expectNoindex(nf);
+    // Never redirected to the custom domain, even though it has one.
+    expect(home.headers.get('location')).toBeNull();
+
+    const custom = await proxy(req(customHost(), '/products/x'));
+    expect(custom.headers.get('x-middleware-rewrite')).toContain('/store/namez/products/x');
+    expectNoindex(custom);
+  });
+
+  it('NEVER: robots.txt and sitemap.xml are rewritten to the store routes with the noindex flag (no Disallow from the proxy)', async () => {
+    serve({ ...defaultMarket, indexing: 'NEVER' });
+    const h = platformHost();
+    const slug = h.split('.')[0];
+    const robots = await proxy(req(h, '/robots.txt'));
+    expect(robots.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}/robots.txt`);
+    expect(forwarded(robots, 'x-store-noindex')).toBe('1');
+    expect(forwarded(robots, 'x-market')).toBe('default');
+    const sitemap = await proxy(req(h, '/sitemap.xml'));
+    expect(sitemap.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}/sitemap.xml`);
+    expect(forwarded(sitemap, 'x-store-noindex')).toBe('1');
+  });
+
+  it('ALWAYS: indexable on the platform subdomain (no 301 despite a primary hostname) and on the custom domain', async () => {
+    serve({ ...defaultMarket, primary_hostname: 'namez.se', indexing: 'ALWAYS' });
+    const h = platformHost();
+    const page = await proxy(req(h, '/products/x?a=1'));
+    expect(page.status).toBe(200);
+    expect(page.headers.get('location')).toBeNull();
+    expectIndexable(page);
+    const sitemap = await proxy(req(h, '/sitemap.xml'));
+    expect(forwarded(sitemap, 'x-store-noindex')).toBeNull();
+    const custom = await proxy(req(customHost(), '/'));
+    expectIndexable(custom);
+  });
+
+  it('AUTO without a primary hostname: noindex on the platform subdomain', async () => {
+    serve({ ...defaultMarket, primary_hostname: null });
+    const h = platformHost();
+    const home = await proxy(req(h, '/'));
+    expect(home.status).toBe(200);
+    expect(home.headers.get('location')).toBeNull();
+    expectNoindex(home);
+    const en = await proxy(req(h, '/en/about'));
+    expectNoindex(en);
+    const sitemap = await proxy(req(h, '/sitemap.xml'));
+    expect(forwarded(sitemap, 'x-store-noindex')).toBe('1');
+  });
+
+  it('AUTO (explicit) on the custom domain: indexable', async () => {
+    serve({ ...defaultMarket, primary_hostname: 'namez.se', indexing: 'AUTO' });
+    const custom = await proxy(req(customHost(), '/en/products/x'));
+    expect(custom.headers.get('x-middleware-rewrite')).toContain('/store/namez/products/x');
+    expectIndexable(custom);
+    const sitemap = await proxy(req(customHost(), '/sitemap.xml'));
+    expect(forwarded(sitemap, 'x-store-noindex')).toBeNull();
+  });
+
+  it('AUTO with a primary hostname on the platform subdomain: 301 to the custom domain, path + query kept', async () => {
+    serve({ ...defaultMarket, primary_hostname: 'namez.se' });
+    const h = platformHost();
+    const home = await proxy(req(h, '/'));
+    expect(home.status).toBe(301);
+    expect(home.headers.get('location')).toBe('https://namez.se/');
+    const page = await proxy(req(h, '/en/products/x?a=1&b=2'));
+    expect(page.status).toBe(301);
+    expect(page.headers.get('location')).toBe('https://namez.se/en/products/x?a=1&b=2');
+    expect(page.headers.get('x-robots-tag')).toBeNull();
+  });
+
+  it('AUTO 301: bypass paths are never redirected', async () => {
+    serve({ ...defaultMarket, primary_hostname: 'namez.se' });
+    const h = platformHost();
+    const slug = h.split('.')[0];
+    for (const path of ['/robots.txt', '/sitemap.xml']) {
+      const res = await proxy(req(h, path));
+      expect(res.status).toBe(200);
+      expect(res.headers.get('location')).toBeNull();
+      expect(res.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}${path}`);
+      // The verdict for this host is "redirect", not noindex: the routes
+      // answer normally for the host they were asked on.
+      expect(forwarded(res, 'x-store-noindex')).toBeNull();
+    }
+    for (const path of ['/api/platform-probe', '/api/x', '/_next/static/x.js', '/builder-preview/x']) {
+      const res = await proxy(req(h, path));
+      expect(res.headers.get('location')).toBeNull();
+      expect(res.headers.get('x-middleware-rewrite')).toBeNull();
+    }
+  });
+
+  it('AUTO default market without a StoreDomain row but with a legacy custom_domain: indexable there, 301 from the platform subdomain', async () => {
+    serve({ ...defaultMarket, primary_hostname: null }, 'namez', 'resumely.net');
+    const h = platformHost();
+    const page = await proxy(req(h, '/en/products/x?a=1'));
+    expect(page.status).toBe(301);
+    expect(page.headers.get('location')).toBe('https://resumely.net/en/products/x?a=1');
+    // robots/sitemap still answered on the subdomain, not redirected.
+    const robots = await proxy(req(h, '/robots.txt'));
+    expect(robots.headers.get('location')).toBeNull();
+    expect(forwarded(robots, 'x-store-noindex')).toBeNull();
+    // On the legacy custom domain itself (by-domain): indexable.
+    const custom = await proxy(req('resumely.net', '/products/x'));
+    expect(custom.headers.get('x-middleware-rewrite')).toContain('/store/namez/products/x');
+    expectIndexable(custom);
+    // NEVER still wins over the legacy domain.
+    const never = { ...defaultMarket, primary_hostname: null, indexing: 'NEVER' };
+    serve(never, 'namez', 'resumely.net');
+    const h2 = platformHost();
+    const res = await proxy(req(h2, '/'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+    expectNoindex(res);
+    // A NON-default market never inherits the legacy domain.
+    const secondary = { ...defaultMarket, key: 'eu', is_default: false, primary_hostname: null };
+    serve(secondary, 'namez', 'resumely.net');
+    const res2 = await proxy(req(platformHost(), '/'));
+    expect(res2.status).toBe(200);
+    expect(res2.headers.get('location')).toBeNull();
+    expectNoindex(res2);
+  });
+
+  it('AUTO 301 never targets the request host itself (loop guard): served in place, indexable', async () => {
+    const h = platformHost();
+    const bare = h.split(':')[0]!;
+    serve({ ...defaultMarket, primary_hostname: bare });
+    const res = await proxy(req(h, '/en/products/x?a=1'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+    expect(res.headers.get('x-middleware-rewrite')).toContain('/products/x');
+    expectIndexable(res);
+    // Same via the legacy custom_domain of a row-less default market.
+    const h2 = platformHost();
+    serve({ ...defaultMarket, primary_hostname: null }, 'namez', h2.split(':')[0]!);
+    const res2 = await proxy(req(h2, '/'));
+    expect(res2.status).toBe(200);
+    expect(res2.headers.get('location')).toBeNull();
+    expectIndexable(res2);
+  });
+
+  it('a spoofed x-store-noindex is stripped on an indexable host', async () => {
+    serve({ ...defaultMarket, indexing: 'ALWAYS' });
+    const res = await proxy(req(platformHost(), '/', { 'x-store-noindex': '1' }));
+    expectIndexable(res);
+  });
+
+  it('legacy stores (markets app off) are untouched: no verdict, no header, no redirect', async () => {
+    fetchMock.mockImplementation(async () => json({ enabled: false }));
+    const h = platformHost();
+    const slug = h.split('.')[0];
+    const res = await proxy(req(h, '/ar/products?x=1', { 'x-store-noindex': '1' }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+    expect(res.headers.get('x-middleware-rewrite')).toContain(`/store/${slug}/products`);
+    expect(forwarded(res, 'x-market')).toBeNull();
+    expectIndexable(res);
   });
 });

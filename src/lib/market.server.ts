@@ -1,6 +1,6 @@
 import 'server-only';
 import { headers } from 'next/headers';
-import { MARKET_GEO_HEADER, MARKET_HEADER, MARKET_PREVIEW_HEADER, MARKET_SUGGEST_HEADER } from './market';
+import { MARKET_GEO_HEADER, MARKET_HEADER, MARKET_PREVIEW_HEADER, MARKET_SUGGEST_HEADER, STORE_NOINDEX_HEADER } from './market';
 
 // Request-scoped readers of the headers `src/proxy.ts` sets for market
 // stores. Server components / route handlers only — `src/lib/market.ts`
@@ -31,6 +31,19 @@ export async function getRequestMarket(): Promise<{ key: string; preview?: true 
     return reqHeaders.get(MARKET_PREVIEW_HEADER) === '1' ? { key, preview: true } : { key };
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * True when the proxy flagged the request noindex (M6.1: preview host,
+ * `indexing: NEVER`, or AUTO on the platform subdomain). False for stores
+ * without the markets app and whenever the headers are unavailable.
+ */
+export async function getRequestNoindex(): Promise<boolean> {
+  try {
+    return (await headers()).get(STORE_NOINDEX_HEADER) === '1';
+  } catch {
+    return false;
   }
 }
 

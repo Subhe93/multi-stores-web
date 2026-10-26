@@ -5,7 +5,7 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { findCollectionAncestors } from '@/lib/collectionPath';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -538,6 +538,8 @@ export async function generateMetadata({
       path: `/collections/${handle}`,
       markets: store?.markets,
       market: store?.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: store?.custom_domain ?? null,
       storeSlug,
     });
 

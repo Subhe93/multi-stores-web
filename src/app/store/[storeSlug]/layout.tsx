@@ -14,7 +14,7 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestSuggestedMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
@@ -232,6 +232,9 @@ export default async function StoreLayout({
   // Both are undefined/null for stores without the app.
   const marketKey = await getRequestMarket();
   const suggestedMarket = marketKey ? await getRequestSuggestedMarket() : null;
+  // The proxy's indexing verdict for this host (M6.1): preview, NEVER, or
+  // AUTO on the platform subdomain.
+  const noindex = await getRequestNoindex();
 
   let store: Store;
   try {
@@ -463,7 +466,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
+      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
         {fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -473,12 +476,12 @@ export default async function StoreLayout({
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
-        {/* Market preview host or a market with indexing switched off (M6
-            §1): never indexable (React hoists the meta into <head>; the proxy
-            also sends X-Robots-Tag). Pages own `robots` in their metadata, so
-            a layout-level metadata value would be overridden — the tag is
-            emitted here instead. */}
-        {(store.market?.preview || store.market?.noindex) && <meta name="robots" content="noindex, nofollow" />}
+        {/* Market preview host or a request the proxy flagged noindex (M6.1
+            `x-store-noindex`): never indexable (React hoists the meta into
+            <head>; the proxy also sends X-Robots-Tag). Pages own `robots` in
+            their metadata, so a layout-level metadata value would be
+            overridden — the tag is emitted here instead. */}
+        {(store.market?.preview || noindex) && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}

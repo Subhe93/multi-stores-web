@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { legal, storefront, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is
@@ -32,6 +32,7 @@ async function resolveLocale(storeSlug: string, lang: string | undefined): Promi
   secondaryLocales: string[];
   origin: string;
   markets: MarketRoute[] | undefined;
+  store: StoreLite | null;
 }> {
   let store: StoreLite | null = null;
   try {
@@ -42,7 +43,7 @@ async function resolveLocale(storeSlug: string, lang: string | undefined): Promi
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const secondaryLocales = store?.language_config?.secondary_locales || [];
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
-  return { locale: lang || primaryLocale, primaryLocale, secondaryLocales, origin, markets: store?.markets };
+  return { locale: lang || primaryLocale, primaryLocale, secondaryLocales, origin, markets: store?.markets, store };
 }
 
 export async function generateMetadata({
@@ -53,7 +54,7 @@ export async function generateMetadata({
   const { lang } = await searchParams;
   if (!isKnownSlug(slug)) return {};
 
-  const { locale, primaryLocale, secondaryLocales, origin, markets } = await resolveLocale(storeSlug, lang);
+  const { locale, primaryLocale, secondaryLocales, origin, markets, store } = await resolveLocale(storeSlug, lang);
 
   try {
     const page = await legal.get(slug, locale);
@@ -70,6 +71,10 @@ export async function generateMetadata({
       path: subpath,
       markets,
       storeSlug,
+      // Preview host / proxy indexing verdict (M6.1): self canonical only.
+      market: store?.market,
+      noindex: await getRequestNoindex(),
+      storeCustomDomain: store?.custom_domain ?? null,
     });
 
     return {

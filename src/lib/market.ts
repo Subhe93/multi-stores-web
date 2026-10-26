@@ -33,12 +33,19 @@ export interface MarketRoute {
   /** Market preview (DRAFT allowed, checkout view-only). Absent otherwise. */
   preview?: true;
   /**
-   * Search-engine indexing switched off for this market (M6 §1): pages get
-   * `noindex, nofollow`, the sitemap is empty and the market is left out of
-   * other markets' hreflang lists. Optional so older API payloads still parse.
+   * Search-engine indexing mode (M6.1). The EFFECTIVE rule is computed per
+   * request by the proxy, which alone knows the host type:
+   *  - NEVER  → noindex on every host;
+   *  - ALWAYS → indexable on every host;
+   *  - AUTO   → indexable on the market's custom domain; on the platform
+   *    subdomain a market with a `primary_hostname` is 301'd there, one
+   *    without it is noindex. Absent (older payloads) = AUTO.
    */
-  noindex?: boolean;
+  indexing?: MarketIndexing;
 }
+
+/** `Market.indexing` values (M6.1). */
+export type MarketIndexing = 'AUTO' | 'ALWAYS' | 'NEVER';
 
 /**
  * What every API helper accepts as "the market of this request": the bare
@@ -85,12 +92,23 @@ export function marketBody(ref: MarketRef): { market_key?: string; preview?: tru
 export const MARKET_HEADER = 'x-market';
 /** `1` on a market-preview host (`<slug>--<key>.<platform host>`). */
 export const MARKET_PREVIEW_HEADER = 'x-market-preview';
+/**
+ * `1` when the proxy decided the request is NOT indexable (M6.1): preview
+ * host, `indexing: NEVER`, or AUTO on the platform subdomain. Pages, the
+ * sitemap and `buildStoreAlternates` read this instead of re-deriving the
+ * rule from the market payload.
+ */
+export const STORE_NOINDEX_HEADER = 'x-store-noindex';
 
 /** `MarketRef` of a route handler's request headers (see `getRequestMarket`). */
 export function requestMarketRef(h: Headers): { key: string; preview?: true } | undefined {
   const key = h.get(MARKET_HEADER);
   if (!key) return undefined;
   return h.get(MARKET_PREVIEW_HEADER) === '1' ? { key, preview: true } : { key };
+}
+/** True when the proxy flagged the request noindex (see `STORE_NOINDEX_HEADER`). */
+export function requestNoindex(h: Headers): boolean {
+  return h.get(STORE_NOINDEX_HEADER) === '1';
 }
 export const MARKET_LOCALE_HEADER = 'x-market-locale';
 export const MARKET_SUGGEST_HEADER = 'x-market-suggest';

@@ -20,22 +20,27 @@ type PathByLocale = Record<string, string | undefined>;
 interface MarketContextValue {
   market: MarketRoute | null;
   markets: MarketRoute[];
+  /** Legacy `Store.custom_domain` (M6.1): the default market's public host
+   *  when it has no StoreDomain row; used for switch URLs. */
+  storeCustomDomain: string | null;
   pathByLocale: PathByLocale | null;
   setPathByLocale: (paths: PathByLocale | null) => void;
 }
 
 const noop = () => {};
-const EMPTY: MarketContextValue = { market: null, markets: [], pathByLocale: null, setPathByLocale: noop };
+const EMPTY: MarketContextValue = { market: null, markets: [], storeCustomDomain: null, pathByLocale: null, setPathByLocale: noop };
 
 const MarketContext = createContext<MarketContextValue>(EMPTY);
 
 export function MarketProvider({
   market,
   markets,
+  storeCustomDomain,
   children,
 }: {
   market?: MarketRoute | null;
   markets?: MarketRoute[] | null;
+  storeCustomDomain?: string | null;
   children: ReactNode;
 }) {
   const [pathByLocale, setPathByLocale] = useState<PathByLocale | null>(null);
@@ -44,8 +49,8 @@ export function MarketProvider({
     // A non-default market without its own hostname is unreachable (the
     // platform subdomain serves the default market) — never offer it (L5).
     const servable = (markets ?? []).filter(isServableMarket);
-    return { market, markets: servable, pathByLocale, setPathByLocale };
-  }, [market, markets, pathByLocale]);
+    return { market, markets: servable, storeCustomDomain: storeCustomDomain ?? null, pathByLocale, setPathByLocale };
+  }, [market, markets, storeCustomDomain, pathByLocale]);
   return <MarketContext.Provider value={value}>{children}</MarketContext.Provider>;
 }
 
@@ -66,6 +71,11 @@ export function useMarketPreview(): boolean {
 /** Every reachable LIVE market of the store (including the current one); `[]` without the app. */
 export function useMarkets(): MarketRoute[] {
   return useContext(MarketContext).markets;
+}
+
+/** Legacy `Store.custom_domain` for `buildMarketSwitchUrl`; null without one or outside a provider. */
+export function useStoreCustomDomain(): string | null {
+  return useContext(MarketContext).storeCustomDomain;
 }
 
 /** Translated sub-paths of the current page per locale (registered by the page), or null. */

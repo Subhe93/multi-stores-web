@@ -10,7 +10,7 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens } from '@/themes/tokens';
@@ -58,6 +58,8 @@ export default async function CheckoutLayout({
 
   // Market of the request host (markets app); undefined for other stores.
   const marketKey = await getRequestMarket();
+  // Proxy indexing verdict (M6.1); same meta robots rule as the store layout.
+  const noindex = await getRequestNoindex();
 
   let store: Store;
   try {
@@ -94,7 +96,7 @@ export default async function CheckoutLayout({
           }
         `}</style>
 
-        {store.market?.preview && <meta name="robots" content="noindex, nofollow" />}
+        {(store.market?.preview || noindex) && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}

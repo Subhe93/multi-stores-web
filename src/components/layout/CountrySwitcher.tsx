@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useMarket, useMarkets, useMarketPathByLocale } from '@/hooks/useMarket';
+import { useMarket, useMarkets, useMarketPathByLocale, useStoreCustomDomain } from '@/hooks/useMarket';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { encodeGuestCart } from '@/lib/cartHandoff';
@@ -27,6 +27,7 @@ export function CountrySwitcher({ storeSlug, primaryColor, pathByLocale }: Count
   const { items } = useCart();
   const { token } = useAuth();
   const registeredPaths = useMarketPathByLocale();
+  const storeCustomDomain = useStoreCustomDomain();
 
   if (!current || markets.length < 2) return null;
 
@@ -46,6 +47,7 @@ export function CountrySwitcher({ storeSlug, primaryColor, pathByLocale }: Count
       pathByLocale: pathByLocale ?? registeredPaths,
       cartParam: handoff.param,
       cartDropped: handoff.dropped,
+      storeCustomDomain,
     });
     window.location.assign(url);
   };

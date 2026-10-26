@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
-import { useMarket, useMarkets, useMarketPathByLocale } from '@/hooks/useMarket';
+import { useMarket, useMarkets, useMarketPathByLocale, useStoreCustomDomain } from '@/hooks/useMarket';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { encodeGuestCart } from '@/lib/cartHandoff';
@@ -33,6 +33,7 @@ export function MarketSuggestBanner({ storeSlug, suggestedKey, country }: Market
   const { items } = useCart();
   const { token } = useAuth();
   const pathByLocale = useMarketPathByLocale();
+  const storeCustomDomain = useStoreCustomDomain();
   const [dismissed, setDismissed] = useState(false);
 
   const target = markets.find((m) => m.key === suggestedKey);
@@ -55,7 +56,8 @@ export function MarketSuggestBanner({ storeSlug, suggestedKey, country }: Market
         locale,
         pathByLocale,
         cartParam: handoff.param,
-      cartDropped: handoff.dropped,
+        cartDropped: handoff.dropped,
+        storeCustomDomain,
       }),
     );
   };
