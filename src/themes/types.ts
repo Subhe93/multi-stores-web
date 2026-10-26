@@ -217,7 +217,14 @@ export interface ListingCollection {
   slug: string;
   is_active?: boolean;
   thumbnail_url?: string | null;
-  translations: Array<{ locale: string; name: string; description?: string | null }>;
+  translations: Array<{
+    locale: string;
+    name: string;
+    /** Short description HTML — shown in the hero under the title. */
+    description?: string | null;
+    /** M6.2: long SEO description HTML (sanitised by the API) — shown below the products. */
+    long_description?: string | null;
+  }>;
   children?: ListingCollection[];
 }
 

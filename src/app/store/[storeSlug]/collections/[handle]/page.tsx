@@ -14,7 +14,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
-import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle } from '@/lib/collectionSeo';
+import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
 
 interface ProductPromotion {
   type?: string;
@@ -42,6 +42,8 @@ interface CreatorCategoryTranslation {
   // M4.4 category SEO (optional; absent on stores that never set them).
   meta_title?: string | null;
   meta_desc?: string | null;
+  /** M6.2: long SEO description HTML (sanitised by the API), shown below the products. */
+  long_description?: string | null;
 }
 
 interface CreatorCategory {
@@ -134,6 +136,11 @@ export default async function CollectionPage({
   const ancestors = findCollectionAncestors(creatorCategoriesTree || [], collection.id)
     .filter((a) => a.is_active !== false);
   const collectionDescription = collectionTranslation?.description || undefined;
+  // M6.2: long SEO text below the products. Skipped when the editor saved
+  // only empty markup (e.g. "<p></p>").
+  const collectionLongDescription = stripHtmlToText(collectionTranslation?.long_description)
+    ? collectionTranslation?.long_description || undefined
+    : undefined;
   const currency = storeData?.currency;
 
   // Pull products filtered by this collection (backend resolves MANUAL vs TAGS).
@@ -276,17 +283,18 @@ export default async function CollectionPage({
       />
       {/* Hero banner — toggled and styled from store settings; uses the
           collection thumbnail (or store hero image) as background when present */}
+      {/* M6.2: with an image the banner keeps a 4:3 / 2:1 minimum height on
+          mobile/tablet (the image is cropped from its centre like a
+          competitor banner) while the text keeps its desktop size; on
+          desktop the padding preset sets the height as before. */}
       {hero.enabled && (
         <div
-          className="relative overflow-hidden"
+          className={`relative overflow-hidden ${
+            heroImage ? 'flex flex-col justify-center min-h-[75vw] sm:min-h-[50vw] md:min-h-0' : ''
+          }`}
           style={
             heroImage
-              ? {
-                  backgroundImage: `linear-gradient(rgba(0,0,0,${hero.overlayAlpha}), rgba(0,0,0,${hero.overlayAlpha})), url(${heroImage})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  color: hero.textColor,
-                }
+              ? { color: hero.textColor }
               : {
                   background:
                     'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
@@ -294,12 +302,19 @@ export default async function CollectionPage({
                 }
           }
         >
-          {!heroImage && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }}
+          {heroImage && (
+            <img
+              src={heroImage}
+              alt=""
+              aria-hidden="true"
+              fetchPriority="high"
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
           )}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }}
+          />
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
             {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
             <nav
@@ -496,6 +511,16 @@ export default async function CollectionPage({
               );
             })}
           </div>
+        )}
+
+        {/* M6.2: long SEO description below the products. Server-rendered so
+            crawlers see it without JS; HTML is sanitised on write by the API.
+            `dir` is inherited from the page wrapper, so RTL stays correct. */}
+        {collectionLongDescription && (
+          <div
+            className="mt-12 pt-10 border-t border-gray-100 prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+            dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
+          />
         )}
       </div>
     </div>

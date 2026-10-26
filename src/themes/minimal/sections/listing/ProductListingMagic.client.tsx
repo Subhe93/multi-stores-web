@@ -17,6 +17,7 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { resolveHero, type HeroHeight, type HeroPageConfig } from '@/lib/hero';
 import { ProductCard } from '@/components/product/ProductCard';
+import { stripHtmlToText } from '@/lib/collectionSeo';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
 
 function clamp(n: number, min: number, max: number): number {
@@ -139,6 +140,12 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
     : hero.imageUrl
     ? resolveMediaUrl(hero.imageUrl)
     : undefined;
+  const heroGradientStyle: React.CSSProperties = {
+    background:
+      'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
+    color: hero.textColor,
+  };
+  // Catalog banner: background image (unchanged).
   const heroStyle: React.CSSProperties = heroImage
     ? {
         backgroundImage: `linear-gradient(rgba(0,0,0,${hero.overlayAlpha}), rgba(0,0,0,${hero.overlayAlpha})), url(${heroImage})`,
@@ -146,11 +153,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
         backgroundPosition: 'center',
         color: hero.textColor,
       }
-    : {
-        background:
-          'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
-        color: hero.textColor,
-      };
+    : heroGradientStyle;
 
   // ── Catalog-only data ──
   const heading = (content.heading as string) || t('common.products');
@@ -174,6 +177,13 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const collectionTranslation = pickCollectionTranslation(collection?.translations, locale);
   const collectionName = collectionTranslation?.name || collection?.slug || '';
   const collectionDescription = collectionTranslation?.description || undefined;
+  // M6.2: long SEO text below the products. It arrives with the tree data,
+  // so it is part of the server-rendered HTML. Skipped when the editor saved
+  // only empty markup (e.g. "<p></p>").
+  const collectionLongDescription =
+    isCollection && stripHtmlToText(collectionTranslation?.long_description)
+      ? collectionTranslation?.long_description || undefined
+      : undefined;
   const isRTL = locale === 'ar';
   const Crumb = isRTL ? ChevronLeft : ChevronRight;
   // Ancestors of the current collection, root first (M6 §3).
@@ -377,12 +387,27 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
       )}
 
       {/* Collection hero — uses the collection thumbnail (or store hero image)
-          as background when present */}
+          when present. M6.2: with an image the banner keeps a 4:3 / 2:1 minimum height
+          on mobile/tablet (the image is cropped from its centre like a
+          competitor banner) while the text keeps its desktop size; on desktop
+          the padding preset sets the height as before. */}
       {showHero && hero.enabled && isCollection && (
-        <div className="relative overflow-hidden" style={heroStyle}>
-          {!heroImage && (
-            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
+        <div
+          className={`relative overflow-hidden ${
+            heroImage ? 'flex flex-col justify-center min-h-[75vw] sm:min-h-[50vw] md:min-h-0' : ''
+          }`}
+          style={heroImage ? { color: hero.textColor } : heroGradientStyle}
+        >
+          {heroImage && (
+            <img
+              src={heroImage}
+              alt=""
+              aria-hidden="true"
+              fetchPriority="high"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
           )}
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
             {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
             {showBackLink && (
@@ -583,6 +608,16 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
 
         {/* Products grid */}
         {products.length === 0 ? emptyState : grid}
+
+        {/* M6.2: long SEO description below the products (collection page).
+            HTML is sanitised on write by the API; `dir` is inherited from the
+            page wrapper, so RTL stays correct. */}
+        {collectionLongDescription && (
+          <div
+            className="mt-12 pt-10 border-t border-gray-100 prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+            dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
+          />
+        )}
       </div>
     </section>
   );
