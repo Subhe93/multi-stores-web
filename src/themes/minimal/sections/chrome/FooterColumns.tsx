@@ -3,7 +3,7 @@
 // links. A separate CopyrightBar section handles the bottom strip.
 
 import Link from 'next/link';
-import { storeHref } from '@/lib/storeUrl';
+import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr } from '../../../elementStyles';
@@ -11,6 +11,7 @@ import { colorOr } from '../../../elementStyles';
 interface FooterLink {
   label?: string;
   url?: string;
+  open_in_new_tab?: boolean;
 }
 
 interface FooterColumn {
@@ -21,14 +22,17 @@ interface FooterColumn {
   links?: FooterLink[];
 }
 
-function FooterColumns({ settings, content, locale, storeContext }: SectionRenderProps) {
+function FooterColumns({ settings, content, locale, primaryLocale, storeContext }: SectionRenderProps) {
   const rawColumns = ((content.columns as FooterColumn[]) || []);
+  // Locale prefix for the canonical storefront URL scheme (same rule as HeaderBar).
+  const lp = locale !== primaryLocale ? `/${locale}` : '';
   // Resolve each column's links: a selected menu wins over inline links.
   const columns = rawColumns
     .map((c) => {
-      const menuLinks = resolveMenuItems(storeContext, c.menu_key, locale).map((it) => ({
+      const menuLinks: FooterLink[] = resolveMenuItems(storeContext, c.menu_key, locale).map((it) => ({
         label: it.label,
         url: it.url,
+        open_in_new_tab: it.open_in_new_tab,
       }));
       return { ...c, links: menuLinks.length > 0 ? menuLinks : c.links };
     })
@@ -85,7 +89,8 @@ function FooterColumns({ settings, content, locale, storeContext }: SectionRende
                     .map((link, j) => (
                       <li key={j}>
                         <Link
-                          href={storeHref(link.url || '#')}
+                          href={localizeStoreUrl(link.url, lp, locale)}
+                          {...(link.open_in_new_tab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                           className="text-sm hover:opacity-70 transition-opacity"
                           style={{ color: linkColor }}
                         >

@@ -413,20 +413,22 @@ export default async function StoreLayout({
       fallback
     );
   };
+  // Root / child / grandchild (M6 §3) — deeper nodes are not rendered.
+  const NAV_COLLECTION_MAX_DEPTH = 2;
+  const toNavCollection = (c: RawCreatorCategory, depth: number): NavCollection => ({
+    slug: c.slug,
+    title: resolveCollectionTitle(c.translations, c.slug),
+    thumbnailUrl: c.thumbnail_url ?? null,
+    children:
+      depth < NAV_COLLECTION_MAX_DEPTH
+        ? (c.children || [])
+            .filter((ch) => ch.is_active !== false)
+            .map((ch) => toNavCollection(ch, depth + 1))
+        : [],
+  });
   const navCollections: NavCollection[] = creatorCategoriesRaw
     .filter((c) => c.is_active !== false)
-    .map((c) => ({
-      slug: c.slug,
-      title: resolveCollectionTitle(c.translations, c.slug),
-      thumbnailUrl: c.thumbnail_url ?? null,
-      children: (c.children || [])
-        .filter((ch) => ch.is_active !== false)
-        .map((ch) => ({
-          slug: ch.slug,
-          title: resolveCollectionTitle(ch.translations, ch.slug),
-          thumbnailUrl: ch.thumbnail_url ?? null,
-        })),
-    }));
+    .map((c) => toNavCollection(c, 0));
 
   // Social and contact info from store theme
   const socials = store.theme?.socials;
@@ -471,11 +473,12 @@ export default async function StoreLayout({
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
-        {/* Market preview host: never indexable (React hoists the meta into
-            <head>; the proxy also sends X-Robots-Tag). Pages own `robots` in
-            their metadata, so a layout-level metadata value would be
-            overridden — the tag is emitted here instead. */}
-        {store.market?.preview && <meta name="robots" content="noindex, nofollow" />}
+        {/* Market preview host or a market with indexing switched off (M6
+            §1): never indexable (React hoists the meta into <head>; the proxy
+            also sends X-Robots-Tag). Pages own `robots` in their metadata, so
+            a layout-level metadata value would be overridden — the tag is
+            emitted here instead. */}
+        {(store.market?.preview || store.market?.noindex) && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}

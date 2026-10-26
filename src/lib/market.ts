@@ -32,6 +32,12 @@ export interface MarketRoute {
   status: 'LIVE' | 'DRAFT';
   /** Market preview (DRAFT allowed, checkout view-only). Absent otherwise. */
   preview?: true;
+  /**
+   * Search-engine indexing switched off for this market (M6 §1): pages get
+   * `noindex, nofollow`, the sitemap is empty and the market is left out of
+   * other markets' hreflang lists. Optional so older API payloads still parse.
+   */
+  noindex?: boolean;
 }
 
 /**

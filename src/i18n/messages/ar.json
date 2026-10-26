@@ -2,6 +2,7 @@
   "common": {
     "home": "الرئيسية",
     "products": "المنتجات",
+    "collections": "التصنيفات",
     "categories": "الفئات",
     "about": "عن المتجر",
     "contact": "تواصل",
@@ -445,7 +446,6 @@
     "productsCount": "منتجات",
     "productSingular": "منتج",
     "store_collections": "تصنيفات المتجر",
-    "all_collections": "كل التصنيفات",
     "explore_collections": "استكشف تصنيفاتنا",
     "collectionSingular": "قسم",
     "collectionsCount": "أقسام",

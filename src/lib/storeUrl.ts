@@ -9,6 +9,8 @@ export interface MarketUrlInput {
   locales: string[];
   primary_hostname: string | null;
   status?: string;
+  /** Indexing switched off (M6 §1): left out of hreflang lists. */
+  noindex?: boolean;
 }
 
 /**
@@ -103,6 +105,25 @@ export function storeHref(raw: string): string {
 }
 
 /**
+ * Localize a creator-entered nav/footer URL for the canonical storefront
+ * scheme: the store is served on its own (sub)domain with clean paths and
+ * secondary locales carry a `/[locale]` prefix while the primary stays bare.
+ * `lp` is that prefix ('' for the primary locale, '/ar' etc. otherwise).
+ * Internal paths get the prefix; external links (http/mailto/tel),
+ * protocol-relative URLs and in-page anchors are left untouched, and a path
+ * the creator already localized is not prefixed twice.
+ */
+export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale: string): string {
+  if (!rawUrl) return '#';
+  // An absolute platform URL becomes a same-host path first (see storeHref).
+  const url = storeHref(rawUrl);
+  if (!url.startsWith('/') || url.startsWith('//')) return url;
+  if (!lp) return url;
+  if (url === `/${locale}` || url.startsWith(`/${locale}/`)) return url;
+  return `${lp}${url}`;
+}
+
+/**
  * Build a locale-prefixed URL for the store storefront. The primary locale has
  * NO prefix (e.g. `https://mystore.com/products/foo`); secondary locales use
  * `/{locale}/...` (e.g. `https://mystore.com/ar/products/foo`). This is what
@@ -162,14 +183,15 @@ export function buildStoreAlternates(opts: {
    * The request market. On a market PREVIEW (`preview: true`) the page is
    * noindex: the canonical points at the market's real hostname (origin,
    * i.e. its configured primary, else the preview host itself) and no
-   * hreflang is advertised at all. Null/undefined/LIVE: no effect.
+   * hreflang is advertised at all. A market with `noindex: true` (M6 §1)
+   * is treated the same way. Null/undefined/LIVE: no effect.
    */
-  market?: { preview?: boolean } | null;
+  market?: { preview?: boolean; noindex?: boolean } | null;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
 
-  if (opts.market?.preview) {
+  if (opts.market?.preview || opts.market?.noindex) {
     const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
     const selfPath = opts.pathByLocale?.[selfLocale] ?? path;
     return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath), languages: {} };
@@ -177,8 +199,9 @@ export function buildStoreAlternates(opts: {
 
   // Only LIVE markets, and a non-default market needs its own hostname: the
   // platform subdomain always serves the default market, so a hostless
-  // secondary market has no URL to advertise (L5).
-  const liveMarkets = (opts.markets ?? []).filter(isServableMarket);
+  // secondary market has no URL to advertise (L5). Markets with indexing
+  // switched off are never advertised either (M6 §1).
+  const liveMarkets = (opts.markets ?? []).filter(isIndexableMarket);
   if (liveMarkets.length > 0) {
     return buildMarketAlternates({
       origin,
@@ -211,6 +234,16 @@ export function buildStoreAlternates(opts: {
 export function isServableMarket(m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status'>): boolean {
   if (m.status && m.status !== 'LIVE') return false;
   return m.is_default || Boolean(m.primary_hostname);
+}
+
+/**
+ * Servable AND indexable: a `noindex` market is still reachable (the country
+ * switcher keeps listing it) but must never appear in hreflang sets.
+ */
+export function isIndexableMarket(
+  m: Pick<MarketUrlInput, 'is_default' | 'primary_hostname' | 'status' | 'noindex'>,
+): boolean {
+  return isServableMarket(m) && m.noindex !== true;
 }
 
 /** Origin a market is served on: its own hostname, else the platform subdomain. */

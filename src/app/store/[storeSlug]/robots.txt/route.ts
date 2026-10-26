@@ -35,6 +35,10 @@ export async function GET(req: Request, ctx: RouteCtx) {
   }
   const origin = buildStoreOrigin(storeSlug, customDomain, market);
 
+  // A market with indexing switched off (M6 §1) keeps `Allow: /` on purpose:
+  // crawlers must still be able to fetch the pages to see their
+  // `noindex, nofollow` (meta + X-Robots-Tag). A robots Disallow would hide
+  // the directive and already-indexed URLs would linger in the index.
   const body = [
     'User-agent: *',
     'Allow: /',

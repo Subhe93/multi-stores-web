@@ -383,6 +383,8 @@ export async function proxy(request: NextRequest) {
   // Market preview host: never crawlable. robots.txt disallows everything
   // and sitemap.xml is empty, answered here so no crawler ever sees the
   // draft market's URLs; every page below also gets X-Robots-Tag.
+  // (A `noindex` market is NOT answered here: its robots.txt must keep
+  // allowing crawls so Google can read the noindex, see the robots route.)
   if (isSitemapOrRobots && route?.preview) {
     const body =
       pathname === '/robots.txt'
@@ -442,6 +444,9 @@ export async function proxy(request: NextRequest) {
     // (so a DRAFT market renders) and the pages are noindex.
     const preview = route.preview === true;
     if (preview) requestHeaders.set('x-market-preview', '1');
+    // Market with indexing switched off (M6 §1): same robots header as a
+    // preview host, but the pages themselves stay fully functional.
+    const noindex = preview || market.noindex === true;
 
     if (decision.kind === 'notfound') {
       const newUrl = request.nextUrl.clone();
@@ -451,7 +456,7 @@ export async function proxy(request: NextRequest) {
         status: decision.status,
       });
       response.headers.set('x-store-slug', storeSlug);
-      if (preview) response.headers.set('x-robots-tag', 'noindex, nofollow');
+      if (noindex) response.headers.set('x-robots-tag', 'noindex, nofollow');
       response.cookies.set('x-store-locale', market.default_locale, { path: '/' });
       return response;
     }
@@ -486,10 +491,8 @@ export async function proxy(request: NextRequest) {
     });
     response.headers.set('x-store-slug', storeSlug);
     response.headers.set('x-market', market.key);
-    if (preview) {
-      response.headers.set('x-market-preview', '1');
-      response.headers.set('x-robots-tag', 'noindex, nofollow');
-    }
+    if (preview) response.headers.set('x-market-preview', '1');
+    if (noindex) response.headers.set('x-robots-tag', 'noindex, nofollow');
     // The cookie carries the effective locale (market default when the URL
     // is unprefixed) so request.ts / app/layout.tsx resolve it without a
     // store fetch. Legacy stores keep writing '' below.

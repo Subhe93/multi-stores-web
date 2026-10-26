@@ -2,6 +2,7 @@
   "common": {
     "home": "Accueil",
     "products": "Produits",
+    "collections": "Collections",
     "categories": "Catégories",
     "about": "À propos",
     "contact": "Contact",
@@ -445,7 +446,6 @@
     "productsCount": "produits",
     "productSingular": "produit",
     "store_collections": "Collections de la boutique",
-    "all_collections": "Toutes les collections",
     "explore_collections": "Explorez nos collections",
     "collectionSingular": "collection",
     "collectionsCount": "collections",

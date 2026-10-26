@@ -196,4 +196,26 @@ describe('proxy market preview host', () => {
     expect(res.headers.get('x-market-preview')).toBeNull();
     expect(res.headers.get('x-robots-tag')).toBeNull();
   });
+
+  it('M6: a LIVE market with noindex gets X-Robots-Tag on every page (prefixed and 404) without the preview flag', async () => {
+    const noindexMarket = { ...defaultMarket, noindex: true };
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('preview=1')) throw new Error('must not preview');
+      return json({ enabled: true, market: noindexMarket, markets: [noindexMarket] });
+    });
+    const home = await proxy(req('noindex-shop.localhost:3000', '/'));
+    expect(home.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(home.headers.get('x-market-preview')).toBeNull();
+    expect(forwarded(home, 'x-market-preview')).toBeNull();
+    const en = await proxy(req('noindex-shop.localhost:3000', '/en/products/x'));
+    expect(en.headers.get('x-middleware-rewrite')).toContain('/store/noindex-shop/products/x');
+    expect(en.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    // A locale this market does not serve is a 404 — still noindex.
+    const nf = await proxy(req('noindex-shop.localhost:3000', '/de/products/x'));
+    expect(nf.status).toBe(404);
+    expect(nf.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    // robots.txt is NOT answered by the proxy (the route keeps Allow).
+    const robots = await proxy(req('noindex-shop.localhost:3000', '/robots.txt'));
+    expect(robots.headers.get('x-middleware-rewrite')).toContain('/store/noindex-shop/robots.txt');
+  });
 });

@@ -225,14 +225,30 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
                 {c.children?.length ? (
                   <div className="ms-2 mb-1 border-s border-gray-100 ps-2 flex flex-col">
                     {c.children.map((ch) => (
-                      <Link
-                        key={ch.slug}
-                        href={lp(`/collections/${ch.slug}`)}
-                        onClick={() => setOpen(false)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                      >
-                        {ch.title}
-                      </Link>
+                      <div key={ch.slug} className="flex flex-col">
+                        <Link
+                          href={lp(`/collections/${ch.slug}`)}
+                          onClick={() => setOpen(false)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        >
+                          {ch.title}
+                        </Link>
+                        {/* Third level (M6 §3): indented group under its parent. */}
+                        {ch.children?.length ? (
+                          <div className="ms-3 mb-1 border-s border-gray-100 ps-2 flex flex-col">
+                            {ch.children.map((g) => (
+                              <Link
+                                key={g.slug}
+                                href={lp(`/collections/${g.slug}`)}
+                                onClick={() => setOpen(false)}
+                                className="px-3 py-1 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                              >
+                                {g.title}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                 ) : null}
@@ -251,6 +267,53 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// One collection row of the mobile menu: root / child / grandchild (M6 §3).
+// Nodes with children get a chevron that expands the nested list; tapping the
+// label still navigates to the collection itself.
+function MobileCollectionNode({
+  node,
+  depth,
+  href,
+  onNavigate,
+}: {
+  node: NavCollection;
+  depth: number;
+  href: (slug: string) => string;
+  onNavigate: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const children = node.children ?? [];
+  const labelClass =
+    depth === 0
+      ? 'py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900'
+      : 'py-1 text-xs font-medium text-gray-500 hover:text-gray-800';
+  return (
+    <div className="flex flex-col" style={{ paddingInlineStart: depth > 0 ? 12 : 0 }}>
+      <div className="flex items-center">
+        <Link href={href(node.slug)} onClick={onNavigate} className={`flex-1 transition-colors ${labelClass}`}>
+          {depth > 0 ? '— ' : ''}
+          {node.title}
+        </Link>
+        {children.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((p) => !p)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Collapse' : 'Expand'}
+            className="px-2 py-1 text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+      {expanded &&
+        children.map((ch) => (
+          <MobileCollectionNode key={ch.slug} node={ch} depth={depth + 1} href={href} onNavigate={onNavigate} />
+        ))}
     </div>
   );
 }
@@ -325,25 +388,13 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                 {collectionsOpen && (
                   <div className="pb-2 ps-3 flex flex-col">
                     {collections.map((c) => (
-                      <div key={c.slug} className="flex flex-col">
-                        <Link
-                          href={lp(`/collections/${c.slug}`)}
-                          onClick={() => setOpen(false)}
-                          className="py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-                        >
-                          {c.title}
-                        </Link>
-                        {c.children?.map((ch) => (
-                          <Link
-                            key={ch.slug}
-                            href={lp(`/collections/${ch.slug}`)}
-                            onClick={() => setOpen(false)}
-                            className="ps-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors"
-                          >
-                            — {ch.title}
-                          </Link>
-                        ))}
-                      </div>
+                      <MobileCollectionNode
+                        key={c.slug}
+                        node={c}
+                        depth={0}
+                        href={(slug) => lp(`/collections/${slug}`)}
+                        onNavigate={() => setOpen(false)}
+                      />
                     ))}
                   </div>
                 )}

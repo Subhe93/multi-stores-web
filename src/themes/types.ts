@@ -229,6 +229,8 @@ export interface ListingContext {
   collections: ListingCollection[];
   /** The current collection (kind === 'collection'). */
   collection?: ListingCollection;
+  /** Ancestors of `collection`, root first (M6 §3); the collection itself is not included. */
+  collectionPath?: ListingCollection[];
   query: { search?: string; sort?: string; category?: string; creator_category?: string };
   /** store.theme.hero.products | .collections (raw, unresolved). */
   hero?: HeroPageConfig;
@@ -247,6 +249,10 @@ export interface NavMenuItem {
   label_i18n?: Record<string, string>;
   url: string;
   open_in_new_tab?: boolean;
+  /** M6 §4: what the item points at; `url` is always the rendered link. */
+  kind?: 'CUSTOM' | 'PAGE' | 'COLLECTION' | 'PRODUCT';
+  /** M6 §4: id of the picked page / collection / product (null for CUSTOM). */
+  resource_id?: string | null;
 }
 
 // A named navigation menu the creator built once and references by `key`

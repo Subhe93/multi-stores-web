@@ -155,19 +155,19 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // ── Catalog-only data ──
   const heading = (content.heading as string) || t('common.products');
   const subheading = (content.subheading as string) || '';
-  // Flatten creator categories one level deep so children can render indented inline.
+  // Flatten creator categories (root / child / grandchild, M6 §3) so deeper
+  // levels render as indented pills inline.
   type FlatCollection = ListingCollection & { depth: number };
   const flatCollections: FlatCollection[] = [];
-  if (!isCollection) {
-    for (const parent of listing.collections || []) {
-      if (parent.is_active === false) continue;
-      flatCollections.push({ ...parent, depth: 0 });
-      for (const child of parent.children || []) {
-        if (child.is_active === false) continue;
-        flatCollections.push({ ...child, depth: 1 });
-      }
+  const MAX_PILL_DEPTH = 2;
+  const pushPills = (nodes: ListingCollection[] | undefined, depth: number) => {
+    for (const node of nodes || []) {
+      if (node.is_active === false) continue;
+      flatCollections.push({ ...node, depth });
+      if (depth < MAX_PILL_DEPTH) pushPills(node.children, depth + 1);
     }
-  }
+  };
+  if (!isCollection) pushPills(listing.collections, 0);
 
   // ── Collection-only data ──
   const collection = listing.collection;
@@ -175,7 +175,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const collectionName = collectionTranslation?.name || collection?.slug || '';
   const collectionDescription = collectionTranslation?.description || undefined;
   const isRTL = locale === 'ar';
-  const BackChevron = isRTL ? ChevronRight : ChevronLeft;
+  const Crumb = isRTL ? ChevronLeft : ChevronRight;
+  // Ancestors of the current collection, root first (M6 §3).
+  const collectionPath = (listing.collectionPath || []).filter((c) => c.is_active !== false);
   const subCollections = (collection?.children || []).filter((c) => c.is_active !== false);
 
   // ── URL builders (preserve the other active filters and the locale) ──
@@ -382,16 +384,31 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
           )}
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
-            {/* Breadcrumb / back link */}
+            {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
             {showBackLink && (
-              <Link
-                href={`${lp}/products`}
-                className="inline-flex items-center gap-1 text-xs font-semibold opacity-85 hover:opacity-100 transition mb-4"
+              <nav
+                className="flex items-center flex-wrap gap-1 text-xs font-semibold opacity-85 mb-4"
+                aria-label="Breadcrumb"
                 style={{ color: hero.textColor }}
               >
-                <BackChevron className="w-4 h-4" />
-                {t('store.all_collections')}
-              </Link>
+                <Link href={`${lp}/`} className="hover:opacity-100 hover:underline transition">
+                  {t('common.home')}
+                </Link>
+                <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
+                  {t('common.collections')}
+                </Link>
+                {collectionPath.map((a) => (
+                  <span key={a.id} className="contents">
+                    <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                    <Link href={`${lp}/collections/${a.slug}`} className="hover:opacity-100 hover:underline transition">
+                      {pickCollectionTranslation(a.translations, locale)?.name || a.slug}
+                    </Link>
+                  </span>
+                ))}
+                <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                <span aria-current="page">{collectionName}</span>
+              </nav>
             )}
 
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm" style={{ color: hero.textColor }}>
@@ -422,13 +439,28 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
       {!(showHero && hero.enabled) && (
         <div className="container mx-auto px-4 pt-8">
           {isCollection && showBackLink && (
-            <Link
-              href={`${lp}/products`}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800 transition mb-3"
+            <nav
+              className="flex items-center flex-wrap gap-1 text-xs font-semibold text-gray-500 mb-3"
+              aria-label="Breadcrumb"
             >
-              <BackChevron className="w-4 h-4" />
-              {t('store.all_collections')}
-            </Link>
+              <Link href={`${lp}/`} className="hover:text-gray-800 transition">
+                {t('common.home')}
+              </Link>
+              <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+              <Link href={`${lp}/collections`} className="hover:text-gray-800 transition">
+                {t('common.collections')}
+              </Link>
+              {collectionPath.map((a) => (
+                <span key={a.id} className="contents">
+                  <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                  <Link href={`${lp}/collections/${a.slug}`} className="hover:text-gray-800 transition">
+                    {pickCollectionTranslation(a.translations, locale)?.name || a.slug}
+                  </Link>
+                </span>
+              ))}
+              <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+              <span aria-current="page" className="text-gray-700">{collectionName}</span>
+            </nav>
           )}
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
             {isCollection ? collectionName : heading}
@@ -483,7 +515,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                               isActive
                                 ? 'text-white shadow-sm border-transparent'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                            } ${cc.depth > 0 ? 'ms-4' : ''}`}
+                            } ${cc.depth === 1 ? 'ms-4' : cc.depth >= 2 ? 'ms-8' : ''}`}
                             style={isActive ? activePill : {}}
                           >
                             {cc.depth > 0 ? '— ' : ''}

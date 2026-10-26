@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
@@ -14,6 +14,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
@@ -252,22 +253,27 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       : 'InStock',
   });
 
-  const primaryCollection = product.creator_categories?.[0];
-  const collectionTranslation = primaryCollection
-    ? primaryCollection.translations?.find((ct) => ct.locale === locale) ||
-      primaryCollection.translations?.find((ct) => ct.locale === 'en') ||
-      primaryCollection.translations?.[0]
-    : undefined;
+  // Home › Collections › ancestors… › primary › product (M6 §2). The path
+  // comes from the API (`primary_collection_path`, root → leaf); products
+  // without a primary collection fall back to Home › Products › product.
+  const collectionCrumbs = resolvePrimaryCollectionPath(product).map((node) => ({
+    slug: node.slug,
+    name: collectionDisplayName(node, locale),
+  }));
+  // Separator points along the reading direction (RTL for Arabic).
+  const Crumb = locale === 'ar' ? ChevronLeft : ChevronRight;
 
   const breadcrumbLd = buildBreadcrumb([
     { name: t('common.home'), url: storeLocalePath(storeBase, locale, ldPrimary, '') },
-    { name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products') },
-    ...(primaryCollection && collectionTranslation
-      ? [{
-          name: collectionTranslation.name || primaryCollection.slug,
-          url: storeLocalePath(storeBase, locale, ldPrimary, `/collections/${primaryCollection.slug}`),
-        }]
-      : []),
+    ...(collectionCrumbs.length > 0
+      ? [
+          { name: t('common.collections'), url: storeLocalePath(storeBase, locale, ldPrimary, '/collections') },
+          ...collectionCrumbs.map((c) => ({
+            name: c.name,
+            url: storeLocalePath(storeBase, locale, ldPrimary, `/collections/${c.slug}`),
+          })),
+        ]
+      : [{ name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products') }]),
     { name: translation?.title || 'Product', url: productUrl },
   ]);
 
@@ -299,22 +305,33 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         <Link href={`${lp}/`} className="text-gray-400 hover:text-gray-700 transition-colors">
           {t('common.home')}
         </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-        <Link href={`${lp}/products`} className="text-gray-400 hover:text-gray-700 transition-colors">
-          {t('common.products')}
-        </Link>
-        {primaryCollection && (
+        {collectionCrumbs.length > 0 ? (
           <>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-            <Link
-              href={`${lp}/collections/${primaryCollection.slug}`}
-              className="text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              {collectionTranslation?.name || primaryCollection.slug}
+            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <Link href={`${lp}/collections`} className="text-gray-400 hover:text-gray-700 transition-colors">
+              {t('common.collections')}
+            </Link>
+            {collectionCrumbs.map((c) => (
+              <span key={c.slug} className="contents">
+                <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                <Link
+                  href={`${lp}/collections/${c.slug}`}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  {c.name}
+                </Link>
+              </span>
+            ))}
+          </>
+        ) : (
+          <>
+            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <Link href={`${lp}/products`} className="text-gray-400 hover:text-gray-700 transition-colors">
+              {t('common.products')}
             </Link>
           </>
         )}
-        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+        <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
         <span className="text-gray-700 font-medium truncate max-w-50">
           {translation?.title || 'Product'}
         </span>

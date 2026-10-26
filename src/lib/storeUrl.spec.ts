@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStoreAlternates, buildStoreOrigin, storeHref, type MarketUrlInput } from './storeUrl';
+import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, storeHref, type MarketUrlInput } from './storeUrl';
 
 // hreflang matrix for the markets app (M1-DESIGN §8): 2 markets × locales,
 // collision handling, x-default, translated slugs, and — above all — that a
@@ -135,6 +135,31 @@ describe('buildStoreAlternates (markets)', () => {
     });
     expect(res.languages['sv-SE']).toBe(`${platformOrigin}/products/metal-card`);
     expect(res.languages['de']).toBeUndefined();
+  });
+
+  it('M6: a noindex market gets a self canonical and no hreflang, and is left out of other hreflang lists', () => {
+    const euNoindex: MarketUrlInput = { ...eu, noindex: true };
+    // On the noindex market itself: canonical only.
+    const onEu = buildStoreAlternates({
+      ...onSe,
+      origin: 'https://namez.shop',
+      locale: 'de',
+      primaryLocale: 'en',
+      secondaryLocales: ['de', 'fr', 'ar'],
+      markets: [se, euNoindex],
+      market: euNoindex,
+    });
+    expect(onEu.canonical).toBe('https://namez.shop/de/products/metal-card');
+    expect(onEu.languages).toEqual({});
+    // On another market: the noindex market is not advertised.
+    const res = buildStoreAlternates({ ...onSe, markets: [se, euNoindex] });
+    expect(res.languages['sv-SE']).toBe('https://namez.se/products/metal-card');
+    expect(res.languages['de']).toBeUndefined();
+    expect(res.languages['x-default']).toBe('https://namez.se/products/metal-card');
+    // Still reachable (country switcher) but not indexable.
+    expect(isServableMarket(euNoindex)).toBe(true);
+    expect(isIndexableMarket(euNoindex)).toBe(false);
+    expect(isIndexableMarket(se)).toBe(true);
   });
 });
 

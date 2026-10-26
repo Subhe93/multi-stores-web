@@ -7,6 +7,7 @@ import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/s
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
+import { findCollectionAncestors } from '@/lib/collectionPath';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
@@ -128,6 +129,10 @@ export default async function CollectionPage({
 
   const collectionTranslation = pickTranslation(collection.translations, locale);
   const collectionName = collectionTranslation?.name || handle;
+  // Ancestors root → parent (M6 §3): the breadcrumb is Home › Collections ›
+  // ancestors… › this. Inactive ancestors are skipped (their pages 404).
+  const ancestors = findCollectionAncestors(creatorCategoriesTree || [], collection.id)
+    .filter((a) => a.is_active !== false);
   const collectionDescription = collectionTranslation?.description || undefined;
   const currency = storeData?.currency;
 
@@ -152,7 +157,7 @@ export default async function CollectionPage({
   }
 
   const isRTL = locale === 'ar';
-  const BackChevron = isRTL ? ChevronRight : ChevronLeft;
+  const Crumb = isRTL ? ChevronLeft : ChevronRight;
 
   // Hero/banner settings (configurable from store settings → Page Banners).
   // The collection's own thumbnail takes priority as the background; the
@@ -205,7 +210,11 @@ export default async function CollectionPage({
   });
   const collectionBreadcrumbLd = buildBreadcrumb([
     { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
-    { name: t('common.products'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/products') },
+    { name: t('common.collections'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/collections') },
+    ...ancestors.map((a) => ({
+      name: pickTranslation(a.translations, locale)?.name || a.slug,
+      url: storeLocalePath(ldOrigin, locale, ldPrimary, `/collections/${a.slug}`),
+    })),
     { name: collectionName, url: collectionUrl },
   ]);
 
@@ -222,6 +231,7 @@ export default async function CollectionPage({
       products: products.map(toListingProduct),
       collections: creatorCategoriesTree || [],
       collection,
+      collectionPath: ancestors,
       query: { search, sort },
       hero: storeData?.theme?.hero?.collections,
       basePath: `/collections/${handle}`,
@@ -291,15 +301,30 @@ export default async function CollectionPage({
             />
           )}
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
-            {/* Breadcrumb / back link */}
-            <Link
-              href={`${lp}/products`}
-              className="inline-flex items-center gap-1 text-xs font-semibold opacity-85 hover:opacity-100 transition mb-4"
+            {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
+            <nav
+              className="flex items-center flex-wrap gap-1 text-xs font-semibold opacity-85 mb-4"
+              aria-label="Breadcrumb"
               style={{ color: hero.textColor }}
             >
-              <BackChevron className="w-4 h-4" />
-              {t('store.all_collections')}
-            </Link>
+              <Link href={`${lp}/`} className="hover:opacity-100 hover:underline transition">
+                {t('common.home')}
+              </Link>
+              <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+              <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
+                {t('common.collections')}
+              </Link>
+              {ancestors.map((a) => (
+                <span key={a.id} className="contents">
+                  <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                  <Link href={`${lp}/collections/${a.slug}`} className="hover:opacity-100 hover:underline transition">
+                    {pickTranslation(a.translations, locale)?.name || a.slug}
+                  </Link>
+                </span>
+              ))}
+              <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
+              <span aria-current="page">{collectionName}</span>
+            </nav>
 
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm" style={{ color: hero.textColor }}>
               {collectionName}

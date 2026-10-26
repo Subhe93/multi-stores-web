@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { useTranslations } from 'next-intl';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
@@ -101,6 +102,14 @@ export interface ProductData {
   tags?: { tag: string }[];
   category?: { translations: { locale: string; name: string }[] };
   creator_categories?: {
+    id: string;
+    slug: string;
+    translations: { locale: string; name: string }[];
+  }[];
+  /** M6 §2: id of the primary creator collection; null when none is linked. */
+  primary_creator_category_id?: string | null;
+  /** M6 §2: root → leaf path of the primary collection (ancestors, then the primary). */
+  primary_collection_path?: {
     id: string;
     slug: string;
     translations: { locale: string; name: string }[];
@@ -731,13 +740,13 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
         <div className={designer ? 'contents md:flex md:flex-col md:gap-5 md:min-w-0' : 'flex flex-col gap-5 min-w-0'}>
 
           {/* Creator collection (above title) */}
-          {product.creator_categories && product.creator_categories.length > 0 && (() => {
-            const collection = product.creator_categories[0];
-            const collectionName =
-              collection.translations?.find((ct) => ct.locale === locale)?.name ||
-              collection.translations?.find((ct) => ct.locale === 'en')?.name ||
-              collection.translations?.[0]?.name ||
-              collection.slug;
+          {(() => {
+            // Primary collection = leaf of `primary_collection_path` (M6 §2);
+            // older payloads fall back to the first linked collection.
+            const path = resolvePrimaryCollectionPath(product);
+            const collection = path[path.length - 1];
+            if (!collection) return null;
+            const collectionName = collectionDisplayName(collection, locale);
             return (
               <Link
                 href={`${langPrefix}/collections/${collection.slug}`}

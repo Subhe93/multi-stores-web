@@ -2,6 +2,7 @@
   "common": {
     "home": "Hem",
     "products": "Produkter",
+    "collections": "Kollektioner",
     "categories": "Kategorier",
     "about": "Om oss",
     "contact": "Kontakt",
@@ -445,7 +446,6 @@
     "productsCount": "produkter",
     "productSingular": "produkt",
     "store_collections": "Butikskollektioner",
-    "all_collections": "Alla kollektioner",
     "explore_collections": "Utforska våra kollektioner",
     "collectionSingular": "kollektion",
     "collectionsCount": "kollektioner",

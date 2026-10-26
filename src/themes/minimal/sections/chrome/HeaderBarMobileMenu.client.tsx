@@ -116,15 +116,31 @@ export function HeaderBarMobileMenu({
   );
 }
 
-// One drawer row. Leaf items are a plain link; items with children render a
-// collapsible disclosure: tapping the chevron expands the indented sub-links
-// while tapping the label still navigates to the parent.
-function MobileRow({ item, onNavigate }: { item: MobileMenuItem; onNavigate: () => void }) {
+// Menus render at most three levels (top / sub / sub-sub, M6 §4).
+const MOBILE_MAX_DEPTH = 2;
+
+// One drawer row, used recursively. Leaf items are a plain link; items with
+// children render a collapsible disclosure: tapping the chevron expands the
+// indented sub-rows while tapping the label still navigates to the item.
+function MobileRow({
+  item,
+  depth = 0,
+  onNavigate,
+}: {
+  item: MobileMenuItem;
+  depth?: number;
+  onNavigate: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const children = item.children ?? [];
+  const children = depth < MOBILE_MAX_DEPTH ? item.children ?? [] : [];
   const external = item.open_in_new_tab
     ? { target: '_blank', rel: 'noopener noreferrer' }
     : {};
+  // Each level indents a bit more; only top-level rows carry the divider.
+  const indent = { paddingInlineStart: `${20 + depth * 16}px` };
+  const rowClass = depth === 0 ? 'py-3 text-base font-medium' : 'py-2.5 text-sm';
+  const rowBorder = depth === 0 ? 'border-b' : '';
+  const borderStyle = depth === 0 ? { borderColor: 'rgba(0,0,0,0.06)' } : {};
 
   if (children.length === 0) {
     return (
@@ -132,8 +148,8 @@ function MobileRow({ item, onNavigate }: { item: MobileMenuItem; onNavigate: () 
         href={item.url}
         onClick={onNavigate}
         {...external}
-        className="block px-5 py-3 text-base font-medium border-b hover:bg-black/5 transition"
-        style={{ borderColor: 'rgba(0,0,0,0.06)' }}
+        className={`block pe-5 ${rowClass} ${rowBorder} hover:bg-black/5 transition`}
+        style={{ ...indent, ...borderStyle }}
       >
         {item.label}
       </Link>
@@ -141,13 +157,14 @@ function MobileRow({ item, onNavigate }: { item: MobileMenuItem; onNavigate: () 
   }
 
   return (
-    <div className="border-b" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+    <div className={rowBorder} style={borderStyle}>
       <div className="flex items-stretch">
         <Link
           href={item.url}
           onClick={onNavigate}
           {...external}
-          className="flex-1 px-5 py-3 text-base font-medium hover:bg-black/5 transition"
+          className={`flex-1 pe-5 ${rowClass} hover:bg-black/5 transition`}
+          style={indent}
         >
           {item.label}
         </Link>
@@ -163,22 +180,9 @@ function MobileRow({ item, onNavigate }: { item: MobileMenuItem; onNavigate: () 
       </div>
       {expanded && (
         <div className="pb-1">
-          {children.map((child, i) => {
-            const childExternal = child.open_in_new_tab
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {};
-            return (
-              <Link
-                key={i}
-                href={child.url}
-                onClick={onNavigate}
-                {...childExternal}
-                className="block ps-9 pe-5 py-2.5 text-sm hover:bg-black/5 transition"
-              >
-                {child.label}
-              </Link>
-            );
-          })}
+          {children.map((child, i) => (
+            <MobileRow key={i} item={child} depth={depth + 1} onNavigate={onNavigate} />
+          ))}
         </div>
       )}
     </div>

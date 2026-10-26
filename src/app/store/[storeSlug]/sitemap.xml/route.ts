@@ -69,9 +69,13 @@ export async function GET(req: Request, ctx: RouteCtx) {
     customDomain = null;
   }
 
-  const xml = marketKey && data.market
-    ? buildMarketSitemap(storeSlug, data, data.market, customDomain)
-    : buildLegacySitemap(storeSlug, data, customDomain);
+  // Market with indexing switched off (M6 §1): nothing to advertise. robots.txt
+  // still allows crawling so the pages' noindex can be read.
+  const xml = data.market?.noindex
+    ? wrapUrlset([])
+    : marketKey && data.market
+      ? buildMarketSitemap(storeSlug, data, data.market, customDomain)
+      : buildLegacySitemap(storeSlug, data, customDomain);
 
   return new Response(xml, {
     headers: {

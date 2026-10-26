@@ -2,6 +2,7 @@
   "common": {
     "home": "Home",
     "products": "Products",
+    "collections": "Collections",
     "categories": "Categories",
     "about": "About",
     "contact": "Contact",
@@ -445,7 +446,6 @@
     "productsCount": "products",
     "productSingular": "product",
     "store_collections": "Store Collections",
-    "all_collections": "All collections",
     "explore_collections": "Explore our collections",
     "collectionSingular": "collection",
     "collectionsCount": "collections",

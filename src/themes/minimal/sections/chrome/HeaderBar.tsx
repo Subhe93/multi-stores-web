@@ -10,7 +10,7 @@
 import Link from 'next/link';
 import { Search, User, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { storeHref } from '@/lib/storeUrl';
+import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
@@ -24,7 +24,8 @@ interface NavItem {
   url?: string;
 }
 
-// A resolved nav entry with localized URL and optional one-level children.
+// A resolved nav entry with localized URL and nested children (up to three
+// levels: top / dropdown / indented group, M6 §4).
 interface NavNode {
   label: string;
   url: string;
@@ -32,48 +33,36 @@ interface NavNode {
   children?: NavNode[];
 }
 
-// Turn a flat, ordered menu item list (with parent_id) into a 1-level tree.
-// Top-level entries keep their order; each item's children are nested under it.
+// Turn a flat, ordered menu item list (with parent_id) into a tree. Siblings
+// keep their order; an item whose parent is unknown becomes top-level. The
+// API caps menus at three levels (MENU_MAX_DEPTH); the renderers below show
+// at most that many.
 function buildNavTree(flat: NavMenuItem[], lp: string, locale: string): NavNode[] {
-  const toNode = (it: NavMenuItem): NavNode => ({
-    label: it.label,
-    url: localizeUrl(it.url, lp, locale),
-    open_in_new_tab: it.open_in_new_tab,
-    children: [],
-  });
-  const tops: NavNode[] = [];
   const byId = new Map<string, NavNode>();
   for (const it of flat) {
-    if (!it.parent_id) {
-      const node = toNode(it);
-      byId.set(it.id, node);
-      tops.push(node);
-    }
+    byId.set(it.id, {
+      label: it.label,
+      url: localizeUrl(it.url, lp, locale),
+      open_in_new_tab: it.open_in_new_tab,
+      children: [],
+    });
   }
+  const tops: NavNode[] = [];
   for (const it of flat) {
-    if (it.parent_id) {
-      const parent = byId.get(it.parent_id);
-      (parent ? parent.children! : tops).push(toNode(it));
-    }
+    const node = byId.get(it.id)!;
+    const parent = it.parent_id ? byId.get(it.parent_id) : undefined;
+    (parent ? parent.children! : tops).push(node);
   }
   return tops;
 }
 
-// Storefront links use the canonical browser scheme enforced by the proxy:
-// the store is served on its own (sub)domain with clean paths, and secondary
-// locales carry a `/[locale]` prefix while the primary locale stays bare.
-// `lp` is that prefix ('' for primary, '/ar' etc. for secondary). Internal
-// nav targets are prefixed with it; external links and anchors are left as-is.
-function localizeUrl(rawUrl: string | undefined, lp: string, locale: string): string {
-  if (!rawUrl) return '#';
-  // An absolute platform URL becomes a same-host path first (see storeHref).
-  const url = storeHref(rawUrl);
-  // External (http/mailto/tel), protocol-relative, and in-page anchors: untouched.
-  if (!url.startsWith('/') || url.startsWith('//')) return url;
-  if (!lp) return url; // primary locale needs no prefix
-  // Don't double-prefix a URL the creator already localized.
-  if (url === `/${locale}` || url.startsWith(`/${locale}/`)) return url;
-  return `${lp}${url}`;
+// Storefront links use the canonical browser scheme enforced by the proxy
+// (shared with FooterColumns — see `localizeStoreUrl`).
+const localizeUrl = localizeStoreUrl;
+
+// `target`/`rel` for an item the creator marked "open in new tab".
+function newTabProps(flag: boolean | undefined) {
+  return flag ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 }
 
 type StickyMode = 'always' | 'desktop' | 'mobile' | 'none';
@@ -215,6 +204,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                     <ActiveLink
                       key={i}
                       href={item.url || '#'}
+                      {...newTabProps(item.open_in_new_tab)}
                       className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
                       activeStyle={{ color: accent }}
                       activeClassName="bg-black/5"
@@ -229,6 +219,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                   <div key={i} className="relative group">
                     <ActiveLink
                       href={item.url || '#'}
+                      {...newTabProps(item.open_in_new_tab)}
                       className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition inline-flex items-center gap-1"
                       activeStyle={{ color: accent }}
                       activeClassName="bg-black/5"
@@ -242,16 +233,30 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                         style={{ backgroundColor: bg, borderColor }}
                       >
                         {children.map((child, ci) => (
-                          <Link
-                            key={ci}
-                            href={child.url || '#'}
-                            {...(child.open_in_new_tab
-                              ? { target: '_blank', rel: 'noopener noreferrer' }
-                              : {})}
-                            className="block px-3 py-2 text-sm hover:bg-black/5 transition whitespace-nowrap"
-                          >
-                            {child.label}
-                          </Link>
+                          <div key={ci}>
+                            <Link
+                              href={child.url || '#'}
+                              {...newTabProps(child.open_in_new_tab)}
+                              className="block px-3 py-2 text-sm hover:bg-black/5 transition whitespace-nowrap"
+                            >
+                              {child.label}
+                            </Link>
+                            {/* Third level (M6 §4): indented under its parent. */}
+                            {child.children?.length ? (
+                              <div className="ms-3 mb-1 border-s ps-1" style={{ borderColor }}>
+                                {child.children.map((grandchild, gi) => (
+                                  <Link
+                                    key={gi}
+                                    href={grandchild.url || '#'}
+                                    {...newTabProps(grandchild.open_in_new_tab)}
+                                    className="block px-3 py-1.5 text-xs opacity-80 hover:opacity-100 hover:bg-black/5 transition whitespace-nowrap"
+                                  >
+                                    {grandchild.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
                         ))}
                       </div>
                     </div>

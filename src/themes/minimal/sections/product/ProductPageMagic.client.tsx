@@ -10,9 +10,10 @@
 
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
+import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import type { SectionRenderProps } from '../../../types';
 
 type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
@@ -60,13 +61,14 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
     p.translations?.find((tr) => tr.locale === locale)?.title ||
     p.translations?.[0]?.title ||
     'Product';
-  const primaryCollection = p.creator_categories?.[0];
-  const collectionName = primaryCollection
-    ? primaryCollection.translations?.find((ct) => ct.locale === locale)?.name ||
-      primaryCollection.translations?.find((ct) => ct.locale === 'en')?.name ||
-      primaryCollection.translations?.[0]?.name ||
-      primaryCollection.slug
-    : '';
+  // Home › Collections › ancestors… › primary › product (M6 §2), from the
+  // API's `primary_collection_path`; no primary → Home › Products › product.
+  const collectionCrumbs = resolvePrimaryCollectionPath(p).map((node) => ({
+    slug: node.slug,
+    name: collectionDisplayName(node, locale),
+  }));
+  // Separator points along the reading direction (RTL for Arabic).
+  const Crumb = locale === 'ar' ? ChevronLeft : ChevronRight;
 
   // Horizontal container + max-width come from the theme Layout (like every
   // other section), so only vertical breathing room is added here.
@@ -77,22 +79,33 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
         <Link href={`${langPrefix}/`} className="text-gray-400 hover:text-gray-700 transition-colors">
           {t('common.home')}
         </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-        <Link href={`${langPrefix}/products`} className="text-gray-400 hover:text-gray-700 transition-colors">
-          {t('common.products')}
-        </Link>
-        {primaryCollection && (
+        {collectionCrumbs.length > 0 ? (
           <>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-            <Link
-              href={`${langPrefix}/collections/${primaryCollection.slug}`}
-              className="text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              {collectionName}
+            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <Link href={`${langPrefix}/collections`} className="text-gray-400 hover:text-gray-700 transition-colors">
+              {t('common.collections')}
+            </Link>
+            {collectionCrumbs.map((c) => (
+              <span key={c.slug} className="contents">
+                <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                <Link
+                  href={`${langPrefix}/collections/${c.slug}`}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  {c.name}
+                </Link>
+              </span>
+            ))}
+          </>
+        ) : (
+          <>
+            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <Link href={`${langPrefix}/products`} className="text-gray-400 hover:text-gray-700 transition-colors">
+              {t('common.products')}
             </Link>
           </>
         )}
-        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+        <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
         <span className="text-gray-700 font-medium truncate max-w-50">{productTitle}</span>
       </nav>
 

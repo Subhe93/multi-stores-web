@@ -2,6 +2,7 @@
   "common": {
     "home": "Ana Sayfa",
     "products": "Ürünler",
+    "collections": "Koleksiyonlar",
     "categories": "Kategoriler",
     "about": "Hakkımızda",
     "contact": "İletişim",
@@ -445,7 +446,6 @@
     "productsCount": "ürün",
     "productSingular": "ürün",
     "store_collections": "Mağaza Koleksiyonları",
-    "all_collections": "Tüm koleksiyonlar",
     "explore_collections": "Koleksiyonlarımızı keşfedin",
     "collectionSingular": "koleksiyon",
     "collectionsCount": "koleksiyon",
