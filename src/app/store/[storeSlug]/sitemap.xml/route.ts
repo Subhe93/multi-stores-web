@@ -105,7 +105,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
   const allLocales = data.locales.length ? data.locales : [data.primaryLocale];
   const primary = data.primaryLocale || allLocales[0];
 
-  // Build one <url> entry. `path` is subdomain-relative ('' for home, `/p/foo`).
+  // Build one <url> entry. `path` is subdomain-relative ('' for home, `/foo`).
   // Primary locale = no prefix; secondary locales use `/{locale}/...` (Google
   // prefers path-prefix over query strings for hreflang).
   function urlEntry(path: string, lastmod: string | Date): string {
@@ -132,7 +132,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
 
   if (data.home) entries.push(urlEntry('', data.home.lastmod));
   for (const p of data.static_pages) entries.push(urlEntry(`/${p.slug}`, p.lastmod));
-  for (const p of data.landing_pages) entries.push(urlEntry(`/p/${p.slug}`, p.lastmod));
+  for (const p of data.landing_pages) entries.push(urlEntry(`/${p.slug}`, p.lastmod));
   for (const p of data.products) entries.push(urlEntry(`/products/${p.slug}`, p.lastmod));
   // Collections and legal pages were both absent, so nothing pointed crawlers
   // at them. The listing page is included too — it is the catalogue entry point.
@@ -187,7 +187,7 @@ function buildMarketSitemap(
   const entries: string[] = [];
   if (data.home) entries.push(...urlEntries('', data.home.lastmod));
   for (const p of data.static_pages) entries.push(...urlEntries(`/${p.slug}`, p.lastmod));
-  for (const p of data.landing_pages) entries.push(...urlEntries(`/p/${p.slug}`, p.lastmod));
+  for (const p of data.landing_pages) entries.push(...urlEntries(`/${p.slug}`, p.lastmod));
   for (const p of data.products) {
     const pathByLocale: Record<string, string> = {};
     for (const [loc, slug] of Object.entries(p.slugs ?? {})) {

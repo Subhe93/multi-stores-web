@@ -66,7 +66,9 @@ const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account
 async function fetchData(storeSlug: string, pageSlug: string) {
   const [store, v2, legacy] = await Promise.all([
     storefront.getStore(storeSlug, await getRequestMarket()).catch(() => null) as Promise<StoreLite | null>,
-    storefront.getPublishedPage(storeSlug, pageSlug, 'STATIC').catch(() => null) as Promise<V2Page | null>,
+    // M6.6: builder pages — STATIC or LANDING — are both served at the root
+    // (slugs are unique per store, so one lookup covers both).
+    storefront.getPublishedPage(storeSlug, pageSlug).catch(() => null) as Promise<V2Page | null>,
     storefront.getPage(storeSlug, pageSlug).catch(() => null) as Promise<LegacyPage | null>,
   ]);
   return { store, v2, legacy };
