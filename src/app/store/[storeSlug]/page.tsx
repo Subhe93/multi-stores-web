@@ -7,6 +7,7 @@ import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTr
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
@@ -197,6 +198,11 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   if (publishedHome?.snapshot?.sections?.length) {
     const theme = resolveTheme(store.theme_key);
     const primaryLocale = store.language_config?.primary_locale || 'en';
+    // M6.4: collection-products sections render their list from the server.
+    const preloaded = await preloadSectionData(storeSlug, publishedHome.snapshot.sections, {
+      locale,
+      marketRef: marketKey,
+    });
     return (
       <SectionRenderer
         theme={theme}
@@ -205,6 +211,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
         primaryLocale={primaryLocale}
         storeSlug={storeSlug}
         currency={storeCurrency}
+        preloaded={preloaded}
       />
     );
   }

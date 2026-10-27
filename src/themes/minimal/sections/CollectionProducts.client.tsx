@@ -5,10 +5,11 @@
 // Mirrors FeaturedProducts but pulls from a specific category instead of the
 // newest/featured catalogue-wide list.
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
+import { collectionProductsParams } from '@/lib/preloadSections';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
@@ -38,12 +39,14 @@ const CARD_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
+export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
-  // Stores a creator-category SLUG (picked from the builder dropdown). The
-  // storefront resolves it via the `creator_category` filter.
-  const categorySlug = (settings.category as string) || '';
+  // `settings.category` is a collection id (uuid, picked since M6.4 — may be
+  // an INTERNAL label) or a legacy collection slug. The request params map
+  // it to `creator_category_id` / `creator_category`; shared with the
+  // server-side preload so both fetch exactly the same list.
+  const categoryRef = (settings.category as string) || '';
   const limit = clamp((settings.limit as number) ?? 8, 1, 24);
   const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
@@ -54,39 +57,51 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
   const scopeClass = `cp-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
-  const [products, setProducts] = useState<ProductRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const t = useTranslations('product');
 
-  // Fetch on mount + whenever the category/locale/limit change. Public
-  // storefront API so this also works inside the builder iframe (no token).
   // Markets app: prices come back in the market currency (and a draft
   // market on its preview host needs the preview flag). Undefined without
   // the app, so the request URL is unchanged for other stores.
   const market = useMarket();
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
-  const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+
+  // The list is keyed by the request it answers. `loading` is derived from
+  // "requested key !== loaded key", so the effect never sets state
+  // synchronously (react-hooks rule) and a re-run with the same key (strict
+  // mode) is a no-op. Server-preloaded products (M6.4) seed the state under
+  // the mount key, so the server HTML and the client's first render are
+  // identical and the mount fetch is skipped; any later change of the deps
+  // yields a new key and re-fetches as before.
+  const requestKey = [storeSlug, locale, limit, categoryRef, marketKey ?? '', marketPreview ? '1' : ''].join('|');
+  const [loaded, setLoaded] = useState<{ key: string; products: ProductRow[] } | null>(() =>
+    Array.isArray(preloaded) ? { key: requestKey, products: preloaded as ProductRow[] } : null,
+  );
+  const loading = loaded?.key !== requestKey;
+  const products = loaded?.key === requestKey ? loaded.products : [];
+  const loadedKeyRef = useRef<string | null>(loaded?.key ?? null);
+
+  // Fetch on mount (unless preloaded) + whenever the category/locale/limit/
+  // market change. Public storefront API so this also works inside the
+  // builder iframe (no token).
   useEffect(() => {
+    if (loadedKeyRef.current === requestKey) return;
     let cancelled = false;
-    setLoading(true);
-    const params: Record<string, string> = { locale, limit: String(limit) };
-    if (categorySlug) params.creator_category = categorySlug;
+    const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+    const params = collectionProductsParams({ locale, limit, category: categoryRef });
+    const settle = (list: ProductRow[]) => {
+      if (cancelled) return;
+      loadedKeyRef.current = requestKey;
+      setLoaded({ key: requestKey, products: list });
+    };
     storefront
       .getProducts(storeSlug, params, marketRef)
-      .then((list) => {
-        if (!cancelled) setProducts((list as ProductRow[]).slice(0, limit));
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .then((list) => settle((list as ProductRow[]).slice(0, limit)))
+      .catch(() => settle([]));
     return () => {
       cancelled = true;
     };
-  }, [storeSlug, locale, limit, categorySlug, marketKey, marketPreview]);
+  }, [requestKey, storeSlug, locale, limit, categoryRef, marketKey, marketPreview]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.
@@ -170,12 +185,12 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
         >
           <p className="text-sm">
             {locale === 'ar'
-              ? categorySlug
-                ? 'لا توجد منتجات في هذه الفئة بعد.'
-                : 'اختر فئة من البيلدر لعرض منتجاتها.'
-              : categorySlug
-                ? 'No products in this category yet.'
-                : 'Pick a category from the builder to show its products.'}
+              ? categoryRef
+                ? 'لا توجد منتجات في هذه المجموعة بعد.'
+                : 'اختر مجموعة من البيلدر لعرض منتجاتها.'
+              : categoryRef
+                ? 'No products in this collection yet.'
+                : 'Pick a collection from the builder to show its products.'}
           </p>
         </div>
       ) : (

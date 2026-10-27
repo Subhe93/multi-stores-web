@@ -336,6 +336,12 @@ export interface SectionRenderProps {
   // Populated by StoreLayout when rendering HEADER / FOOTER chrome. Undefined
   // for page sections — they shouldn't depend on global store data.
   storeContext?: StoreContext;
+  // Data a route fetched server-side for this section instance (M6.4, see
+  // lib/preloadSections.ts). Shape is section-specific; a section that gets
+  // it renders from it on the server and skips its mount fetch. Undefined in
+  // the builder preview and whenever the preload failed — the section then
+  // fetches client-side as before.
+  preloaded?: unknown;
 }
 
 export interface SectionDefinition {

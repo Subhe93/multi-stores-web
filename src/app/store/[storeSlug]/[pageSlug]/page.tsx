@@ -7,6 +7,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
 
 // Static pages now have two backends:
@@ -158,6 +159,11 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   if (v2 && v2.snapshot?.sections?.length) {
     const theme = resolveTheme(store?.theme_key);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
+    // M6.4: collection-products sections render their list from the server.
+    const preloaded = await preloadSectionData(storeSlug, v2.snapshot.sections, {
+      locale,
+      marketRef: await getRequestMarket(),
+    });
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <SectionRenderer
@@ -166,6 +172,7 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
           locale={locale}
           primaryLocale={primaryLocale}
           storeSlug={storeSlug}
+          preloaded={preloaded}
         />
       </div>
     );

@@ -11,6 +11,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
 
@@ -216,6 +217,11 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const templateSections = template?.snapshot?.sections;
   if (templateSections && templateSections.length > 0) {
     const tplLocale = lang || ldPrimary;
+    // M6.4: collection-products sections render their list from the server.
+    const preloaded = await preloadSectionData(storeSlug, templateSections, {
+      locale: tplLocale,
+      marketRef: marketKey,
+    });
     const listing: ListingContext = {
       kind: 'catalog',
       // Card-level projection only — see lib/listing.ts.
@@ -246,6 +252,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           storeSlug={storeSlug}
           currency={currency}
           listing={listing}
+          preloaded={preloaded}
         />
       </div>
     );

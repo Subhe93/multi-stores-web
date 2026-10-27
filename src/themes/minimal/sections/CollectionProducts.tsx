@@ -6,18 +6,18 @@ import { CollectionProducts } from './CollectionProducts.client';
 export const collectionProductsSection: SectionDefinition = {
   schema: {
     id: 'collection-products',
-    label: { en: 'Products by Category', ar: 'منتجات حسب الفئة' },
+    label: { en: 'Collection products', ar: 'منتجات مجموعة' },
     icon: 'package',
     category: 'commerce',
     description: {
-      en: 'A grid of products pulled from one category. Independent column counts per breakpoint.',
-      ar: 'شبكة منتجات تُجلب من فئة واحدة. عدد أعمدة مستقل لكل جهاز.',
+      en: 'A grid of products pulled from one collection or internal label. Independent column counts per breakpoint.',
+      ar: 'شبكة منتجات تُجلب من مجموعة واحدة أو تصنيف داخلي. عدد أعمدة مستقل لكل جهاز.',
     },
     translatable: ['heading', 'subheading', 'link_label'],
     schema: [
       { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' } },
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' } },
-      { key: 'category', type: 'collectionPicker', label: { en: 'Category', ar: 'الفئة' }, description: { en: 'Pick one of your categories — its products fill the grid.', ar: 'اختر إحدى فئاتك — تُعرض منتجاتها في الشبكة.' } },
+      { key: 'category', type: 'collectionPicker', label: { en: 'Collection', ar: 'المجموعة' }, description: { en: 'Pick a storefront collection or an internal label — its products fill the grid.', ar: 'اختر مجموعة من المتجر أو تصنيفاً داخلياً — تُعرض منتجاتها في الشبكة.' } },
       {
         key: 'aspect',
         type: 'select',

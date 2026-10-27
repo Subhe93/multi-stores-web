@@ -24,6 +24,9 @@ interface SectionRendererProps {
   // Forwarded to chrome sections (HEADER / FOOTER) so they can render the
   // store name, logo, locales and pages without re-fetching.
   storeContext?: StoreContext;
+  // Server-preloaded data keyed by section id (M6.4, lib/preloadSections.ts).
+  // Each section only receives its own entry.
+  preloaded?: Record<string, unknown>;
   // Chrome mode (HEADER / FOOTER pages). Renders each section's wrappers as
   // `display: contents` so they don't generate a box. A boxed wrapper would
   // become the containing block of a `position: sticky` header and, being
@@ -49,6 +52,7 @@ export function SectionRenderer({
   listing,
   currency,
   storeContext,
+  preloaded,
   chrome,
 }: SectionRendererProps) {
   // In chrome mode the wrapper boxes are collapsed so a sticky header can
@@ -116,6 +120,7 @@ export function SectionRenderer({
                 listing={listing}
                 currency={currency}
                 storeContext={storeContext}
+                preloaded={preloaded?.[section.id]}
               />
             </div>
           );

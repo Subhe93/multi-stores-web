@@ -12,6 +12,7 @@ import { ProductDetailClient, type ProductData } from '@/components/product/Prod
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { preloadSectionData } from '@/lib/preloadSections';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
@@ -149,8 +150,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // Without a locale prefix in the URL the content is rendered in the store's
   // primary locale, not in English — so the store is read first (it is cached).
   let locale = lang || 'en';
+  const marketKey = await getRequestMarket();
   try {
-    const marketKey = await getRequestMarket();
     storeData = (await storefront.getStore(storeSlug, marketKey)) as StoreRecord | null;
     locale = lang || storeData?.language_config?.primary_locale || 'en';
     [product, template] = await Promise.all([
@@ -170,6 +171,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const templateSections = template?.snapshot?.sections;
   if (templateSections && templateSections.length > 0) {
     const theme = resolveTheme(storeData?.theme_key);
+    // M6.4: collection-products sections render their list from the server.
+    const preloaded = await preloadSectionData(storeSlug, templateSections, {
+      locale,
+      marketRef: marketKey,
+    });
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
     const tr =
       product.translations?.find((t) => t.locale === locale) ||
@@ -221,6 +227,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             storeSlug={storeSlug}
             product={product as ProductContext}
             currency={storeCurrency}
+            preloaded={preloaded}
           />
         </DesignerSessionProvider>
       </div>

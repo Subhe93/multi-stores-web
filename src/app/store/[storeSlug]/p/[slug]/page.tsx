@@ -8,6 +8,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 
 interface StoreLite {
@@ -136,6 +137,11 @@ export default async function LandingPage({ params, searchParams }: LandingProps
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const locale = resolveLocale(lang, primaryLocale, cookieLocale, headerLocale);
   const theme = resolveTheme(store?.theme_key);
+  // M6.4: collection-products sections render their list from the server.
+  const preloaded = await preloadSectionData(storeSlug, published.snapshot.sections, {
+    locale,
+    marketRef: await getRequestMarket(),
+  });
 
   return (
     <SectionRenderer
@@ -144,6 +150,7 @@ export default async function LandingPage({ params, searchParams }: LandingProps
       locale={locale}
       primaryLocale={primaryLocale}
       storeSlug={storeSlug}
+      preloaded={preloaded}
     />
   );
 }
