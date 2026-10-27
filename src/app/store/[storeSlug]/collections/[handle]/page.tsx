@@ -52,6 +52,8 @@ interface CreatorCategory {
   is_active?: boolean;
   thumbnail_url?: string | null;
   noindex_when_empty?: boolean;
+  // M6.3: the public tree only ever carries PUBLIC rows; typed for completeness.
+  visibility?: 'PUBLIC' | 'INTERNAL';
   published_product_count?: number;
   translations: CreatorCategoryTranslation[];
   children?: CreatorCategory[];
