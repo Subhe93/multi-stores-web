@@ -32,6 +32,9 @@ const CARD_ASPECT: Record<string, string> = {
 };
 
 const HERO_HEIGHTS: readonly HeroHeight[] = ['sm', 'md', 'lg'];
+// Prose styling shared by both long-description positions.
+const LONG_DESCRIPTION_CLASS =
+  'prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto';
 
 // A translation with a *usable* slug for the URL. Secondary-locale
 // translations sometimes have a degenerate slug (empty, or a stray "-" when
@@ -117,6 +120,11 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const showSort = settings.show_sort !== false;
   const showDescription = settings.show_description !== false;
   const showBackLink = settings.show_back_link !== false;
+  // M6.2: the long SEO text is an explicit section setting so the builder
+  // shows everything the collection page renders. Defaults keep older
+  // templates unchanged (on, below the products).
+  const showLongDescription = settings.show_long_description !== false;
+  const longDescriptionAbove = settings.long_description_position === 'above';
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
@@ -181,7 +189,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // so it is part of the server-rendered HTML. Skipped when the editor saved
   // only empty markup (e.g. "<p></p>").
   const collectionLongDescription =
-    isCollection && stripHtmlToText(collectionTranslation?.long_description)
+    isCollection && showLongDescription && stripHtmlToText(collectionTranslation?.long_description)
       ? collectionTranslation?.long_description || undefined
       : undefined;
   const isRTL = locale === 'ar';
@@ -606,15 +614,23 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           </>
         )}
 
+        {/* M6.2: long SEO description above the products when the section says so. */}
+        {collectionLongDescription && longDescriptionAbove && (
+          <div
+            className={`${LONG_DESCRIPTION_CLASS} mb-12 pb-10 border-b border-gray-100`}
+            dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
+          />
+        )}
+
         {/* Products grid */}
         {products.length === 0 ? emptyState : grid}
 
-        {/* M6.2: long SEO description below the products (collection page).
+        {/* M6.2: long SEO description below the products (default position).
             HTML is sanitised on write by the API; `dir` is inherited from the
             page wrapper, so RTL stays correct. */}
-        {collectionLongDescription && (
+        {collectionLongDescription && !longDescriptionAbove && (
           <div
-            className="mt-12 pt-10 border-t border-gray-100 prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+            className={`${LONG_DESCRIPTION_CLASS} mt-12 pt-10 border-t border-gray-100`}
             dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
           />
         )}
