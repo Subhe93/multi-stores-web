@@ -1088,7 +1088,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                       <Label htmlFor="ck_pwd" required>{t('checkout.password')}</Label>
                       <input id="ck_pwd" type="password" value={accountPassword}
                         onChange={(e) => setAccountPassword(e.target.value)}
-                        className={inputCls(!!fieldErrors.password)} placeholder="Min 8 characters" />
+                        className={inputCls(!!fieldErrors.password)} placeholder={t('checkout.passwordPlaceholder')} />
                       {fieldErrors.password && <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>}
                     </div>
                   )}

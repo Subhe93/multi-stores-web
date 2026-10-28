@@ -15,6 +15,7 @@ import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../.
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
 import { HeaderBarMobileMenu, type MobileMenuItem } from './HeaderBarMobileMenu.client';
+import { HeaderBarDesktopNav, type DesktopNavItem } from './HeaderBarDesktopNav.client';
 import { ActiveLink } from './ActiveLink.client';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
@@ -69,13 +70,21 @@ type StickyMode = 'always' | 'desktop' | 'mobile' | 'none';
 
 // Map the sticky mode → the position utility classes. `position: sticky`
 // can't be toggled per-breakpoint with a single class, so we compose
-// responsive variants.
+// responsive variants. Wherever the header is not sticky it is `relative`
+// so the full-width mega panel (submenu_style 'mega') anchors to the header
+// on every breakpoint; `relative` has no visual effect otherwise.
 const STICKY_CLASS: Record<StickyMode, string> = {
   always: 'sticky top-0 z-40',
-  desktop: 'md:sticky md:top-0 z-40', // static on mobile, sticky ≥ md
-  mobile: 'sticky top-0 md:static z-40', // sticky on mobile, static ≥ md
-  none: '',
+  desktop: 'relative md:sticky md:top-0 z-40', // static on mobile, sticky ≥ md
+  mobile: 'sticky top-0 md:relative z-40', // sticky on mobile, static ≥ md
+  none: 'relative',
 };
+
+// How a top-level item's sub-items open on desktop (`submenu_style`):
+// 'dropdown' — the CSS-only vertical list below (default, no JS);
+// 'mega'     — JS nav: items whose children have grandchildren open a
+//              full-width column panel, the rest keep a simple dropdown.
+type SubmenuStyle = 'dropdown' | 'mega';
 
 function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: SectionRenderProps) {
   const ctx = storeContext;
@@ -102,6 +111,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   // the newer `sticky_mode` select isn't present.
   const stickyMode: StickyMode =
     (settings.sticky_mode as StickyMode) || (settings.sticky === false ? 'none' : 'always');
+  const submenuStyle: SubmenuStyle = settings.submenu_style === 'mega' ? 'mega' : 'dropdown';
 
   const logoSize = numberOr(settings.logo_size, 32);
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
@@ -194,8 +204,17 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
           </Link>
 
           {/* Nav links — hidden < md (mobile uses the drawer above). Active
-              link gets the accent colour via the client ActiveLink wrapper. */}
-          {navItems.length > 0 && (
+              link gets the accent colour via the client ActiveLink wrapper.
+              'mega' style hands the desktop nav to a client component. */}
+          {navItems.length > 0 && submenuStyle === 'mega' && (
+            <HeaderBarDesktopNav
+              items={navItems as DesktopNavItem[]}
+              bg={bg}
+              borderColor={borderColor}
+              accent={accent}
+            />
+          )}
+          {navItems.length > 0 && submenuStyle === 'dropdown' && (
             <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item, i) => {
                 const children = item.children ?? [];
@@ -357,6 +376,20 @@ export const headerBarSection: SectionDefinition = {
           { value: 'none', label: { en: 'Never', ar: 'أبداً' } },
         ],
       },
+      {
+        key: 'submenu_style',
+        type: 'select',
+        label: { en: 'Submenu style (desktop)', ar: 'نمط القوائم الفرعية (سطح المكتب)' },
+        description: {
+          en: 'Mega menu: a top-level item whose sub-items have their own children opens a full-width panel (sub-items as column headings). Items without a third level keep the dropdown.',
+          ar: 'القائمة الموسّعة: العنصر الرئيسي الذي تحتوي عناصره الفرعية على عناصر أبناء يفتح لوحة بعرض كامل (العناصر الفرعية كعناوين أعمدة). العناصر بدون مستوى ثالث تبقى قائمة منسدلة.',
+        },
+        defaultValue: 'dropdown',
+        options: [
+          { value: 'dropdown', label: { en: 'Dropdown list', ar: 'قائمة منسدلة' } },
+          { value: 'mega', label: { en: 'Mega menu (columns)', ar: 'قائمة موسّعة (أعمدة)' } },
+        ],
+      },
       // Colors
       { key: 'bg_color', type: 'color', label: { en: 'Background color', ar: 'لون الخلفية' } },
       { key: 'text_color', type: 'color', label: { en: 'Text color', ar: 'لون النص' } },
@@ -386,6 +419,7 @@ export const headerBarSection: SectionDefinition = {
     show_account: false,
     show_locale: true,
     sticky_mode: 'always',
+    submenu_style: 'dropdown',
     logo_size: 32,
   },
 };

@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "Fermer"
   },
   "checkout": {
+    "passwordPlaceholder": "8 caractères minimum",
     "title": "Paiement",
     "shippingAddress": "Adresse de livraison",
     "shippingMethod": "Mode de livraison",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "La personnalisation d’un article de votre panier doit être mise à jour avant de passer commande."
   },
   "auth": {
+    "passwordPlaceholder": "Saisissez votre mot de passe",
+    "newPasswordPlaceholder": "Au moins 8 caractères",
     "loginTitle": "Se connecter",
     "dashboardAccountNotAllowed": "Ceci est un compte tableau de bord. Veuillez vous connecter avec un compte client ou continuer en tant qu'invité.",
     "registerTitle": "Créer un compte",
@@ -369,6 +372,7 @@
     "resetButton": "Réinitialiser le mot de passe"
   },
   "account": {
+    "fullNamePlaceholder": "Nom complet",
     "title": "Mon compte",
     "profile": "Profil",
     "orders": "Mes commandes",
@@ -511,6 +515,13 @@
     "customerExemptNotice": "Exonéré de TVA — aucune TVA n'est facturée sur cette commande"
   },
   "errors": {
+    "notFoundTitle": "Page introuvable",
+    "notFoundDescription": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour à l'accueil",
+    "browseProducts": "Voir les produits",
+    "errorTitle": "Une erreur est survenue",
+    "errorDescription": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "retry": "Réessayer",
     "generic": "Une erreur s'est produite. Veuillez réessayer.",
     "ORDER_SHIPPING_METHOD_INVALID": "Le mode de livraison sélectionné n'est plus disponible. Veuillez en choisir un autre.",
     "ORDER_KUSTOM_UNAVAILABLE": "Le paiement Kustom n'est pas disponible pour cette boutique pour le moment. Veuillez essayer un autre mode de paiement.",

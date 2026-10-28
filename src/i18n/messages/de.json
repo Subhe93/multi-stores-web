@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "Schließen"
   },
   "checkout": {
+    "passwordPlaceholder": "Mind. 8 Zeichen",
     "title": "Kasse",
     "shippingAddress": "Lieferadresse",
     "shippingMethod": "Versandart",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "Die Personalisierung eines Artikels in Ihrem Warenkorb muss aktualisiert werden, bevor Sie zur Kasse gehen können."
   },
   "auth": {
+    "passwordPlaceholder": "Passwort eingeben",
+    "newPasswordPlaceholder": "Mindestens 8 Zeichen",
     "loginTitle": "Anmelden",
     "dashboardAccountNotAllowed": "Dies ist ein Dashboard-Konto. Bitte melden Sie sich mit einem Kundenkonto an oder fahren Sie als Gast fort.",
     "registerTitle": "Konto erstellen",
@@ -369,6 +372,7 @@
     "resetButton": "Passwort zurücksetzen"
   },
   "account": {
+    "fullNamePlaceholder": "Vor- und Nachname",
     "title": "Mein Konto",
     "profile": "Profil",
     "orders": "Meine Bestellungen",
@@ -511,6 +515,13 @@
     "customerExemptNotice": "Steuerbefreit – für diese Bestellung wird keine MwSt. berechnet"
   },
   "errors": {
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundDescription": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "backHome": "Zur Startseite",
+    "browseProducts": "Produkte entdecken",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorDescription": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
     "ORDER_SHIPPING_METHOD_INVALID": "Die gewählte Versandart ist nicht mehr verfügbar. Bitte wählen Sie eine andere.",
     "ORDER_KUSTOM_UNAVAILABLE": "Der Kustom-Checkout ist für diesen Shop derzeit nicht verfügbar. Bitte wählen Sie eine andere Zahlungsmethode.",

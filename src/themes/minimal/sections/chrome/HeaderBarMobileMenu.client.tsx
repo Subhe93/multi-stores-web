@@ -159,15 +159,28 @@ function MobileRow({
   return (
     <div className={rowBorder} style={borderStyle}>
       <div className="flex items-stretch">
-        <Link
-          href={item.url}
-          onClick={onNavigate}
-          {...external}
-          className={`flex-1 pe-5 ${rowClass} hover:bg-black/5 transition`}
-          style={indent}
-        >
-          {item.label}
-        </Link>
+        {item.url && item.url !== '#' ? (
+          <Link
+            href={item.url}
+            onClick={onNavigate}
+            {...external}
+            className={`flex-1 pe-5 ${rowClass} hover:bg-black/5 transition`}
+            style={indent}
+          >
+            {item.label}
+          </Link>
+        ) : (
+          // A group heading (mega-menu column) has no page of its own: the
+          // label toggles its children like the chevron does.
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className={`flex-1 pe-5 text-start ${rowClass} hover:bg-black/5 transition`}
+            style={indent}
+          >
+            {item.label}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}

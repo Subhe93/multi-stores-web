@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, FocusEventHandler, ReactNode, Ref } from 'react';
 
 export function ActiveLink({
   href,
@@ -33,6 +33,10 @@ export function ActiveLink({
   title?: string;
   target?: string;
   rel?: string;
+  /** Focus hook + element ref — used by the mega-menu nav to open a submenu
+   *  when its trigger receives keyboard focus and to return focus on Escape. */
+  onFocus?: FocusEventHandler<HTMLAnchorElement>;
+  ref?: Ref<HTMLAnchorElement>;
 }) {
   const pathname = usePathname() || '';
   // Compare on pathname only — strip query/hash from the href before matching.

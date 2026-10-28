@@ -108,7 +108,7 @@ export default function StoreResetPasswordPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder={t('newPasswordPlaceholder')}
                 className={inputClass}
               />
             </div>

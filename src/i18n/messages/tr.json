@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "Kapat"
   },
   "checkout": {
+    "passwordPlaceholder": "En az 8 karakter",
     "title": "Ödeme",
     "shippingAddress": "Teslimat Adresi",
     "shippingMethod": "Teslimat Yöntemi",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "Ödemeye geçmeden önce sepetinizdeki bir ürünün kişiselleştirmesinin güncellenmesi gerekiyor."
   },
   "auth": {
+    "passwordPlaceholder": "Şifrenizi girin",
+    "newPasswordPlaceholder": "En az 8 karakter",
     "loginTitle": "Giriş Yap",
     "dashboardAccountNotAllowed": "Bu bir yönetim paneli hesabı. Lütfen bir müşteri hesabıyla giriş yapın veya misafir olarak devam edin.",
     "registerTitle": "Hesap Oluştur",
@@ -369,6 +372,7 @@
     "resetButton": "Parolayı Sıfırla"
   },
   "account": {
+    "fullNamePlaceholder": "Ad Soyad",
     "title": "Hesabım",
     "profile": "Profil",
     "orders": "Siparişlerim",
@@ -511,6 +515,13 @@
     "customerExemptNotice": "Vergiden muaf — bu siparişe KDV uygulanmaz"
   },
   "errors": {
+    "notFoundTitle": "Sayfa bulunamadı",
+    "notFoundDescription": "Aradığınız sayfa mevcut değil veya taşınmış.",
+    "backHome": "Ana sayfaya dön",
+    "browseProducts": "Ürünlere göz at",
+    "errorTitle": "Bir şeyler ters gitti",
+    "errorDescription": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+    "retry": "Tekrar dene",
     "generic": "Bir hata oluştu. Lütfen tekrar deneyin.",
     "ORDER_SHIPPING_METHOD_INVALID": "Seçilen kargo yöntemi artık kullanılamıyor. Lütfen başka bir yöntem seçin.",
     "ORDER_KUSTOM_UNAVAILABLE": "Kustom ödeme şu anda bu mağaza için kullanılamıyor. Lütfen başka bir ödeme yöntemi deneyin.",

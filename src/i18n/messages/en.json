@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "Dismiss"
   },
   "checkout": {
+    "passwordPlaceholder": "Min 8 characters",
     "title": "Checkout",
     "shippingAddress": "Shipping Address",
     "shippingMethod": "Shipping Method",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "The personalization of an item in your cart needs to be updated before you can check out."
   },
   "auth": {
+    "passwordPlaceholder": "Enter your password",
+    "newPasswordPlaceholder": "At least 8 characters",
     "loginTitle": "Sign In",
     "dashboardAccountNotAllowed": "This is a dashboard account. Please sign in with a customer account or continue as a guest.",
     "registerTitle": "Create Account",
@@ -369,6 +372,7 @@
     "resetButton": "Reset Password"
   },
   "account": {
+    "fullNamePlaceholder": "Full name",
     "title": "My Account",
     "profile": "Profile",
     "orders": "My Orders",
@@ -511,6 +515,13 @@
     "customerExemptNotice": "Tax exempt — no VAT charged on this order"
   },
   "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The page you are looking for doesn't exist or has been moved.",
+    "backHome": "Back to home",
+    "browseProducts": "Browse products",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "An unexpected error occurred. Please try again.",
+    "retry": "Try again",
     "generic": "Something went wrong. Please try again.",
     "ORDER_SHIPPING_METHOD_INVALID": "The selected shipping method is no longer available. Please choose another one.",
     "ORDER_KUSTOM_UNAVAILABLE": "Kustom checkout is not available for this store right now. Please try another payment method.",

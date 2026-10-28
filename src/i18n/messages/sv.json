@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "Stäng"
   },
   "checkout": {
+    "passwordPlaceholder": "Minst 8 tecken",
     "title": "Kassa",
     "shippingAddress": "Leveransadress",
     "shippingMethod": "Fraktsätt",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "Personaliseringen av en artikel i din varukorg måste uppdateras innan du kan gå till kassan."
   },
   "auth": {
+    "passwordPlaceholder": "Ange ditt lösenord",
+    "newPasswordPlaceholder": "Minst 8 tecken",
     "loginTitle": "Logga in",
     "dashboardAccountNotAllowed": "Detta är ett instrumentpanelskonto. Logga in med ett kundkonto eller fortsätt som gäst.",
     "registerTitle": "Skapa konto",
@@ -369,6 +372,7 @@
     "resetButton": "Återställ lösenord"
   },
   "account": {
+    "fullNamePlaceholder": "För- och efternamn",
     "title": "Mitt konto",
     "profile": "Profil",
     "orders": "Mina beställningar",
@@ -415,7 +419,7 @@
     "fileRemoved": "Borttagen efter lagringstiden",
     "orderNotFound": "Ordern hittades inte",
     "backToOrders": "Tillbaka till ordrar",
-    "orderTitle": "Order #{number}",
+    "orderTitle": "Beställning #{number}",
     "note": "Notering"
   },
   "orderStatus": {
@@ -511,6 +515,13 @@
     "customerExemptNotice": "Momsbefriad – ingen moms debiteras på denna order"
   },
   "errors": {
+    "notFoundTitle": "Sidan hittades inte",
+    "notFoundDescription": "Sidan du letar efter finns inte eller har flyttats.",
+    "backHome": "Tillbaka till startsidan",
+    "browseProducts": "Se alla produkter",
+    "errorTitle": "Något gick fel",
+    "errorDescription": "Ett oväntat fel inträffade. Försök igen.",
+    "retry": "Försök igen",
     "generic": "Något gick fel. Försök igen.",
     "ORDER_SHIPPING_METHOD_INVALID": "Den valda fraktmetoden är inte längre tillgänglig. Välj en annan.",
     "ORDER_KUSTOM_UNAVAILABLE": "Kustom-kassan är inte tillgänglig för den här butiken just nu. Prova ett annat betalsätt.",

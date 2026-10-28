@@ -103,7 +103,7 @@ export default function StoreRegisterPage() {
             {t('password')}
           </label>
           <input id="password" type="password" required value={password}
-            onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" className={inputClass} />
+            onChange={(e) => setPassword(e.target.value)} placeholder={t('newPasswordPlaceholder')} className={inputClass} />
         </div>
 
         <div>

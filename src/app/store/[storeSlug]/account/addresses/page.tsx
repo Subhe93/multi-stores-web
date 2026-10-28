@@ -184,7 +184,7 @@ export default function StoreAddressesPage() {
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-700 mb-1">{tCheckout('firstName')} & {tCheckout('lastName')}</label>
               <input name="full_name" required value={form.full_name} onChange={handleChange}
-                placeholder="John Doe" className={inputCls} />
+                placeholder={t('fullNamePlaceholder')} className={inputCls} />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-700 mb-1">{tCheckout('address')}</label>

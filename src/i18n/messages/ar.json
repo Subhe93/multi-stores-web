@@ -216,6 +216,7 @@
     "couponNoticeDismiss": "إغلاق"
   },
   "checkout": {
+    "passwordPlaceholder": "8 أحرف على الأقل",
     "title": "إتمام الشراء",
     "shippingAddress": "عنوان الشحن",
     "shippingMethod": "طريقة الشحن",
@@ -333,6 +334,8 @@
     "personalizationInvalidGeneric": "يجب تحديث تخصيص أحد المنتجات في سلتك قبل إتمام الطلب."
   },
   "auth": {
+    "passwordPlaceholder": "أدخل كلمة المرور",
+    "newPasswordPlaceholder": "8 أحرف على الأقل",
     "loginTitle": "تسجيل الدخول",
     "dashboardAccountNotAllowed": "هذا حساب لوحة تحكم. سجّل الدخول بحساب عميل أو تابع كزائر.",
     "registerTitle": "إنشاء حساب",
@@ -369,6 +372,7 @@
     "resetButton": "إعادة تعيين كلمة المرور"
   },
   "account": {
+    "fullNamePlaceholder": "الاسم الكامل",
     "title": "حسابي",
     "profile": "الملف الشخصي",
     "orders": "طلباتي",
@@ -511,6 +515,13 @@
     "customerExemptNotice": "معفى من الضريبة — لا تُحتسب ضريبة القيمة المضافة على هذا الطلب"
   },
   "errors": {
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundDescription": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "backHome": "العودة إلى الرئيسية",
+    "browseProducts": "تصفح المنتجات",
+    "errorTitle": "حدث خطأ ما",
+    "errorDescription": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+    "retry": "حاول مرة أخرى",
     "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     "ORDER_SHIPPING_METHOD_INVALID": "طريقة الشحن المحددة لم تعد متاحة. يرجى اختيار طريقة أخرى.",
     "ORDER_KUSTOM_UNAVAILABLE": "الدفع عبر Kustom غير متاح لهذا المتجر حالياً. يرجى تجربة طريقة دفع أخرى.",
