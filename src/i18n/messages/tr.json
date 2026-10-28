@@ -809,5 +809,13 @@
     "backSide": "Arka yüz",
     "backCanvasLabel": "Arka yüz önizlemesi",
     "doubleSided": "Çift taraflı"
+  },
+  "consent": {
+    "title": "Çerez kullanıyoruz",
+    "description": "Mağazayı geliştirmek ve size uygun teklifler göstermek için analiz ve pazarlama amaçlı çerezler ve benzeri teknolojiler kullanıyoruz. Kabul edebilir veya reddedebilirsiniz; seçiminiz bir yıl boyunca hatırlanır.",
+    "accept": "Tümünü kabul et",
+    "reject": "Reddet",
+    "settings": "Çerez politikamızı okuyun",
+    "manage": "Çerez ayarları"
   }
 }

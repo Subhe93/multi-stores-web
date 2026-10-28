@@ -28,6 +28,8 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
+import { StoreTracking } from '@/components/tracking/StoreTracking';
+import { COOKIE_POLICY_SLUGS, hasTrackingIds, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
 
 // ---------- Type definitions ----------
 
@@ -72,6 +74,8 @@ interface Store {
   markets?: MarketRoute[];
   /** Checkout behaviour overrides (M5.1): absent for stores on the defaults. */
   checkout?: unknown;
+  /** Tracking ids + consent flag (3.9); always sent, ids null when unset. */
+  tracking?: StoreTrackingIds | null;
   custom_domain?: string | null;
   description?: string;
   logo_url?: string;
@@ -390,6 +394,16 @@ export default async function StoreLayout({
   // Published static pages forwarded to header and footer
   const pages = store.pages ?? [];
 
+  // Cookie banner (3.9): only stores with at least one tracking id render it.
+  // The banner links to the store's cookie page when one is published under
+  // a known slug; otherwise the link is simply omitted.
+  const hasTracking = hasTrackingIds(store.tracking);
+  const cookiePage = hasTracking
+    ? pages.find((p) => COOKIE_POLICY_SLUGS.includes(p.slug))
+    : undefined;
+  // Locale prefix is applied client-side (useLocalePath) like every page link.
+  const cookiePolicyHref = cookiePage ? `/${cookiePage.slug}` : null;
+
   // Platform legal pages (Privacy / Terms / Refund / Shipping). Fetched here
   // so the footer renders them with the same localized titles the admin
   // published. Soft-fail to an empty list so a transient API hiccup never
@@ -512,6 +526,11 @@ export default async function StoreLayout({
           )}
           {/* Market preview strip (nothing for other hosts). */}
           <MarketPreviewBanner />
+          {/* Cookie consent + vendor tags: nothing in the tree for stores
+              without tracking ids (no layout shift, no scripts). */}
+          {hasTracking && (
+            <StoreTracking storeSlug={storeSlug} tracking={store.tracking} policyHref={cookiePolicyHref} />
+          )}
           {/* Site-wide structured data: Organization + WebSite. */}
           <script
             type="application/ld+json"

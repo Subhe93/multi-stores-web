@@ -809,5 +809,13 @@
     "backSide": "Baksida",
     "backCanvasLabel": "Förhandsvisning av baksidan",
     "doubleSided": "Dubbelsidig"
+  },
+  "consent": {
+    "title": "Vi använder cookies",
+    "description": "Vi använder cookies och liknande tekniker för analys och marknadsföring så att vi kan förbättra butiken och visa relevanta erbjudanden. Du kan acceptera eller avböja; ditt val sparas i ett år.",
+    "accept": "Acceptera alla",
+    "reject": "Avböj",
+    "settings": "Läs vår cookiepolicy",
+    "manage": "Cookieinställningar"
   }
 }

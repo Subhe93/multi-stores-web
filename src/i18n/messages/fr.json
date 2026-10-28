@@ -809,5 +809,13 @@
     "backSide": "Verso",
     "backCanvasLabel": "Aperçu du verso",
     "doubleSided": "Recto verso"
+  },
+  "consent": {
+    "title": "Nous utilisons des cookies",
+    "description": "Nous utilisons des cookies et des technologies similaires à des fins d'analyse et de marketing pour améliorer la boutique et vous proposer des offres pertinentes. Vous pouvez les accepter ou les refuser ; votre choix est conservé pendant un an.",
+    "accept": "Tout accepter",
+    "reject": "Refuser",
+    "settings": "Lire notre politique de cookies",
+    "manage": "Paramètres des cookies"
   }
 }

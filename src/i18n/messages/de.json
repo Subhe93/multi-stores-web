@@ -809,5 +809,13 @@
     "backSide": "Rückseite",
     "backCanvasLabel": "Vorschau der Rückseite",
     "doubleSided": "Doppelseitig"
+  },
+  "consent": {
+    "title": "Wir verwenden Cookies",
+    "description": "Wir verwenden Cookies und ähnliche Technologien für Analyse und Marketing, um den Shop zu verbessern und passende Angebote zu zeigen. Sie können sie annehmen oder ablehnen; Ihre Wahl wird ein Jahr lang gespeichert.",
+    "accept": "Alle akzeptieren",
+    "reject": "Ablehnen",
+    "settings": "Unsere Cookie-Richtlinie lesen",
+    "manage": "Cookie-Einstellungen"
   }
 }
