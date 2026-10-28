@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { collectionHref } from '@/lib/collectionPath';
-import { buildTwitterMeta } from '@/lib/jsonld';
+import { buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { buildHomeJsonLd } from '@/lib/pageJsonLd';
 import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTree } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
@@ -34,6 +35,8 @@ interface Store {
   name: string;
   description?: string;
   currency?: string;
+  custom_domain?: string | null;
+  market?: MarketRoute | null;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
   language_config?: {
@@ -196,6 +199,27 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // Currency from the store, used by sections that render prices (FeaturedProducts).
   const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';
 
+  const trans = store.theme?.translations?.[locale];
+  const storeName = trans?.name || store.name;
+  const storeDescription = trans?.description || store.description;
+
+  // JSON-LD: the home as a WebPage of the layout's WebSite. Organization and
+  // WebSite themselves come from the layout, so only the page node is added;
+  // url is the store origin (same resolution as the canonical above).
+  const homeTr = publishedHome?.snapshot?.page?.translations?.find((x) => x.locale === locale);
+  const homeLd = buildHomeJsonLd({
+    origin: buildStoreOrigin(storeSlug, store.custom_domain || null, store.market),
+    locale,
+    primaryLocale: store.language_config?.primary_locale || 'en',
+    name: storeName,
+    description: homeTr?.meta_description || storeDescription,
+    canonical: publishedHome?.seo?.canonical,
+    robots: publishedHome?.seo?.robots,
+  });
+  const homeLdScript = homeLd ? (
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(homeLd) }} />
+  ) : null;
+
   // If the creator has published a v2 home, render it through the active theme.
   // CSS variables for the theme are already injected by the parent layout.
   if (publishedHome?.snapshot?.sections?.length) {
@@ -207,15 +231,18 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
       marketRef: marketKey,
     });
     return (
-      <SectionRenderer
-        theme={theme}
-        sections={publishedHome.snapshot.sections}
-        locale={locale}
-        primaryLocale={primaryLocale}
-        storeSlug={storeSlug}
-        currency={storeCurrency}
-        preloaded={preloaded}
-      />
+      <>
+        {homeLdScript}
+        <SectionRenderer
+          theme={theme}
+          sections={publishedHome.snapshot.sections}
+          locale={locale}
+          primaryLocale={primaryLocale}
+          storeSlug={storeSlug}
+          currency={storeCurrency}
+          preloaded={preloaded}
+        />
+      </>
     );
   }
 
@@ -236,10 +263,6 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     .filter((c) => c.is_active !== false)
     .slice(0, 6);
 
-  const trans = store.theme?.translations?.[locale];
-  const storeName = trans?.name || store.name;
-  const storeDescription = trans?.description || store.description;
-
   const trustItems = [
     { Icon: Truck, label: t('store.freeShipping') },
     { Icon: RefreshCw, label: t('store.freeReturns') },
@@ -249,6 +272,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
 
   return (
     <div>
+      {homeLdScript}
       {/* Hero section */}
       <section
         className="relative overflow-hidden text-white"

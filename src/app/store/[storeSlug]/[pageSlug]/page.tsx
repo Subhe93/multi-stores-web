@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildTwitterMeta } from '@/lib/jsonld';
+import { buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { buildLandingJsonLd } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
@@ -48,6 +50,7 @@ interface V2Page {
 }
 
 interface StoreLite {
+  name?: string;
   theme_key?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   custom_domain?: string | null;
@@ -151,10 +154,41 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   if (RESERVED_SLUGS.has(pageSlug)) notFound();
 
   const { store, v2, legacy } = await fetchData(storeSlug, pageSlug);
+  const t = await getTranslations();
 
   // The canonical (unprefixed) URL is the store's PRIMARY locale — falling
   // back to 'en' rendered English content on e.g. a German store's own URL.
   const locale = lang || store?.language_config?.primary_locale || 'en';
+
+  // JSON-LD: WebPage (CollectionPage when the page lists products) and a
+  // Home › page breadcrumb. The origin and locale URL follow the same rules
+  // as the canonical in generateMetadata; a noindex page emits nothing.
+  const ldOrigin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
+  const ldPrimary = store?.language_config?.primary_locale || 'en';
+  const renderPageLd = (input: {
+    name: string;
+    description?: string | null;
+    canonical?: string | null;
+    sections?: SectionInstance[] | null;
+    robots?: string | null;
+  }) => {
+    const ld = buildLandingJsonLd({
+      origin: ldOrigin,
+      path: `/${pageSlug}`,
+      locale,
+      primaryLocale: ldPrimary,
+      siteName: store?.name,
+      homeLabel: t('common.home'),
+      ...input,
+    });
+    if (!ld) return null;
+    return (
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(ld.page) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(ld.breadcrumb) }} />
+      </>
+    );
+  };
 
   // Prefer v2 — it carries the section layout the creator built. The CSS vars
   // from the parent layout are already in scope so sections render themed.
@@ -166,8 +200,19 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
       locale,
       marketRef: await getRequestMarket(),
     });
+    const tr =
+      v2.snapshot.page.translations.find((x) => x.locale === locale) ||
+      v2.snapshot.page.translations.find((x) => x.locale === primaryLocale) ||
+      v2.snapshot.page.translations[0];
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        {renderPageLd({
+          name: tr?.title || tr?.meta_title || pageSlug,
+          description: tr?.meta_description,
+          canonical: v2.seo?.canonical,
+          sections: v2.snapshot.sections,
+          robots: v2.seo?.robots,
+        })}
         <SectionRenderer
           theme={theme}
           sections={v2.snapshot.sections}
@@ -193,6 +238,7 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      {renderPageLd({ name: translation.title })}
       <h1 className="text-3xl font-bold text-gray-900 mb-8">{translation.title}</h1>
       {translation.content ? (
         <div
