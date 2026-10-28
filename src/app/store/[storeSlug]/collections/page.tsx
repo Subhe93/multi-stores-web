@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { collectionHref } from '@/lib/collectionPath';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
@@ -22,6 +23,8 @@ interface CreatorCategoryTranslation {
 interface CreatorCategory {
   id: string;
   slug: string;
+  /** M6.7: slugs root → self. */
+  path?: string[];
   is_active?: boolean;
   thumbnail_url?: string | null;
   translations: CreatorCategoryTranslation[];
@@ -169,7 +172,7 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
               return (
                 <Link
                   key={c.id}
-                  href={`${lp}/collections/${c.slug}`}
+                  href={`${lp}${collectionHref(c)}`}
                   className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md"
                 >
                   <div

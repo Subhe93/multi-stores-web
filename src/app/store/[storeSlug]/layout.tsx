@@ -293,6 +293,8 @@ export default async function StoreLayout({
   // Failing softly here keeps the store rendering if the endpoint hiccups.
   interface RawCreatorCategory {
     slug: string;
+    /** M6.7: slugs root → self. */
+    path?: string[];
     is_active?: boolean;
     thumbnail_url?: string | null;
     translations: { locale: string; name: string }[];
@@ -418,20 +420,26 @@ export default async function StoreLayout({
   };
   // Root / child / grandchild (M6 §3) — deeper nodes are not rendered.
   const NAV_COLLECTION_MAX_DEPTH = 2;
-  const toNavCollection = (c: RawCreatorCategory, depth: number): NavCollection => ({
-    slug: c.slug,
-    title: resolveCollectionTitle(c.translations, c.slug),
-    thumbnailUrl: c.thumbnail_url ?? null,
-    children:
-      depth < NAV_COLLECTION_MAX_DEPTH
-        ? (c.children || [])
-            .filter((ch) => ch.is_active !== false)
-            .map((ch) => toNavCollection(ch, depth + 1))
-        : [],
-  });
+  // `trail` = ancestor slugs, the fallback for the M6.7 hierarchical URL
+  // when the payload carries no `path`.
+  const toNavCollection = (c: RawCreatorCategory, depth: number, trail: string[]): NavCollection => {
+    const path = c.path?.length ? c.path : [...trail, c.slug];
+    return {
+      slug: c.slug,
+      path,
+      title: resolveCollectionTitle(c.translations, c.slug),
+      thumbnailUrl: c.thumbnail_url ?? null,
+      children:
+        depth < NAV_COLLECTION_MAX_DEPTH
+          ? (c.children || [])
+              .filter((ch) => ch.is_active !== false)
+              .map((ch) => toNavCollection(ch, depth + 1, path))
+          : [],
+    };
+  };
   const navCollections: NavCollection[] = creatorCategoriesRaw
     .filter((c) => c.is_active !== false)
-    .map((c) => toNavCollection(c, 0));
+    .map((c) => toNavCollection(c, 0, []));
 
   // Social and contact info from store theme
   const socials = store.theme?.socials;

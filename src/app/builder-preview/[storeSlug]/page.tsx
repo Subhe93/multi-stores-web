@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { storefront } from '@/lib/api';
+import { collectionHref, collectionPathFromTree } from '@/lib/collectionPath';
 import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
 import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -103,7 +104,9 @@ export default async function BuilderPreviewPage({
           collection,
           query: {},
           hero: isCollection ? store.theme?.hero?.collections : store.theme?.hero?.products,
-          basePath: collection ? `/collections/${collection.slug}` : '/products',
+          basePath: collection
+            ? collectionHref({ path: collection.path ?? collectionPathFromTree(tree, collection.id), slug: collection.slug })
+            : '/products',
           isFiltered: false,
         };
       }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { collectionHref } from '@/lib/collectionPath';
 import { buildTwitterMeta } from '@/lib/jsonld';
 import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTree } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -159,6 +160,8 @@ interface CreatorCategoryTranslation {
 interface CreatorCategory {
   id: string;
   slug: string;
+  /** M6.7: slugs root → self. */
+  path?: string[];
   is_active?: boolean;
   thumbnail_url?: string | null;
   translations: CreatorCategoryTranslation[];
@@ -351,7 +354,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
               return (
                 <Link
                   key={c.id}
-                  href={`${lp}/collections/${c.slug}`}
+                  href={`${lp}${collectionHref(c)}`}
                   className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {thumb ? (

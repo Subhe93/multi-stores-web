@@ -225,6 +225,8 @@ export interface ListingCollection {
     /** M6.2: long SEO description HTML (sanitised by the API) — shown below the products. */
     long_description?: string | null;
   }>;
+  /** M6.7: slugs root → self; the API sends it on every public node. */
+  path?: string[];
   children?: ListingCollection[];
 }
 
@@ -241,7 +243,7 @@ export interface ListingContext {
   query: { search?: string; sort?: string; category?: string; creator_category?: string };
   /** store.theme.hero.products | .collections (raw, unresolved). */
   hero?: HeroPageConfig;
-  /** '/products' or `/collections/${handle}` (no locale prefix). */
+  /** '/products' or `/collections/<root>/<child>/<self>` (M6.7 hierarchical path, no locale prefix). */
   basePath: string;
   isFiltered: boolean;
 }

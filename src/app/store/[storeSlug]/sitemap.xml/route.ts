@@ -1,12 +1,18 @@
 import { storefront } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/storeUrl';
 import { requestMarketRef, requestNoindex, type MarketRoute } from '@/lib/market';
+import { collectionHref } from '@/lib/collectionPath';
 
 interface SitemapPage {
   slug: string;
   lastmod: string | Date;
   /** Markets app only: translated slug per locale (products). */
   slugs?: Record<string, string>;
+}
+
+/** Collection entry (M6.7): `path` = slugs root → self for the hierarchical URL. */
+interface SitemapCollection extends SitemapPage {
+  path?: string[];
 }
 
 interface SitemapData {
@@ -16,7 +22,7 @@ interface SitemapData {
   static_pages: SitemapPage[];
   landing_pages: SitemapPage[];
   products: SitemapPage[];
-  collections?: SitemapPage[];
+  collections?: SitemapCollection[];
   legal_pages?: SitemapPage[];
   /** Markets app only (M1-DESIGN §4.3): present when `?market=` was sent. */
   market?: MarketRoute | null;
@@ -136,7 +142,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
   for (const p of data.products) entries.push(urlEntry(`/products/${p.slug}`, p.lastmod));
   // Collections and legal pages were both absent, so nothing pointed crawlers
   // at them. The listing page is included too — it is the catalogue entry point.
-  for (const c of data.collections ?? []) entries.push(urlEntry(`/collections/${c.slug}`, c.lastmod));
+  for (const c of data.collections ?? []) entries.push(urlEntry(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(urlEntry(`/legal/${p.slug}`, p.lastmod));
   entries.push(urlEntry('/products', data.home?.lastmod ?? new Date()));
 
@@ -195,7 +201,7 @@ function buildMarketSitemap(
     }
     entries.push(...urlEntries(`/products/${p.slug}`, p.lastmod, pathByLocale));
   }
-  for (const c of data.collections ?? []) entries.push(...urlEntries(`/collections/${c.slug}`, c.lastmod));
+  for (const c of data.collections ?? []) entries.push(...urlEntries(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(...urlEntries(`/legal/${p.slug}`, p.lastmod));
   entries.push(...urlEntries('/products', data.home?.lastmod ?? new Date()));
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
+import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { useTranslations } from 'next-intl';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
@@ -104,6 +104,8 @@ export interface ProductData {
   creator_categories?: {
     id: string;
     slug: string;
+    /** M6.7: slugs root → self. */
+    path?: string[];
     translations: { locale: string; name: string }[];
   }[];
   /** M6 §2: id of the primary creator collection; null when none is linked. */
@@ -112,6 +114,8 @@ export interface ProductData {
   primary_collection_path?: {
     id: string;
     slug: string;
+    /** M6.7: slugs root → self. */
+    path?: string[];
     translations: { locale: string; name: string }[];
   }[];
   faqs?: {
@@ -749,7 +753,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             const collectionName = collectionDisplayName(collection, locale);
             return (
               <Link
-                href={`${langPrefix}/collections/${collection.slug}`}
+                href={`${langPrefix}${collectionHref({ path: collectionPathInChain(path, path.length - 1), slug: collection.slug })}`}
                 className="-order-2 text-xs font-medium uppercase tracking-widest hover:underline w-fit md:order-0"
                 style={{ color: 'var(--store-primary, #2563eb)' }}
               >

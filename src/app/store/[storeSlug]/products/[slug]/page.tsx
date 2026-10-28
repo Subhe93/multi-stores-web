@@ -15,7 +15,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
-import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
+import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
@@ -265,9 +265,13 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // Home › Collections › ancestors… › primary › product (M6 §2). The path
   // comes from the API (`primary_collection_path`, root → leaf); products
   // without a primary collection fall back to Home › Products › product.
-  const collectionCrumbs = resolvePrimaryCollectionPath(product).map((node) => ({
+  // Each crumb links to its hierarchical URL (M6.7): the node's `path`, or
+  // the chain prefix for payloads without it.
+  const primaryChain = resolvePrimaryCollectionPath(product);
+  const collectionCrumbs = primaryChain.map((node, i) => ({
     slug: node.slug,
     name: collectionDisplayName(node, locale),
+    href: collectionHref({ path: collectionPathInChain(primaryChain, i), slug: node.slug }),
   }));
   // Separator points along the reading direction (RTL for Arabic).
   const Crumb = locale === 'ar' ? ChevronLeft : ChevronRight;
@@ -279,7 +283,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
           { name: t('common.collections'), url: storeLocalePath(storeBase, locale, ldPrimary, '/collections') },
           ...collectionCrumbs.map((c) => ({
             name: c.name,
-            url: storeLocalePath(storeBase, locale, ldPrimary, `/collections/${c.slug}`),
+            url: storeLocalePath(storeBase, locale, ldPrimary, c.href),
           })),
         ]
       : [{ name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products') }]),
@@ -324,7 +328,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
               <span key={c.slug} className="contents">
                 <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                 <Link
-                  href={`${lp}/collections/${c.slug}`}
+                  href={`${lp}${c.href}`}
                   className="text-gray-400 hover:text-gray-700 transition-colors"
                 >
                   {c.name}

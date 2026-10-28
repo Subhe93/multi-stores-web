@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
-import { collectionDisplayName, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
+import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import type { SectionRenderProps } from '../../../types';
 
 type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
@@ -63,9 +63,12 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
     'Product';
   // Home › Collections › ancestors… › primary › product (M6 §2), from the
   // API's `primary_collection_path`; no primary → Home › Products › product.
-  const collectionCrumbs = resolvePrimaryCollectionPath(p).map((node) => ({
+  // Each crumb links to its hierarchical URL (M6.7).
+  const primaryChain = resolvePrimaryCollectionPath(p);
+  const collectionCrumbs = primaryChain.map((node, i) => ({
     slug: node.slug,
     name: collectionDisplayName(node, locale),
+    href: collectionHref({ path: collectionPathInChain(primaryChain, i), slug: node.slug }),
   }));
   // Separator points along the reading direction (RTL for Arabic).
   const Crumb = locale === 'ar' ? ChevronLeft : ChevronRight;
@@ -89,7 +92,7 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
               <span key={c.slug} className="contents">
                 <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                 <Link
-                  href={`${langPrefix}/collections/${c.slug}`}
+                  href={`${langPrefix}${c.href}`}
                   className="text-gray-400 hover:text-gray-700 transition-colors"
                 >
                   {c.name}

@@ -18,6 +18,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { resolveHero, type HeroHeight, type HeroPageConfig } from '@/lib/hero';
 import { ProductCard } from '@/components/product/ProductCard';
 import { stripHtmlToText } from '@/lib/collectionSeo';
+import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
 
 function clamp(n: number, min: number, max: number): number {
@@ -197,6 +198,14 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // Ancestors of the current collection, root first (M6 §3).
   const collectionPath = (listing.collectionPath || []).filter((c) => c.is_active !== false);
   const subCollections = (collection?.children || []).filter((c) => c.is_active !== false);
+  // M6.7 hierarchical URLs: an ancestor's `path`, else its prefix of the
+  // ancestors chain; a child's `path`, else the current basePath + its slug.
+  const ancestorHref = (index: number) =>
+    collectionHref({ path: collectionPathInChain(collectionPath, index), slug: collectionPath[index]!.slug });
+  const childHref = (child: ListingCollection) =>
+    child.path?.length
+      ? collectionHref(child)
+      : `${listing.basePath.startsWith('/collections/') ? listing.basePath : '/collections'}/${child.slug}`;
 
   // ── URL builders (preserve the other active filters and the locale) ──
   const buildFilterUrl = (overrides: { category?: string | null; creator_category?: string | null }) => {
@@ -431,10 +440,10 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                 <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
                   {t('common.collections')}
                 </Link>
-                {collectionPath.map((a) => (
+                {collectionPath.map((a, i) => (
                   <span key={a.id} className="contents">
                     <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                    <Link href={`${lp}/collections/${a.slug}`} className="hover:opacity-100 hover:underline transition">
+                    <Link href={`${lp}${ancestorHref(i)}`} className="hover:opacity-100 hover:underline transition">
                       {pickCollectionTranslation(a.translations, locale)?.name || a.slug}
                     </Link>
                   </span>
@@ -483,10 +492,10 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
               <Link href={`${lp}/collections`} className="hover:text-gray-800 transition">
                 {t('common.collections')}
               </Link>
-              {collectionPath.map((a) => (
+              {collectionPath.map((a, i) => (
                 <span key={a.id} className="contents">
                   <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                  <Link href={`${lp}/collections/${a.slug}`} className="hover:text-gray-800 transition">
+                  <Link href={`${lp}${ancestorHref(i)}`} className="hover:text-gray-800 transition">
                     {pickCollectionTranslation(a.translations, locale)?.name || a.slug}
                   </Link>
                 </span>
@@ -602,7 +611,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                   return (
                     <Link
                       key={child.id}
-                      href={`${lp}/collections/${child.slug}`}
+                      href={`${lp}${childHref(child)}`}
                       className="px-4 py-2 rounded-full text-xs font-semibold bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
                     >
                       {tr?.name || child.slug}

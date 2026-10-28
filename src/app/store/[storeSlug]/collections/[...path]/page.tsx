@@ -7,7 +7,7 @@ import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/s
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
-import { findCollectionAncestors } from '@/lib/collectionPath';
+import { collectionHref, collectionPathInChain, resolveCollectionChain } from '@/lib/collectionPath';
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
@@ -56,12 +56,15 @@ interface CreatorCategory {
   // M6.3: the public tree only ever carries PUBLIC rows; typed for completeness.
   visibility?: 'PUBLIC' | 'INTERNAL';
   published_product_count?: number;
+  /** M6.7: slugs root → self (hierarchical URL). */
+  path?: string[];
   translations: CreatorCategoryTranslation[];
   children?: CreatorCategory[];
 }
 
 interface CollectionPageProps {
-  params: Promise<{ storeSlug: string; handle: string }>;
+  /** M6.7: catch-all segments `/collections/<root>/<child>/<grandchild>`. */
+  params: Promise<{ storeSlug: string; path: string[] }>;
   searchParams: Promise<{
     search?: string;
     lang?: string;
@@ -69,14 +72,14 @@ interface CollectionPageProps {
   }>;
 }
 
-// Flatten a tree of creator categories into a single list (for lookup by slug).
-function flattenCreatorCategories(tree: CreatorCategory[]): CreatorCategory[] {
-  const out: CreatorCategory[] = [];
-  for (const node of tree) {
-    out.push(node);
-    if (node.children?.length) out.push(...flattenCreatorCategories(node.children));
-  }
-  return out;
+/**
+ * M6.7: resolve the URL segments against the public tree — root first, each
+ * next segment a child of the previous, all active. A flat child URL
+ * (`/collections/<child>`), a wrong order, an extra segment or more than
+ * three segments do not resolve. Returns the chain root → leaf, or null.
+ */
+function resolveCollection(tree: CreatorCategory[], segments: string[]): CreatorCategory[] | null {
+  return resolveCollectionChain(tree, segments);
 }
 
 function pickTranslation(
@@ -95,7 +98,7 @@ export default async function CollectionPage({
   params,
   searchParams,
 }: CollectionPageProps) {
-  const { storeSlug, handle } = await params;
+  const { storeSlug, path: pathSegments } = await params;
   const { search, lang, sort } = await searchParams;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';
@@ -128,16 +131,21 @@ export default async function CollectionPage({
     } | null>,
   ]);
 
-  const flat = flattenCreatorCategories(creatorCategoriesTree || []);
-  const collection = flat.find((c) => c.slug === handle && c.is_active !== false);
-  if (!collection) notFound();
+  const chain = resolveCollection(creatorCategoriesTree || [], pathSegments || []);
+  if (!chain) notFound();
+  const collection = chain[chain.length - 1]!;
+  // The product filter keeps using the leaf slug; URLs use the full path.
+  const handle = collection.slug;
+  const collectionBase = collectionHref({ path: pathSegments, slug: handle });
 
   const collectionTranslation = pickTranslation(collection.translations, locale);
   const collectionName = collectionTranslation?.name || handle;
   // Ancestors root → parent (M6 §3): the breadcrumb is Home › Collections ›
-  // ancestors… › this. Inactive ancestors are skipped (their pages 404).
-  const ancestors = findCollectionAncestors(creatorCategoriesTree || [], collection.id)
-    .filter((a) => a.is_active !== false);
+  // ancestors… › this. Every ancestor is active (the resolver rejects the
+  // URL otherwise), and each links to its own hierarchical URL.
+  const ancestors = chain.slice(0, -1);
+  const ancestorHref = (index: number) =>
+    collectionHref({ path: collectionPathInChain(chain, index), slug: chain[index]!.slug });
   const collectionDescription = collectionTranslation?.description || undefined;
   // M6.2: long SEO text below the products. Skipped when the editor saved
   // only empty markup (e.g. "<p></p>").
@@ -186,7 +194,7 @@ export default async function CollectionPage({
     if (lang) p.set('lang', lang);
     if (s) p.set('sort', s);
     const qs = p.toString();
-    return `${lp}/collections/${handle}${qs ? `?${qs}` : ''}`;
+    return `${lp}${collectionBase}${qs ? `?${qs}` : ''}`;
   };
 
   // JSON-LD: this page is a product listing and a step in the site hierarchy.
@@ -198,7 +206,7 @@ export default async function CollectionPage({
     ldOrigin,
     locale,
     ldPrimary,
-    `/collections/${handle}`,
+    collectionBase,
   );
   const collectionLd = buildCollectionPage({
     name: collectionName,
@@ -221,9 +229,9 @@ export default async function CollectionPage({
   const collectionBreadcrumbLd = buildBreadcrumb([
     { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
     { name: t('common.collections'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/collections') },
-    ...ancestors.map((a) => ({
+    ...ancestors.map((a, i) => ({
       name: pickTranslation(a.translations, locale)?.name || a.slug,
-      url: storeLocalePath(ldOrigin, locale, ldPrimary, `/collections/${a.slug}`),
+      url: storeLocalePath(ldOrigin, locale, ldPrimary, ancestorHref(i)),
     })),
     { name: collectionName, url: collectionUrl },
   ]);
@@ -249,7 +257,7 @@ export default async function CollectionPage({
       collectionPath: ancestors,
       query: { search, sort },
       hero: storeData?.theme?.hero?.collections,
-      basePath: `/collections/${handle}`,
+      basePath: collectionBase,
       isFiltered: !!search,
     };
     return (
@@ -338,10 +346,10 @@ export default async function CollectionPage({
               <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
                 {t('common.collections')}
               </Link>
-              {ancestors.map((a) => (
+              {ancestors.map((a, i) => (
                 <span key={a.id} className="contents">
                   <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                  <Link href={`${lp}/collections/${a.slug}`} className="hover:opacity-100 hover:underline transition">
+                  <Link href={`${lp}${ancestorHref(i)}`} className="hover:opacity-100 hover:underline transition">
                     {pickTranslation(a.translations, locale)?.name || a.slug}
                   </Link>
                 </span>
@@ -447,7 +455,7 @@ export default async function CollectionPage({
                 return (
                   <Link
                     key={child.id}
-                    href={`${lp}/collections/${child.slug}`}
+                    href={`${lp}${collectionHref({ path: child.path ?? [...pathSegments, child.slug], slug: child.slug })}`}
                     className="px-4 py-2 rounded-full text-xs font-semibold bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     {tr?.name || child.slug}
@@ -540,7 +548,7 @@ export async function generateMetadata({
   params,
   searchParams,
 }: CollectionPageProps) {
-  const { storeSlug, handle } = await params;
+  const { storeSlug, path: pathSegments } = await params;
   const { lang } = await searchParams;
 
   try {
@@ -557,9 +565,10 @@ export async function generateMetadata({
     const secondary: string[] = store?.language_config?.secondary_locales || [];
     const locale = lang || primaryLocale;
 
-    const flat = flattenCreatorCategories(tree || []);
-    const collection = flat.find((c) => c.slug === handle && c.is_active !== false);
-    if (!collection) return {};
+    const chain = resolveCollection(tree || [], pathSegments || []);
+    if (!chain) return {};
+    const collection = chain[chain.length - 1]!;
+    const handle = collection.slug;
     const tr = pickTranslation(collection.translations, locale);
 
     // Previously title + description only, so a collection inherited the
@@ -569,7 +578,7 @@ export async function generateMetadata({
       locale,
       primaryLocale,
       secondaryLocales: secondary,
-      path: `/collections/${handle}`,
+      path: collectionHref({ path: pathSegments, slug: handle }),
       markets: store?.markets,
       market: store?.market,
       noindex: await getRequestNoindex(),

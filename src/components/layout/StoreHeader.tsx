@@ -16,6 +16,7 @@ import { BuyerTypeToggle } from './BuyerTypeToggle';
 import { CartBadge } from './CartBadge';
 import { IfApp } from '@/components/IfApp';
 import { resolveMediaUrl } from '@/lib/api';
+import { collectionHref } from '@/lib/collectionPath';
 
 // Resolved page shape after picking the right translation
 interface NavPage {
@@ -26,6 +27,8 @@ interface NavPage {
 // Resolved collection shape (translation already picked) for the header dropdown.
 export interface NavCollection {
   slug: string;
+  /** M6.7: slugs root → self for the hierarchical `/collections/...` URL. */
+  path?: string[];
   title: string;
   thumbnailUrl?: string | null;
   children?: NavCollection[];
@@ -215,7 +218,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
             {collections.map((c) => (
               <div key={c.slug} className="px-2">
                 <Link
-                  href={lp(`/collections/${c.slug}`)}
+                  href={lp(collectionHref(c))}
                   onClick={() => setOpen(false)}
                   className="block px-3 py-2 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
                   style={{ color: primaryColor || undefined }}
@@ -227,7 +230,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
                     {c.children.map((ch) => (
                       <div key={ch.slug} className="flex flex-col">
                         <Link
-                          href={lp(`/collections/${ch.slug}`)}
+                          href={lp(collectionHref(ch))}
                           onClick={() => setOpen(false)}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                         >
@@ -239,7 +242,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
                             {ch.children.map((g) => (
                               <Link
                                 key={g.slug}
-                                href={lp(`/collections/${g.slug}`)}
+                                href={lp(collectionHref(g))}
                                 onClick={() => setOpen(false)}
                                 className="px-3 py-1 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                               >
@@ -282,7 +285,7 @@ function MobileCollectionNode({
 }: {
   node: NavCollection;
   depth: number;
-  href: (slug: string) => string;
+  href: (node: NavCollection) => string;
   onNavigate: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -294,7 +297,7 @@ function MobileCollectionNode({
   return (
     <div className="flex flex-col" style={{ paddingInlineStart: depth > 0 ? 12 : 0 }}>
       <div className="flex items-center">
-        <Link href={href(node.slug)} onClick={onNavigate} className={`flex-1 transition-colors ${labelClass}`}>
+        <Link href={href(node)} onClick={onNavigate} className={`flex-1 transition-colors ${labelClass}`}>
           {depth > 0 ? '— ' : ''}
           {node.title}
         </Link>
@@ -392,7 +395,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                         key={c.slug}
                         node={c}
                         depth={0}
-                        href={(slug) => lp(`/collections/${slug}`)}
+                        href={(node) => lp(collectionHref(node))}
                         onNavigate={() => setOpen(false)}
                       />
                     ))}
