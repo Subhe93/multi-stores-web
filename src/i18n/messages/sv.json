@@ -22,6 +22,8 @@
     "price": "Pris",
     "currency": "EUR",
     "viewAll": "Visa alla",
+    "showMore": "Visa mer",
+    "showLess": "Visa mindre",
     "backToHome": "Tillbaka till startsidan",
     "save": "Spara",
     "cancel": "Avbryt",

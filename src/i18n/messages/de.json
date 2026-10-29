@@ -22,6 +22,8 @@
     "price": "Preis",
     "currency": "EUR",
     "viewAll": "Alle anzeigen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
     "backToHome": "Zurück zur Startseite",
     "save": "Speichern",
     "cancel": "Abbrechen",

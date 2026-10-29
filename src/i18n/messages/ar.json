@@ -22,6 +22,8 @@
     "price": "السعر",
     "currency": "EUR",
     "viewAll": "عرض الكل",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل",
     "backToHome": "العودة للرئيسية",
     "save": "حفظ",
     "cancel": "إلغاء",

@@ -17,6 +17,7 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { resolveHero, type HeroHeight, type HeroPageConfig } from '@/lib/hero';
 import { ProductCard } from '@/components/product/ProductCard';
+import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
 import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
@@ -126,6 +127,25 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // templates unchanged (on, below the products).
   const showLongDescription = settings.show_long_description !== false;
   const longDescriptionAbove = settings.long_description_position === 'above';
+  // Collapsed to a few lines with a "Show more" toggle unless turned off.
+  const longDescriptionCollapsed = settings.long_description_collapsed !== false;
+  const longDescriptionLines = Math.min(
+    12,
+    Math.max(2, Number(settings.long_description_lines) || 3),
+  );
+  const renderLongDescription = (html: string, extra: string) =>
+    longDescriptionCollapsed ? (
+      <CollapsibleHtml
+        html={html}
+        lines={longDescriptionLines}
+        className={`${LONG_DESCRIPTION_CLASS} ${extra}`}
+      />
+    ) : (
+      <div
+        className={`${LONG_DESCRIPTION_CLASS} ${extra}`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
@@ -624,12 +644,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
         )}
 
         {/* M6.2: long SEO description above the products when the section says so. */}
-        {collectionLongDescription && longDescriptionAbove && (
-          <div
-            className={`${LONG_DESCRIPTION_CLASS} mb-12 pb-10 border-b border-gray-100`}
-            dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
-          />
-        )}
+        {collectionLongDescription &&
+          longDescriptionAbove &&
+          renderLongDescription(collectionLongDescription, 'mb-12 pb-10 border-b border-gray-100')}
 
         {/* Products grid */}
         {products.length === 0 ? emptyState : grid}
@@ -637,12 +654,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
         {/* M6.2: long SEO description below the products (default position).
             HTML is sanitised on write by the API; `dir` is inherited from the
             page wrapper, so RTL stays correct. */}
-        {collectionLongDescription && !longDescriptionAbove && (
-          <div
-            className={`${LONG_DESCRIPTION_CLASS} mt-12 pt-10 border-t border-gray-100`}
-            dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
-          />
-        )}
+        {collectionLongDescription &&
+          !longDescriptionAbove &&
+          renderLongDescription(collectionLongDescription, 'mt-12 pt-10 border-t border-gray-100')}
       </div>
     </section>
   );

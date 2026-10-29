@@ -22,6 +22,8 @@
     "price": "Fiyat",
     "currency": "EUR",
     "viewAll": "Tümünü Gör",
+    "showMore": "Daha fazla göster",
+    "showLess": "Daha az göster",
     "backToHome": "Ana Sayfaya Dön",
     "save": "Kaydet",
     "cancel": "İptal",
