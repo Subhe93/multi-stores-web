@@ -18,7 +18,7 @@ export const PRODUCT_LISTING_DEFAULT_SETTINGS: Record<string, unknown> = {
   show_back_link: true,
   show_long_description: true,
   long_description_position: 'below',
-  long_description_collapsed: true,
+  long_description_collapsed: false,
   long_description_lines: 3,
   aspect: 'square',
   columns: 4,
@@ -111,7 +111,7 @@ export const productListingMagicSection: SectionDefinition = {
         key: 'long_description_collapsed',
         type: 'boolean',
         label: { en: 'Collapse long description (show more button)', ar: 'طيّ الوصف الطويل (زر عرض المزيد)' },
-        defaultValue: true,
+        defaultValue: false,
       },
       {
         key: 'long_description_lines',

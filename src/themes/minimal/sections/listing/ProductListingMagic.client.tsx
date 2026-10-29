@@ -134,8 +134,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // templates unchanged (on, below the products).
   const showLongDescription = settings.show_long_description !== false;
   const longDescriptionAbove = settings.long_description_position === 'above';
-  // Collapsed to a few lines with a "Show more" toggle unless turned off.
-  const longDescriptionCollapsed = settings.long_description_collapsed !== false;
+  // Shown in full by default; collapsed to a few lines with a "Show more"
+  // toggle only when the section turns it on.
+  const longDescriptionCollapsed = settings.long_description_collapsed === true;
   const longDescriptionLines = Math.min(
     12,
     Math.max(2, Number(settings.long_description_lines) || 3),
