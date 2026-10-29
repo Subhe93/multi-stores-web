@@ -121,6 +121,13 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const showCollections = settings.show_collections !== false;
   const showSort = settings.show_sort !== false;
   const showDescription = settings.show_description !== false;
+  // The collection description (hero) is collapsed to a few lines with a
+  // "Show more" toggle unless turned off; WP imports put long SEO text here.
+  const descriptionCollapsed = settings.description_collapsed !== false;
+  const descriptionLines = Math.min(
+    12,
+    Math.max(2, Number(settings.description_lines) || 3),
+  );
   const showBackLink = settings.show_back_link !== false;
   // M6.2: the long SEO text is an explicit section setting so the builder
   // shows everything the collection page renders. Defaults keep older
@@ -477,13 +484,22 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
               {collectionName}
             </h1>
 
-            {showDescription && collectionDescription && (
-              <div
-                className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5 [&_*]:!text-[color:inherit]"
-                style={{ color: hero.textColor }}
-                dangerouslySetInnerHTML={{ __html: collectionDescription }}
-              />
-            )}
+            {showDescription && collectionDescription &&
+              (descriptionCollapsed ? (
+                <CollapsibleHtml
+                  html={collectionDescription}
+                  lines={descriptionLines}
+                  buttonColor={hero.textColor}
+                  className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5 [&_*]:!text-[color:inherit]"
+                  style={{ color: hero.textColor }}
+                />
+              ) : (
+                <div
+                  className="mt-3 max-w-2xl text-sm md:text-base opacity-85 leading-relaxed prose prose-invert [&_p]:my-1.5 [&_*]:!text-[color:inherit]"
+                  style={{ color: hero.textColor }}
+                  dangerouslySetInnerHTML={{ __html: collectionDescription }}
+                />
+              ))}
 
             {showHeroCount && products.length > 0 && (
               <p className="mt-4 text-xs font-semibold opacity-70" style={{ color: hero.textColor }}>
@@ -530,12 +546,19 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           {!isCollection && subheading && (
             <p className="mt-2 max-w-2xl text-sm md:text-base text-gray-500">{subheading}</p>
           )}
-          {isCollection && showDescription && collectionDescription && (
-            <div
-              className="mt-3 max-w-2xl text-sm md:text-base text-gray-600 leading-relaxed prose [&_p]:my-1.5"
-              dangerouslySetInnerHTML={{ __html: collectionDescription }}
-            />
-          )}
+          {isCollection && showDescription && collectionDescription &&
+            (descriptionCollapsed ? (
+              <CollapsibleHtml
+                html={collectionDescription}
+                lines={descriptionLines}
+                className="mt-3 max-w-2xl text-sm md:text-base text-gray-600 leading-relaxed prose [&_p]:my-1.5"
+              />
+            ) : (
+              <div
+                className="mt-3 max-w-2xl text-sm md:text-base text-gray-600 leading-relaxed prose [&_p]:my-1.5"
+                dangerouslySetInnerHTML={{ __html: collectionDescription }}
+              />
+            ))}
         </div>
       )}
 

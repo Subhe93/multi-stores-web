@@ -1,21 +1,34 @@
 'use client';
 
-// Long rich text (collection SEO description) shown as the first few lines
-// with a fade-out and a "Show more" toggle. The full HTML is always in the
-// DOM — only clipped visually — so search engines index all of it.
+// Rich text (collection descriptions) shown as the first few lines with a
+// fade-out and a "Show more" toggle. The full HTML is always in the DOM —
+// only clipped visually — so search engines index all of it. The fade is a
+// CSS mask, so it works on any background (plain page or hero image).
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown } from 'lucide-react';
 
 interface CollapsibleHtmlProps {
   html: string;
   className?: string;
+  style?: CSSProperties;
   /** Visible lines while collapsed. */
   lines?: number;
+  /** Colour of the toggle; defaults to the store primary colour. */
+  buttonColor?: string;
 }
 
-export function CollapsibleHtml({ html, className = '', lines = 3 }: CollapsibleHtmlProps) {
+const FADE =
+  'linear-gradient(to bottom, #000 calc(100% - 1.75lh), transparent 100%)';
+
+export function CollapsibleHtml({
+  html,
+  className = '',
+  style,
+  lines = 3,
+  buttonColor,
+}: CollapsibleHtmlProps) {
   const t = useTranslations('common');
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
@@ -23,9 +36,6 @@ export function CollapsibleHtml({ html, className = '', lines = 3 }: Collapsible
   // Until measured, assume the text overflows so the server render and the
   // first client render agree (clipped + button); short texts unclip after.
   const [overflows, setOverflows] = useState(true);
-
-  // Collapsed height in line units; `lh` follows the text's own line-height.
-  const collapsedHeight = `${lines}lh`;
 
   useEffect(() => {
     const el = ref.current;
@@ -44,30 +54,30 @@ export function CollapsibleHtml({ html, className = '', lines = 3 }: Collapsible
   const clipped = overflows && !expanded;
 
   return (
-    <div className={className}>
-      <div className="relative">
-        <div
-          id={id}
-          ref={ref}
-          className="overflow-hidden transition-[max-height] duration-300 [&>*:first-child]:mt-0"
-          style={{ maxHeight: clipped ? collapsedHeight : 'none' }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-        {clipped && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[2lh] bg-linear-to-b from-transparent to-[var(--theme-colors-background,#fff)]"
-          />
-        )}
-      </div>
+    <div className={className} style={style}>
+      <div
+        id={id}
+        ref={ref}
+        className="overflow-hidden [&>*:first-child]:mt-0"
+        style={
+          clipped
+            ? {
+                maxHeight: `${lines}lh`,
+                maskImage: FADE,
+                WebkitMaskImage: FADE,
+              }
+            : { maxHeight: 'none' }
+        }
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
       {overflows && (
         <button
           type="button"
           aria-expanded={expanded}
           aria-controls={id}
           onClick={() => setExpanded((v) => !v)}
-          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold not-prose hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 rounded"
-          style={{ color: 'var(--store-primary, currentColor)' }}
+          className="not-prose mt-2 inline-flex items-center gap-1 rounded text-sm font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ color: buttonColor ?? 'var(--store-primary, currentColor)' }}
         >
           {expanded ? t('showLess') : t('showMore')}
           <ChevronDown
