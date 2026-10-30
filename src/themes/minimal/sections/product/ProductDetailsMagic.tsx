@@ -121,6 +121,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
               color: 'var(--theme-colors-price, var(--theme-colors-primary))',
+              textShadow: 'var(--theme-price-shadow, none)',
             }}
           >
             {formatPrice(display(Number(product.base_price), product.tax_rate_bp, c).amount)}

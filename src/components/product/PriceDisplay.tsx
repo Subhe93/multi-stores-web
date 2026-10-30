@@ -26,7 +26,7 @@ export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = '
     <div className="flex items-center flex-wrap gap-3">
       <span
         className="text-3xl font-extrabold tracking-tight"
-        style={isOnSale ? { color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' } : { color: '#111827' }}
+        style={isOnSale ? { color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)' } : { color: '#111827' }}
       >
         {fmt(price)}
       </span>

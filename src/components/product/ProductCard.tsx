@@ -143,7 +143,7 @@ export function ProductCard({
         <div className="mt-1.5 flex items-center gap-2 flex-wrap">
           <span
             className="text-sm font-bold"
-            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)' }}
           >
             {formatted}
           </span>

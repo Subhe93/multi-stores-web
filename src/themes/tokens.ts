@@ -141,6 +141,12 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
   if (tokens.colors.price) vars['--theme-colors-price'] = tokens.colors.price;
   // Text links (fallback: the price colour, then primary).
   if (tokens.colors.link) vars['--theme-colors-link'] = tokens.colors.link;
+  // Optional hard shadow behind prices (e.g. yellow price, black shadow).
+  // Only a plain colour value is accepted (it is spliced into a shadow).
+  const shadow = tokens.colors.priceShadow?.trim();
+  if (shadow && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i.test(shadow)) {
+    vars['--theme-price-shadow'] = `1.5px 1.5px 0 ${shadow}`;
+  }
   return vars as CSSProperties;
 }
 

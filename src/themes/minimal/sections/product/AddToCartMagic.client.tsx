@@ -470,6 +470,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
               color: 'var(--theme-colors-price, var(--theme-colors-primary))',
+              textShadow: 'var(--theme-price-shadow, none)',
             }}
           >
             {priceLabel}

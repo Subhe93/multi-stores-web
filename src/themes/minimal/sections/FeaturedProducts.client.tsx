@@ -260,7 +260,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   <div className="flex items-baseline gap-2">
                     <span
                       className="text-sm font-semibold"
-                      style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))' }}
+                      style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)' }}
                     >
                       {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>

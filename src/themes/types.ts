@@ -27,6 +27,8 @@ export interface ColorTokens {
   // Price text colour; unset = primary.
   price?: string;
   link?: string;
+  /** Colour of a hard shadow behind prices; unset = no shadow. */
+  priceShadow?: string;
 }
 
 export interface FontFamilies {
