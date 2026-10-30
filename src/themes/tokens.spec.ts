@@ -77,3 +77,25 @@ describe('price shadow token', () => {
     expect(bad['--theme-price-shadow']).toBeUndefined();
   });
 });
+
+describe('sale badge and price highlight tokens', () => {
+  it('emits the sale colour with an automatic readable label', () => {
+    const vars = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens, { colors: { ...minimalTokens.colors, sale: '#111827' } }));
+    expect(vars['--theme-colors-sale']).toBe('#111827');
+    expect(vars['--theme-colors-saleContrast']).toBe('#ffffff');
+  });
+
+  it('emits a price highlight only for a plain colour', () => {
+    const ok = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens, { colors: { ...minimalTokens.colors, priceBg: '#feee4a' } }));
+    expect(ok['--theme-price-bg']).toBe('#feee4a');
+    expect(ok['--theme-price-pad']).toBeTruthy();
+    const bad = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens, { colors: { ...minimalTokens.colors, priceBg: 'x; } y' } }));
+    expect(bad['--theme-price-bg']).toBeUndefined();
+  });
+
+  it('emits nothing when unset (other stores unchanged)', () => {
+    const vars = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens));
+    expect(vars['--theme-colors-sale']).toBeUndefined();
+    expect(vars['--theme-price-bg']).toBeUndefined();
+  });
+});

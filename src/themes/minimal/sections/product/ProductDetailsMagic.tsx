@@ -64,12 +64,12 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
           <span
             className="text-[11px] font-bold uppercase tracking-wide px-2 py-0.5"
             style={{
-              backgroundColor: 'var(--theme-colors-accent)',
-              color: 'var(--theme-colors-accentContrast, #fff)',
+              backgroundColor: 'var(--theme-colors-sale, var(--theme-colors-accent))',
+              color: 'var(--theme-colors-saleContrast, var(--theme-colors-accentContrast, #fff))',
               borderRadius: 'var(--theme-radius-sm)',
             }}
           >
-            {locale === 'ar' ? `خصم ${discount}%` : `Save ${discount}%`}
+            -{discount}%
           </span>
         </div>
       )}
@@ -121,7 +121,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
               color: 'var(--theme-colors-price, var(--theme-colors-primary))',
-              textShadow: 'var(--theme-price-shadow, none)',
+              textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem',
             }}
           >
             {formatPrice(display(Number(product.base_price), product.tax_rate_bp, c).amount)}

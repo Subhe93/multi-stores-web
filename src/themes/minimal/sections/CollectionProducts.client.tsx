@@ -48,6 +48,7 @@ function gridImageSizes(desktop: number, tablet: number, mobile: number): string
 }
 
 export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+  const tCommon = useTranslations('common');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -62,7 +63,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
-  const defaultLinkLabel = locale === 'ar' ? 'عرض الكل' : 'View all';
+  const defaultLinkLabel = tCommon('viewAll');
   const rawLinkLabel = content.link_label as string | undefined;
   // A whitespace-only label is an icon-only link: no visible text, but the
   // chevron still needs an accessible name.
@@ -245,7 +246,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                   {discount > 0 && (
                     <span
                       className="absolute top-2 inset-s-2 z-10 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: 'var(--theme-colors-accentContrast, #fff)' }}
+                      style={{ backgroundColor: 'var(--theme-colors-sale, var(--theme-colors-accent))', color: 'var(--theme-colors-saleContrast, var(--theme-colors-accentContrast, #fff))' }}
                     >
                       -{discount}%
                     </span>
@@ -270,7 +271,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                     </p>
                   )}
                   <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold" style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)' }}>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' }}>
                       {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>
                     {p.compare_at_price && p.compare_at_price > p.base_price && (

@@ -26,7 +26,7 @@ export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = '
     <div className="flex items-center flex-wrap gap-3">
       <span
         className="text-3xl font-extrabold tracking-tight"
-        style={isOnSale ? { color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)' } : { color: '#111827' }}
+        style={isOnSale ? { color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' } : { color: '#111827' }}
       >
         {fmt(price)}
       </span>
@@ -36,7 +36,10 @@ export function PriceDisplay({ price, comparePrice, currency = 'EUR', locale = '
           <span className="text-base text-gray-400 line-through font-normal">
             {fmt(comparePrice)}
           </span>
-          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-600">
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: 'var(--theme-colors-sale, var(--color-red-50, #fef2f2))', color: 'var(--theme-colors-saleContrast, var(--color-red-600, #e7000b))' }}
+          >
             -{discountPct}%
           </span>
         </>

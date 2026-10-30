@@ -29,6 +29,11 @@ export interface ColorTokens {
   link?: string;
   /** Colour of a thin shadow around prices (0 0 1px); unset = no shadow. */
   priceShadow?: string;
+  /** Highlight behind prices (marker); unset = none. */
+  priceBg?: string;
+  /** Sale / discount badge background and its label (label auto when unset). */
+  sale?: string;
+  saleContrast?: string;
 }
 
 export interface FontFamilies {

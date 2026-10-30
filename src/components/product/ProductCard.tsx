@@ -109,7 +109,10 @@ export function ProductCard({
 
         {/* Discount badge */}
         {discount > 0 && (
-          <span className="absolute top-2 start-2 px-2 py-0.5 text-[11px] font-bold text-white rounded-full bg-red-500">
+          <span
+            className="absolute top-2 start-2 px-2 py-0.5 text-[11px] font-bold rounded-full"
+            style={{ backgroundColor: 'var(--theme-colors-sale, var(--color-red-500, #fb2c36))', color: 'var(--theme-colors-saleContrast, #fff)' }}
+          >
             -{discount}%
           </span>
         )}
@@ -143,7 +146,7 @@ export function ProductCard({
         <div className="mt-1.5 flex items-center gap-2 flex-wrap">
           <span
             className="text-sm font-bold"
-            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' }}
           >
             {formatted}
           </span>

@@ -42,6 +42,7 @@ const CARD_ASPECT: Record<string, string> = {
 };
 
 export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+  const tCommon = useTranslations('common');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -57,7 +58,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const showArrows = settings.show_arrows !== false;
   const showDots = settings.show_dots !== false;
   const loop = settings.loop === true;
-  const linkLabel = (content.link_label as string) || (locale === 'ar' ? 'عرض الكل' : 'View all');
+  const linkLabel = ((content.link_label as string) || '').trim() || tCommon('viewAll');
   // Storefront routes are exposed under the store's subdomain (see proxy.ts);
   // the secondary-locale prefix is the only thing we add to the public path.
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
@@ -165,7 +166,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
           <div className="flex items-baseline gap-2">
             <span
               className="text-sm font-semibold"
-              style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)' }}
+              style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' }}
             >
               {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
             </span>

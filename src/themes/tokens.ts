@@ -141,6 +141,17 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
   if (tokens.colors.price) vars['--theme-colors-price'] = tokens.colors.price;
   // Text links (fallback: the price colour, then primary).
   if (tokens.colors.link) vars['--theme-colors-link'] = tokens.colors.link;
+  // Optional sale-badge colour; its label is readable automatically.
+  if (tokens.colors.sale) {
+    vars['--theme-colors-sale'] = tokens.colors.sale;
+    vars['--theme-colors-saleContrast'] = tokens.colors.saleContrast || readableTextOn(tokens.colors.sale);
+  }
+  // Optional highlight behind prices (marker look: dark price on a brand colour).
+  const priceBg = tokens.colors.priceBg?.trim();
+  if (priceBg && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i.test(priceBg)) {
+    vars['--theme-price-bg'] = priceBg;
+    vars['--theme-price-pad'] = '0.05em 0.35em';
+  }
   // Optional thin outline-like shadow around prices (e.g. yellow price, black edge).
   // Only a plain colour value is accepted (it is spliced into a shadow).
   const shadow = tokens.colors.priceShadow?.trim();

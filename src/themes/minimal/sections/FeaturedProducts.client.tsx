@@ -47,6 +47,7 @@ function gridImageSizes(desktop: number, tablet: number, mobile: number): string
 }
 
 export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+  const tCommon = useTranslations('common');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -57,7 +58,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
   const filter = (settings.filter as 'newest' | 'featured') || 'newest';
   const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
-  const linkLabel = (content.link_label as string) || (locale === 'ar' ? 'عرض الكل' : 'View all');
+  const linkLabel = ((content.link_label as string) || '').trim() || tCommon('viewAll');
   // Storefront routes are exposed under the store's subdomain (see proxy.ts);
   // the secondary-locale prefix is the only thing we add to the public path.
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
@@ -230,7 +231,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   {discount > 0 && (
                     <span
                       className="absolute top-2 inset-s-2 z-10 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: 'var(--theme-colors-accentContrast, #fff)' }}
+                      style={{ backgroundColor: 'var(--theme-colors-sale, var(--theme-colors-accent))', color: 'var(--theme-colors-saleContrast, var(--theme-colors-accentContrast, #fff))' }}
                     >
                       -{discount}%
                     </span>
@@ -260,7 +261,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   <div className="flex items-baseline gap-2">
                     <span
                       className="text-sm font-semibold"
-                      style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)' }}
+                      style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' }}
                     >
                       {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>

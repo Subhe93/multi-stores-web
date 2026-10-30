@@ -201,7 +201,7 @@ export function Slider({
             onClick={prev}
             aria-label={t('previous')}
             disabled={atStart}
-            className="absolute start-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className="absolute start-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md hidden sm:flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ArrowStart className="size-5 text-zinc-800" />
           </button>
@@ -210,7 +210,7 @@ export function Slider({
             onClick={next}
             aria-label={t('next')}
             disabled={atEnd}
-            className="absolute end-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className="absolute end-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md hidden sm:flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ArrowEnd className="size-5 text-zinc-800" />
           </button>
