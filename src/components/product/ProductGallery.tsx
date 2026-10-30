@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 
 interface GalleryImage {
   id: string;
@@ -186,12 +188,18 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
         onMouseLeave={handleMouseLeave}
         onClick={guardedClick(() => setLightboxOpen(true))}
       >
-        {/* Product image */}
-        <img
+        {/* Product image — the lead image is the page's LCP, so preload it. */}
+        <StoreImage
           key={currentImage.id}
           src={currentImage.url}
           alt={currentImage.alt ?? t('product.productImage')}
-          className="h-full w-full object-cover transition-opacity duration-300"
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          preload={selectedIndex === 0}
+          fetchPriority={selectedIndex === 0 ? 'high' : undefined}
+          loading={selectedIndex === 0 ? undefined : 'eager'}
+          unoptimized={isSvgSrc(currentImage.url)}
+          className="object-cover transition-opacity duration-300"
           draggable={false}
         />
 
@@ -295,11 +303,13 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
                     : undefined
                 }
               >
-                <img
+                <StoreImage
                   src={image.url}
                   alt={image.alt ?? `Thumbnail ${index + 1}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  fill
+                  sizes="72px"
+                  unoptimized={isSvgSrc(image.url)}
+                  className="object-cover"
                 />
                 {index === 0 && (
                   <div className="absolute bottom-0.5 left-0.5 bg-amber-500 text-white rounded-full p-0.5">

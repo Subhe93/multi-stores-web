@@ -17,6 +17,8 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { resolveHero, type HeroHeight, type HeroPageConfig } from '@/lib/hero';
 import { ProductCard } from '@/components/product/ProductCard';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
 import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
@@ -182,15 +184,13 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
       'linear-gradient(135deg, var(--store-primary, #2563eb) 0%, var(--store-secondary, #1e40af) 100%)',
     color: hero.textColor,
   };
-  // Catalog banner: background image (unchanged).
-  const heroStyle: React.CSSProperties = heroImage
-    ? {
-        backgroundImage: `linear-gradient(rgba(0,0,0,${hero.overlayAlpha}), rgba(0,0,0,${hero.overlayAlpha})), url(${heroImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        color: hero.textColor,
-      }
-    : heroGradientStyle;
+  // Catalog banner: image + overlay render as layers (see JSX) so the image
+  // goes through the optimizer; only the text color stays on the box.
+  const heroStyle: React.CSSProperties = heroImage ? { color: hero.textColor } : heroGradientStyle;
+  // Banner image is the LCP when shown; otherwise the first product cards are.
+  const heroImageShown = !!heroImage && showHero && hero.enabled;
+  // Card widths per the scoped grid rules below.
+  const cardSizes = `(min-width: 1024px) ${Math.ceil(100 / columns)}vw, (min-width: 768px) ${Math.ceil(100 / columnsTablet)}vw, ${Math.ceil(100 / columnsMobile)}vw`;
 
   // ── Catalog-only data ──
   const heading = (content.heading as string) || t('common.products');
@@ -352,7 +352,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
 
   const grid = (
     <div className={`grid gap-4 md:gap-6 ${scopeClass}`}>
-      {products.map((product) => {
+      {products.map((product, index) => {
         const translation =
           product.translations.find((tr) => tr.locale === locale) ||
           product.translations.find((tr) => tr.locale === 'en') ||
@@ -373,6 +373,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             promotionLabel={promotionLabelFor(product)}
             vendorName={product.vendor?.company_name}
             aspectClass={aspectClass}
+            sizes={cardSizes}
+            priority={!heroImageShown && index < Math.min(2, columnsMobile)}
+            eager={index < columns}
           />
         );
       })}
@@ -409,9 +412,20 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
       {/* Page header banner — toggled and styled from store settings */}
       {showHero && hero.enabled && !isCollection && (
         <div className={`relative overflow-hidden text-center ${hero.heightClass}`} style={heroStyle}>
-          {!heroImage && (
-            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
+          {heroImage && (
+            <StoreImage
+              src={heroImage}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="100vw"
+              preload
+              fetchPriority="high"
+              unoptimized={isSvgSrc(heroImage)}
+              className="object-cover object-center"
+            />
           )}
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
           <div className="relative container mx-auto px-4">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: hero.textColor }}>
               {heading}
@@ -444,12 +458,16 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           style={heroImage ? { color: hero.textColor } : heroGradientStyle}
         >
           {heroImage && (
-            <img
+            <StoreImage
               src={heroImage}
               alt=""
               aria-hidden="true"
+              fill
+              sizes="100vw"
+              preload
               fetchPriority="high"
-              className="absolute inset-0 w-full h-full object-cover object-center"
+              unoptimized={isSvgSrc(heroImage)}
+              className="object-cover object-center"
             />
           )}
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />

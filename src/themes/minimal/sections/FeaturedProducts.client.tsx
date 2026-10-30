@@ -3,10 +3,12 @@
 // Component implementation. Definition stays in FeaturedProducts.tsx so the
 // server-side theme registry can read `.Component` as a ClientReference.
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
+import { featuredProductsLimit, featuredProductsParams } from '@/lib/preloadSections';
+import { StoreImage } from '@/components/StoreImage';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
@@ -39,11 +41,16 @@ const CARD_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
+/** `sizes` for a card image in a grid with the given columns per breakpoint. */
+function gridImageSizes(desktop: number, tablet: number, mobile: number): string {
+  return `(max-width: 767px) ${Math.ceil(100 / mobile)}vw, (max-width: 1023px) ${Math.ceil(100 / tablet)}vw, ${Math.ceil(100 / desktop)}vw`;
+}
+
+export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
-  const limit = clamp((settings.limit as number) ?? 4, 1, 12);
+  const limit = featuredProductsLimit(settings);
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
@@ -57,41 +64,51 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other FeaturedProducts instances on
   // the same page.
+  const imageSizes = gridImageSizes(columns, columnsTablet, columnsMobile);
   const scopeClass = `fp-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
-  const [products, setProducts] = useState<ProductRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const t = useTranslations('product');
 
-  // Fetch on mount + whenever filter/locale change. Public storefront API so
-  // this also works inside the builder iframe (no auth token needed).
   // Markets app: prices come back in the market currency (and a draft
   // market on its preview host needs the preview flag). Undefined without
   // the app, so the request URL is unchanged for other stores.
   const market = useMarket();
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
-  const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+
+  // Keyed by the request it answers, like CollectionProducts: server-preloaded
+  // products (lib/preloadSections.ts) seed the state under the mount key, so
+  // the server HTML matches the first client render and the mount fetch is
+  // skipped; a change of any dep yields a new key and re-fetches.
+  const requestKey = [storeSlug, locale, limit, filter, marketKey ?? '', marketPreview ? '1' : ''].join('|');
+  const [loaded, setLoaded] = useState<{ key: string; products: ProductRow[] } | null>(() =>
+    Array.isArray(preloaded) ? { key: requestKey, products: preloaded as ProductRow[] } : null,
+  );
+  const loading = loaded?.key !== requestKey;
+  const products = loaded?.key === requestKey ? loaded.products : [];
+  const loadedKeyRef = useRef<string | null>(loaded?.key ?? null);
+
+  // Fetch on mount (unless preloaded) + whenever filter/locale/limit/market
+  // change. Public storefront API so this also works inside the builder
+  // iframe (no auth token needed).
   useEffect(() => {
+    if (loadedKeyRef.current === requestKey) return;
     let cancelled = false;
-    setLoading(true);
-    const params: Record<string, string> = { locale, limit: String(limit) };
-    if (filter === 'featured') params.featured = 'true';
+    const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+    const params = featuredProductsParams({ locale, limit, filter });
+    const settle = (list: ProductRow[]) => {
+      if (cancelled) return;
+      loadedKeyRef.current = requestKey;
+      setLoaded({ key: requestKey, products: list });
+    };
     storefront
       .getProducts(storeSlug, params, marketRef)
-      .then((list) => {
-        if (!cancelled) setProducts((list as ProductRow[]).slice(0, limit));
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .then((list) => settle((list as ProductRow[]).slice(0, limit)))
+      .catch(() => settle([]));
     return () => {
       cancelled = true;
     };
-  }, [storeSlug, locale, limit, filter, marketKey, marketPreview]);
+  }, [requestKey, storeSlug, locale, limit, filter, marketKey, marketPreview]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.
@@ -218,11 +235,12 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                     </span>
                   )}
                   {p.images?.[0]?.url ? (
-                    <img
+                    <StoreImage
                       src={resolveMediaUrl(p.images[0].url)}
                       alt={tr?.title || ''}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      sizes={imageSizes}
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : null}
                 </div>

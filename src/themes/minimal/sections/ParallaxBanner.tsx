@@ -4,6 +4,7 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { optimizedImageUrl } from '@/lib/storeMedia';
 
 type Height = 'sm' | 'md' | 'lg';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -53,7 +54,13 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         // Solid dark ground keeps the text readable while the image loads
         // (and when no image is set yet).
         backgroundColor: '#101014',
-        backgroundImage: resolvedImage ? `url(${resolvedImage})` : undefined,
+        // Optimized backgrounds: the <style> below picks the small one on phones.
+        ...(resolvedImage
+          ? {
+              ['--pb-img-lg' as never]: `url("${optimizedImageUrl(resolvedImage, 1920)}")`,
+              ['--pb-img-sm' as never]: `url("${optimizedImageUrl(resolvedImage, 828)}")`,
+            }
+          : {}),
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         width: '100vw',
@@ -65,9 +72,12 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
       {/* CSS-only parallax: fixed attachment on pointer devices, plain scroll
           on touch/iOS where fixed backgrounds are janky or unsupported. */}
       <style>{`
-        .ms-parallax-bg { background-attachment: fixed; }
+        .ms-parallax-bg { background-attachment: fixed; background-image: var(--pb-img-lg); }
         @media (hover: none), (pointer: coarse) {
           .ms-parallax-bg { background-attachment: scroll; }
+        }
+        @media (max-width: 767px) {
+          .ms-parallax-bg { background-image: var(--pb-img-sm); }
         }
       `}</style>
 

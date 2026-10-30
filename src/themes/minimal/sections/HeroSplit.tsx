@@ -8,6 +8,7 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { responsiveImgProps } from '@/lib/storeMedia';
 
 type SplitHeight = 'sm' | 'md' | 'lg';
 type ImageSide = 'start' | 'end';
@@ -105,10 +106,13 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
             logical under RTL for free. */}
         <div className={`relative w-full ${imageSide === 'end' ? 'md:order-2' : ''}`}>
           {resolvedImage ? (
+            // Plain <img> keeps the natural-ratio desktop sizing; optimized
+            // srcset + high priority since the hero sits above the fold.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={resolvedImage}
+              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
               alt={heading || ''}
+              fetchPriority="high"
               className={`w-full aspect-[4/5] object-cover ${HEIGHT_CLASS[height]} md:h-full md:aspect-auto`}
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
             />

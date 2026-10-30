@@ -6,6 +6,7 @@ import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { responsiveImgProps } from '@/lib/storeMedia';
 
 interface GalleryItem {
   url?: string;
@@ -46,6 +47,9 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
   const loop = settings.loop !== false;
   const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
 
+  // Matches the Slider breakpoints (>=1024 desktop, 768-1023 tablet).
+  const imgSizes = `(min-width: 1024px) ${Math.ceil(100 / spvDesktop)}vw, (min-width: 768px) ${Math.ceil(100 / spvTablet)}vw, ${Math.ceil(100 / spvMobile)}vw`;
+
   const radiusStyle = rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
 
   const slideNodes = items.map((item, i) => {
@@ -53,7 +57,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
       <div className="group relative overflow-hidden h-full" style={radiusStyle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={resolveMediaUrl(item.url || '')}
+          {...responsiveImgProps(resolveMediaUrl(item.url || ''), imgSizes)}
           alt={item.alt || ''}
           loading="lazy"
           className={`w-full ${ASPECT_CLASS[aspect]} object-cover transition-transform duration-500 group-hover:scale-105`}

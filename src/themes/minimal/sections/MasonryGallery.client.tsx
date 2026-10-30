@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { StaggerGroup, StaggerItem } from '../../_motion';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag } from './_shared/headingLevel';
 
@@ -30,6 +31,8 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
   const subheading = (content.subheading as string) || '';
   const images = ((content.images as MasonryImage[]) || []).filter((i) => !!i.image);
   const columns = clampColumns(settings.columns, 3);
+  // Column widths from the .ms-masonry rules (1 / 2 / `columns`).
+  const imgSizes = `(min-width: 1024px) ${Math.ceil(100 / columns)}vw, (min-width: 640px) 50vw, 100vw`;
   const enableLightbox = settings.enable_lightbox !== false;
   const rtl = locale === 'ar';
 
@@ -113,7 +116,7 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={resolveMediaUrl(item.image || '')}
+                    {...responsiveImgProps(resolveMediaUrl(item.image || ''), imgSizes)}
                     alt={item.caption || ''}
                     loading="lazy"
                     className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.03]"

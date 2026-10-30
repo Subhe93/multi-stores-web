@@ -6,11 +6,13 @@
 // interactivity (autoplay, scroll listener, arrow buttons).
 
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
 import { headingTag } from './_shared/headingLevel';
+import { isSvgSrc } from '@/lib/storeMedia';
 
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
 type Alignment = 'left' | 'center' | 'right';
@@ -108,11 +110,19 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
         style={{ color: '#fff' }}
       >
         {resolvedImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // First slide is the LCP candidate: preload it. The next slide loads
+          // eagerly too (it can sit outside the lazy threshold until autoplay
+          // reaches it); the rest lazy-load.
+          <StoreImage
             src={resolvedImage}
             alt={slide.heading || ''}
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            sizes="100vw"
+            preload={i === 0}
+            fetchPriority={i === 0 ? 'high' : undefined}
+            loading={i === 0 ? undefined : i === 1 ? 'eager' : 'lazy'}
+            unoptimized={isSvgSrc(resolvedImage)}
+            className="object-cover"
             style={{ zIndex: 0 }}
           />
         )}

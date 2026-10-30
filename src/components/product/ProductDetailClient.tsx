@@ -24,6 +24,7 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import {
   DesignerCanvasSlot,
   DesignerFormSlot,
@@ -721,10 +722,11 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           {designer ? (
             <>
               {galleryImages[0] && (
-                // eslint-disable-next-line @next/next/no-img-element -- store media, already sized by the API
+                // eslint-disable-next-line @next/next/no-img-element -- natural-ratio thumbnail; optimized srcset
                 <img
-                  src={galleryImages[0].url}
+                  {...responsiveImgProps(galleryImages[0].url, '270px')}
                   alt={galleryImages[0].alt}
+                  fetchPriority="high"
                   className="-order-3 mx-auto block h-auto w-full max-w-67.5 rounded-xl shadow-sm md:order-0 md:mb-4"
                 />
               )}

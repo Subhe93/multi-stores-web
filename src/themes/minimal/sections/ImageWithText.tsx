@@ -1,9 +1,11 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr, mediaFx } from '../../elementStyles';
 import { Reveal } from '../../_motion';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { isSvgSrc } from '@/lib/storeMedia';
 
 type Position = 'left' | 'right';
 type Aspect = 'square' | 'portrait' | 'landscape' | 'wide';
@@ -90,8 +92,15 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
   );
 
   const imageBlock = resolvedImage ? (
-    <div className={ASPECT_CLASS[aspect]} style={mediaFx()}>
-      <img src={resolvedImage} alt="" className="w-full h-full object-cover" />
+    <div className={`relative ${ASPECT_CLASS[aspect]}`} style={mediaFx()}>
+      <StoreImage
+        src={resolvedImage}
+        alt=""
+        fill
+        sizes="(min-width: 768px) 50vw, 100vw"
+        unoptimized={isSvgSrc(resolvedImage)}
+        className="object-cover"
+      />
     </div>
   ) : (
     <div

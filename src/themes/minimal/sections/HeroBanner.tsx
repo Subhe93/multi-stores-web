@@ -6,6 +6,7 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 
 type HeroLayout = 'centered' | 'image-background' | 'side-by-side';
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
@@ -176,8 +177,10 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
             src={resolvedImage}
             alt=""
             fill
-            priority
+            preload
+            fetchPriority="high"
             sizes="100vw"
+            unoptimized={isSvgSrc(resolvedImage)}
             className="object-cover"
             style={{ zIndex: 0 }}
           />
@@ -205,9 +208,11 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
       <section className="grid md:grid-cols-2 gap-8 lg:gap-12 py-10 items-center">
         {imageOnLeft && resolvedImage && (
           <div className="order-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedImage}
+              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
               alt=""
+              fetchPriority="high"
               className="w-full h-full max-h-150 object-cover"
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
             />
@@ -218,9 +223,11 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
         </div>
         {!imageOnLeft && resolvedImage && (
           <div className="order-2 md:order-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedImage}
+              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
               alt=""
+              fetchPriority="high"
               className="w-full h-full max-h-150 object-cover"
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
             />
@@ -234,9 +241,11 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   return (
     <section className="py-16 md:py-24 flex flex-col items-center text-center gap-8">
       {resolvedImage && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={resolvedImage}
+          {...responsiveImgProps(resolvedImage, '(min-width: 768px) 768px, 100vw')}
           alt=""
+          fetchPriority="high"
           className="max-h-96 object-cover w-full max-w-3xl"
           style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-md)' }}
         />

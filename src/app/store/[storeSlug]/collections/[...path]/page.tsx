@@ -9,6 +9,8 @@ import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { collectionHref, collectionPathInChain, resolveCollectionChain } from '@/lib/collectionPath';
 import { ProductCard } from '@/components/product/ProductCard';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -319,12 +321,16 @@ export default async function CollectionPage({
           }
         >
           {heroImage && (
-            <img
+            <StoreImage
               src={heroImage}
               alt=""
               aria-hidden="true"
+              fill
+              sizes="100vw"
+              preload
               fetchPriority="high"
-              className="absolute inset-0 w-full h-full object-cover object-center"
+              unoptimized={isSvgSrc(heroImage)}
+              className="object-cover object-center"
             />
           )}
           <div
@@ -477,7 +483,7 @@ export default async function CollectionPage({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {products.map((product) => {
+            {products.map((product, index) => {
               const translation =
                 product.translations.find((tr) => tr.locale === locale) ||
                 product.translations.find((tr) => tr.locale === 'en') ||
@@ -519,6 +525,10 @@ export default async function CollectionPage({
                       : undefined
                   }
                   vendorName={product.vendor?.company_name}
+                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                  // Banner image is the LCP when shown; else the first cards.
+                  priority={!(hero.enabled && heroImage) && index < 2}
+                  eager={index < 4}
                 />
               );
             })}

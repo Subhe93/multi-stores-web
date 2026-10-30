@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { StoreImage } from '@/components/StoreImage';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { isSvgSrc } from '@/lib/storeMedia';
 
 interface ProductCardProps {
   title: string;
@@ -23,6 +24,12 @@ interface ProductCardProps {
   vendorName?: string;
   /** b2b stores: the product's estimated `tax_rate_bp` (company net view). */
   taxRateBp?: number | null;
+  /** LCP candidate (first cards above the fold): preload at high priority. */
+  priority?: boolean;
+  /** Above the fold but not the LCP: load eagerly instead of lazily. */
+  eager?: boolean;
+  /** Override the image `sizes` when the grid's column count is known. */
+  sizes?: string;
 }
 
 export function ProductCard({
@@ -37,6 +44,9 @@ export function ProductCard({
   aspectClass = 'aspect-square',
   vendorName,
   taxRateBp,
+  priority = false,
+  eager = false,
+  sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw',
 }: ProductCardProps) {
   const t = useTranslations('product');
   const display = useDisplayPrice();
@@ -64,7 +74,11 @@ export function ProductCard({
             src={imageUrl}
             alt={title}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            sizes={sizes}
+            preload={priority}
+            fetchPriority={priority ? 'high' : undefined}
+            loading={priority ? undefined : eager ? 'eager' : 'lazy'}
+            unoptimized={isSvgSrc(imageUrl)}
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (

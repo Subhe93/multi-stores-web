@@ -7,6 +7,8 @@
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { DesignerCanvasSlot, useDesignerSession } from '@/components/designer/DesignerSession';
 import type { SectionRenderProps } from '../../../types';
 
@@ -58,8 +60,9 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
         {featured && (
           // eslint-disable-next-line @next/next/no-img-element -- store media, as the gallery itself renders it
           <img
-            src={resolveMediaUrl(featured.url)}
+            {...responsiveImgProps(resolveMediaUrl(featured.url), '270px')}
             alt={featured.alt_text || ''}
+            fetchPriority="high"
             className="mx-auto block h-auto w-full max-w-67.5 object-cover"
             style={{ borderRadius: 'var(--theme-radius-md)', boxShadow: 'var(--theme-shadow-sm)' }}
           />
@@ -90,6 +93,9 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   // React does not treat it as a new element type (and remount) every render.
   const renderMainImage = (index: number) => {
     const img = images[index];
+    const src = resolveMediaUrl(img.url);
+    // The lead image is the page's LCP: preload it at high priority.
+    const lead = index === 0;
     return (
       <div
         ref={mainRef}
@@ -101,10 +107,15 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
         onMouseMove={onMouseMove}
         onMouseLeave={() => setZoom(null)}
       >
-        <img
-          src={resolveMediaUrl(img.url)}
+        <StoreImage
+          src={src}
           alt={img.alt_text || ''}
-          className="w-full h-full object-cover transition-transform duration-300"
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          preload={lead}
+          fetchPriority={lead ? 'high' : undefined}
+          unoptimized={isSvgSrc(src)}
+          className="object-cover transition-transform duration-300"
           style={
             enableZoom && zoom
               ? {
@@ -130,10 +141,13 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
     return (
       <section className="grid grid-cols-2 gap-3">
         {images.map((img, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={i}
-            src={resolveMediaUrl(img.url)}
+            {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 25vw, 50vw')}
             alt={img.alt_text || ''}
+            fetchPriority={i === 0 ? 'high' : undefined}
+            loading={i < 2 ? undefined : 'lazy'}
             className={`w-full ${ASPECT[aspect]} object-cover`}
             style={{
               borderRadius: 'var(--theme-radius-md)',
@@ -149,10 +163,13 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
     return (
       <section className="space-y-3">
         {images.map((img, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={i}
-            src={resolveMediaUrl(img.url)}
+            {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 50vw, 100vw')}
             alt={img.alt_text || ''}
+            fetchPriority={i === 0 ? 'high' : undefined}
+            loading={i < 1 ? undefined : 'lazy'}
             className={`w-full ${ASPECT[aspect]} object-cover`}
             style={{
               borderRadius: 'var(--theme-radius-md)',
@@ -227,9 +244,11 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
                 outlineOffset: i === active ? '1px' : '0',
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={resolveMediaUrl(img.url)}
+                {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 10vw, 20vw')}
                 alt={img.alt_text || ''}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
             </button>

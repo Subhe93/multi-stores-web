@@ -3,6 +3,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { responsiveImgProps } from '@/lib/storeMedia';
 
 interface GalleryItem {
   url?: string;
@@ -41,6 +42,14 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
 
   const visibleItems = items.filter((i) => !!i.url);
 
+  // Rendered tile width per layout, for the optimizer's srcset choice.
+  const imgSizes =
+    layout === 'masonry'
+      ? '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw'
+      : layout === 'carousel'
+        ? '288px'
+        : `(min-width: 1024px) ${Math.ceil(100 / columns)}vw, (min-width: 768px) ${Math.ceil(100 / columnsTablet)}vw, ${Math.ceil(100 / columnsMobile)}vw`;
+
   const radiusStyle = rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
 
   // Each image is a tile — wrapped in <a> only when a link is supplied. Keeps
@@ -48,8 +57,9 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
   function Tile({ item }: { item: GalleryItem }) {
     const inner = (
       <div className="group relative overflow-hidden" style={radiusStyle}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={resolveMediaUrl(item.url || '')}
+          {...responsiveImgProps(resolveMediaUrl(item.url || ''), imgSizes)}
           alt={item.alt || ''}
           loading="lazy"
           className={`w-full ${ASPECT_CLASS[aspect]} object-cover transition-transform duration-500 group-hover:scale-105`}

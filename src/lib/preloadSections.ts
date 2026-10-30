@@ -49,6 +49,40 @@ export function collectionProductsParams(input: {
   return params;
 }
 
+export const FEATURED_PRODUCTS_SECTION_KEY = 'featured-products';
+
+/** Product limit of a featured-products section, clamped like the schema. */
+export function featuredProductsLimit(settings: Record<string, unknown>): number {
+  const raw = Number(settings.limit ?? 4);
+  return clamp(Number.isFinite(raw) ? raw : 4, 1, 12);
+}
+
+/** Query params of `GET /storefront/:slug/products` for a featured-products section. */
+export function featuredProductsParams(input: {
+  locale: string;
+  limit: number;
+  filter: string;
+}): Record<string, string> {
+  const params: Record<string, string> = { locale: input.locale, limit: String(input.limit) };
+  if (input.filter === 'featured') params.featured = 'true';
+  return params;
+}
+
+/** The products request a section makes on mount, or null if it fetches nothing. */
+function sectionProductsRequest(s: SectionInstance, locale: string): { params: Record<string, string>; limit: number } | null {
+  const settings = s.settings || {};
+  if (s.section_key === COLLECTION_PRODUCTS_SECTION_KEY) {
+    // An empty category lists all products (same request as the client).
+    const limit = collectionProductsLimit(settings);
+    return { limit, params: collectionProductsParams({ locale, limit, category: (settings.category as string) || '' }) };
+  }
+  if (s.section_key === FEATURED_PRODUCTS_SECTION_KEY) {
+    const limit = featuredProductsLimit(settings);
+    return { limit, params: featuredProductsParams({ locale, limit, filter: (settings.filter as string) || 'newest' }) };
+  }
+  return null;
+}
+
 /**
  * Fetch, on the server, the data of every visible section that supports
  * preloading. Returns `{ [section.id]: data }`; sections whose request failed
@@ -59,22 +93,15 @@ export async function preloadSectionData(
   sections: SectionInstance[],
   opts: { locale: string; marketRef?: MarketRef },
 ): Promise<Record<string, unknown>> {
-  const targets = sections.filter((s) => {
-    if (s.is_hidden || s.section_key !== COLLECTION_PRODUCTS_SECTION_KEY) return false;
-    // Without a collection the section shows its "pick a collection" prompt;
-    // nothing to fetch.
-    return Boolean((s.settings?.category as string) || '');
+  const targets = sections.flatMap((s) => {
+    if (s.is_hidden) return [];
+    const req = sectionProductsRequest(s, opts.locale);
+    return req ? [{ id: s.id, ...req }] : [];
   });
   if (targets.length === 0) return {};
 
   const results = await Promise.allSettled(
-    targets.map(async (s) => {
-      const limit = collectionProductsLimit(s.settings || {});
-      const params = collectionProductsParams({
-        locale: opts.locale,
-        limit,
-        category: s.settings.category as string,
-      });
+    targets.map(async ({ params, limit }) => {
       const list = (await storefront.getProducts(storeSlug, params, opts.marketRef)) as unknown;
       return Array.isArray(list) ? list.slice(0, limit) : [];
     }),

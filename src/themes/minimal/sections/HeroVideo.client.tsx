@@ -6,11 +6,13 @@
 
 import { useState } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import type { SectionRenderProps } from '../../types';
 import { headingTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { isSvgSrc, optimizedImageUrl } from '@/lib/storeMedia';
 
 type Height = 'md' | 'lg' | 'full';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -88,7 +90,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
         <video
           className="absolute inset-0 h-full w-full object-cover"
           src={resolvedVideo}
-          poster={resolvedPoster || undefined}
+          poster={resolvedPoster ? optimizedImageUrl(resolvedPoster) : undefined}
           autoPlay
           muted
           loop
@@ -98,8 +100,16 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
           onError={() => setVideoFailed(true)}
         />
       ) : resolvedPoster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={resolvedPoster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <StoreImage
+          src={resolvedPoster}
+          alt=""
+          fill
+          sizes="100vw"
+          preload
+          fetchPriority="high"
+          unoptimized={isSvgSrc(resolvedPoster)}
+          className="object-cover"
+        />
       ) : null}
 
       {/* Dark overlay — slightly lighter at the top so faces/products in the video keep detail. */}

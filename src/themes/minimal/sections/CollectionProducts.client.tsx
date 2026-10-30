@@ -9,7 +9,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
-import { collectionProductsParams } from '@/lib/preloadSections';
+import { collectionProductsLimit, collectionProductsParams } from '@/lib/preloadSections';
+import { StoreImage } from '@/components/StoreImage';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
@@ -41,6 +42,11 @@ const CARD_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
+/** `sizes` for a card image in a grid with the given columns per breakpoint. */
+function gridImageSizes(desktop: number, tablet: number, mobile: number): string {
+  return `(max-width: 767px) ${Math.ceil(100 / mobile)}vw, (max-width: 1023px) ${Math.ceil(100 / tablet)}vw, ${Math.ceil(100 / desktop)}vw`;
+}
+
 export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
@@ -50,7 +56,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   // it to `creator_category_id` / `creator_category`; shared with the
   // server-side preload so both fetch exactly the same list.
   const categoryRef = (settings.category as string) || '';
-  const limit = clamp((settings.limit as number) ?? 8, 1, 24);
+  const limit = collectionProductsLimit(settings);
   const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
@@ -67,6 +73,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
     : categoryRef
       ? null
       : storeHref(`${localePrefix}/products`);
+  const imageSizes = gridImageSizes(columns, columnsTablet, columnsMobile);
   const scopeClass = `cp-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const t = useTranslations('product');
@@ -238,11 +245,12 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                     </span>
                   )}
                   {p.images?.[0]?.url ? (
-                    <img
+                    <StoreImage
                       src={resolveMediaUrl(p.images[0].url)}
                       alt={tr?.title || ''}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      sizes={imageSizes}
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : null}
                 </div>
