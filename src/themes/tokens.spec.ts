@@ -72,7 +72,7 @@ describe('stored contrast that became unreadable (preset white kept on a yellow 
 describe('price shadow token', () => {
   it('emits a hard shadow for a colour and ignores anything else', () => {
     const vars = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens, { colors: { ...minimalTokens.colors, priceShadow: '#000000' } }));
-    expect(vars['--theme-price-shadow']).toBe('1.5px 1.5px 0 #000000');
+    expect(vars['--theme-price-shadow']).toBe('0 0 1px #000000');
     const bad = <Record<string, string>>tokensToCssVars(mergeTokens(minimalTokens, { colors: { ...minimalTokens.colors, priceShadow: 'red; } body { x' } }));
     expect(bad['--theme-price-shadow']).toBeUndefined();
   });
