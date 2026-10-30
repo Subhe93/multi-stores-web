@@ -360,21 +360,14 @@ html, body {
 }
 
 /*
- * Text on a store-primary button (regular add to cart). White on a dark
- * primary, black on a light one (OKLCH lightness >= 0.6), so a yellow or
- * pastel brand colour stays readable. Beats the store's unlayered
- * `.store-root main button` typography colour; browsers without relative
- * colour syntax keep white, as before.
+ * Text on a store-primary button (regular add to cart): the store's
+ * --store-primary-contrast (explicit, or computed dark-on-light / white-on-
+ * dark by the store layout). Beats the store's unlayered
+ * `.store-root main button` typography colour.
  */
 .store-root main [data-on-primary],
 .store-overlay [data-on-primary] {
-  color: #fff;
-}
-@supports (color: oklch(from red l c h)) {
-  .store-root main [data-on-primary],
-  .store-overlay [data-on-primary] {
-    color: oklch(from var(--store-primary, #2563eb) clamp(0, (0.6 - l) * 1000, 1) 0 0);
-  }
+  color: var(--store-primary-contrast, #fff);
 }
 
 /* Print: never leave content in its pre-reveal hidden state. */

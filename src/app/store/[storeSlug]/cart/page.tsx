@@ -77,8 +77,8 @@ function CartEmpty() {
       <p className="text-gray-500 mb-8 text-center max-w-xs text-sm">{t('cart.emptyDescription')}</p>
       <Link
         href={lp('/products')}
-        className="px-8 py-3 text-white text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+        className="px-8 py-3 text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
       >
         {t('cart.continueShopping')}
       </Link>
@@ -565,8 +565,8 @@ export default function StoreCartPage() {
                   <button
                     type="button"
                     disabled
-                    className="flex items-center justify-center gap-2 w-full py-3.5 text-white text-sm font-semibold rounded-lg opacity-50 cursor-not-allowed"
-                    style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                    className="flex items-center justify-center gap-2 w-full py-3.5 text-sm font-semibold rounded-lg opacity-50 cursor-not-allowed"
+                    style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
                   >
                     <Lock className="w-4 h-4" />
                     {t('cart.checkout')}
@@ -576,8 +576,8 @@ export default function StoreCartPage() {
               ) : (
               <Link
                 href={lp('/checkout')}
-                className="flex items-center justify-center gap-2 w-full py-3.5 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity mt-1"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="flex items-center justify-center gap-2 w-full py-3.5 text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity mt-1"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 <Lock className="w-4 h-4" />
                 {t('cart.checkout')}

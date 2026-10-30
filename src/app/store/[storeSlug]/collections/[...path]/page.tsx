@@ -431,12 +431,12 @@ export default async function CollectionPage({
                     href={buildSortUrl(opt.value)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
                       (sort || '') === opt.value
-                        ? 'text-white border-transparent shadow-sm'
+                        ? 'border-transparent shadow-sm'
                         : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                     }`}
                     style={
                       (sort || '') === opt.value
-                        ? { backgroundColor: 'var(--store-primary, #2563eb)' }
+                        ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }
                         : {}
                     }
                   >
@@ -478,7 +478,7 @@ export default async function CollectionPage({
             <Link
               href={`${lp}/products`}
               className="inline-block mt-4 text-sm font-semibold hover:underline"
-              style={{ color: 'var(--store-primary, #2563eb)' }}
+              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
             >
               {t('common.viewAll')}
             </Link>

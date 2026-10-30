@@ -78,8 +78,8 @@ export default function StoreOrdersPage() {
           <p className="text-sm text-gray-500 mb-4">{t('account.noOrders')}</p>
           <Link
             href={lp('/products')}
-            className="inline-block rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+            className="inline-block rounded-xl px-6 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
             {t('cart.continueShopping')}
           </Link>

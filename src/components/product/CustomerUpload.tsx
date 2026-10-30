@@ -194,8 +194,8 @@ export function CustomerUpload({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="min-h-11 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
-                style={{ backgroundColor: 'var(--store-primary, #111827)' }}
+                className="min-h-11 px-4 py-2 text-sm font-semibold rounded-lg transition-colors hover:opacity-90"
+                style={{ backgroundColor: 'var(--store-primary, #111827)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {t('product.browseFiles')}
               </button>

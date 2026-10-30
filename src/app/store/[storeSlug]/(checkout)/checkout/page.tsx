@@ -917,8 +917,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
           href={lp('/products')}
-          className="inline-block rounded-md px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition"
-          style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+          className="inline-block rounded-md px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
           {t('cart.continueShopping')}
         </Link>
@@ -1441,8 +1441,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             <button
               type="submit"
               disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
-              className="w-full mt-5 py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+              className="w-full mt-5 py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />{t('checkout.processing')}</>
@@ -1515,8 +1515,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             <button
               type="submit"
               disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
-              className="w-full py-4 text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+              className="w-full py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />{t('checkout.processing')}</>

@@ -221,7 +221,7 @@ export default function StoreOrderDetailPage() {
       <div className="store-surface store-bd rounded-2xl border p-8 text-center">
         <p className="text-sm text-gray-500 mb-3">{t('account.orderNotFound')}</p>
         <Link href={lp('/account/orders')} className="text-sm font-medium hover:underline"
-          style={{ color: 'var(--store-primary, #2563eb)' }}>
+          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}>
           {t('account.backToOrders')}
         </Link>
       </div>
@@ -286,9 +286,9 @@ export default function StoreOrderDetailPage() {
                 )}
                 <div
                   className={`relative z-10 w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
-                    idx <= currentIdx ? 'text-white' : 'bg-gray-200 text-gray-400'
+                    idx <= currentIdx ? '' : 'bg-gray-200 text-gray-400'
                   }`}
-                  style={idx <= currentIdx ? { backgroundColor: 'var(--store-primary, #111)' } : undefined}
+                  style={idx <= currentIdx ? { backgroundColor: 'var(--store-primary, #111)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                 >
                   {idx < currentIdx ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : idx + 1}
                 </div>

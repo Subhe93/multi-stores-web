@@ -162,8 +162,8 @@ export default function StoreAddressesPage() {
         <h1 className="text-lg font-semibold text-gray-900">{t('addresses')}</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition"
-          style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
           <Plus className="w-4 h-4" />
           {showForm ? tCheckout('cancel') : t('addAddress')}
@@ -236,8 +236,8 @@ export default function StoreAddressesPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="px-5 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {saving ? tCheckout('processing') : t('addAddress')}

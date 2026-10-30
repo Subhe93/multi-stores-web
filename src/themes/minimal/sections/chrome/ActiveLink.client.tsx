@@ -47,15 +47,7 @@ export function ActiveLink({
   onPointerEnter?: PointerEventHandler<HTMLAnchorElement>;
   ref?: Ref<HTMLAnchorElement>;
 }) {
-  const pathname = usePathname() || '';
-  // Compare on pathname only — strip query/hash from the href before matching.
-  const hrefPath = href.split('?')[0].split('#')[0];
-  const isActive =
-    hrefPath && hrefPath !== '#'
-      ? exact
-        ? pathname === hrefPath
-        : pathname === hrefPath || pathname.startsWith(hrefPath + '/')
-      : false;
+  const isActive = useIsActiveHref(href, exact);
 
   return (
     <Link
@@ -69,6 +61,17 @@ export function ActiveLink({
       {children}
     </Link>
   );
+}
+
+/** Whether `href` points at the current page (prefix match unless `exact`). */
+export function useIsActiveHref(href: string | undefined, exact?: boolean): boolean {
+  const pathname = usePathname() || '';
+  // Compare on pathname only — strip query/hash from the href before matching.
+  const hrefPath = (href || '').split('?')[0].split('#')[0];
+  if (!hrefPath || hrefPath === '#') return false;
+  return exact
+    ? pathname === hrefPath
+    : pathname === hrefPath || pathname.startsWith(hrefPath + '/');
 }
 
 // Hrefs already prefetched in this tab; router.prefetch runs once per href.

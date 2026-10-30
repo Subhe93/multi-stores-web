@@ -89,7 +89,7 @@ export function VariantCards({
                 }`}
                 style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)' } : undefined}
               >
-                {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                {isSelected && <Check className="h-3 w-3" strokeWidth={3} style={{ color: 'var(--store-primary-contrast, #fff)' }} />}
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-gray-900">{meta.label}</span>

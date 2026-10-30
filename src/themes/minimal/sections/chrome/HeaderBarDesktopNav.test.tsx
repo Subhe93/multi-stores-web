@@ -108,3 +108,27 @@ describe('HeaderBarDesktopNav prefetch', () => {
     expect(prefetch).not.toHaveBeenCalledWith('#');
   });
 });
+
+describe('HeaderBarDesktopNav active style', () => {
+  it('keeps the accent text look by default', () => {
+    renderNav();
+    const active = screen.getByRole('link', { name: 'Hem' });
+    expect(active).toHaveAttribute('aria-current', 'page');
+    expect(active.className).toContain('bg-black/5');
+    expect(active.className).toContain('px-3');
+  });
+
+  it('fills the active item as a pill with a readable label colour', () => {
+    render(
+      <HeaderBarDesktopNav items={[home, about]} bg="#fff" borderColor="#eee" accent="#feee4a" activeVariant="pill" />,
+    );
+    const active = screen.getByRole('link', { name: 'Hem' });
+    expect(active.className).toContain('rounded-full');
+    expect(active.className).toContain('px-4');
+    expect(active).toHaveStyle({ backgroundColor: '#feee4a', color: '#111827' });
+    // Inactive items share the same padding (no layout shift).
+    const trigger = screen.getByRole('link', { name: 'Om oss' });
+    expect(trigger.className).toContain('ps-4');
+    expect(trigger.parentElement?.style.backgroundColor).toBe('');
+  });
+});

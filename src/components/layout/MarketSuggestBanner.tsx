@@ -76,8 +76,8 @@ export function MarketSuggestBanner({ storeSlug, suggestedKey, country }: Market
       <button
         type="button"
         onClick={go}
-        className="px-3 py-1 rounded-md text-white text-xs font-medium hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+        className="px-3 py-1 rounded-md text-xs font-medium hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
       >
         {t('market.suggest.cta', { market: marketName })}
       </button>

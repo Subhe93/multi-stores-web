@@ -321,12 +321,12 @@ export function VariantSelector({
                       onClick={() => handleSelect(key, value)}
                       className={`min-h-11 px-4 py-2 text-sm rounded-lg border-2 font-medium transition-all duration-200 ${
                         isSelected
-                          ? 'text-white border-transparent'
+                          ? 'border-transparent'
                           : available
                             ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
                             : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through opacity-40'
                       }`}
-                      style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)' } : undefined}
+                      style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                     >
                       {value}
                     </button>
@@ -379,7 +379,7 @@ export function VariantSelector({
                             className="absolute top-1 inset-e-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
                             style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
                           >
-                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            <Check className="w-3 h-3" strokeWidth={3} style={{ color: 'var(--store-primary-contrast, #fff)' }} />
                           </div>
                         )}
                         {!available && (
@@ -431,12 +431,12 @@ export function VariantSelector({
                       onClick={() => handleSelect(key, value)}
                       className={`min-w-12 min-h-11 px-4 py-2.5 text-sm rounded-lg border-2 font-medium text-center transition-all duration-200 ${
                         isSelected
-                          ? 'text-white border-transparent'
+                          ? 'border-transparent'
                           : available
                             ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:shadow-sm'
                             : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through opacity-40'
                       }`}
-                      style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)' } : undefined}
+                      style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                     >
                       {value}
                     </button>

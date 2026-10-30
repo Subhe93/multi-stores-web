@@ -27,7 +27,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { ActiveLink, usePrefetchOnIntent } from './ActiveLink.client';
+import { ActiveLink, useIsActiveHref, usePrefetchOnIntent } from './ActiveLink.client';
+import { navActiveLook, type NavActiveLook, type NavActiveStyle } from './navActiveLook';
 
 export interface DesktopNavItem {
   label: string;
@@ -78,12 +79,16 @@ export function HeaderBarDesktopNav({
   bg,
   borderColor,
   accent,
+  activeVariant = 'text',
 }: {
   items: DesktopNavItem[];
   bg: string;
   borderColor: string;
   accent: string;
+  /** Active top-level item look: accent text or a filled pill. */
+  activeVariant?: NavActiveStyle;
 }) {
+  const look = navActiveLook(activeVariant, accent);
   // Index of the open top-level item; only one submenu is open at a time.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const prefetch = usePrefetchOnIntent();
@@ -152,9 +157,9 @@ export function HeaderBarDesktopNav({
               href={item.url || '#'}
               {...newTabProps(item.open_in_new_tab)}
               {...intentProps(prefetch, item.url, item.open_in_new_tab)}
-              className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
-              activeStyle={{ color: accent }}
-              activeClassName="bg-black/5"
+              className={`${look.itemClass} text-sm font-medium hover:bg-black/5 transition`}
+              activeStyle={look.activeStyle}
+              activeClassName={look.activeClassName}
             >
               {item.label}
             </ActiveLink>
@@ -174,6 +179,7 @@ export function HeaderBarDesktopNav({
             bg={bg}
             borderColor={borderColor}
             accent={accent}
+            look={look}
           />
         );
       })}
@@ -193,6 +199,7 @@ function SubmenuItem({
   bg,
   borderColor,
   accent,
+  look,
 }: {
   item: DesktopNavItem;
   open: boolean;
@@ -205,8 +212,12 @@ function SubmenuItem({
   bg: string;
   borderColor: string;
   accent: string;
+  look: NavActiveLook;
 }) {
   const panelId = useId();
+  // Pill look wraps trigger + chevron together, so the wrapper owns the state.
+  const pill = look.style === 'pill';
+  const active = useIsActiveHref(item.url || '#');
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const mega = needsMegaPanel(item);
@@ -248,15 +259,18 @@ function SubmenuItem({
       onKeyDown={onKeyDown}
       onBlur={onBlur}
     >
-      <div className="inline-flex items-center rounded-md hover:bg-black/5 transition">
+      <div
+        className={`inline-flex items-center ${pill ? 'rounded-full' : 'rounded-md'} hover:bg-black/5 transition`}
+        style={pill && active ? look.activeStyle : undefined}
+      >
         {/* The trigger is still a link to the item's own URL (keyboard Enter
             navigates); focusing it opens the submenu for keyboard users. */}
         <ActiveLink
           href={item.url || '#'}
           {...newTabProps(item.open_in_new_tab)}
-          className="ps-3 pe-1 py-1.5 rounded-s-md text-sm font-medium"
-          activeStyle={{ color: accent }}
-          activeClassName="bg-black/5"
+          className={pill ? 'ps-4 pe-1 py-2 rounded-s-full text-sm font-medium' : 'ps-3 pe-1 py-1.5 rounded-s-md text-sm font-medium'}
+          activeStyle={pill ? undefined : look.activeStyle}
+          activeClassName={pill ? undefined : look.activeClassName}
           onFocus={() => {
             if (!item.open_in_new_tab) prefetch(item.url);
             if (!suppressFocusOpen.current) onOpen();
@@ -277,7 +291,7 @@ function SubmenuItem({
           aria-controls={panelId}
           aria-label={item.label}
           onClick={onToggle}
-          className="pe-2 ps-0.5 py-1.5 rounded-e-md inline-flex items-center cursor-pointer"
+          className={`${pill ? 'pe-3 py-2 rounded-e-full' : 'pe-2 py-1.5 rounded-e-md'} ps-0.5 inline-flex items-center cursor-pointer`}
         >
           <ChevronDown
             className={`size-3.5 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`}

@@ -65,7 +65,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
             className="text-[11px] font-bold uppercase tracking-wide px-2 py-0.5"
             style={{
               backgroundColor: 'var(--theme-colors-accent)',
-              color: 'var(--theme-colors-primaryContrast, #fff)',
+              color: 'var(--theme-colors-accentContrast, #fff)',
               borderRadius: 'var(--theme-radius-sm)',
             }}
           >
@@ -120,7 +120,7 @@ function ProductDetailsMagic({ settings, content, locale, product, currency }: S
             style={{
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
-              color: 'var(--theme-colors-primary)',
+              color: 'var(--theme-colors-price, var(--theme-colors-primary))',
             }}
           >
             {formatPrice(display(Number(product.base_price), product.tax_rate_bp, c).amount)}

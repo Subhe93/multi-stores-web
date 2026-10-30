@@ -109,7 +109,7 @@ export function ProductCard({
 
         {/* Discount badge */}
         {discount > 0 && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 text-[11px] font-bold text-white rounded-full bg-red-500">
+          <span className="absolute top-2 start-2 px-2 py-0.5 text-[11px] font-bold text-white rounded-full bg-red-500">
             -{discount}%
           </span>
         )}
@@ -117,8 +117,8 @@ export function ProductCard({
         {/* Custom badge (e.g. "New") */}
         {badge && !discount && (
           <span
-            className="absolute top-2 left-2 px-2 py-0.5 text-[11px] font-bold text-white rounded-full"
-            style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+            className="absolute top-2 start-2 px-2 py-0.5 text-[11px] font-bold rounded-full"
+            style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
             {badge}
           </span>
@@ -126,7 +126,7 @@ export function ProductCard({
 
         {/* Promotion badge */}
         {promotionLabel && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold text-amber-800 rounded-full bg-amber-100 border border-amber-200">
+          <span className="absolute top-2 end-2 px-2 py-0.5 text-[10px] font-bold text-amber-800 rounded-full bg-amber-100 border border-amber-200">
             {promotionLabel}
           </span>
         )}
@@ -143,7 +143,7 @@ export function ProductCard({
         <div className="mt-1.5 flex items-center gap-2 flex-wrap">
           <span
             className="text-sm font-bold"
-            style={{ color: 'var(--store-primary, #2563eb)' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
           >
             {formatted}
           </span>

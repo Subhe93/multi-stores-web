@@ -109,7 +109,10 @@ function resolveVariant(
 
 // The option picker is the page's `VariantSelector` (M5 D19), which reads the
 // store primary colour; map the theme token onto it for this section.
-const SCOPE_STYLE = { ['--store-primary' as string]: 'var(--theme-colors-primary)' } as CSSProperties;
+const SCOPE_STYLE = {
+  ['--store-primary' as string]: 'var(--theme-colors-primary)',
+  ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
+} as CSSProperties;
 
 export function AddToCartMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
   const t = useTranslations();
@@ -466,7 +469,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             style={{
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
-              color: 'var(--theme-colors-primary)',
+              color: 'var(--theme-colors-price, var(--theme-colors-primary))',
             }}
           >
             {priceLabel}

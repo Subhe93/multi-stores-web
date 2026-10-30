@@ -19,8 +19,13 @@ export interface ColorTokens {
   text: string;
   muted: string;
   border: string;
-  // Optional dark-mode counterparts; themes may opt in.
+  // Text colours on primary/secondary/accent backgrounds. Unset (or blank)
+  // = computed from the background for readable contrast (see mergeTokens).
   primaryContrast?: string;
+  secondaryContrast?: string;
+  accentContrast?: string;
+  // Price text colour; unset = primary.
+  price?: string;
 }
 
 export interface FontFamilies {

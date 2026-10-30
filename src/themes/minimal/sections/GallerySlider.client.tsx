@@ -7,6 +7,7 @@ import { Slider } from './_shared/Slider.client';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { responsiveImgProps } from '@/lib/storeMedia';
+import { useTranslations } from 'next-intl';
 
 interface GalleryItem {
   url?: string;
@@ -29,6 +30,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 export function GallerySlider({ settings, content, locale }: SectionRenderProps) {
+  const t = useTranslations('slider');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -54,12 +56,15 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
   const radiusStyle = rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
 
   const slideNodes = items.map((item, i) => {
+    const caption = item.caption?.trim() || '';
+    // Alt falls back to the caption so captioned images are not decorative.
+    const alt = item.alt?.trim() || caption;
     const inner = (
       <div className="group relative overflow-hidden h-full" style={radiusStyle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           {...responsiveImgProps(resolveMediaUrl(item.url || ''), imgSizes)}
-          alt={item.alt || ''}
+          alt={alt}
           loading="lazy"
           className={`w-full ${ASPECT_CLASS[aspect]} object-cover transition-transform duration-500 group-hover:scale-105`}
         />
@@ -74,7 +79,12 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
       </div>
     );
     return item.href ? (
-      <a key={i} href={storeHref(item.href)} className="block">
+      <a
+        key={i}
+        href={storeHref(item.href)}
+        className="block"
+        aria-label={alt || t('galleryItem', { n: i + 1 })}
+      >
         {inner}
       </a>
     ) : (
@@ -133,7 +143,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
           showDots={showDots}
           loop={loop}
           dir={dir}
-          ariaLabel={locale === 'ar' ? 'سلايدر معرض الصور' : 'Image gallery slider'}
+          ariaLabel={t('galleryLabel')}
         />
       )}
     </section>

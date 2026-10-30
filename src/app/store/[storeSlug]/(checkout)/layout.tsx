@@ -13,7 +13,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens } from '@/themes/tokens';
+import { mergeTokens, storePrimaryContrast } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
 
 interface Store {
@@ -103,6 +103,7 @@ export default async function CheckoutLayout({
           className="min-h-screen flex flex-col store-page"
           style={{
             '--store-primary': primaryColor,
+            '--store-primary-contrast': storePrimaryContrast(primaryColor, resolvedTokens, store.theme_customizations),
             '--store-secondary': secondaryColor,
             ...(fontFamily ? { fontFamily } : {}),
           } as React.CSSProperties}

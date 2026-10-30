@@ -62,7 +62,11 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   const columns = clamp((settings.columns as number) ?? 4, 1, 6);
   const columnsTablet = clamp((settings.columns_tablet as number) ?? Math.min(columns, 3), 1, 6);
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
-  const linkLabel = (content.link_label as string) || (locale === 'ar' ? 'عرض الكل' : 'View all');
+  const defaultLinkLabel = locale === 'ar' ? 'عرض الكل' : 'View all';
+  const rawLinkLabel = content.link_label as string | undefined;
+  // A whitespace-only label is an icon-only link: no visible text, but the
+  // chevron still needs an accessible name.
+  const linkLabel = typeof rawLinkLabel === 'string' && rawLinkLabel !== '' ? rawLinkLabel.trim() : defaultLinkLabel;
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
   // "View all": the link set in the builder; without one it lists every
   // product only when no collection is picked. A section showing one
@@ -156,14 +160,15 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
             </Heading>
           )}
         </div>
-        {linkLabel && linkUrl && (
+        {linkUrl && (
           <a
             href={linkUrl}
+            aria-label={linkLabel ? undefined : defaultLinkLabel}
             className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"
-            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-primary)') }}
+            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-price, var(--theme-colors-primary))') }}
           >
             {linkLabel}
-            <ChevronRight className="size-3.5" />
+            <ChevronRight className="size-3.5" aria-hidden="true" />
           </a>
         )}
       </div>
@@ -240,7 +245,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                   {discount > 0 && (
                     <span
                       className="absolute top-2 inset-s-2 z-10 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: '#fff' }}
+                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: 'var(--theme-colors-accentContrast, #fff)' }}
                     >
                       -{discount}%
                     </span>
@@ -265,7 +270,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
                     </p>
                   )}
                   <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold" style={{ color: 'var(--theme-colors-primary)' }}>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))' }}>
                       {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>
                     {p.compare_at_price && p.compare_at_price > p.base_price && (

@@ -37,7 +37,7 @@ export function DesignLineExtras({ design, info, unavailable = false }: Props) {
         <a
           href={info.editHref}
           className="inline-flex min-h-11 w-fit items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-          style={{ color: 'var(--store-primary, #2563eb)' }}
+          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
         >
           <Pencil className="w-3 h-3" aria-hidden="true" />
           {t('designer.editDesign')}
@@ -53,7 +53,7 @@ export function DesignLineExtras({ design, info, unavailable = false }: Props) {
             onClick={() => void info.startAgain()}
             disabled={info.restarting}
             className="inline-flex min-h-11 w-fit items-center gap-1 text-xs font-medium underline-offset-2 hover:underline disabled:opacity-50"
-            style={{ color: 'var(--store-primary, #2563eb)' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
           >
             {info.restarting ? (
               <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />

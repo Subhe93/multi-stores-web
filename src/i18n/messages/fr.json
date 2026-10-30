@@ -819,5 +819,12 @@
     "reject": "Refuser",
     "settings": "Lire notre politique de cookies",
     "manage": "Paramètres des cookies"
+  },
+  "slider": {
+    "goTo": "Aller à la diapositive {n}",
+    "previous": "Diapositive précédente",
+    "next": "Diapositive suivante",
+    "galleryLabel": "Galerie d'images",
+    "galleryItem": "Image de la galerie {n}"
   }
 }

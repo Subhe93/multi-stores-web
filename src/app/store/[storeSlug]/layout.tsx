@@ -24,7 +24,7 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
 import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens, tokensToCssVars, tokenFonts } from '@/themes/tokens';
+import { mergeTokens, tokensToCssVars, tokenFonts, storePrimaryContrast } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
@@ -309,6 +309,8 @@ export default async function StoreLayout({
   // Explicit creator colour wins; otherwise follow the chosen theme's tokens.
   const primaryColor = store.theme?.primaryColor || resolvedTokens.colors.primary;
   const secondaryColor = store.theme?.secondaryColor || resolvedTokens.colors.secondary;
+  // Readable label colour on --store-primary fills (dark on a yellow brand).
+  const primaryContrast = storePrimaryContrast(primaryColor, resolvedTokens, store.theme_customizations);
   const fontFamily = store.theme?.fontFamily;
   const typography = store.theme?.typography || {};
   const headerCfg = store.theme?.header || {};
@@ -336,6 +338,7 @@ export default async function StoreLayout({
     // The legacy brand colours live only as inline styles on .store-root, so
     // portaled UI would lose them too.
     ['--store-primary', primaryColor],
+    ['--store-primary-contrast', primaryContrast],
     ['--store-secondary', secondaryColor],
   ]
     .map(([k, v]) => `  ${k}: ${cssSafe(String(v))};`)
@@ -521,6 +524,7 @@ export default async function StoreLayout({
             backgroundColor: 'var(--theme-colors-background)',
             color: 'var(--theme-colors-text)',
             '--store-primary': primaryColor,
+            '--store-primary-contrast': primaryContrast,
             '--store-secondary': secondaryColor,
             '--store-logo-size': `${logoSize}px`,
             ...(fontFamily ? { fontFamily: `"${fontFamily}", system-ui, sans-serif` } : {}),

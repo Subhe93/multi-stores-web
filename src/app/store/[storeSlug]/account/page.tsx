@@ -303,8 +303,8 @@ export default function StoreAccountPage() {
               <button
                 type="submit"
                 disabled={profileSaving}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {profileSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {tCommon('save')}
@@ -322,8 +322,8 @@ export default function StoreAccountPage() {
           user && (
             <div className="flex items-start gap-4">
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {name.charAt(0).toUpperCase()}
               </div>
@@ -360,7 +360,7 @@ export default function StoreAccountPage() {
             <button
               onClick={() => setShowPwdForm(true)}
               className="text-sm font-medium hover:underline"
-              style={{ color: 'var(--store-primary, #2563eb)' }}
+              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
             >
               {tCommon('edit')}
             </button>
@@ -414,8 +414,8 @@ export default function StoreAccountPage() {
               <button
                 type="submit"
                 disabled={pwdSaving}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {pwdSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {t('changePassword')}

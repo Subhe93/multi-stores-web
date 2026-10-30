@@ -819,5 +819,12 @@
     "reject": "Avböj",
     "settings": "Läs vår cookiepolicy",
     "manage": "Cookieinställningar"
+  },
+  "slider": {
+    "goTo": "Gå till bild {n}",
+    "previous": "Föregående bild",
+    "next": "Nästa bild",
+    "galleryLabel": "Bildgalleri",
+    "galleryItem": "Galleribild {n}"
   }
 }

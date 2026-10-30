@@ -58,8 +58,8 @@ export function ConsentBanner({ onAccept, onReject, policyHref }: ConsentBannerP
           <button
             type="button"
             onClick={onAccept}
-            className="rounded-md px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-colors-primary)]"
-            style={{ backgroundColor: 'var(--theme-colors-primary)' }}
+            className="rounded-md px-4 py-2 text-xs font-semibold transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-colors-primary)]"
+            style={{ backgroundColor: 'var(--theme-colors-primary)', color: 'var(--theme-colors-primaryContrast, #fff)' }}
           >
             {t('accept')}
           </button>

@@ -148,7 +148,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
           <a
             href={linkUrl}
             className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"
-            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-primary)') }}
+            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-price, var(--theme-colors-primary))') }}
           >
             {linkLabel}
             <ChevronRight className="size-3.5" />
@@ -230,7 +230,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   {discount > 0 && (
                     <span
                       className="absolute top-2 inset-s-2 z-10 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: '#fff' }}
+                      style={{ backgroundColor: 'var(--theme-colors-accent)', color: 'var(--theme-colors-accentContrast, #fff)' }}
                     >
                       -{discount}%
                     </span>
@@ -260,7 +260,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                   <div className="flex items-baseline gap-2">
                     <span
                       className="text-sm font-semibold"
-                      style={{ color: 'var(--theme-colors-primary)' }}
+                      style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))' }}
                     >
                       {fmt(display(Number(p.base_price), p.tax_rate_bp, c).amount)}
                     </span>

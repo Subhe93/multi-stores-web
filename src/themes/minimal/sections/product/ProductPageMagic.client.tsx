@@ -51,7 +51,10 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
 
   // Map the theme's primary token onto the --store-primary variable that
   // ProductDetailClient reads, so the page adopts the active theme color.
-  const scopeStyle = { ['--store-primary' as string]: 'var(--theme-colors-primary)' } as CSSProperties;
+  const scopeStyle = {
+    ['--store-primary' as string]: 'var(--theme-colors-primary)',
+    ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
+  } as CSSProperties;
 
   // Breadcrumb data — mirrors the standalone product route, which renders the
   // breadcrumb in its page wrapper (outside ProductDetailClient). The builder

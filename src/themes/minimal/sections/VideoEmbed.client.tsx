@@ -104,9 +104,9 @@ export function VideoEmbed({ settings, content, locale }: SectionRenderProps) {
             <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/30">
               <span
                 className="size-16 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-110"
-                style={{ backgroundColor: 'var(--theme-colors-primary)' }}
+                style={{ backgroundColor: 'var(--theme-colors-primary)', color: 'var(--theme-colors-primaryContrast, #fff)' }}
               >
-                <Play className="size-7 text-white ms-1" fill="currentColor" />
+                <Play className="size-7 ms-1" fill="currentColor" />
               </span>
             </span>
           </button>

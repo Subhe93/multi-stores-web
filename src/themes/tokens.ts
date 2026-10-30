@@ -2,16 +2,70 @@
 // them into CSS custom properties that get injected into the storefront root.
 
 import type { CSSProperties } from 'react';
-import type { ThemeCustomizations, ThemeTokens } from './types';
+import type { ColorTokens, ThemeCustomizations, ThemeTokens } from './types';
+import { isUnreadable, readableTextOn } from '@/lib/readableText';
+
+type ContrastKey = 'primaryContrast' | 'secondaryContrast' | 'accentContrast';
+const CONTRAST_PAIRS: [ContrastKey, 'primary' | 'secondary' | 'accent'][] = [
+  ['primaryContrast', 'primary'],
+  ['secondaryContrast', 'secondary'],
+  ['accentContrast', 'accent'],
+];
+
+const filled = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+
+/**
+ * Merge colours and resolve the text-on-colour tokens. A contrast colour the
+ * store set explicitly always wins; otherwise the theme's own value is kept
+ * while its background is untouched, and a customised background gets a
+ * computed readable colour (dark on light, white on dark).
+ */
+export function mergeColors(base: ColorTokens, custom?: Partial<ColorTokens>): ColorTokens {
+  const colors: ColorTokens = { ...base };
+  // Blank strings mean "automatic" / "not set".
+  for (const [k, v] of Object.entries(custom || {})) {
+    if (filled(v)) (colors as unknown as Record<string, string>)[k] = v;
+  }
+  for (const [contrastKey, bgKey] of CONTRAST_PAIRS) {
+    const explicit = custom?.[contrastKey];
+    if (filled(explicit) && !isUnreadable(explicit, colors[bgKey])) continue;
+    const bgCustomised = filled(custom?.[bgKey]) && custom![bgKey] !== base[bgKey];
+    const themeValue = base[contrastKey];
+    colors[contrastKey] =
+      !bgCustomised && filled(themeValue) && !isUnreadable(themeValue, colors[bgKey])
+        ? themeValue
+        : readableTextOn(colors[bgKey]);
+  }
+  return colors;
+}
+
+/**
+ * Text colour for the legacy `--store-primary` fill, which may differ from the
+ * token primary (store.theme.primaryColor). An explicit primaryContrast wins.
+ */
+export function storePrimaryContrast(
+  storePrimary: string,
+  tokens: ThemeTokens,
+  customizations?: ThemeCustomizations,
+): string {
+  // Explicit / theme values win only while still readable on this fill.
+  const explicit = customizations?.colors?.primaryContrast;
+  if (filled(explicit) && !isUnreadable(explicit, storePrimary)) return explicit;
+  const themeValue = tokens.colors.primaryContrast;
+  if (storePrimary === tokens.colors.primary && filled(themeValue) && !isUnreadable(themeValue, storePrimary)) {
+    return themeValue;
+  }
+  return readableTextOn(storePrimary);
+}
 
 /**
  * Deep-merge `customizations` over `base`. Only known token shapes are merged;
  * unknown keys are ignored to keep the contract strict.
  */
 export function mergeTokens(base: ThemeTokens, customizations?: ThemeCustomizations): ThemeTokens {
-  if (!customizations) return base;
+  if (!customizations) return { ...base, colors: mergeColors(base.colors) };
   return {
-    colors: { ...base.colors, ...(customizations.colors || {}) },
+    colors: mergeColors(base.colors, customizations.colors),
     typography: {
       fontFamily: { ...base.typography.fontFamily, ...(customizations.typography?.fontFamily || {}) },
       scale: { ...base.typography.scale, ...(customizations.typography?.scale || {}) },
@@ -51,6 +105,11 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
     '--theme-colors-text': tokens.colors.text,
     '--theme-colors-muted': tokens.colors.muted,
     '--theme-colors-border': tokens.colors.border,
+    // Text on primary/secondary/accent fills; fall back to a computed colour
+    // when tokens did not go through mergeTokens.
+    '--theme-colors-primaryContrast': tokens.colors.primaryContrast || readableTextOn(tokens.colors.primary),
+    '--theme-colors-secondaryContrast': tokens.colors.secondaryContrast || readableTextOn(tokens.colors.secondary),
+    '--theme-colors-accentContrast': tokens.colors.accentContrast || readableTextOn(tokens.colors.accent),
     '--theme-font-heading': `"${tokens.typography.fontFamily.heading}", system-ui, sans-serif`,
     '--theme-font-body': `"${tokens.typography.fontFamily.body}", system-ui, sans-serif`,
     '--theme-scale-h1': fluidRem(tokens.typography.scale.h1),
@@ -77,6 +136,9 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
     '--theme-shadow-lg': tokens.spacing.shadow.lg,
     '--theme-container-max': tokens.spacing.containerMaxWidth,
   };
+  // Price colour only when set: consumers fall back to their own primary
+  // (`var(--theme-colors-price, var(--theme-colors-primary))`).
+  if (tokens.colors.price) vars['--theme-colors-price'] = tokens.colors.price;
   return vars as CSSProperties;
 }
 

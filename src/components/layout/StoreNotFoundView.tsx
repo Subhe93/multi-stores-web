@@ -23,8 +23,8 @@ export async function StoreNotFoundView({ lp }: StoreNotFoundViewProps) {
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Link
           href={`${lp}/`}
-          className="px-5 py-2.5 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
           {t('backHome')}
         </Link>

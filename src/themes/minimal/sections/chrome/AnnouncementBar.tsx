@@ -44,6 +44,16 @@ export const announcementBarSection: SectionDefinition = {
       { key: 'bg_color', type: 'color', label: { en: 'Background color', ar: 'لون الخلفية' } },
       { key: 'text_color', type: 'color', label: { en: 'Text color', ar: 'لون النص' } },
       { key: 'link_color', type: 'color', label: { en: 'Inline link color', ar: 'لون الرابط الداخلي' } },
+      {
+        key: 'link_style',
+        type: 'select',
+        label: { en: 'Inline link style', ar: 'نمط الرابط الداخلي' },
+        defaultValue: 'text',
+        options: [
+          { value: 'text', label: { en: 'Underlined text', ar: 'نص مسطّر' } },
+          { value: 'button', label: { en: 'Outlined button', ar: 'زر بإطار' } },
+        ],
+      },
     ],
   },
   Component: AnnouncementBar,
@@ -53,6 +63,7 @@ export const announcementBarSection: SectionDefinition = {
     marquee_speed_s: 25,
     dismissible: false,
     dismiss_key: 'default',
+    link_style: 'text',
   },
   defaultContent: {
     messages: [

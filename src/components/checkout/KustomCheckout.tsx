@@ -212,8 +212,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
           href={lp('/products')}
-          className="inline-block rounded-md px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition"
-          style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+          className="inline-block rounded-md px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
           {t('cart.continueShopping')}
         </Link>

@@ -48,6 +48,8 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-primary)');
   const fg = colorOr(settings.text_color, 'var(--theme-colors-primaryContrast, #fff)');
   const linkColor = colorOr(settings.link_color, fg);
+  // 'button' renders the inline link as a small outlined rounded button.
+  const linkAsButton = settings.link_style === 'button';
 
   const [dismissed, setDismissed] = useState(false);
   // Hydrate dismissed state on mount only — SSR renders the bar by default,
@@ -91,8 +93,12 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
       {msg.link_label && msg.link_url && (
         <a
           href={storeHref(msg.link_url)}
-          className="underline font-medium hover:opacity-80 transition"
-          style={{ color: linkColor }}
+          className={
+            linkAsButton
+              ? 'inline-flex items-center rounded-full border bg-transparent px-3 py-0.5 text-sm font-medium leading-5 hover:opacity-80 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current'
+              : 'underline font-medium hover:opacity-80 transition'
+          }
+          style={linkAsButton ? { color: linkColor, borderColor: linkColor } : { color: linkColor }}
         >
           {msg.link_label}
         </a>

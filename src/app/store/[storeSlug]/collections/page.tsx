@@ -189,7 +189,7 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
                   <div className="p-5">
                     <h2 className="text-lg font-semibold text-gray-900 group-hover:underline">{name}</h2>
                     {description && <p className="mt-1 line-clamp-2 text-sm text-gray-500">{description}</p>}
-                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--store-primary, #2563eb)' }}>
+                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}>
                       {t('store.viewCollection')}
                       <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
                     </span>

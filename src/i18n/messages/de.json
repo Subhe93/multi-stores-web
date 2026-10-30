@@ -819,5 +819,12 @@
     "reject": "Ablehnen",
     "settings": "Unsere Cookie-Richtlinie lesen",
     "manage": "Cookie-Einstellungen"
+  },
+  "slider": {
+    "goTo": "Zu Folie {n}",
+    "previous": "Vorherige Folie",
+    "next": "Nächste Folie",
+    "galleryLabel": "Bildergalerie",
+    "galleryItem": "Galeriebild {n}"
   }
 }

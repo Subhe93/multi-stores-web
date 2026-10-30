@@ -116,14 +116,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               >
                 <ShoppingCart
                   className="w-7 h-7"
-                  style={{ color: 'var(--store-primary, #2563eb)' }}
+                  style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
                 />
               </div>
               <p className="text-gray-500 text-sm mb-6">{t('cart.empty')}</p>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                className="px-6 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >
                 {t('cart.continueShopping')}
               </button>
@@ -199,8 +199,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <button
                       type="button"
                       disabled
-                      className="block w-full py-3 text-white text-sm font-semibold text-center rounded-lg opacity-50 cursor-not-allowed"
-                      style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                      className="block w-full py-3 text-sm font-semibold text-center rounded-lg opacity-50 cursor-not-allowed"
+                      style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
                     >
                       {t('cart.checkout')}
                     </button>
@@ -210,8 +210,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <Link
                   href={lp('/checkout')}
                   onClick={onClose}
-                  className="block w-full py-3 text-white text-sm font-semibold text-center rounded-lg hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                  className="block w-full py-3 text-sm font-semibold text-center rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
                 >
                   {t('cart.checkout')}
                 </Link>

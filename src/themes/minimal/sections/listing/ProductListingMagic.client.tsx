@@ -267,7 +267,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
     return `${base}${qs ? `?${qs}` : ''}`;
   };
   const sortOptions = SORT_KEYS.map((o) => ({ value: o.value, label: t(o.key) }));
-  const activePill = { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)' };
+  const activePill = { backgroundColor: 'var(--store-primary, #2563eb)', borderColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' };
 
   const countLine = (
     <>
@@ -283,10 +283,10 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           href={buildSortUrl(opt.value)}
           className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
             (sort || '') === opt.value
-              ? 'text-white border-transparent shadow-sm'
+              ? 'border-transparent shadow-sm'
               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
           }`}
-          style={(sort || '') === opt.value ? { backgroundColor: 'var(--store-primary, #2563eb)' } : {}}
+          style={(sort || '') === opt.value ? activePill : {}}
         >
           {opt.label}
         </Link>
@@ -332,7 +332,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
         <Link
           href={`${lp}/products`}
           className="inline-block mt-4 text-sm font-semibold hover:underline"
-          style={{ color: 'var(--store-primary, #2563eb)' }}
+          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
         >
           {t('common.viewAll')}
         </Link>
@@ -341,7 +341,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           <Link
             href={`${lp}/products`}
             className="inline-block mt-4 text-sm font-semibold hover:underline"
-            style={{ color: 'var(--store-primary, #2563eb)' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
           >
             {t('product.clearFilters')}
           </Link>
@@ -388,6 +388,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // and would otherwise fall back to the hardcoded blue.
   const scopeStyle = {
     ['--store-primary' as string]: 'var(--theme-colors-primary)',
+    ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
     ['--store-secondary' as string]: 'var(--theme-colors-secondary)',
   } as React.CSSProperties;
 
@@ -593,7 +594,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                         href={buildFilterUrl({ creator_category: null })}
                         className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                           !creator_category
-                            ? 'text-white shadow-sm border-transparent'
+                            ? 'shadow-sm border-transparent'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
                         }`}
                         style={!creator_category ? activePill : {}}
@@ -609,7 +610,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                             href={buildFilterUrl({ creator_category: cc.slug })}
                             className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                               isActive
-                                ? 'text-white shadow-sm border-transparent'
+                                ? 'shadow-sm border-transparent'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:shadow-sm'
                             } ${cc.depth === 1 ? 'ms-4' : cc.depth >= 2 ? 'ms-8' : ''}`}
                             style={isActive ? activePill : {}}

@@ -255,8 +255,8 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
         {orderId && showOrderLink && (
           <Link
             href={lp(`/account/orders/${orderId}`)}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
             <Package className="w-4 h-4" />
             {t('checkout.viewOrder')}

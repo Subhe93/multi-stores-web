@@ -306,7 +306,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
             <Link
               href={`${lp}/products`}
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-white rounded-full text-sm font-bold shadow-xl transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
-              style={{ color: 'var(--store-primary, #2563eb)' }}
+              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
             >
               {t('store.browseProducts')}
               <ArrowRight className="w-4 h-4" />
@@ -340,7 +340,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
               <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
                 <Icon
                   className="w-5 h-5"
-                  style={{ color: 'var(--store-primary, #2563eb)' }}
+                  style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
                 />
               </div>
               <span className="text-xs font-semibold text-gray-700 leading-tight">{label}</span>
@@ -364,7 +364,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
             <Link
               href={`${lp}/products`}
               className="inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0"
-              style={{ color: 'var(--store-primary, #2563eb)' }}
+              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
             >
               {t('common.viewAll')}
               <ChevronRight className="w-4 h-4" />
@@ -422,7 +422,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
           <Link
             href={`${lp}/products`}
             className="inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0"
-            style={{ color: 'var(--store-primary, #2563eb)' }}
+            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
           >
             {t('common.viewAll')}
             <ChevronRight className="w-4 h-4" />

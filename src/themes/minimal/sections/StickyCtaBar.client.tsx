@@ -53,7 +53,7 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
     },
     {
       bg: 'var(--theme-colors-accent)',
-      text: 'var(--theme-colors-primaryContrast, #fff)',
+      text: 'var(--theme-colors-accentContrast, #fff)',
       radius: 'var(--theme-radius-full)',
     },
   );

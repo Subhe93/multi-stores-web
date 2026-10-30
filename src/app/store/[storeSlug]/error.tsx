@@ -24,8 +24,8 @@ export default function StoreError({ error, reset }: StoreErrorProps) {
       <button
         type="button"
         onClick={reset}
-        className="px-5 py-2.5 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+        className="px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
       >
         {t('retry')}
       </button>

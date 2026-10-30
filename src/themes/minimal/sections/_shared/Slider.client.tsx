@@ -10,6 +10,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export interface SliderProps {
   slides: ReactNode[];
@@ -45,6 +46,7 @@ export function Slider({
   ariaLabel,
   dir = 'ltr',
 }: SliderProps) {
+  const t = useTranslations('slider');
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -197,18 +199,18 @@ export function Slider({
           <button
             type="button"
             onClick={prev}
-            aria-label="Previous slide"
+            aria-label={t('previous')}
             disabled={atStart}
-            className="absolute left-2 rtl:right-2 rtl:left-auto top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className="absolute start-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ArrowStart className="size-5 text-zinc-800" />
           </button>
           <button
             type="button"
             onClick={next}
-            aria-label="Next slide"
+            aria-label={t('next')}
             disabled={atEnd}
-            className="absolute right-2 rtl:left-2 rtl:right-auto top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className="absolute end-2 top-1/2 -translate-y-1/2 z-10 size-9 rounded-full bg-white/85 backdrop-blur shadow-md flex items-center justify-center hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ArrowEnd className="size-5 text-zinc-800" />
           </button>
@@ -216,18 +218,25 @@ export function Slider({
       )}
 
       {showDots && slideCount > 1 && (
-        <div className="flex justify-center gap-1.5 mt-4">
+        // Each dot button is a 24px-high, >=24px-wide hit area (WCAG 2.5.8)
+        // around the small visual dot; no gap so centres stay >=24px apart.
+        <div className="flex justify-center mt-2">
           {Array.from({ length: slideCount }).map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => scrollToIdx(i)}
-              aria-label={`Go to slide ${i + 1}`}
+              aria-label={t('goTo', { n: i + 1 })}
               aria-current={i === activeIdx ? 'true' : undefined}
-              className={`h-2 rounded-full transition-all ${
-                i === activeIdx ? 'bg-zinc-900 w-6' : 'bg-zinc-300 hover:bg-zinc-500 w-2'
-              }`}
-            />
+              className="group h-6 min-w-6 px-1 inline-flex items-center justify-center rounded-full"
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2 rounded-full transition-all ${
+                  i === activeIdx ? 'bg-zinc-900 w-6' : 'bg-zinc-300 group-hover:bg-zinc-500 w-2'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

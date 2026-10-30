@@ -20,6 +20,7 @@ import { colorOr, numberOr } from '../../../elementStyles';
 import { HeaderBarMobileMenu, type MobileMenuItem } from './HeaderBarMobileMenu.client';
 import { HeaderBarDesktopNav, type DesktopNavItem } from './HeaderBarDesktopNav.client';
 import { ActiveLink } from './ActiveLink.client';
+import { navActiveLook, parseNavActiveStyle } from './navActiveLook';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
 
@@ -121,6 +122,8 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const fg = colorOr(settings.text_color, 'var(--theme-colors-text)');
   const borderColor = colorOr(settings.border_color, 'var(--theme-colors-border)');
   const accent = colorOr(settings.accent_color, 'var(--theme-colors-primary)');
+  const activeVariant = parseNavActiveStyle(settings.active_style);
+  const navLook = navActiveLook(activeVariant, accent);
 
   // Nav source priority:
   //   1. A selected navigation menu (menu_key) — the WordPress-style menu the
@@ -217,6 +220,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               bg={bg}
               borderColor={borderColor}
               accent={accent}
+              activeVariant={activeVariant}
             />
           )}
           {navItems.length > 0 && submenuStyle === 'dropdown' && (
@@ -229,9 +233,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                       key={i}
                       href={item.url || '#'}
                       {...newTabProps(item.open_in_new_tab)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
-                      activeStyle={{ color: accent }}
-                      activeClassName="bg-black/5"
+                      className={`${navLook.itemClass} text-sm font-medium hover:bg-black/5 transition`}
+                      activeStyle={navLook.activeStyle}
+                      activeClassName={navLook.activeClassName}
                     >
                       {item.label}
                     </ActiveLink>
@@ -244,9 +248,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                     <ActiveLink
                       href={item.url || '#'}
                       {...newTabProps(item.open_in_new_tab)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition inline-flex items-center gap-1"
-                      activeStyle={{ color: accent }}
-                      activeClassName="bg-black/5"
+                      className={`${navLook.itemClass} text-sm font-medium hover:bg-black/5 transition inline-flex items-center gap-1`}
+                      activeStyle={navLook.activeStyle}
+                      activeClassName={navLook.activeClassName}
                     >
                       {item.label}
                       <ChevronDown className="size-3.5 opacity-60 transition-transform group-hover:rotate-180" />
@@ -400,11 +404,25 @@ export const headerBarSection: SectionDefinition = {
           { value: 'mega', label: { en: 'Mega menu (columns)', ar: 'قائمة موسّعة (أعمدة)' } },
         ],
       },
+      {
+        key: 'active_style',
+        type: 'select',
+        label: { en: 'Active menu item style', ar: 'نمط عنصر القائمة النشط' },
+        description: {
+          en: 'Pill: the current page gets a filled rounded background in the accent colour (or the theme primary).',
+          ar: 'كبسولة: تحصل الصفحة الحالية على خلفية دائرية مملوءة بلون التمييز (أو اللون الأساسي للثيم).',
+        },
+        defaultValue: 'text',
+        options: [
+          { value: 'text', label: { en: 'Accent text', ar: 'نص بلون التمييز' } },
+          { value: 'pill', label: { en: 'Filled pill', ar: 'كبسولة مملوءة' } },
+        ],
+      },
       // Colors
       { key: 'bg_color', type: 'color', label: { en: 'Background color', ar: 'لون الخلفية' } },
       { key: 'text_color', type: 'color', label: { en: 'Text color', ar: 'لون النص' } },
       { key: 'border_color', type: 'color', label: { en: 'Bottom border color', ar: 'لون الحد السفلي' } },
-      { key: 'accent_color', type: 'color', label: { en: 'Accent (active locale)', ar: 'لون التمييز (اللغة النشطة)' } },
+      { key: 'accent_color', type: 'color', label: { en: 'Accent (active link / locale)', ar: 'لون التمييز (الرابط النشط / اللغة)' } },
       // Navigation source. A menu key takes priority over inline items, which
       // take priority over auto-generated links from the store's pages.
       { key: 'menu_key', type: 'menuPicker', label: { en: 'Menu', ar: 'القائمة' }, description: { en: 'Pick a menu built in the Menus page. Leave as None to use the inline links below.', ar: 'اختر قائمة من صفحة القوائم. اتركها بدون لاستخدام الروابط أدناه.' } },
@@ -430,6 +448,7 @@ export const headerBarSection: SectionDefinition = {
     show_locale: true,
     sticky_mode: 'always',
     submenu_style: 'dropdown',
+    active_style: 'text',
     logo_size: 32,
   },
 };

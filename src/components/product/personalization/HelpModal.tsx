@@ -71,8 +71,8 @@ export function HelpModal({ open, onClose, title, text, imageUrl }: HelpModalPro
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full px-4 py-2 text-sm font-medium text-white"
-            style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+            className="rounded-full px-4 py-2 text-sm font-medium"
+            style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
             {t('close')}
           </button>

@@ -117,8 +117,8 @@ export default function StoreRegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+          className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
           {loading ? `${t('signUp')}...` : t('signUp')}
         </button>
@@ -129,7 +129,7 @@ export default function StoreRegisterPage() {
         <Link
           href={lp('/auth/login')}
           className="font-medium hover:underline"
-          style={{ color: 'var(--store-primary, #2563eb)' }}
+          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
         >
           {t('signIn')}
         </Link>
