@@ -6,6 +6,8 @@
 import { motion } from 'framer-motion';
 import { colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface FeatureItem {
   icon?: string;
@@ -40,6 +42,7 @@ function clampColumns(n: unknown, fallback: number): number {
 }
 
 export function AnimatedFeatures({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as FeatureItem[]) || []).filter((f) => f.title || f.description || f.icon);
@@ -63,9 +66,9 @@ export function AnimatedFeatures({ settings, content, locale }: SectionRenderPro
       {(heading || subheading) && (
         <div className="mb-12 max-w-2xl mx-auto text-center flex flex-col gap-3">
           {heading && (
-            <h2 style={{ fontFamily: 'var(--theme-font-heading)', fontSize: 'var(--theme-scale-h2)', fontWeight: 'var(--theme-weight-heading)', letterSpacing: 'var(--theme-tracking-heading)', color: colorOr(settings.heading_color, 'var(--theme-colors-text)') }}>
+            <Heading level={headingLevel} style={{ fontFamily: 'var(--theme-font-heading)', fontSize: 'var(--theme-scale-h2)', fontWeight: 'var(--theme-weight-heading)', letterSpacing: 'var(--theme-tracking-heading)', color: colorOr(settings.heading_color, 'var(--theme-colors-text)') }}>
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && <p className="text-base" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>{subheading}</p>}
         </div>

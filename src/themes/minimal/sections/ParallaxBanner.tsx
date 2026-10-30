@@ -2,6 +2,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 type Height = 'sm' | 'md' | 'lg';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -11,6 +13,7 @@ const HEIGHT_CLASS: Record<Height, string> = {
 };
 
 function ParallaxBanner({ settings, content }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const image = (settings.image as string) || '';
   const height = (settings.height as Height) || 'md';
   const overlayOpacity = typeof settings.overlay_opacity === 'number' ? settings.overlay_opacity : 0.3;
@@ -80,7 +83,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         )}
         {heading && (
           <StaggerItem>
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -91,7 +94,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           </StaggerItem>
         )}
         {subheading && (

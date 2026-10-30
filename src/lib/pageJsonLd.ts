@@ -131,3 +131,40 @@ export function buildHomeJsonLd(input: HomeJsonLdInput): Record<string, unknown>
     isPartOf: webSiteRef(input.origin, input.name),
   };
 }
+
+/** The slice of a section the FAQ markup reads. */
+export interface FaqSectionLite extends PageSectionLite {
+  translations?: Array<{ locale: string; content: Record<string, unknown> }>;
+}
+
+// Questions and answers are plain-text fields rendered as text: keep the
+// characters as typed (a "<" in an answer is text, not markup).
+const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+/**
+ * Question/answer pairs of the page's visible faq-list sections, in the
+ * active locale (else the primary, else the first row), for a FAQPage node.
+ * Only complete pairs count, the same ones the section renders as Q&A.
+ */
+export function pageFaqItems(
+  sections: FaqSectionLite[] | null | undefined,
+  locale: string,
+  primaryLocale: string,
+): { question: string; answer: string }[] {
+  const out: { question: string; answer: string }[] = [];
+  for (const s of sections ?? []) {
+    if (s.is_hidden || s.section_key !== 'faq-list') continue;
+    // Some older snapshots keyed translations by locale instead of a list.
+    const rows = Array.isArray(s.translations) ? s.translations : [];
+    const row =
+      rows.find((r) => r.locale === locale) || rows.find((r) => r.locale === primaryLocale) || rows[0];
+    const items = Array.isArray(row?.content?.items) ? (row.content.items as unknown[]) : [];
+    for (const item of items) {
+      const q = item as { question?: unknown; answer?: unknown };
+      const question = typeof q.question === 'string' ? clean(q.question) : '';
+      const answer = typeof q.answer === 'string' ? clean(q.answer) : '';
+      if (question && answer) out.push({ question, answer });
+    }
+  }
+  return out;
+}

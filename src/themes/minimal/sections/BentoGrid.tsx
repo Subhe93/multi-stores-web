@@ -4,6 +4,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
+import { headingTag } from './_shared/headingLevel';
 
 type TileSize = 'small' | 'wide' | 'tall' | 'large';
 
@@ -51,7 +52,8 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
     <section className="py-14">
       {(heading || subheading) && (
         <div className="mb-10">
-          <SectionHeading heading={heading} subheading={subheading} align="center" headingColor={settings.heading_color} subheadingColor={settings.subheading_color} />
+          <SectionHeading
+            tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading} align="center" headingColor={settings.heading_color} subheadingColor={settings.subheading_color} />
         </div>
       )}
 

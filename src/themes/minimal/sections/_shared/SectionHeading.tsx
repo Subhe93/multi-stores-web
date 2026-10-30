@@ -5,6 +5,7 @@
 
 import type { CSSProperties } from 'react';
 import { colorOr } from '../../../elementStyles';
+import type { HeadingTag } from './headingLevel';
 
 type Align = 'left' | 'center' | 'right';
 
@@ -19,8 +20,10 @@ interface SectionHeadingProps {
   heading?: string;
   subheading?: string;
   align?: Align;
-  /** Render the heading as h1 (hero) instead of the default h2. */
+  /** Visual size: h1 (hero) or the default h2; also the element unless `tag` is set. */
   as?: 'h1' | 'h2';
+  /** HTML element only (builder heading level); the size still follows `as`. */
+  tag?: HeadingTag;
   headingColor?: unknown;
   subheadingColor?: unknown;
   eyebrowColor?: unknown;
@@ -33,13 +36,14 @@ export function SectionHeading({
   subheading,
   align = 'center',
   as = 'h2',
+  tag,
   headingColor,
   subheadingColor,
   eyebrowColor,
   className,
 }: SectionHeadingProps) {
   if (!eyebrow && !heading && !subheading) return null;
-  const Tag = as;
+  const Tag = tag ?? as;
   const headingStyle: CSSProperties = {
     fontFamily: 'var(--theme-font-heading)',
     fontSize: as === 'h1' ? 'var(--theme-scale-h1)' : 'var(--theme-scale-h2)',

@@ -9,6 +9,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import type { SectionRenderProps } from '../../types';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 type Height = 'md' | 'lg' | 'full';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -18,6 +20,7 @@ const HEIGHT_CLASS: Record<Height, string> = {
 };
 
 export function HeroVideo({ settings, content }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h1');
   const videoUrl = (settings.video_url as string) || '';
   const posterImage = (settings.poster_image as string) || '';
   const overlayOpacity = typeof settings.overlay_opacity === 'number' ? settings.overlay_opacity : 0.35;
@@ -122,7 +125,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
             )}
             {heading && (
               <StaggerItem>
-                <h1
+                <Heading level={headingLevel}
                   className="leading-[1.05]"
                   style={{
                     fontFamily: 'var(--theme-font-heading)',
@@ -133,7 +136,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
                   }}
                 >
                   {heading}
-                </h1>
+                </Heading>
               </StaggerItem>
             )}
             {subheading && (

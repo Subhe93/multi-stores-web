@@ -16,6 +16,8 @@ import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface ProductRow {
   id: string;
@@ -40,6 +42,7 @@ const CARD_ASPECT: Record<string, string> = {
 };
 
 export function CollectionProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   // `settings.category` is a collection id (uuid, picked since M6.4 — may be
@@ -54,7 +57,16 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   const columnsMobile = clamp((settings.columns_mobile as number) ?? Math.min(columnsTablet, 2), 1, 4);
   const linkLabel = (content.link_label as string) || (locale === 'ar' ? 'عرض الكل' : 'View all');
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
-  const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
+  // "View all": the link set in the builder; without one it lists every
+  // product only when no collection is picked. A section showing one
+  // collection (often an internal label on a landing page) hides it rather
+  // than send visitors and crawlers to the unrelated all-products page.
+  const explicitLink = ((settings.link_url as string) || '').trim();
+  const linkUrl = explicitLink
+    ? storeHref(explicitLink)
+    : categoryRef
+      ? null
+      : storeHref(`${localePrefix}/products`);
   const scopeClass = `cp-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const t = useTranslations('product');
@@ -118,7 +130,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
       <div className="flex items-end justify-between mb-8 gap-4">
         <div>
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -128,7 +140,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
@@ -136,7 +148,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
             </p>
           )}
         </div>
-        {linkLabel && (
+        {linkLabel && linkUrl && (
           <a
             href={linkUrl}
             className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"

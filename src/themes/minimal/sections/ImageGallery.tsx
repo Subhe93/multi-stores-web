@@ -1,6 +1,8 @@
 import { useId } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface GalleryItem {
   url?: string;
@@ -20,6 +22,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 };
 
 function ImageGallery({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   // Items live on translatable content (per the schema) so creators can vary
@@ -82,7 +85,7 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="text-center mb-10 space-y-2">
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -91,7 +94,7 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>

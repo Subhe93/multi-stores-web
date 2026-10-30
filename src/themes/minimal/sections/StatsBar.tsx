@@ -2,6 +2,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { Counter, StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
+import { headingTag } from './_shared/headingLevel';
 
 interface StatItem {
   value?: string;
@@ -46,6 +47,7 @@ function StatsBar({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-10">
           <SectionHeading
+            tag={headingTag(settings.heading_level, 'h2')}
             heading={heading}
             subheading={subheading}
             align="center"

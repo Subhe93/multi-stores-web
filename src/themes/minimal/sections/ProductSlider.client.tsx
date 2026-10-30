@@ -13,6 +13,8 @@ import { Slider } from './_shared/Slider.client';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface ProductRow {
   id: string;
@@ -37,6 +39,7 @@ const CARD_ASPECT: Record<string, string> = {
 };
 
 export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const filter = (settings.filter as 'newest' | 'featured') || 'newest';
@@ -167,7 +170,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
       <div className="flex items-end justify-between mb-8 gap-4">
         <div>
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -177,7 +180,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>

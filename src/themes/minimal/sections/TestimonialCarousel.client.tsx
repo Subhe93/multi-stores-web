@@ -11,6 +11,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { SectionHeading } from './_shared/SectionHeading';
+import { headingTag } from './_shared/headingLevel';
 
 interface CarouselItem {
   quote?: string;
@@ -92,7 +93,8 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
     <section className="py-14 md:py-20">
       {heading && (
         <div className="mb-10">
-          <SectionHeading heading={heading} align="center" headingColor={settings.heading_color} />
+          <SectionHeading
+            tag={headingTag(settings.heading_level, 'h2')} heading={heading} align="center" headingColor={settings.heading_color} />
         </div>
       )}
 

@@ -6,6 +6,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 type SplitHeight = 'sm' | 'md' | 'lg';
 type ImageSide = 'start' | 'end';
@@ -19,6 +21,7 @@ const HEIGHT_CLASS: Record<SplitHeight, string> = {
 };
 
 function HeroSplit({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h1');
   const image = (settings.image as string) || '';
   const imageSide = (settings.image_side as ImageSide) || 'start';
   const height = (settings.height as SplitHeight) || 'md';
@@ -135,7 +138,7 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
             )}
             {heading && (
               <StaggerItem>
-                <h1
+                <Heading level={headingLevel}
                   className="leading-[1.08]"
                   style={{
                     fontFamily: 'var(--theme-font-heading)',
@@ -146,7 +149,7 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
                   }}
                 >
                   {heading}
-                </h1>
+                </Heading>
               </StaggerItem>
             )}
             {subheading && (

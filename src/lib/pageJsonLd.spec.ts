@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildHomeJsonLd, buildLandingJsonLd, isNoindexRobots, pageListsProducts } from './pageJsonLd';
+import { buildHomeJsonLd, buildLandingJsonLd, isNoindexRobots, pageFaqItems, pageListsProducts } from './pageJsonLd';
 
 const base = {
   origin: 'https://namz.se',
@@ -95,5 +95,31 @@ describe('helpers', () => {
     expect(pageListsProducts([{ section_key: 'collection-products' }])).toBe(true);
     expect(isNoindexRobots(undefined)).toBe(false);
     expect(isNoindexRobots('NOINDEX')).toBe(true);
+  });
+});
+
+describe('pageFaqItems', () => {
+  const faq = (items: unknown[], extra: Partial<{ is_hidden: boolean; locale: string }> = {}) => ({
+    section_key: 'faq-list',
+    is_hidden: extra.is_hidden,
+    translations: [{ locale: extra.locale ?? 'sv', content: { items } }],
+  });
+
+  it('collects complete pairs of visible faq-list sections', () => {
+    const items = pageFaqItems(
+      [
+        faq([{ question: 'Hur lång är leveransen?', answer: '  3–5 dagar,  pris < 100 kr ' }, { question: 'Bara fråga' }]),
+        faq([{ question: 'Dold', answer: 'Dold' }], { is_hidden: true }),
+        { section_key: 'rich-text', translations: [{ locale: 'sv', content: { items: [] } }] },
+      ],
+      'sv',
+      'sv',
+    );
+    expect(items).toEqual([{ question: 'Hur lång är leveransen?', answer: '3–5 dagar, pris < 100 kr' }]);
+  });
+
+  it('falls back to the primary locale row', () => {
+    expect(pageFaqItems([faq([{ question: 'Q', answer: 'A' }])], 'en', 'sv')).toHaveLength(1);
+    expect(pageFaqItems(null, 'sv', 'sv')).toEqual([]);
   });
 });

@@ -10,6 +10,7 @@ import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
+import { headingTag } from './_shared/headingLevel';
 
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
 type Alignment = 'left' | 'center' | 'right';
@@ -32,6 +33,10 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
 };
 
 export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
+  // First slide carries the section's heading level (default h1: a slider
+  // usually opens the page); later slides step down to h2 when it is h1.
+  const firstHeading = headingTag(settings.heading_level, 'h1');
+  const slideHeading = (i: number) => (i === 0 || firstHeading !== 'h1' ? firstHeading : 'h2');
   const slides = ((content.slides as HeroSlide[]) || []).filter(
     (s) => s.image || s.heading || s.subheading,
   );
@@ -95,6 +100,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
           ? 'text-right items-end'
           : 'text-center items-center';
 
+    const SlideHeading = slideHeading(i);
     return (
       <div
         key={i}
@@ -127,7 +133,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
             </span>
           )}
           {slide.heading && (
-            <h2
+            <SlideHeading
               className="leading-[1.05] tracking-tight max-w-3xl"
               style={{
                 fontFamily: 'var(--theme-font-heading)',
@@ -137,7 +143,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {slide.heading}
-            </h2>
+            </SlideHeading>
           )}
           {slide.subheading && (
             <p

@@ -13,6 +13,8 @@ import { useState } from 'react';
 import { Clock, Mail, MapPin, Navigation, Phone } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface MapLocation {
   name?: string;
@@ -46,6 +48,7 @@ function directionsUrl(loc: MapLocation): string {
 }
 
 export function MapSection({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const locations = ((content.locations as MapLocation[]) || []).filter(
@@ -145,7 +148,7 @@ export function MapSection({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="text-center mb-8 max-w-2xl mx-auto">
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -155,7 +158,7 @@ export function MapSection({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>

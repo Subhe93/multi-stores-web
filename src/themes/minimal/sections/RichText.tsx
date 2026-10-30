@@ -1,6 +1,9 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 function RichText({ settings, content }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const html = (content.html as string) || '';
   const heading = (content.heading as string) || '';
   const eyebrow = (content.eyebrow as string) || '';
@@ -39,7 +42,7 @@ function RichText({ settings, content }: SectionRenderProps) {
           </p>
         )}
         {heading && (
-          <h2
+          <Heading level={headingLevel}
             className="mb-5"
             style={{
               fontFamily: 'var(--theme-font-heading)',
@@ -50,7 +53,7 @@ function RichText({ settings, content }: SectionRenderProps) {
             }}
           >
             {heading}
-          </h2>
+          </Heading>
         )}
         {html && (
           <div

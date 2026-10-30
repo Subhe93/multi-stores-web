@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
-import { buildLandingJsonLd } from '@/lib/pageJsonLd';
+import { buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
@@ -12,6 +12,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
+import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
 
 // Static pages now have two backends:
 // - v2 Page (with sections, versions, SEO panel) — preferred when published
@@ -118,34 +119,39 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     // external crawlers would otherwise resolve against their own origin.
     const ogImage = v2.seo?.og_image ? resolveMediaUrl(v2.seo.og_image) : undefined;
     const ogTitle = tr?.meta_title || tr?.title || undefined;
+    // No meta description written: the page's own first text, not the
+    // store-wide default (which then repeated on every such page).
+    const description =
+      tr?.meta_description?.trim() || sectionsExcerpt(v2.snapshot.sections, locale, primaryLocale);
 
     return {
       title: tr?.meta_title || tr?.title,
-      description: tr?.meta_description,
+      description,
       alternates: { ...alternates, canonical: v2.seo?.canonical || alternates.canonical },
       openGraph: {
         title: ogTitle,
-        description: tr?.meta_description,
+        description,
         images: ogImage ? [ogImage] : undefined,
         type: 'website',
       },
       twitter: buildTwitterMeta({
         card: v2.seo?.twitter_card,
         title: ogTitle,
-        description: tr?.meta_description,
+        description,
         image: ogImage,
       }),
       robots: v2.seo?.robots,
     };
   }
 
-  // Legacy fallback — only title from translations, no SEO settings.
+  // Legacy fallback — title from translations, description from the content.
   const tr =
     legacy!.translations.find((t) => t.locale === locale) ||
     legacy!.translations.find((t) => t.locale === primaryLocale) ||
     legacy!.translations[0];
   return {
     title: tr?.title,
+    description: htmlExcerpt(tr?.content),
     alternates,
   };
 }
@@ -188,10 +194,15 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
       ...input,
     });
     if (!ld) return null;
+    // FAQ sections on the page (e.g. questions at the end of a landing page).
+    const faqLd = buildFaqPage(pageFaqItems(input.sections, locale, ldPrimary));
     return (
       <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(ld.page) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(ld.breadcrumb) }} />
+        {faqLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(faqLd) }} />
+        )}
       </>
     );
   };

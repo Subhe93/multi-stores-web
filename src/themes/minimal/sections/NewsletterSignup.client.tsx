@@ -7,8 +7,11 @@ import { useState } from 'react';
 import { Check, Loader2, Mail } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 export function NewsletterSignup({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const placeholder = (content.placeholder as string) || (locale === 'ar' ? 'بريدك الإلكتروني' : 'Your email');
@@ -106,7 +109,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
     return (
       <section className="py-10 flex flex-col items-center text-center gap-3">
         {heading && (
-          <h2
+          <Heading level={headingLevel}
             style={{
               fontFamily: 'var(--theme-font-heading)',
               fontSize: 'var(--theme-scale-h3)',
@@ -115,7 +118,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
             }}
           >
             {heading}
-          </h2>
+          </Heading>
         )}
         {subheading && (
           <p className="max-w-xl text-sm" style={{ color: subheadingColor }}>
@@ -138,7 +141,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
         }}
       >
         {heading && (
-          <h2
+          <Heading level={headingLevel}
             className="mb-3"
             style={{
               fontFamily: 'var(--theme-font-heading)',
@@ -148,7 +151,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
             }}
           >
             {heading}
-          </h2>
+          </Heading>
         )}
         {subheading && (
           <p className="max-w-2xl mx-auto mb-6" style={{ color: subheadingColor }}>{subheading}</p>
@@ -171,7 +174,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
         }}
       >
         {heading && (
-          <h2
+          <Heading level={headingLevel}
             style={{
               fontFamily: 'var(--theme-font-heading)',
               fontSize: 'var(--theme-scale-h3)',
@@ -180,7 +183,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
             }}
           >
             {heading}
-          </h2>
+          </Heading>
         )}
         {subheading && (
           <p className="max-w-md text-sm" style={{ color: subheadingColor }}>

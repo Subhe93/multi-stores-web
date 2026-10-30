@@ -2,6 +2,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr, mediaFx } from '../../elementStyles';
 import { Reveal } from '../../_motion';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 type Position = 'left' | 'right';
 type Aspect = 'square' | 'portrait' | 'landscape' | 'wide';
@@ -14,6 +16,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 };
 
 function ImageWithText({ settings, content }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const position = (settings.image_position as Position) || 'left';
   const aspect = (settings.aspect as Aspect) || 'square';
   const image = (settings.image as string) || '';
@@ -51,7 +54,7 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
         </p>
       )}
       {heading && (
-        <h2
+        <Heading level={headingLevel}
           style={{
             fontFamily: 'var(--theme-font-heading)',
             fontSize: 'calc(var(--theme-scale-h2) * 1.12)',
@@ -62,7 +65,7 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
           }}
         >
           {heading}
-        </h2>
+        </Heading>
       )}
       {body && (
         <p

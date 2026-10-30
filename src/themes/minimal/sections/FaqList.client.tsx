@@ -10,6 +10,8 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface FaqItem {
   question?: string;
@@ -17,6 +19,7 @@ interface FaqItem {
 }
 
 export function FaqList({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = (content.items as FaqItem[]) || [];
@@ -91,7 +94,7 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="text-center mb-10 space-y-2">
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -100,7 +103,7 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>

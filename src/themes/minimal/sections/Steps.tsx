@@ -2,6 +2,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
+import { headingTag } from './_shared/headingLevel';
 
 interface StepItem {
   title?: string;
@@ -52,6 +53,7 @@ function Steps({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-12">
           <SectionHeading
+            tag={headingTag(settings.heading_level, 'h2')}
             heading={heading}
             subheading={subheading}
             align="center"

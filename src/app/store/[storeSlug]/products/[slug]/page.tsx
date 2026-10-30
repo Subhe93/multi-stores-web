@@ -14,6 +14,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ProductContext, SectionInstance } from '@/themes/types';
+import { productAvailability } from '@/lib/productAvailability';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 
@@ -196,9 +197,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         .filter((u: string) => !!u),
       price: Number(product.base_price),
       priceCurrency: storeCurrency,
-      availability: product.variants?.some((v) => (v.stock ?? 1) > 0) === false
-        ? 'OutOfStock'
-        : 'InStock',
+      // Simple products count too (was: always OutOfStock without variants).
+      availability: productAvailability(product),
     });
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     // Same trail as the visible breadcrumb of the product-page section:
@@ -283,9 +283,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     images: productImages,
     price: Number(product.base_price),
     priceCurrency: storeCurrency,
-    availability: product.variants?.some((v) => (v.stock ?? 1) > 0) === false
-      ? 'OutOfStock'
-      : 'InStock',
+    // Simple products count too (was: always OutOfStock without variants).
+    availability: productAvailability(product),
   });
 
   // Home › ancestors… › primary › product (M6 §2; no "Collections" index

@@ -4,6 +4,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 interface GalleryItem {
   url?: string;
@@ -26,6 +28,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 export function GallerySlider({ settings, content, locale }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h2');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as GalleryItem[]) || []).filter((i) => !!i.url);
@@ -79,7 +82,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
       {(heading || subheading) && (
         <div className="text-center mb-8 space-y-2">
           {heading && (
-            <h2
+            <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -88,7 +91,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
               }}
             >
               {heading}
-            </h2>
+            </Heading>
           )}
           {subheading && (
             <p className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>

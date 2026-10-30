@@ -4,6 +4,8 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
+import { headingTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 
 type HeroLayout = 'centered' | 'image-background' | 'side-by-side';
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
@@ -16,6 +18,7 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
 };
 
 function HeroBanner({ settings, content }: SectionRenderProps) {
+  const headingLevel = headingTag(settings.heading_level, 'h1');
   const layout = (settings.layout as HeroLayout) || 'centered';
   const alignment = (settings.alignment as 'left' | 'center' | 'right') || 'center';
   const height = (settings.height as HeroHeight) || 'md';
@@ -91,7 +94,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
       )}
       {heading && (
         <StaggerItem>
-          <h1
+          <Heading level={headingLevel}
             className="leading-[1.05]"
             style={{
               fontFamily: 'var(--theme-font-heading)',
@@ -102,7 +105,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
             }}
           >
             {heading}
-          </h1>
+          </Heading>
         </StaggerItem>
       )}
       {subheading && (
