@@ -214,6 +214,25 @@ html, body {
   }
 }
 
+/* Staggered list reveal (themes/_motion/Stagger.tsx). Same contract as
+   [data-reveal]: only items armed by JS are hidden; --stagger-i is the item's
+   index in its group, --stagger-step the per-item delay. */
+[data-stagger-item][data-stagger-state="pending"] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+[data-stagger-item][data-stagger-state="shown"] {
+  transition:
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s)),
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-stagger-item][data-stagger-state="pending"] { transform: none; }
+  [data-stagger-item][data-stagger-state="shown"] {
+    transition: opacity 0.55s ease calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
+  }
+}
+
 /* Soft hover lift for cards/tiles — pairs with the rounded theme tokens.
    Only for elements that actually have a surface (background + padding);
    a shadow on a bare, padding-less wrapper draws a hard rectangle right
@@ -355,5 +374,14 @@ html, body {
   .store-root main [data-on-primary],
   .store-overlay [data-on-primary] {
     color: oklch(from var(--store-primary, #2563eb) clamp(0, (0.6 - l) * 1000, 1) 0 0);
+  }
+}
+
+/* Print: never leave content in its pre-reveal hidden state. */
+@media print {
+  [data-reveal-state],
+  [data-stagger-item] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

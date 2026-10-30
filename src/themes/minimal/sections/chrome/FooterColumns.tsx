@@ -112,6 +112,7 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext 
 }
 
 export const footerColumnsSection: SectionDefinition = {
+  needsStoreContext: true,
   schema: {
     id: 'footer-columns',
     label: { en: 'Footer Columns', ar: 'أعمدة الفوتر' },

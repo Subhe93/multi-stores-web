@@ -1,7 +1,7 @@
 // Definition file — see HeroSlider.tsx for the RSC boundary rationale.
 
 import type { SectionDefinition } from '../../types';
-import { MasonryGallery } from './MasonryGallery.client';
+import { MasonryGallery } from './lazy';
 
 export const masonryGallerySection: SectionDefinition = {
   schema: {

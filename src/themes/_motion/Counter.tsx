@@ -7,8 +7,30 @@
 // final value immediately under prefers-reduced-motion or when the value has no
 // number to animate, and always ends on the exact authored string.
 
-import { animate, useInView, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { observeOnce, prefersReducedMotion } from './inView';
+
+const DURATION_MS = 1400;
+
+/** CSS-style cubic-bezier easing (x1, y1, x2, y2), solved for x by bisection. */
+export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
+  const at = (a: number, b: number, t: number) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  return (x: number): number => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0;
+    let hi = 1;
+    let t = x;
+    for (let i = 0; i < 30; i++) {
+      t = (lo + hi) / 2;
+      if (at(x1, x2, t) < x) lo = t;
+      else hi = t;
+    }
+    return at(y1, y2, t);
+  };
+}
+
+const ease = cubicBezier(0.16, 1, 0.3, 1);
 
 export interface ParsedValue {
   target: number;
@@ -84,12 +106,9 @@ interface CounterProps {
 }
 
 export function Counter({ value, prefix = '', suffix = '', className, style }: CounterProps) {
-  const reduced = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '0px 0px -10% 0px' });
   // Memoised on the authored string: a fresh object every render would
-  // restart the effect (and the count-up from 0) on every frame, leaving the
-  // number stuck near zero.
+  // restart the effect (and the count-up from 0) on every render.
   const parsed = useMemo(() => parseValue(value), [value]);
   // Initialise to the final value so SSR and the first client render match
   // (no hydration mismatch). The count-up starts from 0 in an effect, after
@@ -97,16 +116,29 @@ export function Counter({ value, prefix = '', suffix = '', className, style }: C
   const [display, setDisplay] = useState(value);
 
   useEffect(() => {
-    if (!parsed || reduced || !inView) return;
-    const controls = animate(0, parsed.target, {
-      duration: 1.4,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setDisplay(formatFrame(parsed, v)),
-      // End on exactly what the author typed.
-      onComplete: () => setDisplay(value),
-    });
-    return () => controls.stop();
-  }, [inView, reduced, parsed, value]);
+    const el = ref.current;
+    if (!el || !parsed || prefersReducedMotion()) return;
+    let frame = 0;
+    const stop = observeOnce(
+      el,
+      () => {
+        const start = performance.now();
+        const tick = (now: number) => {
+          const p = Math.min(1, (now - start) / DURATION_MS);
+          // End on exactly what the author typed.
+          setDisplay(p >= 1 ? value : formatFrame(parsed, parsed.target * ease(p)));
+          if (p < 1) frame = requestAnimationFrame(tick);
+        };
+        setDisplay(formatFrame(parsed, 0));
+        frame = requestAnimationFrame(tick);
+      },
+      { rootMargin: '0px 0px -10% 0px' },
+    );
+    return () => {
+      stop();
+      cancelAnimationFrame(frame);
+    };
+  }, [parsed, value]);
 
   return (
     <span ref={ref} className={className} style={style}>

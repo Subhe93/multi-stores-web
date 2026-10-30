@@ -2,7 +2,7 @@
 // hero lives in AuroraHero.client.tsx (RSC boundary).
 
 import type { SectionDefinition } from '../../types';
-import { AuroraHero } from './AuroraHero.client';
+import { AuroraHero } from './lazy';
 
 export const auroraHeroSection: SectionDefinition = {
   schema: {

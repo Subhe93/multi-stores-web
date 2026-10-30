@@ -253,7 +253,9 @@ export default async function CollectionPage({
       kind: 'collection',
       // Card-level projection only — see lib/listing.ts.
       products: products.map(toListingProduct),
-      collections: creatorCategoriesTree || [],
+      // The tree only feeds the catalog pills; a collection page reads
+      // `collection.children` instead, so it stays out of the RSC payload.
+      collections: [],
       collection,
       collectionPath: ancestors,
       query: { search, sort },

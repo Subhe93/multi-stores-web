@@ -385,7 +385,9 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.startsWith('/builder-preview')
+    pathname.startsWith('/builder-preview') ||
+    // Self-hosted store fonts (src/app/fonts-cdn): same route on every host.
+    pathname.startsWith('/fonts-cdn/')
   ) {
     return stripTrailingSlash(request) ?? NextResponse.next();
   }

@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { X } from 'lucide-react';
 import { buttonStyles, colorOr, numberOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
@@ -100,3 +101,6 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
     </motion.div>
   );
 }
+
+// Reduced-motion aware export, loaded lazily via ./lazy.tsx.
+export const StickyCtaBarMotion = withReducedMotion(StickyCtaBar);

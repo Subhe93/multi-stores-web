@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { ArrowUpRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
@@ -205,3 +206,6 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
     </section>
   );
 }
+
+// Reduced-motion aware export, loaded lazily via ./lazy.tsx.
+export const ImageHotspotsMotion = withReducedMotion(ImageHotspots);

@@ -8,6 +8,7 @@
 // globals.css ([data-reveal]); prefers-reduced-motion keeps the fade only.
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { isInViewport, observeOnce } from './inView';
 
 export type RevealDirection = 'up' | 'down' | 'left' | 'right' | 'fade' | 'scale';
 
@@ -26,30 +27,11 @@ interface RevealProps {
   [key: `data-${string}`]: string | undefined;
 }
 
-// Shared observer; matches the old framer viewport (bottom margin -8%, 8% visible).
-let observer: IntersectionObserver | null = null;
-function getObserver(): IntersectionObserver {
-  if (!observer) {
-    observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          (entry.target as HTMLElement).dataset.revealState = 'shown';
-          observer?.unobserve(entry.target);
-        }
-      },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
-    );
-  }
-  return observer;
-}
+// Matches the old framer viewport (bottom margin -8%, 8% visible).
+// threshold 0: any visible pixel reveals (a very tall section never stays hidden).
+const VIEWPORT = { rootMargin: '0px 0px -8% 0px', threshold: 0 };
 
-/** True when the element is (at least partly) inside the viewport right now. */
-export function isInViewport(el: Element): boolean {
-  const r = el.getBoundingClientRect();
-  const vh = window.innerHeight || document.documentElement.clientHeight;
-  return r.top < vh && r.bottom > 0;
-}
+export { isInViewport };
 
 export function Reveal({
   children,
@@ -69,10 +51,15 @@ export function Reveal({
     // Already visible at mount (above the fold / scrolled to): leave it alone.
     if (isInViewport(el)) return;
     el.dataset.revealState = 'pending';
-    const io = getObserver();
-    io.observe(el);
+    const stop = observeOnce(
+      el,
+      () => {
+        el.dataset.revealState = 'shown';
+      },
+      VIEWPORT,
+    );
     return () => {
-      io.unobserve(el);
+      stop();
       // Never leave an element stuck hidden after unmount/re-run.
       delete el.dataset.revealState;
     };

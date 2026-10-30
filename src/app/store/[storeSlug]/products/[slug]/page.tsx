@@ -15,6 +15,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { productAvailability } from '@/lib/productAvailability';
+import { projectProductForClient } from '@/lib/productPayload';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 
@@ -201,6 +202,9 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       availability: productAvailability(product),
     });
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
+    // Client sections get a slim copy (current-locale rows only); JSON-LD
+    // above keeps the full product.
+    const clientProduct = projectProductForClient(product, locale, primaryLocale);
     // Same trail as the visible breadcrumb of the product-page section:
     // Home › ancestors… › primary › product (Home › Products › product
     // without a primary collection).
@@ -251,7 +255,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             locale={locale}
             primaryLocale={primaryLocale}
             storeSlug={storeSlug}
-            product={product as ProductContext}
+            product={clientProduct as ProductContext}
             currency={storeCurrency}
             preloaded={preloaded}
           />
@@ -372,7 +376,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       </nav>
 
       <ProductDetailClient
-        product={product}
+        product={projectProductForClient(product, locale, ldPrimary)}
         locale={locale}
         primaryLocale={ldPrimary}
         currency={storeCurrency}

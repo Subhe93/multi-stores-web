@@ -121,6 +121,8 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
               <span
                 key={i}
                 aria-hidden={i !== activeIdx}
+                // Hidden messages may hold links: keep them out of the tab order.
+                inert={i !== activeIdx}
                 className="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
                 style={{ opacity: i === activeIdx ? 1 : 0 }}
               >

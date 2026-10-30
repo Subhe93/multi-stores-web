@@ -985,10 +985,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           {advanced && !designer && (
             <div className="space-y-3">
               {visibleFieldsAt(advanced.defs, advanced.result.visibleIds, 'after_variants').length > 0 && (
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   <span className="w-1 h-4 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} />
                   {t('product.customizeYourProduct')}
-                </h3>
+                </h2>
               )}
               <PersonalizationForm
                 model={advanced}
@@ -1003,10 +1003,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           {/* Custom Fields */}
           {!advanced && !designer && mappedCustomFields.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                 <span className="w-1 h-4 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} />
                 {t('product.customizeYourProduct')}
-              </h3>
+              </h2>
               <CustomFieldsForm
                 fields={mappedCustomFields}
                 values={customFieldValues}
@@ -1179,10 +1179,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           {/* Shipping & Delivery */}
           {showShipping && product.shipping_profile && product.shipping_profile.zones.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Truck className="w-4 h-4" style={{ color: 'var(--store-primary, #2563eb)' }} />
                 {t('product.shippingAndDelivery')}
-              </h3>
+              </h2>
               <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
                 {product.shipping_profile.zones.flatMap((zone) => {
                   // One row per method; a zone without methods falls back to

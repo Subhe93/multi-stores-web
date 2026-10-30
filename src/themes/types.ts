@@ -234,7 +234,7 @@ export interface ListingContext {
   kind: 'catalog' | 'collection';
   /** Already filtered + sorted by the route. */
   products: ListingProduct[];
-  /** Creator category TREE (catalog: for pills; collection: for children lookup). */
+  /** Creator category TREE for the catalog pills; empty on collection pages (children come from `collection`). */
   collections: ListingCollection[];
   /** The current collection (kind === 'collection'). */
   collection?: ListingCollection;
@@ -349,6 +349,9 @@ export interface SectionRenderProps {
 export interface SectionDefinition {
   schema: SectionSchema;
   Component: ComponentType<SectionRenderProps>;
+  // Gets `storeContext` (menus, socials, store name…). Off by default: a
+  // client section would serialise the whole context into the RSC payload.
+  needsStoreContext?: boolean;
   // Defaults used when the section is added from the palette.
   defaultSettings?: Record<string, unknown>;
   defaultContent?: Record<string, unknown>;

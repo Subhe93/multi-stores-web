@@ -1,12 +1,10 @@
 import type { ThemeLayoutProps } from '../types';
-import { MotionProvider } from '../_motion';
 
 // Minimal theme layout: thin container, generous spacing, no decorative chrome.
 // Header/footer slots come from the storefront layout (they already build the
 // navigation tree from CMS data), so this only owns the outer page frame.
 export function MinimalLayout({ children, headerSlot, footerSlot }: ThemeLayoutProps) {
   return (
-    <MotionProvider>
     <div
       className="theme-minimal flex flex-col min-h-screen"
       style={{
@@ -31,6 +29,5 @@ export function MinimalLayout({ children, headerSlot, footerSlot }: ThemeLayoutP
       </main>
       {footerSlot}
     </div>
-    </MotionProvider>
   );
 }

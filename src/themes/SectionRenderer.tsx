@@ -31,8 +31,8 @@ interface SectionRendererProps {
   // `product-listing` magic section reads it.
   listing?: ListingContext;
   currency?: string;
-  // Forwarded to chrome sections (HEADER / FOOTER) so they can render the
-  // store name, logo, locales and pages without re-fetching.
+  // Forwarded only to sections flagged `needsStoreContext` (header, footer,
+  // copyright, social icons) so they can render store data without re-fetching.
   storeContext?: StoreContext;
   // Server-preloaded data keyed by section id (M6.4, lib/preloadSections.ts).
   // Each section only receives its own entry.
@@ -131,7 +131,7 @@ export function SectionRenderer({
               product={product}
               listing={listing}
               currency={currency}
-              storeContext={storeContext}
+              storeContext={def.needsStoreContext ? storeContext : undefined}
               preloaded={preloaded?.[section.id]}
             />
           </div>

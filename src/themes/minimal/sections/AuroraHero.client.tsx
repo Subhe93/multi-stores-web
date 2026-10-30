@@ -4,6 +4,7 @@
 // server-side theme registry resolves `.Component` to a ClientReference.
 
 import { motion } from 'framer-motion';
+import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { storeHref } from '@/lib/storeUrl';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
@@ -133,3 +134,6 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
     </section>
   );
 }
+
+// Reduced-motion aware export, loaded lazily via ./lazy.tsx.
+export const AuroraHeroMotion = withReducedMotion(AuroraHero);

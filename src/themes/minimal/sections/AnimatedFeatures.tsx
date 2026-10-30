@@ -2,7 +2,7 @@
 // stroke-drawn icons live in AnimatedFeatures.client.tsx (RSC boundary).
 
 import type { SectionDefinition } from '../../types';
-import { AnimatedFeatures } from './AnimatedFeatures.client';
+import { AnimatedFeatures } from './lazy';
 
 const ICON_OPTIONS = [
   { value: 'bolt', label: { en: 'Bolt', ar: 'برق' } },

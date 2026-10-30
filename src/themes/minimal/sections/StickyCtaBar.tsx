@@ -2,7 +2,7 @@
 // interactive bar lives in StickyCtaBar.client.tsx (RSC boundary).
 
 import type { SectionDefinition } from '../../types';
-import { StickyCtaBar } from './StickyCtaBar.client';
+import { StickyCtaBar } from './lazy';
 
 export const stickyCtaBarSection: SectionDefinition = {
   schema: {

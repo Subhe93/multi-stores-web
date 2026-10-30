@@ -1,7 +1,7 @@
 // Definition file — see HeroSlider.tsx for the RSC boundary rationale.
 
 import type { SectionDefinition } from '../../types';
-import { ImageHotspots } from './ImageHotspots.client';
+import { ImageHotspots } from './lazy';
 
 export const imageHotspotsSection: SectionDefinition = {
   schema: {

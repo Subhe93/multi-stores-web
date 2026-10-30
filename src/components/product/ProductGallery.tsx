@@ -261,7 +261,7 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
 
         {/* Dot indicators (mobile) */}
         {hasMultiple && images.length <= 8 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 md:hidden">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-4 md:hidden" /* gap-4: dot centres 24px apart (touch-target spacing) */>
             {images.map((_, i) => (
               <button
                 key={i}

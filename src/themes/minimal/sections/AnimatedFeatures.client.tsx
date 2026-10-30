@@ -4,6 +4,7 @@
 // server-side theme registry resolves `.Component` to a ClientReference.
 
 import { motion } from 'framer-motion';
+import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -99,3 +100,6 @@ export function AnimatedFeatures({ settings, content, locale }: SectionRenderPro
     </section>
   );
 }
+
+// Reduced-motion aware export, loaded lazily via ./lazy.tsx.
+export const AnimatedFeaturesMotion = withReducedMotion(AnimatedFeatures);

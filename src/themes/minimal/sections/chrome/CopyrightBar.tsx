@@ -74,6 +74,7 @@ function CopyrightBar({ settings, content, locale, storeContext }: SectionRender
 }
 
 export const copyrightBarSection: SectionDefinition = {
+  needsStoreContext: true,
   schema: {
     id: 'copyright-bar',
     label: { en: 'Copyright Bar', ar: 'شريط حقوق النشر' },

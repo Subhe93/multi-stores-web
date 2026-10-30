@@ -292,6 +292,7 @@ const PLATFORM_OPTIONS = PLATFORM_ORDER.map((p) => ({
 }));
 
 export const socialIconsSection: SectionDefinition = {
+  needsStoreContext: true,
   schema: {
     id: 'social-icons',
     label: { en: 'Social Icons', ar: 'أيقونات التواصل الاجتماعي' },

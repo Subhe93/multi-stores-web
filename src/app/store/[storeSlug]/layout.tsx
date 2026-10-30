@@ -6,7 +6,8 @@ import { getMessages } from 'next-intl/server';
 import { storefront, legal, resolveMediaUrl, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
 import { getPlatformName } from '@/lib/platform';
 import { buildStoreOrigin } from '@/lib/storeUrl';
-import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
+import { preload } from 'react-dom';
+import { buildGoogleFontsHref, loadInlineFonts } from '@/lib/storeFonts';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -145,20 +146,6 @@ function typoBlock(selector: string, style?: TypographyStyle): string {
   }
   if (!parts.length) return '';
   return `${selector} { ${parts.join(' ')} }`;
-}
-
-// Build a single Google Fonts CSS2 URL covering every distinct font the store
-// uses. The full family catalog is the allowlist — anything outside it is
-// treated as a system font and skipped from the <link> request.
-function buildGoogleFontsHref(fonts: (string | undefined)[]): string | null {
-  const unique = Array.from(new Set(
-    fonts.filter((f): f is string => !!f && GOOGLE_FONT_SET.has(f))
-  ));
-  if (!unique.length) return null;
-  const families = unique
-    .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;500;600;700`)
-    .join('&');
-  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
 }
 
 // ---------- Layout props ----------
@@ -385,6 +372,18 @@ export default async function StoreLayout({
     typography.link?.fontFamily,
     typography.header?.fontFamily,
   ]);
+  // Self-hosted fonts: the Google CSS is inlined with same-origin font URLs
+  // (no render-blocking request, no visitor IP sent to Google). Null keeps
+  // the classic <link> below as a fallback.
+  const inlineFonts = fontsHref
+    ? await loadInlineFonts(fontsHref, [
+        typography.body?.fontFamily || fontFamily || resolvedTokens.typography.fontFamily.body,
+        typography.heading?.fontFamily || resolvedTokens.typography.fontFamily.heading || fontFamily,
+      ])
+    : null;
+  for (const href of inlineFonts?.preloads ?? []) {
+    preload(href, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
+  }
 
   // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
   const currentLang = urlLocale || primaryLocale;
@@ -493,7 +492,9 @@ export default async function StoreLayout({
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
       <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
-        {fontsHref && (
+        {inlineFonts ? (
+          <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
+        ) : fontsHref && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
