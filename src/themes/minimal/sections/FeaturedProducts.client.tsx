@@ -258,7 +258,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                       {t('soldBy', { name: p.vendor.company_name })}
                     </p>
                   )}
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
                     <span
                       className="text-sm font-semibold"
                       style={{ color: 'var(--theme-colors-price, var(--theme-colors-primary))', textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem' }}
