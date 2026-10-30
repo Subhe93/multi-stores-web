@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 interface Parts {
@@ -29,6 +29,7 @@ function diffParts(targetMs: number, nowMs: number): Parts {
 
 export function Countdown({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const expiredText = (content.expired_text as string) || (locale === 'ar' ? 'انتهى العرض' : 'This offer has ended');
@@ -82,9 +83,9 @@ export function Countdown({ settings, content, locale }: SectionRenderProps) {
               </Heading>
             )}
             {subheading && (
-              <p className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+              <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
                 {subheading}
-              </p>
+              </Heading>
             )}
           </div>
         )}

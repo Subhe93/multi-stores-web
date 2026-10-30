@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { Mail, Phone, MapPin } from 'lucide-react';
@@ -162,12 +164,14 @@ export function StoreFooter({
             </h3>
             <nav className="flex flex-col gap-2">
               <Link
+                prefetch={false}
                 href={lp('/')}
                 className="text-sm text-white/70 hover:text-white transition-colors w-fit"
               >
                 {t('common.home')}
               </Link>
               <Link
+                prefetch={false}
                 href={lp('/products')}
                 className="text-sm text-white/70 hover:text-white transition-colors w-fit"
               >
@@ -175,6 +179,7 @@ export function StoreFooter({
               </Link>
               {legalPages.map((page) => (
                 <Link
+                  prefetch={false}
                   key={page.slug}
                   href={lp(`/${page.slug}`)}
                   className="text-sm text-white/70 hover:text-white transition-colors w-fit"
@@ -185,6 +190,7 @@ export function StoreFooter({
               {/* Platform-wide legal pages — labels are pre-localized by the API. */}
               {(platformLegalPages ?? []).map((page) => (
                 <Link
+                  prefetch={false}
                   key={`platform-${page.slug}`}
                   href={lp(`/legal/${page.slug}`)}
                   className="text-sm text-white/70 hover:text-white transition-colors w-fit"

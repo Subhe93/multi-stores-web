@@ -11,6 +11,8 @@
 // triggers + nested links, no JS needed (uses <details>).
 
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { storeHref } from '@/lib/storeUrl';
@@ -74,6 +76,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
           return (
             <div key={i} className="group static">
               <Link
+                prefetch={false}
                 href={storeHref(trigger.url || '#')}
                 className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md hover:bg-black/5 transition"
               >
@@ -115,6 +118,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                               .map((link, li) => (
                                 <li key={li}>
                                   <Link
+                                    prefetch={false}
                                     href={storeHref(link.url || '#')}
                                     className="text-sm hover:opacity-70 transition-opacity"
                                   >
@@ -130,6 +134,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                     {/* Optional feature card — a single promo image with caption. */}
                     {trigger.feature?.image && (
                       <Link
+                        prefetch={false}
                         href={storeHref(trigger.feature.url || '#')}
                         className="block group/feat relative overflow-hidden"
                         style={{ borderRadius: 'var(--theme-radius-md)' }}
@@ -166,6 +171,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
           if (!hasPanel) {
             return (
               <Link
+                prefetch={false}
                 key={i}
                 href={storeHref(trigger.url || '#')}
                 className="block px-4 py-3 text-sm font-medium border-b"
@@ -196,6 +202,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                       ?.filter((l) => l.label)
                       .map((link, li) => (
                         <Link
+                          prefetch={false}
                           key={li}
                           href={storeHref(link.url || '#')}
                           className="block py-1.5 text-sm hover:opacity-70"

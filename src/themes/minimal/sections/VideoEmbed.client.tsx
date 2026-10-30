@@ -8,7 +8,7 @@ import { Play } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 // Turn a YouTube/Vimeo watch URL into an embeddable one. Returns null for
@@ -39,6 +39,7 @@ function toEmbedUrl(raw: string, autoplay: boolean): { kind: 'iframe' | 'file'; 
 
 export function VideoEmbed({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const videoUrl = (settings.video_url as string) || '';
@@ -70,9 +71,9 @@ export function VideoEmbed({ settings, content, locale }: SectionRenderProps) {
             </Heading>
           )}
           {subheading && (
-            <p className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
       )}

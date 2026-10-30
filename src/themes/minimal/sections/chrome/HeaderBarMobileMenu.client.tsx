@@ -7,6 +7,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { ChevronDown, Menu, X } from 'lucide-react';
 
 export interface MobileMenuItem {
@@ -145,6 +147,7 @@ function MobileRow({
   if (children.length === 0) {
     return (
       <Link
+        prefetch={false}
         href={item.url}
         onClick={onNavigate}
         {...external}
@@ -161,6 +164,7 @@ function MobileRow({
       <div className="flex items-stretch">
         {item.url && item.url !== '#' ? (
           <Link
+            prefetch={false}
             href={item.url}
             onClick={onNavigate}
             {...external}

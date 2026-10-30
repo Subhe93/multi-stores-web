@@ -18,12 +18,16 @@
 // with the chevron button (Enter / Space / click), close on Escape (focus
 // returns to the trigger), on focus leaving the item, or on an outside click.
 // Mobile (< md) never renders this; the drawer accordion handles it.
+//
+// Prefetch: every link is prefetch={false} (a mega menu has dozens of links
+// and each viewport prefetch is a dynamic origin render). A link is
+// prefetched once on hover / focus instead (usePrefetchOnIntent).
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { ActiveLink } from './ActiveLink.client';
+import { ActiveLink, usePrefetchOnIntent } from './ActiveLink.client';
 
 export interface DesktopNavItem {
   label: string;
@@ -48,6 +52,20 @@ function isRealUrl(url: string | undefined): url is string {
   return !!url && url !== '#';
 }
 
+type PrefetchIntent = (href: string | undefined) => void;
+
+// Hover (mouse) / focus handlers that prefetch a link's target once. New-tab
+// links are skipped: the prefetched payload would land in this tab's cache.
+function intentProps(prefetch: PrefetchIntent, url: string | undefined, newTab: boolean | undefined) {
+  if (newTab) return {};
+  return {
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType === 'mouse') prefetch(url);
+    },
+    onFocus: () => prefetch(url),
+  };
+}
+
 // A top-level item gets the full-width panel when at least one of its
 // children has children of its own (i.e. the menu is three levels deep
 // under this item). Otherwise the simple dropdown is enough.
@@ -68,6 +86,7 @@ export function HeaderBarDesktopNav({
 }) {
   // Index of the open top-level item; only one submenu is open at a time.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const prefetch = usePrefetchOnIntent();
   const navRef = useRef<HTMLElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -132,6 +151,7 @@ export function HeaderBarDesktopNav({
               key={i}
               href={item.url || '#'}
               {...newTabProps(item.open_in_new_tab)}
+              {...intentProps(prefetch, item.url, item.open_in_new_tab)}
               className="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-black/5 transition"
               activeStyle={{ color: accent }}
               activeClassName="bg-black/5"
@@ -150,6 +170,7 @@ export function HeaderBarDesktopNav({
             onOpen={() => openNow(i)}
             onToggle={() => (openIndex === i ? closeNow() : openNow(i))}
             onClose={closeNow}
+            prefetch={prefetch}
             bg={bg}
             borderColor={borderColor}
             accent={accent}
@@ -168,6 +189,7 @@ function SubmenuItem({
   onOpen,
   onToggle,
   onClose,
+  prefetch,
   bg,
   borderColor,
   accent,
@@ -179,6 +201,7 @@ function SubmenuItem({
   onOpen: () => void;
   onToggle: () => void;
   onClose: () => void;
+  prefetch: PrefetchIntent;
   bg: string;
   borderColor: string;
   accent: string;
@@ -235,7 +258,11 @@ function SubmenuItem({
           activeStyle={{ color: accent }}
           activeClassName="bg-black/5"
           onFocus={() => {
+            if (!item.open_in_new_tab) prefetch(item.url);
             if (!suppressFocusOpen.current) onOpen();
+          }}
+          onPointerEnter={(e) => {
+            if (e.pointerType === 'mouse' && !item.open_in_new_tab) prefetch(item.url);
           }}
           ref={triggerRef}
         >
@@ -277,7 +304,9 @@ function SubmenuItem({
                 {isRealUrl(group.url) ? (
                   <Link
                     href={group.url}
+                    prefetch={false}
                     {...newTabProps(group.open_in_new_tab)}
+                    {...intentProps(prefetch, group.url, group.open_in_new_tab)}
                     tabIndex={open ? 0 : -1}
                     className="block text-xs font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
                     style={{ color: accent }}
@@ -295,7 +324,9 @@ function SubmenuItem({
                       <li key={li}>
                         <Link
                           href={link.url || '#'}
+                          prefetch={false}
                           {...newTabProps(link.open_in_new_tab)}
+                          {...intentProps(prefetch, link.url, link.open_in_new_tab)}
                           tabIndex={open ? 0 : -1}
                           className="text-sm hover:opacity-70 transition-opacity"
                         >
@@ -320,7 +351,9 @@ function SubmenuItem({
               <Link
                 key={ci}
                 href={child.url || '#'}
+                prefetch={false}
                 {...newTabProps(child.open_in_new_tab)}
+                {...intentProps(prefetch, child.url, child.open_in_new_tab)}
                 tabIndex={open ? 0 : -1}
                 className="block px-3 py-2 text-sm hover:bg-black/5 transition whitespace-nowrap"
               >

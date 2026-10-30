@@ -8,6 +8,8 @@ import {
   featuredProductsLimit,
   featuredProductsParams,
   preloadSectionData,
+  productSliderLimit,
+  productSliderParams,
 } from './preloadSections';
 import type { SectionInstance } from '@/themes/types';
 
@@ -38,6 +40,24 @@ describe('param builders', () => {
     expect(featuredProductsLimit({ limit: 50 })).toBe(12);
     expect(featuredProductsLimit({ limit: 0 })).toBe(1);
     expect(featuredProductsLimit({ limit: 'x' })).toBe(4);
+  });
+});
+
+describe('product-slider builders', () => {
+  it('limit defaults to 8 and clamps to 1..24', () => {
+    expect(productSliderLimit({})).toBe(8);
+    expect(productSliderLimit({ limit: 99 })).toBe(24);
+    expect(productSliderLimit({ limit: 0 })).toBe(1);
+    expect(productSliderLimit({ limit: 'x' })).toBe(8);
+  });
+
+  it('adds featured=true only for the featured filter', () => {
+    expect(productSliderParams({ locale: 'ar', limit: 8, filter: 'newest' })).toEqual({ locale: 'ar', limit: '8' });
+    expect(productSliderParams({ locale: 'ar', limit: 8, filter: 'featured' })).toEqual({
+      locale: 'ar',
+      limit: '8',
+      featured: 'true',
+    });
   });
 });
 
@@ -75,6 +95,28 @@ describe('preloadSectionData', () => {
     expect((out.c as unknown[]).length).toBe(4);
     expect((out.d as unknown[]).length).toBe(3);
     expect(out.e).toBeUndefined();
+  });
+
+  it('preloads product-slider sections with the client params and trims to the limit', async () => {
+    const out = await preloadSectionData(
+      'namez-se',
+      [
+        section('s1', 'product-slider', {}),
+        section('s2', 'product-slider', { limit: 5, filter: 'featured' }),
+        section('s3', 'product-slider', { limit: 3 }, true),
+      ],
+      { locale: 'sv', marketRef: { key: 'se', preview: true } },
+    );
+    expect(getProducts).toHaveBeenCalledTimes(2);
+    expect(getProducts).toHaveBeenCalledWith('namez-se', { locale: 'sv', limit: '8' }, { key: 'se', preview: true });
+    expect(getProducts).toHaveBeenCalledWith(
+      'namez-se',
+      { locale: 'sv', limit: '5', featured: 'true' },
+      { key: 'se', preview: true },
+    );
+    expect((out.s1 as unknown[]).length).toBe(8);
+    expect((out.s2 as unknown[]).length).toBe(5);
+    expect(out.s3).toBeUndefined();
   });
 
   it('skips hidden sections and omits failed requests', async () => {

@@ -11,7 +11,8 @@ import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
+import { Heading } from './_shared/Heading';
 import { isSvgSrc } from '@/lib/storeMedia';
 
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
@@ -38,6 +39,8 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
   // First slide carries the section's heading level (default h1: a slider
   // usually opens the page); later slides step down to h2 when it is h1.
   const firstHeading = headingTag(settings.heading_level, 'h1');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const slideHeading = (i: number) => (i === 0 || firstHeading !== 'h1' ? firstHeading : 'h2');
   const slides = ((content.slides as HeroSlide[]) || []).filter(
     (s) => s.image || s.heading || s.subheading,
@@ -135,15 +138,15 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
         />
         <div className={`relative w-full max-w-5xl mx-auto flex flex-col justify-center gap-4 ${alignClass}`} style={{ zIndex: 2 }}>
           {slide.eyebrow && (
-            <span
+            <Heading level={eyebrowTag} original="span" look="body"
               className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80"
               style={{ color: colorOr(settings.eyebrow_color, 'var(--theme-colors-accent)') }}
             >
               {slide.eyebrow}
-            </span>
+            </Heading>
           )}
           {slide.heading && (
-            <SlideHeading
+            <Heading level={SlideHeading}
               className="leading-[1.05] tracking-tight max-w-3xl"
               style={{
                 fontFamily: 'var(--theme-font-heading)',
@@ -153,10 +156,10 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {slide.heading}
-            </SlideHeading>
+            </Heading>
           )}
           {slide.subheading && (
-            <p
+            <Heading level={subheadingTag} look="body"
               className="max-w-2xl"
               style={{
                 fontSize: 'var(--theme-scale-body)',
@@ -165,7 +168,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {slide.subheading}
-            </p>
+            </Heading>
           )}
           {slide.cta_text && (
             <a

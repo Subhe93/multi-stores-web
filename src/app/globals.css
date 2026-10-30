@@ -190,6 +190,30 @@ html, body {
   transform: none;
 }
 
+/* Section/element reveal (themes/_motion/Reveal.tsx). Server HTML is visible;
+   only elements armed by JS (data-reveal-state="pending", i.e. below the fold
+   at mount) start hidden, then transition in when scrolled into view. */
+[data-reveal][data-reveal-state="pending"] {
+  opacity: 0;
+}
+[data-reveal="up"][data-reveal-state="pending"] { transform: translateY(22px); }
+[data-reveal="down"][data-reveal-state="pending"] { transform: translateY(-22px); }
+[data-reveal="left"][data-reveal-state="pending"] { transform: translateX(22px); }
+[data-reveal="right"][data-reveal-state="pending"] { transform: translateX(-22px); }
+[data-reveal="scale"][data-reveal-state="pending"] { transform: scale(0.96); }
+[data-reveal][data-reveal-state="shown"] {
+  transition:
+    opacity var(--reveal-duration, 0.6s) cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    transform var(--reveal-duration, 0.6s) cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the gentle fade, drop the movement. */
+  [data-reveal][data-reveal-state="pending"] { transform: none; }
+  [data-reveal][data-reveal-state="shown"] {
+    transition: opacity var(--reveal-duration, 0.6s) ease var(--reveal-delay, 0s);
+  }
+}
+
 /* Soft hover lift for cards/tiles — pairs with the rounded theme tokens.
    Only for elements that actually have a surface (background + padding);
    a shadow on a bare, padding-less wrapper draws a hard rectangle right

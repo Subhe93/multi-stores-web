@@ -13,7 +13,7 @@ import type { SectionRenderProps } from '../../types';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import { SectionHeading } from './_shared/SectionHeading';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 
 interface MasonryImage {
   image?: string;
@@ -76,7 +76,8 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
       {(heading || subheading) && (
         <div className="mb-10">
           <SectionHeading
-            tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading} align="center" />
+            tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading}
+            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" />
         </div>
       )}
 

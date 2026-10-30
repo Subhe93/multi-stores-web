@@ -8,7 +8,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, mediaFx } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 
 interface TimelineItem {
   label?: string;
@@ -107,6 +107,7 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
         <div className="mb-14">
           <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')}
+            subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
             subheading={subheading}
             align="center"

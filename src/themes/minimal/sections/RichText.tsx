@@ -1,9 +1,10 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 function RichText({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'p');
   const html = (content.html as string) || '';
   const heading = (content.heading as string) || '';
   const eyebrow = (content.eyebrow as string) || '';
@@ -34,12 +35,12 @@ function RichText({ settings, content }: SectionRenderProps) {
         }
       >
         {eyebrow && (
-          <p
+          <Heading level={eyebrowTag} look="body"
             className="text-xs font-semibold uppercase tracking-[0.2em] mb-3"
             style={{ color: 'var(--theme-colors-accent)' }}
           >
             {eyebrow}
-          </p>
+          </Heading>
         )}
         {heading && (
           <Heading level={headingLevel}

@@ -66,7 +66,9 @@ export function ProductCard({
       : 0;
 
   return (
-    <Link href={href} className="group block">
+    // No viewport prefetch: a grid of cards would fire one dynamic RSC
+    // render per product on every listing view.
+    <Link href={href} prefetch={false} className="group block">
       {/* Image */}
       <div className={`relative ${aspectClass} overflow-hidden rounded-2xl bg-gray-100`}>
         {imageUrl ? (

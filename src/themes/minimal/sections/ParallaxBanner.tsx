@@ -2,7 +2,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { optimizedImageUrl } from '@/lib/storeMedia';
 
@@ -15,6 +15,8 @@ const HEIGHT_CLASS: Record<Height, string> = {
 
 function ParallaxBanner({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const image = (settings.image as string) || '';
   const height = (settings.height as Height) || 'md';
   const overlayOpacity = typeof settings.overlay_opacity === 'number' ? settings.overlay_opacity : 0.3;
@@ -83,12 +85,12 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
 
       <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }} />
 
-      <StaggerGroup step={0.1} className="relative z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
+      <StaggerGroup immediate step={0.1} className="relative z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
         {eyebrow && (
           <StaggerItem>
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
+            <Heading level={eyebrowTag} original="span" look="body" className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
               {eyebrow}
-            </span>
+            </Heading>
           </StaggerItem>
         )}
         {heading && (
@@ -109,7 +111,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         )}
         {subheading && (
           <StaggerItem>
-            <p
+            <Heading level={subheadingTag} look="body"
               className="max-w-prose"
               style={{
                 fontSize: 'var(--theme-scale-body)',
@@ -118,7 +120,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
               }}
             >
               {subheading}
-            </p>
+            </Heading>
           </StaggerItem>
         )}
         {ctaText && (

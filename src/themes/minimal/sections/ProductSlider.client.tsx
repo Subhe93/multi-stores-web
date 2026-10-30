@@ -3,17 +3,20 @@
 // Sibling of FeaturedProducts: same data fetch, different presentation.
 // Renders products as a horizontal slider instead of a grid.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
+import { productSliderLimit, productSliderParams } from '@/lib/preloadSections';
+import { isSvgSrc } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 interface ProductRow {
@@ -38,13 +41,14 @@ const CARD_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency }: SectionRenderProps) {
+export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const filter = (settings.filter as 'newest' | 'featured') || 'newest';
   const aspectClass = CARD_ASPECT[(settings.aspect as string) || 'square'] || CARD_ASPECT.square;
-  const limit = clamp((settings.limit as number) ?? 8, 1, 24);
+  const limit = productSliderLimit(settings);
   const spvDesktop = clamp((settings.slides_per_view as number) ?? 4, 1, 6);
   const spvTablet = clamp((settings.slides_per_view_tablet as number) ?? 3, 1, 6);
   const spvMobile = clamp((settings.slides_per_view_mobile as number) ?? 1.5, 1, 4);
@@ -59,9 +63,9 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
   const linkUrl = (settings.link_url as string) || `${localePrefix}/products`;
   const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
+  // Card image `sizes` from slides-per-view (Slider breakpoints: 768 / 1024).
+  const imageSizes = `(max-width: 767px) ${Math.ceil(100 / spvMobile)}vw, (max-width: 1023px) ${Math.ceil(100 / spvTablet)}vw, ${Math.ceil(100 / spvDesktop)}vw`;
 
-  const [products, setProducts] = useState<ProductRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const t = useTranslations('product');
 
   // Markets app: prices come back in the market currency (and a draft
@@ -70,27 +74,37 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const market = useMarket();
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
-  const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+
+  // Keyed by the request it answers, like FeaturedProducts: server-preloaded
+  // products (lib/preloadSections.ts) seed the state under the mount key, so
+  // the server HTML has the slides and the mount fetch is skipped; a change
+  // of any dep yields a new key and re-fetches.
+  const requestKey = [storeSlug, locale, limit, filter, marketKey ?? '', marketPreview ? '1' : ''].join('|');
+  const [loaded, setLoaded] = useState<{ key: string; products: ProductRow[] } | null>(() =>
+    Array.isArray(preloaded) ? { key: requestKey, products: preloaded as ProductRow[] } : null,
+  );
+  const loading = loaded?.key !== requestKey;
+  const products = loaded?.key === requestKey ? loaded.products : [];
+  const loadedKeyRef = useRef<string | null>(loaded?.key ?? null);
+
   useEffect(() => {
+    if (loadedKeyRef.current === requestKey) return;
     let cancelled = false;
-    setLoading(true);
-    const params: Record<string, string> = { locale, limit: String(limit) };
-    if (filter === 'featured') params.featured = 'true';
+    const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
+    const params = productSliderParams({ locale, limit, filter });
+    const settle = (list: ProductRow[]) => {
+      if (cancelled) return;
+      loadedKeyRef.current = requestKey;
+      setLoaded({ key: requestKey, products: list });
+    };
     storefront
       .getProducts(storeSlug, params, marketRef)
-      .then((list) => {
-        if (!cancelled) setProducts((list as ProductRow[]).slice(0, limit));
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .then((list) => settle((list as ProductRow[]).slice(0, limit)))
+      .catch(() => settle([]));
     return () => {
       cancelled = true;
     };
-  }, [storeSlug, locale, limit, filter, marketKey, marketPreview]);
+  }, [requestKey, storeSlug, locale, limit, filter, marketKey, marketPreview]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.
@@ -115,22 +129,24 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
       p.translations[0];
     const productPath = slugTr?.slug || p.id;
     const url = `${localePrefix}/products/${productPath}`;
+    const imageSrc = p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : '';
     return (
       <a key={p.id} href={url} className="group block h-full">
         <div
-          className={`${aspectClass} overflow-hidden`}
+          className={`relative ${aspectClass} overflow-hidden`}
           style={{
             backgroundColor: 'var(--theme-colors-surface)',
             borderRadius: 'var(--theme-radius-md)',
           }}
         >
-          {p.images?.[0]?.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={resolveMediaUrl(p.images[0].url)}
+          {imageSrc ? (
+            <StoreImage
+              src={imageSrc}
               alt={tr?.title || ''}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              fill
+              sizes={imageSizes}
+              unoptimized={isSvgSrc(imageSrc)}
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : null}
         </div>
@@ -183,9 +199,9 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
             </Heading>
           )}
           {subheading && (
-            <p className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
         {linkLabel && (

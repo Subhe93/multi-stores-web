@@ -359,8 +359,12 @@ export default async function StoreLayout({
   // rule because it lives outside <main>. `.store-overlay` covers the portaled
   // cart drawer, which is visually part of the store but not a DOM descendant.
   const typographyCss = [
-    typoBlock('.store-root main h1, .store-root main h2, .store-root main h3, .store-root main h4, .store-root main h5, .store-root main h6', typography.heading),
-    typoBlock('.store-root main p, .store-root main li, .store-root main span', typography.body),
+    // A section text carries data-text-look (builder-chosen tag): style it by
+    // its role, not by the tag, so changing the tag never changes the look.
+    // :where() keeps the old (0,1,2) specificity, so overrides such as
+    // .store-muted and the designer opt-out still win.
+    typoBlock('.store-root main :is(h1, h2, h3, h4, h5, h6):where(:not([data-text-look="body"])), .store-root main :where([data-text-look="heading"])', typography.heading),
+    typoBlock('.store-root main :is(p, li, span):where(:not([data-text-look="heading"])), .store-root main :where([data-text-look="body"])', typography.body),
     typoBlock('.store-root main button', typography.button),
     typoBlock('.store-root main a', typography.link),
     typoBlock('.store-root header, .store-root header *', typography.header),

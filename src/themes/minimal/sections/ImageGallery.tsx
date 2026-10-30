@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { responsiveImgProps } from '@/lib/storeMedia';
 
@@ -24,6 +24,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 
 function ImageGallery({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   // Items live on translatable content (per the schema) so creators can vary
@@ -107,9 +108,9 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
             </Heading>
           )}
           {subheading && (
-            <p className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
+            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
       )}

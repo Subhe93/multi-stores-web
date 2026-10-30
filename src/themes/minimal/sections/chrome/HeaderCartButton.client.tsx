@@ -43,6 +43,7 @@ export function HeaderCartButton({ mode, href, ariaLabel, accent }: HeaderCartBu
   if (mode === 'page') {
     return (
       <Link
+        prefetch={false}
         href={href}
         aria-label={ariaLabel}
         className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition relative"

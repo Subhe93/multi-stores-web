@@ -68,6 +68,23 @@ export function featuredProductsParams(input: {
   return params;
 }
 
+export const PRODUCT_SLIDER_SECTION_KEY = 'product-slider';
+
+/** Product limit of a product-slider section, clamped like the schema. */
+export function productSliderLimit(settings: Record<string, unknown>): number {
+  const raw = Number(settings.limit ?? 8);
+  return clamp(Number.isFinite(raw) ? raw : 8, 1, 24);
+}
+
+/** Query params of `GET /storefront/:slug/products` for a product-slider section (same as featured-products). */
+export function productSliderParams(input: {
+  locale: string;
+  limit: number;
+  filter: string;
+}): Record<string, string> {
+  return featuredProductsParams(input);
+}
+
 /** The products request a section makes on mount, or null if it fetches nothing. */
 function sectionProductsRequest(s: SectionInstance, locale: string): { params: Record<string, string>; limit: number } | null {
   const settings = s.settings || {};
@@ -79,6 +96,10 @@ function sectionProductsRequest(s: SectionInstance, locale: string): { params: R
   if (s.section_key === FEATURED_PRODUCTS_SECTION_KEY) {
     const limit = featuredProductsLimit(settings);
     return { limit, params: featuredProductsParams({ locale, limit, filter: (settings.filter as string) || 'newest' }) };
+  }
+  if (s.section_key === PRODUCT_SLIDER_SECTION_KEY) {
+    const limit = productSliderLimit(settings);
+    return { limit, params: productSliderParams({ locale, limit, filter: (settings.filter as string) || 'newest' }) };
   }
   return null;
 }

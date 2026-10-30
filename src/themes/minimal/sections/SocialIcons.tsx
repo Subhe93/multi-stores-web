@@ -12,7 +12,7 @@ import {
   resolveSocialHref,
   type SocialPlatform,
 } from './_shared/socialIcons';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 type Layout = 'horizontal' | 'vertical' | 'grid';
@@ -54,6 +54,7 @@ function HEADING_FROM(content: Record<string, unknown>) {
 
 function SocialIcons({ settings, content, locale, storeContext }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const { heading, subheading } = HEADING_FROM(content);
   const items = ((content.items as SocialItem[]) || []).filter(
     (i): i is SocialItem & { platform: SocialPlatform } =>
@@ -217,9 +218,9 @@ function SocialIcons({ settings, content, locale, storeContext }: SectionRenderP
             </Heading>
           )}
           {subheading && (
-            <p className="text-sm" style={{ color: subheadingColor }}>
+            <Heading level={subheadingTag} look="body" className="text-sm" style={{ color: subheadingColor }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
       )}

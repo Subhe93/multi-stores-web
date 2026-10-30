@@ -3,6 +3,8 @@
 // links. A separate CopyrightBar section handles the bottom strip.
 
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
@@ -89,6 +91,7 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext 
                     .map((link, j) => (
                       <li key={j}>
                         <Link
+                          prefetch={false}
                           href={localizeStoreUrl(link.url, lp, locale)}
                           {...(link.open_in_new_tab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                           className="text-sm hover:opacity-70 transition-opacity"

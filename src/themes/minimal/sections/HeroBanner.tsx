@@ -4,7 +4,7 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 
@@ -20,6 +20,8 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
 
 function HeroBanner({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const layout = (settings.layout as HeroLayout) || 'centered';
   const alignment = (settings.alignment as 'left' | 'center' | 'right') || 'center';
   const height = (settings.height as HeroHeight) || 'md';
@@ -82,15 +84,15 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   // Shared text block — keeps the heading/subheading/CTAs visually consistent
   // across the three layouts.
   const textBlock = (
-    <StaggerGroup step={0.1} className={`flex flex-col gap-4 max-w-2xl ${alignClass}`}>
+    <StaggerGroup immediate step={0.1} className={`flex flex-col gap-4 max-w-2xl ${alignClass}`}>
       {eyebrow && (
         <StaggerItem>
-          <span
+          <Heading level={eyebrowTag} original="span" look="body"
             className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70"
             style={{ color: eyebrowColor }}
           >
             {eyebrow}
-          </span>
+          </Heading>
         </StaggerItem>
       )}
       {heading && (
@@ -111,7 +113,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
       )}
       {subheading && (
         <StaggerItem>
-          <p
+          <Heading level={subheadingTag} look="body"
             className="max-w-prose"
             style={{
               fontSize: 'var(--theme-scale-body)',
@@ -120,7 +122,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
             }}
           >
             {subheading}
-          </p>
+          </Heading>
         </StaggerItem>
       )}
       {(ctaText || ctaSecondaryText) && (

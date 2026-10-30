@@ -6,7 +6,7 @@
 import { motion } from 'framer-motion';
 import { colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 interface FeatureItem {
@@ -43,6 +43,7 @@ function clampColumns(n: unknown, fallback: number): number {
 
 export function AnimatedFeatures({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as FeatureItem[]) || []).filter((f) => f.title || f.description || f.icon);
@@ -70,7 +71,7 @@ export function AnimatedFeatures({ settings, content, locale }: SectionRenderPro
               {heading}
             </Heading>
           )}
-          {subheading && <p className="text-base" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>{subheading}</p>}
+          {subheading && <Heading level={subheadingTag} look="body" className="text-base" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>{subheading}</Heading>}
         </div>
       )}
 

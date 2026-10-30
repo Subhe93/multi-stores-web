@@ -10,7 +10,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 
 interface Hotspot {
   x?: number;
@@ -73,7 +73,8 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
       {(heading || subheading) && (
         <div className="mb-10">
           <SectionHeading
-            tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading} align="center" />
+            tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading}
+            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" />
         </div>
       )}
 

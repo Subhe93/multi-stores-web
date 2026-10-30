@@ -3,7 +3,7 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr, mediaFx } from '../../elementStyles';
 import { Reveal } from '../../_motion';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc } from '@/lib/storeMedia';
 
@@ -19,6 +19,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 
 function ImageWithText({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'p');
   const position = (settings.image_position as Position) || 'left';
   const aspect = (settings.aspect as Aspect) || 'square';
   const image = (settings.image as string) || '';
@@ -48,12 +49,12 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
   const text = (
     <div className="flex flex-col justify-center gap-4 py-8 md:py-12">
       {eyebrow && (
-        <p
+        <Heading level={eyebrowTag} look="body"
           className="text-xs font-semibold uppercase tracking-[0.2em]"
           style={{ color: colorOr(settings.eyebrow_color, 'var(--theme-colors-accent)') }}
         >
           {eyebrow}
-        </p>
+        </Heading>
       )}
       {heading && (
         <Heading level={headingLevel}

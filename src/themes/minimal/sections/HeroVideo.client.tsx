@@ -10,7 +10,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import type { SectionRenderProps } from '../../types';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc, optimizedImageUrl } from '@/lib/storeMedia';
 
@@ -23,6 +23,8 @@ const HEIGHT_CLASS: Record<Height, string> = {
 
 export function HeroVideo({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const videoUrl = (settings.video_url as string) || '';
   const posterImage = (settings.poster_image as string) || '';
   const overlayOpacity = typeof settings.overlay_opacity === 'number' ? settings.overlay_opacity : 0.35;
@@ -122,15 +124,15 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
 
       <div className="relative z-10 mx-auto w-full max-w-7xl">
         <div className={`flex w-full ${justifyClass}`}>
-          <StaggerGroup step={0.1} className={`flex max-w-2xl flex-col gap-4 ${alignClass}`}>
+          <StaggerGroup immediate step={0.1} className={`flex max-w-2xl flex-col gap-4 ${alignClass}`}>
             {eyebrow && (
               <StaggerItem>
-                <span
+                <Heading level={eyebrowTag} original="span" look="body"
                   className="text-xs font-semibold uppercase tracking-[0.2em]"
                   style={{ color: eyebrowColor }}
                 >
                   {eyebrow}
-                </span>
+                </Heading>
               </StaggerItem>
             )}
             {heading && (
@@ -151,7 +153,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
             )}
             {subheading && (
               <StaggerItem>
-                <p
+                <Heading level={subheadingTag} look="body"
                   className="max-w-prose"
                   style={{
                     fontSize: 'var(--theme-scale-body)',
@@ -160,7 +162,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
                   }}
                 >
                   {subheading}
-                </p>
+                </Heading>
               </StaggerItem>
             )}
             {ctaText && (

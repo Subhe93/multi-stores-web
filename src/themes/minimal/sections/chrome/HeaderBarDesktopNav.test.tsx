@@ -6,7 +6,8 @@ import { HeaderBarDesktopNav, needsMegaPanel, type DesktopNavItem } from './Head
 // opens a full-width column panel; one whose children are leaves keeps the
 // simple dropdown; the chevron toggles and Escape closes.
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
+const prefetch = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({ usePathname: () => '/', useRouter: () => ({ prefetch }) }));
 
 const gifts: DesktopNavItem = {
   label: 'Presenter till vem',
@@ -85,7 +86,7 @@ describe('HeaderBarDesktopNav', () => {
     expect(panel.className).toContain('inset-s-0');
     fireEvent.click(toggle);
     expect(panel.className).toContain('block');
-    expect(screen.getByRole('link', { name: 'Kontakt' })).toHaveAttribute('href', '/pages/contact');
+    expect(screen.getByRole('link', { name: 'Kontakt', hidden: true })).toHaveAttribute('href', '/pages/contact');
   });
 
   it('opens on trigger focus (keyboard users)', () => {
@@ -93,5 +94,17 @@ describe('HeaderBarDesktopNav', () => {
     const trigger = screen.getByRole('link', { name: 'Presenter till vem' });
     fireEvent.focus(trigger);
     expect(screen.getByRole('button', { name: 'Presenter till vem' })).toHaveAttribute('aria-expanded', 'true');
+  });
+});
+
+describe('HeaderBarDesktopNav prefetch', () => {
+  it('prefetches a link once on mouse hover / focus, never for "#"', () => {
+    renderNav();
+    const link = screen.getByRole('link', { name: 'Kontakt', hidden: true });
+    fireEvent.pointerEnter(link, { pointerType: 'mouse' });
+    fireEvent.focus(link);
+    expect(prefetch.mock.calls.filter(([h]) => h === '/pages/contact')).toHaveLength(1);
+    fireEvent.focus(screen.getByRole('link', { name: 'Presenter till vem' }));
+    expect(prefetch).not.toHaveBeenCalledWith('#');
   });
 });

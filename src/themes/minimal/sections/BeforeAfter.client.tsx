@@ -10,7 +10,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 
 function clampPct(n: number): number {
   return Math.max(0, Math.min(100, n));
@@ -80,6 +80,7 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
           <div className="mb-10">
             <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')}
+            subheadingTag={textTag(settings.subheading_tag, 'p')}
               heading={heading}
               subheading={subheading}
               align="center"
@@ -119,6 +120,7 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
         <div className="mb-10">
           <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')}
+            subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
             subheading={subheading}
             align="center"

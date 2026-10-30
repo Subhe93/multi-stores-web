@@ -5,7 +5,8 @@
 
 import type { CSSProperties } from 'react';
 import { colorOr } from '../../../elementStyles';
-import type { HeadingTag } from './headingLevel';
+import type { TextTag } from './headingLevel';
+import { Heading } from './Heading';
 
 type Align = 'left' | 'center' | 'right';
 
@@ -23,7 +24,10 @@ interface SectionHeadingProps {
   /** Visual size: h1 (hero) or the default h2; also the element unless `tag` is set. */
   as?: 'h1' | 'h2';
   /** HTML element only (builder heading level); the size still follows `as`. */
-  tag?: HeadingTag;
+  tag?: TextTag;
+  /** Builder tags of the subheading / eyebrow (default p / span). */
+  subheadingTag?: TextTag;
+  eyebrowTag?: TextTag;
   headingColor?: unknown;
   subheadingColor?: unknown;
   eyebrowColor?: unknown;
@@ -37,13 +41,14 @@ export function SectionHeading({
   align = 'center',
   as = 'h2',
   tag,
+  subheadingTag = 'p',
+  eyebrowTag = 'span',
   headingColor,
   subheadingColor,
   eyebrowColor,
   className,
 }: SectionHeadingProps) {
   if (!eyebrow && !heading && !subheading) return null;
-  const Tag = tag ?? as;
   const headingStyle: CSSProperties = {
     fontFamily: 'var(--theme-font-heading)',
     fontSize: as === 'h1' ? 'var(--theme-scale-h1)' : 'var(--theme-scale-h2)',
@@ -56,21 +61,30 @@ export function SectionHeading({
   return (
     <div className={`flex flex-col gap-3 max-w-2xl ${ALIGN_CLASS[align]} ${className || ''}`}>
       {eyebrow && (
-        <span
+        <Heading
+          level={eyebrowTag}
+          original="span"
+          look="body"
           className="text-xs font-semibold uppercase tracking-[0.14em]"
           style={{ color: colorOr(eyebrowColor, 'var(--theme-colors-accent)') }}
         >
           {eyebrow}
-        </span>
+        </Heading>
       )}
-      {heading && <Tag style={headingStyle}>{heading}</Tag>}
+      {heading && (
+        <Heading level={tag ?? as} style={headingStyle}>
+          {heading}
+        </Heading>
+      )}
       {subheading && (
-        <p
+        <Heading
+          level={subheadingTag}
+          look="body"
           className="text-base leading-relaxed"
           style={{ color: colorOr(subheadingColor, 'var(--theme-colors-muted)') }}
         >
           {subheading}
-        </p>
+        </Heading>
       )}
     </div>
   );

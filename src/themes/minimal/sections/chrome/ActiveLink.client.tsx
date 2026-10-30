@@ -4,10 +4,15 @@
 // nav (HeaderBar links, MobileBottomNav tabs) can highlight the active
 // destination. Server components can't call usePathname, so this thin
 // client wrapper owns that bit.
+//
+// Chrome links default to prefetch={false}: a header / mega menu with dozens
+// of links would otherwise fire one dynamic RSC prefetch per link on every
+// page view. Desktop nav prefetches on hover instead (usePrefetchOnIntent).
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { CSSProperties, FocusEventHandler, ReactNode, Ref } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCallback } from 'react';
+import type { CSSProperties, FocusEventHandler, PointerEventHandler, ReactNode, Ref } from 'react';
 
 export function ActiveLink({
   href,
@@ -17,6 +22,7 @@ export function ActiveLink({
   activeStyle,
   activeClassName,
   exact,
+  prefetch = false,
   ...rest
 }: {
   href: string;
@@ -29,6 +35,8 @@ export function ActiveLink({
   /** When true, only an exact pathname match counts as active. Otherwise a
    *  prefix match also counts (so /products/123 keeps "Products" active). */
   exact?: boolean;
+  /** Viewport prefetch; off by default for chrome nav (see header note). */
+  prefetch?: boolean;
   'aria-label'?: string;
   title?: string;
   target?: string;
@@ -36,6 +44,7 @@ export function ActiveLink({
   /** Focus hook + element ref — used by the mega-menu nav to open a submenu
    *  when its trigger receives keyboard focus and to return focus on Escape. */
   onFocus?: FocusEventHandler<HTMLAnchorElement>;
+  onPointerEnter?: PointerEventHandler<HTMLAnchorElement>;
   ref?: Ref<HTMLAnchorElement>;
 }) {
   const pathname = usePathname() || '';
@@ -51,6 +60,7 @@ export function ActiveLink({
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className={[className, isActive ? activeClassName : ''].filter(Boolean).join(' ')}
       style={isActive ? { ...style, ...activeStyle } : style}
       aria-current={isActive ? 'page' : undefined}
@@ -58,5 +68,27 @@ export function ActiveLink({
     >
       {children}
     </Link>
+  );
+}
+
+// Hrefs already prefetched in this tab; router.prefetch runs once per href.
+const prefetchedHrefs = new Set<string>();
+
+// Returns a handler that prefetches an internal href on hover / focus intent.
+// Skips '#', hash-only, external and non-http (mailto:, tel:) links.
+export function usePrefetchOnIntent() {
+  const router = useRouter();
+  return useCallback(
+    (href: string | undefined) => {
+      if (!href || href.startsWith('#') || prefetchedHrefs.has(href)) return;
+      if (href.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(href)) return;
+      prefetchedHrefs.add(href);
+      try {
+        router.prefetch(href);
+      } catch {
+        // Prefetch is best-effort; navigation still works without it.
+      }
+    },
+    [router],
   );
 }

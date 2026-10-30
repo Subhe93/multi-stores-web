@@ -9,6 +9,16 @@ function scopeClassFor(sectionId: string): string {
   return `s-${sectionId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 }
 
+// Sections that are usually the page's LCP element: never wrapped in a reveal.
+const NO_REVEAL_KEYS = new Set(['aurora-hero', 'product-page', 'product-gallery', 'product-listing']);
+
+/** Whether a page-content section gets the scroll-in reveal wrapper. */
+export function shouldReveal(sectionKey: string, isFirst: boolean): boolean {
+  if (isFirst) return false;
+  if (sectionKey.startsWith('hero-') || sectionKey === 'hero') return false;
+  return !NO_REVEAL_KEYS.has(sectionKey);
+}
+
 interface SectionRendererProps {
   theme: Theme;
   sections: SectionInstance[];
@@ -58,101 +68,104 @@ export function SectionRenderer({
   // In chrome mode the wrapper boxes are collapsed so a sticky header can
   // anchor to the page layout rather than its own tight wrapper.
   const wrapperStyle = chrome ? ({ display: 'contents' } as const) : undefined;
+  const ordered = sections
+    .filter((s) => !s.is_hidden)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  // First section that will actually render (top of the page, likely LCP).
+  const firstId = ordered.find((s) => theme.sections[s.section_key]?.Component)?.id;
   return (
     <>
-      {sections
-        .filter((s) => !s.is_hidden)
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((section) => {
-          const def = theme.sections[section.section_key];
-          // Skip sections whose key isn't registered in the active theme OR
-          // whose definition is broken (missing Component). Either condition
-          // means "this section can't render in this theme" rather than a
-          // crash — switching themes or shipping a bad section shouldn't
-          // blank out the whole page.
-          // Use a loose truthy check — in RSC builds, client component refs
-          // are objects (module references), not raw functions.
-          if (!def || !def.Component) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn(
-                `[SectionRenderer] No component for section_key="${section.section_key}" in theme "${theme.key}". Skipping.`,
-              );
-            }
-            return null;
+      {ordered.map((section) => {
+        const def = theme.sections[section.section_key];
+        // Skip sections whose key isn't registered in the active theme OR
+        // whose definition is broken (missing Component). Either condition
+        // means "this section can't render in this theme" rather than a
+        // crash — switching themes or shipping a bad section shouldn't
+        // blank out the whole page.
+        // Use a loose truthy check — in RSC builds, client component refs
+        // are objects (module references), not raw functions.
+        if (!def || !def.Component) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(
+              `[SectionRenderer] No component for section_key="${section.section_key}" in theme "${theme.key}". Skipping.`,
+            );
           }
-          // Resolve content per locale with primary as fallback, then any row.
-          // Tolerate both the array shape (API + snapshot) and the legacy
-          // record-keyed shape some older snapshots used.
-          const rawTranslations = section.translations as unknown;
-          let content: Record<string, unknown> = {};
-          if (Array.isArray(rawTranslations)) {
-            const t = rawTranslations as Array<{ locale: string; content: Record<string, unknown> }>;
-            content =
-              t.find((row) => row.locale === locale)?.content ||
-              t.find((row) => row.locale === primaryLocale)?.content ||
-              t[0]?.content ||
-              {};
-          } else if (rawTranslations && typeof rawTranslations === 'object') {
-            const t = rawTranslations as Record<string, Record<string, unknown>>;
-            content = t[locale] || t[primaryLocale] || Object.values(t)[0] || {};
-          }
-          const Component = def.Component;
-          // Per-section style overrides come back as a single scoped CSS
-          // string we inject alongside the wrapper. The wrapper carries the
-          // scope class so the rules in that <style> block can target it;
-          // the inner div carries `{scope}-i` so width/colour rules can
-          // target inner separately (e.g. inner.max-width for 'container').
-          const sectionStyle = readSectionStyle(section.settings);
-          const wrapperScope = scopeClassFor(section.id);
-          const innerScope = `${wrapperScope}-i`;
-          const { css } = resolveSectionStyle(sectionStyle, wrapperScope);
-          const animClass = animationClass(sectionStyle?.animate);
-          const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
-          const inner = (
-            <div className={innerScope} style={wrapperStyle}>
-              <Component
-                settings={section.settings}
-                content={content}
-                locale={locale}
-                primaryLocale={primaryLocale}
-                storeSlug={storeSlug}
-                product={product}
-                listing={listing}
-                currency={currency}
-                storeContext={storeContext}
-                preloaded={preloaded?.[section.id]}
-              />
-            </div>
-          );
-          return (
-            <Fragment key={section.id}>
-              {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
-              {chrome ? (
-                // Chrome (header/footer) keeps a plain, display:contents wrapper —
-                // no scroll-reveal (a sticky header must not start hidden/offset).
-                <div
-                  data-section-id={section.id}
-                  data-section-key={section.section_key}
-                  className={wrapperClass}
-                  style={wrapperStyle}
-                >
-                  {inner}
-                </div>
-              ) : (
-                // Page-content sections fade/slide in as they scroll into view
-                // (framer-motion; degrades to visible under reduced motion).
-                <Reveal
-                  data-section-id={section.id}
-                  data-section-key={section.section_key}
-                  className={wrapperClass}
-                  style={wrapperStyle}
-                >
-                  {inner}
-                </Reveal>
-              )}
-            </Fragment>
-          );
-        })}
+          return null;
+        }
+        // Resolve content per locale with primary as fallback, then any row.
+        // Tolerate both the array shape (API + snapshot) and the legacy
+        // record-keyed shape some older snapshots used.
+        const rawTranslations = section.translations as unknown;
+        let content: Record<string, unknown> = {};
+        if (Array.isArray(rawTranslations)) {
+          const t = rawTranslations as Array<{ locale: string; content: Record<string, unknown> }>;
+          content =
+            t.find((row) => row.locale === locale)?.content ||
+            t.find((row) => row.locale === primaryLocale)?.content ||
+            t[0]?.content ||
+            {};
+        } else if (rawTranslations && typeof rawTranslations === 'object') {
+          const t = rawTranslations as Record<string, Record<string, unknown>>;
+          content = t[locale] || t[primaryLocale] || Object.values(t)[0] || {};
+        }
+        const Component = def.Component;
+        // Per-section style overrides come back as a single scoped CSS
+        // string we inject alongside the wrapper. The wrapper carries the
+        // scope class so the rules in that <style> block can target it;
+        // the inner div carries `{scope}-i` so width/colour rules can
+        // target inner separately (e.g. inner.max-width for 'container').
+        const sectionStyle = readSectionStyle(section.settings);
+        const wrapperScope = scopeClassFor(section.id);
+        const innerScope = `${wrapperScope}-i`;
+        const { css } = resolveSectionStyle(sectionStyle, wrapperScope);
+        const animClass = animationClass(sectionStyle?.animate);
+        const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
+        const inner = (
+          <div className={innerScope} style={wrapperStyle}>
+            <Component
+              settings={section.settings}
+              content={content}
+              locale={locale}
+              primaryLocale={primaryLocale}
+              storeSlug={storeSlug}
+              product={product}
+              listing={listing}
+              currency={currency}
+              storeContext={storeContext}
+              preloaded={preloaded?.[section.id]}
+            />
+          </div>
+        );
+        return (
+          <Fragment key={section.id}>
+            {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+            {chrome || !shouldReveal(section.section_key, section.id === firstId) ? (
+              // Chrome (header/footer) and the first / LCP-type section keep a
+              // plain wrapper: a sticky header must not start offset, and the
+              // LCP section must paint straight from the server HTML.
+              <div
+                data-section-id={section.id}
+                data-section-key={section.section_key}
+                className={wrapperClass}
+                style={wrapperStyle}
+              >
+                {inner}
+              </div>
+            ) : (
+              // Below-the-fold sections fade/slide in as they scroll into view
+              // (CSS + IntersectionObserver; visible without JS).
+              <Reveal
+                data-section-id={section.id}
+                data-section-key={section.section_key}
+                className={wrapperClass}
+                style={wrapperStyle}
+              >
+                {inner}
+              </Reveal>
+            )}
+          </Fragment>
+        );
+      })}
     </>
   );
 }

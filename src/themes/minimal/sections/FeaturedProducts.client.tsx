@@ -15,7 +15,7 @@ import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 interface ProductRow {
@@ -48,6 +48,7 @@ function gridImageSizes(desktop: number, tablet: number, mobile: number): string
 
 export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const limit = featuredProductsLimit(settings);
@@ -138,9 +139,9 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
             </Heading>
           )}
           {subheading && (
-            <p className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
         {linkLabel && (

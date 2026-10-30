@@ -19,13 +19,28 @@ interface StaggerGroupProps {
   step?: number;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Render visible from the server, without the entrance animation. For
+   * above-the-fold content (hero text = the LCP): a hidden initial state
+   * keeps it invisible until the motion code has loaded and run.
+   */
+  immediate?: boolean;
 }
 
-export function StaggerGroup({ children, step = 0.08, className, style }: StaggerGroupProps) {
+export function StaggerGroup({ children, step = 0.08, className, style, immediate = false }: StaggerGroupProps) {
   const container: Variants = {
     hidden: {},
     visible: { transition: { staggerChildren: step } },
   };
+
+  if (immediate) {
+    // initial={false} propagates to the items: they render in the visible state.
+    return (
+      <motion.div className={className} style={style} variants={container} initial={false} animate="visible">
+        {children}
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

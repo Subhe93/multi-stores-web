@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { storeHref } from '@/lib/storeUrl';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 type Height = 'md' | 'lg' | 'full';
@@ -23,6 +23,8 @@ const HEIGHT_CLASS: Record<Height, string> = {
 // motion the blobs simply rest in place.
 export function AuroraHero({ settings, content }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const height = (settings.height as Height) || 'lg';
   const bg = colorOr(settings.bg_color, '#0b1020');
   const c1 = colorOr(settings.color_1, '#6366f1');
@@ -90,9 +92,9 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
 
       <div className="relative z-10 flex max-w-3xl flex-col items-center gap-5">
         {eyebrow && (
-          <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
+          <Heading level={eyebrowTag} original="span" look="body" className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
             {eyebrow}
-          </span>
+          </Heading>
         )}
         {heading && (
           <Heading level={headingLevel}
@@ -109,9 +111,9 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
           </Heading>
         )}
         {subheading && (
-          <p className="max-w-prose" style={{ color: subheadingColor, fontSize: 'var(--theme-scale-body)', lineHeight: 'var(--theme-line-body)' }}>
+          <Heading level={subheadingTag} look="body" className="max-w-prose" style={{ color: subheadingColor, fontSize: 'var(--theme-scale-body)', lineHeight: 'var(--theme-line-body)' }}>
             {subheading}
-          </p>
+          </Heading>
         )}
         {(ctaText || ctaSecondaryText) && (
           <div className="mt-2 flex flex-wrap justify-center gap-3">

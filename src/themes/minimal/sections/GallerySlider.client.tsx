@@ -4,7 +4,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { responsiveImgProps } from '@/lib/storeMedia';
 
@@ -30,6 +30,7 @@ function clamp(n: number, min: number, max: number): number {
 
 export function GallerySlider({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as GalleryItem[]) || []).filter((i) => !!i.url);
@@ -98,9 +99,9 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
             </Heading>
           )}
           {subheading && (
-            <p className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
+            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
               {subheading}
-            </p>
+            </Heading>
           )}
         </div>
       )}

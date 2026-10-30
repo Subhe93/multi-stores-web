@@ -6,6 +6,8 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { Menu, X, User, LogOut, Package, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
@@ -112,6 +114,7 @@ function UserMenu() {
   if (!loggedIn) {
     return (
       <Link
+        prefetch={false}
         href={lp('/auth/login')}
         className="flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
         aria-label={t('common.login')}
@@ -134,6 +137,7 @@ function UserMenu() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-48 store-surface store-bd rounded-xl border shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           <Link
+            prefetch={false}
             href={lp('/account')}
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -142,6 +146,7 @@ function UserMenu() {
             {t('common.account')}
           </Link>
           <Link
+            prefetch={false}
             href={lp('/account/orders')}
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -218,6 +223,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
             {collections.map((c) => (
               <div key={c.slug} className="px-2">
                 <Link
+                  prefetch={false}
                   href={lp(collectionHref(c))}
                   onClick={() => setOpen(false)}
                   className="block px-3 py-2 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
@@ -230,6 +236,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
                     {c.children.map((ch) => (
                       <div key={ch.slug} className="flex flex-col">
                         <Link
+                          prefetch={false}
                           href={lp(collectionHref(ch))}
                           onClick={() => setOpen(false)}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
@@ -241,6 +248,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
                           <div className="ms-3 mb-1 border-s border-gray-100 ps-2 flex flex-col">
                             {ch.children.map((g) => (
                               <Link
+                                prefetch={false}
                                 key={g.slug}
                                 href={lp(collectionHref(g))}
                                 onClick={() => setOpen(false)}
@@ -260,6 +268,7 @@ function CollectionsMenu({ collections, primaryColor }: CollectionsMenuProps) {
           </div>
           <div className="mt-2 border-t border-gray-100 pt-2 px-4">
             <Link
+              prefetch={false}
               href={lp('/products')}
               onClick={() => setOpen(false)}
               className="text-xs font-semibold hover:underline"
@@ -297,7 +306,7 @@ function MobileCollectionNode({
   return (
     <div className="flex flex-col" style={{ paddingInlineStart: depth > 0 ? 12 : 0 }}>
       <div className="flex items-center">
-        <Link href={href(node)} onClick={onNavigate} className={`flex-1 transition-colors ${labelClass}`}>
+        <Link prefetch={false} href={href(node)} onClick={onNavigate} className={`flex-1 transition-colors ${labelClass}`}>
           {depth > 0 ? '— ' : ''}
           {node.title}
         </Link>
@@ -357,6 +366,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
         <div className="absolute top-full left-0 right-0 store-surface store-bd border-b shadow-md z-40">
           <nav className="flex flex-col px-4 py-3 gap-1">
             <Link
+              prefetch={false}
               href={lp('/')}
               onClick={() => setOpen(false)}
               className="py-2 text-sm font-medium border-b border-gray-100 transition-colors hover:opacity-80"
@@ -365,6 +375,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
               {t('common.home')}
             </Link>
             <Link
+              prefetch={false}
               href={lp('/products')}
               onClick={() => setOpen(false)}
               className="py-2 text-sm font-medium text-gray-600 border-b border-gray-100 hover:text-gray-900 transition-colors"
@@ -406,6 +417,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
 
             {navPages.map((page) => (
               <Link
+                prefetch={false}
                 key={page.slug}
                 href={lp(`/${page.slug}`)}
                 onClick={() => setOpen(false)}
@@ -420,6 +432,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
               {token ? (
                 <>
                   <Link
+                    prefetch={false}
                     href={lp('/account')}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-2 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -428,6 +441,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                     {t('common.account')}
                   </Link>
                   <Link
+                    prefetch={false}
                     href={lp('/account/orders')}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-2 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -445,6 +459,7 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                 </>
               ) : (
                 <Link
+                  prefetch={false}
                   href={lp('/auth/login')}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 py-2 text-sm font-medium transition-colors"
@@ -530,7 +545,7 @@ export function StoreHeader({
       >
 
         {/* Left: logo + (optional) store name, both link to home */}
-        <Link href={lp('/')} className="flex items-center gap-2 shrink-0">
+        <Link prefetch={false} href={lp('/')} className="flex items-center gap-2 shrink-0">
           {logoUrl && (
             <img
               src={resolveMediaUrl(logoUrl)}
@@ -549,6 +564,7 @@ export function StoreHeader({
         {/* Center: desktop navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <Link
+            prefetch={false}
             href={lp('/')}
             className={`text-sm font-medium transition-colors hover:opacity-80 ${hoverUnderlineClass}`}
             style={activeLinkStyle}
@@ -556,6 +572,7 @@ export function StoreHeader({
             {t('common.home')}
           </Link>
           <Link
+            prefetch={false}
             href={lp('/products')}
             className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
@@ -567,6 +584,7 @@ export function StoreHeader({
           {/* Published static pages */}
           {navPages.map((page) => (
             <Link
+              prefetch={false}
               key={page.slug}
               href={lp(`/${page.slug}`)}
               className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"

@@ -44,8 +44,12 @@ const STOREFRONT_REVALIDATE_SECONDS = 3600;
 export async function api<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...fetchOptions } = options;
 
+  // Content-Type only with a body: on a browser GET it would turn the
+  // cross-origin request into a CORS preflight + GET.
+  const hasBody = fetchOptions.body != null;
+  const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(fetchOptions.headers as Record<string, string>),
   };
 
@@ -90,6 +94,9 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
 // deduped per render via React cache(), so it adds no meaningful overhead.
 const cacheOpts = cache(async (slug: string): Promise<FetchOptions> => {
   if (process.env.NODE_ENV !== 'production') return { cache: 'no-store' };
+  // Browser fetch has no Next data cache, so tags / revalidate mean nothing
+  // there; skip the cache-config round trip and use default fetch options.
+  if (typeof window !== 'undefined') return {};
 
   let enabled = true;
   try {

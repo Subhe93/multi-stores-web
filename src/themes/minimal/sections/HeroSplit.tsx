@@ -6,7 +6,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { responsiveImgProps } from '@/lib/storeMedia';
 
@@ -23,6 +23,8 @@ const HEIGHT_CLASS: Record<SplitHeight, string> = {
 
 function HeroSplit({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
+  const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const image = (settings.image as string) || '';
   const imageSide = (settings.image_side as ImageSide) || 'start';
   const height = (settings.height as SplitHeight) || 'md';
@@ -129,15 +131,15 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
 
         {/* Content column — generous whitespace, serif-friendly scale. */}
         <div className={imageSide === 'end' ? 'md:order-1' : ''}>
-          <StaggerGroup step={0.1} className="flex flex-col gap-5 max-w-xl py-4 md:py-8">
+          <StaggerGroup immediate step={0.1} className="flex flex-col gap-5 max-w-xl py-4 md:py-8">
             {eyebrow && (
               <StaggerItem>
-                <span
+                <Heading level={eyebrowTag} original="span" look="body"
                   className="text-xs font-semibold uppercase tracking-[0.2em]"
                   style={{ color: eyebrowColor }}
                 >
                   {eyebrow}
-                </span>
+                </Heading>
               </StaggerItem>
             )}
             {heading && (
@@ -158,7 +160,7 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
             )}
             {subheading && (
               <StaggerItem>
-                <p
+                <Heading level={subheadingTag} look="body"
                   className="max-w-prose"
                   style={{
                     fontSize: 'var(--theme-scale-body)',
@@ -167,7 +169,7 @@ function HeroSplit({ settings, content, locale }: SectionRenderProps) {
                   }}
                 >
                   {subheading}
-                </p>
+                </Heading>
               </StaggerItem>
             )}
             {(ctaText || ctaSecondaryText) && (

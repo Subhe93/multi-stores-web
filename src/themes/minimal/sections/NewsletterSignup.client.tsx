@@ -7,11 +7,12 @@ import { useState } from 'react';
 import { Check, Loader2, Mail } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
-import { headingTag } from './_shared/headingLevel';
+import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 
 export function NewsletterSignup({ settings, content, locale }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
+  const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const placeholder = (content.placeholder as string) || (locale === 'ar' ? 'بريدك الإلكتروني' : 'Your email');
@@ -121,9 +122,9 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
           </Heading>
         )}
         {subheading && (
-          <p className="max-w-xl text-sm" style={{ color: subheadingColor }}>
+          <Heading level={subheadingTag} look="body" className="max-w-xl text-sm" style={{ color: subheadingColor }}>
             {subheading}
-          </p>
+          </Heading>
         )}
         {form}
         {message}
@@ -154,7 +155,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
           </Heading>
         )}
         {subheading && (
-          <p className="max-w-2xl mx-auto mb-6" style={{ color: subheadingColor }}>{subheading}</p>
+          <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto mb-6" style={{ color: subheadingColor }}>{subheading}</Heading>
         )}
         <div className="flex justify-center">{form}</div>
         {message}
@@ -186,9 +187,9 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
           </Heading>
         )}
         {subheading && (
-          <p className="max-w-md text-sm" style={{ color: subheadingColor }}>
+          <Heading level={subheadingTag} look="body" className="max-w-md text-sm" style={{ color: subheadingColor }}>
             {subheading}
-          </p>
+          </Heading>
         )}
         {form}
         {message}

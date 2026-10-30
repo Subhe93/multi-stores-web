@@ -8,6 +8,8 @@
 // toggle, but the current minimal experience renders fine without it.
 
 import Link from 'next/link';
+// Chrome links use prefetch={false}: viewport-prefetching every menu link
+// floods the origin with dynamic RSC renders on each page view.
 import { Search, User, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { localizeStoreUrl } from '@/lib/storeUrl';
@@ -176,7 +178,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
 
           {/* Brand — logo + store name. A separate mobile logo can be set;
               when present it shows <md and the main logo shows ≥ md. */}
-          <Link href={homeUrl} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
+          <Link prefetch={false} href={homeUrl} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
             {showLogo && logoUrl && (
               <img
                 src={resolveMediaUrl(logoUrl)}
@@ -254,6 +256,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                         {children.map((child, ci) => (
                           <div key={ci}>
                             <Link
+                              prefetch={false}
                               href={child.url || '#'}
                               {...newTabProps(child.open_in_new_tab)}
                               className="block px-3 py-2 text-sm hover:bg-black/5 transition whitespace-nowrap"
@@ -265,6 +268,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                               <div className="ms-3 mb-1 border-s ps-1" style={{ borderColor }}>
                                 {child.children.map((grandchild, gi) => (
                                   <Link
+                                    prefetch={false}
                                     key={gi}
                                     href={grandchild.url || '#'}
                                     {...newTabProps(grandchild.open_in_new_tab)}
@@ -289,6 +293,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
           <div className="flex items-center gap-1">
             {showSearch && (
               <Link
+                prefetch={false}
                 href={searchUrl}
                 aria-label={locale === 'ar' ? 'البحث' : 'Search'}
                 className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
@@ -298,6 +303,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
             )}
             {showAccount && (
               <Link
+                prefetch={false}
                 href={accountUrl}
                 aria-label={locale === 'ar' ? 'الحساب' : 'Account'}
                 className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
