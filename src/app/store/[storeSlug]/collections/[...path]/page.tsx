@@ -140,7 +140,7 @@ export default async function CollectionPage({
 
   const collectionTranslation = pickTranslation(collection.translations, locale);
   const collectionName = collectionTranslation?.name || handle;
-  // Ancestors root → parent (M6 §3): the breadcrumb is Home › Collections ›
+  // Ancestors root → parent (M6 §3): the breadcrumb is Home ›
   // ancestors… › this. Every ancestor is active (the resolver rejects the
   // URL otherwise), and each links to its own hierarchical URL.
   const ancestors = chain.slice(0, -1);
@@ -228,7 +228,6 @@ export default async function CollectionPage({
   });
   const collectionBreadcrumbLd = buildBreadcrumb([
     { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
-    { name: t('common.collections'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '/collections') },
     ...ancestors.map((a, i) => ({
       name: pickTranslation(a.translations, locale)?.name || a.slug,
       url: storeLocalePath(ldOrigin, locale, ldPrimary, ancestorHref(i)),
@@ -333,7 +332,7 @@ export default async function CollectionPage({
             style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }}
           />
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
-            {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
+            {/* Breadcrumb: Home › ancestors… › this (M6 §3) */}
             <nav
               className="flex items-center flex-wrap gap-1 text-xs font-semibold opacity-85 mb-4"
               aria-label="Breadcrumb"
@@ -341,10 +340,6 @@ export default async function CollectionPage({
             >
               <Link href={`${lp}/`} className="hover:opacity-100 hover:underline transition">
                 {t('common.home')}
-              </Link>
-              <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
-              <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
-                {t('common.collections')}
               </Link>
               {ancestors.map((a, i) => (
                 <span key={a.id} className="contents">

@@ -61,7 +61,7 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
     p.translations?.find((tr) => tr.locale === locale)?.title ||
     p.translations?.[0]?.title ||
     'Product';
-  // Home › Collections › ancestors… › primary › product (M6 §2), from the
+  // Home › ancestors… › primary › product (M6 §2), from the
   // API's `primary_collection_path`; no primary → Home › Products › product.
   // Each crumb links to its hierarchical URL (M6.7).
   const primaryChain = resolvePrimaryCollectionPath(p);
@@ -84,10 +84,6 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
         </Link>
         {collectionCrumbs.length > 0 ? (
           <>
-            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-            <Link href={`${langPrefix}/collections`} className="text-gray-400 hover:text-gray-700 transition-colors">
-              {t('common.collections')}
-            </Link>
             {collectionCrumbs.map((c) => (
               <span key={c.slug} className="contents">
                 <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />

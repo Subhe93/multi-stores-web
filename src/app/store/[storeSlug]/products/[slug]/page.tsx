@@ -201,6 +201,28 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         : 'InStock',
     });
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
+    // Same trail as the visible breadcrumb of the product-page section:
+    // Home › ancestors… › primary › product (Home › Products › product
+    // without a primary collection).
+    const tplChain = resolvePrimaryCollectionPath(product);
+    const tplBreadcrumbLd = buildBreadcrumb([
+      { name: t('common.home'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '') },
+      ...(tplChain.length > 0
+        ? tplChain.map((node, i) => ({
+            name: collectionDisplayName(node, locale),
+            url: storeLocalePath(
+              tplStoreBase,
+              locale,
+              primaryLocale,
+              collectionHref({ path: collectionPathInChain(tplChain, i), slug: node.slug }),
+            ),
+          }))
+        : [{ name: t('common.products'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '/products') }]),
+      {
+        name: tr?.title || 'Product',
+        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${productSlug}`),
+      },
+    ]);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {/* Markets app: translated slugs for the country switcher / banner. */}
@@ -208,6 +230,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplProductLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplBreadcrumbLd) }}
         />
         {tplFaqLd && (
           <script
@@ -262,9 +288,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       : 'InStock',
   });
 
-  // Home › Collections › ancestors… › primary › product (M6 §2). The path
-  // comes from the API (`primary_collection_path`, root → leaf); products
-  // without a primary collection fall back to Home › Products › product.
+  // Home › ancestors… › primary › product (M6 §2; no "Collections" index
+  // crumb, so the trail stays short on mobile). The path comes from the API
+  // (`primary_collection_path`, root → leaf); products without a primary
+  // collection fall back to Home › Products › product.
   // Each crumb links to its hierarchical URL (M6.7): the node's `path`, or
   // the chain prefix for payloads without it.
   const primaryChain = resolvePrimaryCollectionPath(product);
@@ -280,7 +307,6 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     { name: t('common.home'), url: storeLocalePath(storeBase, locale, ldPrimary, '') },
     ...(collectionCrumbs.length > 0
       ? [
-          { name: t('common.collections'), url: storeLocalePath(storeBase, locale, ldPrimary, '/collections') },
           ...collectionCrumbs.map((c) => ({
             name: c.name,
             url: storeLocalePath(storeBase, locale, ldPrimary, c.href),
@@ -320,10 +346,6 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         </Link>
         {collectionCrumbs.length > 0 ? (
           <>
-            <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-            <Link href={`${lp}/collections`} className="text-gray-400 hover:text-gray-700 transition-colors">
-              {t('common.collections')}
-            </Link>
             {collectionCrumbs.map((c) => (
               <span key={c.slug} className="contents">
                 <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />

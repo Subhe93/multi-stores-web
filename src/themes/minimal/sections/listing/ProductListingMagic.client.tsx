@@ -454,7 +454,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           )}
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
           <div className={`relative container mx-auto px-4 ${hero.heightClass}`}>
-            {/* Breadcrumb: Home › Collections › ancestors… › this (M6 §3) */}
+            {/* Breadcrumb: Home › ancestors… › this (M6 §3) */}
             {showBackLink && (
               <nav
                 className="flex items-center flex-wrap gap-1 text-xs font-semibold opacity-85 mb-4"
@@ -463,10 +463,6 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
               >
                 <Link href={`${lp}/`} className="hover:opacity-100 hover:underline transition">
                   {t('common.home')}
-                </Link>
-                <Crumb className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                <Link href={`${lp}/collections`} className="hover:opacity-100 hover:underline transition">
-                  {t('common.collections')}
                 </Link>
                 {collectionPath.map((a, i) => (
                   <span key={a.id} className="contents">
@@ -524,10 +520,6 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             >
               <Link href={`${lp}/`} className="hover:text-gray-800 transition">
                 {t('common.home')}
-              </Link>
-              <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-              <Link href={`${lp}/collections`} className="hover:text-gray-800 transition">
-                {t('common.collections')}
               </Link>
               {collectionPath.map((a, i) => (
                 <span key={a.id} className="contents">

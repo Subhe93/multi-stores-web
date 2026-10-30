@@ -11,6 +11,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
+import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 
 // Static pages now have two backends:
 // - v2 Page (with sections, versions, SEO panel) — preferred when published
@@ -51,6 +52,8 @@ interface V2Page {
 
 interface StoreLite {
   name?: string;
+  // Store currency, or the request market's when the Markets app is on.
+  currency?: string;
   theme_key?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   custom_domain?: string | null;
@@ -160,6 +163,9 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   // back to 'en' rendered English content on e.g. a German store's own URL.
   const locale = lang || store?.language_config?.primary_locale || 'en';
 
+  // Home link of the visible breadcrumb: no prefix for the primary locale.
+  const homeHref = locale !== (store?.language_config?.primary_locale || 'en') ? `/${locale}` : '/';
+
   // JSON-LD: WebPage (CollectionPage when the page lists products) and a
   // Home › page breadcrumb. The origin and locale URL follow the same rules
   // as the canonical in generateMetadata; a noindex page emits nothing.
@@ -204,21 +210,31 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
       v2.snapshot.page.translations.find((x) => x.locale === locale) ||
       v2.snapshot.page.translations.find((x) => x.locale === primaryLocale) ||
       v2.snapshot.page.translations[0];
+    const pageName = tr?.title || tr?.meta_title || pageSlug;
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {renderPageLd({
-          name: tr?.title || tr?.meta_title || pageSlug,
+          name: pageName,
           description: tr?.meta_description,
           canonical: v2.seo?.canonical,
           sections: v2.snapshot.sections,
           robots: v2.seo?.robots,
         })}
+        <PageBreadcrumb
+          homeHref={homeHref}
+          homeLabel={t('common.home')}
+          current={pageName}
+          locale={locale}
+          className="pt-4 pb-3"
+        />
         <SectionRenderer
           theme={theme}
           sections={v2.snapshot.sections}
           locale={locale}
           primaryLocale={primaryLocale}
           storeSlug={storeSlug}
+          // Product cards fall back to EUR without it (prices showed "€").
+          currency={store?.currency}
           preloaded={preloaded}
         />
       </div>
@@ -239,6 +255,13 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {renderPageLd({ name: translation.title })}
+      <PageBreadcrumb
+        homeHref={homeHref}
+        homeLabel={t('common.home')}
+        current={translation.title}
+        locale={locale}
+        className="mb-6"
+      />
       <h1 className="text-3xl font-bold text-gray-900 mb-8">{translation.title}</h1>
       {translation.content ? (
         <div
