@@ -371,7 +371,10 @@
     "passwordTooShort": "Lösenordet måste vara minst 8 tecken.",
     "resetSuccess": "Ditt lösenord har återställts. Du kan nu logga in med ditt nya lösenord.",
     "invalidResetLink": "Den här länken för återställning av lösenord är ogiltig eller har upphört att gälla.",
-    "resetButton": "Återställ lösenord"
+    "resetButton": "Återställ lösenord",
+    "loginSubtitle": "Logga in på ditt konto",
+    "showPassword": "Visa lösenord",
+    "hidePassword": "Dölj lösenord"
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",

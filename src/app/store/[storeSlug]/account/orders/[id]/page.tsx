@@ -221,7 +221,7 @@ export default function StoreOrderDetailPage() {
       <div className="store-surface store-bd rounded-2xl border p-8 text-center">
         <p className="text-sm text-gray-500 mb-3">{t('account.orderNotFound')}</p>
         <Link href={lp('/account/orders')} className="text-sm font-medium hover:underline"
-          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}>
+          style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}>
           {t('account.backToOrders')}
         </Link>
       </div>

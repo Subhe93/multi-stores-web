@@ -371,7 +371,10 @@
     "passwordTooShort": "Parola en az 8 karakter olmalıdır.",
     "resetSuccess": "Parolanız başarıyla sıfırlandı. Artık yeni parolanızla giriş yapabilirsiniz.",
     "invalidResetLink": "Bu parola sıfırlama bağlantısı geçersiz veya süresi dolmuş.",
-    "resetButton": "Parolayı Sıfırla"
+    "resetButton": "Parolayı Sıfırla",
+    "loginSubtitle": "Hesabınıza giriş yapın",
+    "showPassword": "Şifreyi göster",
+    "hidePassword": "Şifreyi gizle"
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",

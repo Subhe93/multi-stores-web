@@ -26,6 +26,7 @@ export interface ColorTokens {
   accentContrast?: string;
   // Price text colour; unset = primary.
   price?: string;
+  link?: string;
 }
 
 export interface FontFamilies {

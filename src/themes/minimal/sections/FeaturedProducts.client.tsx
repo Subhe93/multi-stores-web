@@ -148,7 +148,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
           <a
             href={linkUrl}
             className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"
-            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-price, var(--theme-colors-primary))') }}
+            style={{ color: colorOr(settings.link_color, 'var(--theme-colors-link, var(--theme-colors-price, var(--theme-colors-primary)))') }}
           >
             {linkLabel}
             <ChevronRight className="size-3.5" />

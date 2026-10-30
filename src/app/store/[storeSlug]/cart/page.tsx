@@ -464,7 +464,12 @@ export default function StoreCartPage() {
                     <button
                       onClick={handleApplyCoupon}
                       disabled={couponLoading || !couponCode.trim()}
-                      className="px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700 disabled:opacity-40 transition flex items-center gap-1 shrink-0"
+                      className={`px-3 py-2 text-sm font-medium rounded-md transition flex items-center gap-1 shrink-0 border ${
+                couponCode.trim() ? 'border-transparent hover:opacity-90' : 'border-gray-300 bg-white text-gray-500 cursor-not-allowed'
+              }`}
+              // Filled in the store colour once a code is typed; before that a
+              // neutral outline (the old grey-at-40% looked broken).
+              style={couponCode.trim() ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                     >
                       {couponLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('cart.applyCoupon')}
                     </button>

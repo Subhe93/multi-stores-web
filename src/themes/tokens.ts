@@ -139,6 +139,8 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
   // Price colour only when set: consumers fall back to their own primary
   // (`var(--theme-colors-price, var(--theme-colors-primary))`).
   if (tokens.colors.price) vars['--theme-colors-price'] = tokens.colors.price;
+  // Text links (fallback: the price colour, then primary).
+  if (tokens.colors.link) vars['--theme-colors-link'] = tokens.colors.link;
   return vars as CSSProperties;
 }
 

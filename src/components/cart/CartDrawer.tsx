@@ -116,7 +116,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               >
                 <ShoppingCart
                   className="w-7 h-7"
-                  style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+                  style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
                 />
               </div>
               <p className="text-gray-500 text-sm mb-6">{t('cart.empty')}</p>

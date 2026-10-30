@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
@@ -16,6 +17,7 @@ export default function StoreLoginPage() {
   const apiError = useApiError();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,10 +40,10 @@ export default function StoreLoginPage() {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-      <h1 className="text-2xl font-semibold text-gray-900 text-center mb-2">
+      <h1 className="text-3xl font-bold text-gray-900 text-center mb-2">
         {t('loginTitle')}
       </h1>
-      <p className="text-gray-500 text-center text-sm mb-8">{t('signIn')}</p>
+      <p className="text-gray-500 text-center text-sm mb-8">{t('loginSubtitle')}</p>
 
       {error && (
         <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -54,6 +56,8 @@ export default function StoreLoginPage() {
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
             {t('email')}
           </label>
+          <div className="relative">
+          <Mail className="pointer-events-none absolute inset-s-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input
             id="email"
             type="email"
@@ -61,8 +65,9 @@ export default function StoreLoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 transition"
+            className="w-full rounded-xl border border-gray-200 ps-10 pe-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 transition"
           />
+          </div>
         </div>
 
         <div>
@@ -72,21 +77,33 @@ export default function StoreLoginPage() {
             </label>
             <Link
               href={lp('/auth/forgot-password')}
-              className="text-sm font-medium hover:underline"
-              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+              className="text-sm font-medium underline underline-offset-2 hover:opacity-80"
+              style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
             >
               {t('forgotPassword')}
             </Link>
           </div>
+          <div className="relative">
+          <Lock className="pointer-events-none absolute inset-s-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('passwordPlaceholder')}
-            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 transition"
+            className="w-full rounded-xl border border-gray-200 ps-10 pe-11 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 transition"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+            aria-pressed={showPassword}
+            className="absolute inset-e-2 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition"
+          >
+            {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+          </button>
+          </div>
         </div>
 
         <button
@@ -99,12 +116,12 @@ export default function StoreLoginPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-6 border-t border-gray-200 pt-6 text-center text-sm text-gray-500">
         {t('noAccount')}{' '}
         <Link
           href={lp('/auth/register')}
-          className="font-medium hover:underline"
-          style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+          className="font-semibold underline underline-offset-2 hover:opacity-80"
+          style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
         >
           {t('signUp')}
         </Link>

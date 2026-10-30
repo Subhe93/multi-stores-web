@@ -360,7 +360,7 @@ export default function StoreAccountPage() {
             <button
               onClick={() => setShowPwdForm(true)}
               className="text-sm font-medium hover:underline"
-              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+              style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
             >
               {tCommon('edit')}
             </button>

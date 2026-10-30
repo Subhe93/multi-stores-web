@@ -478,7 +478,7 @@ export default async function CollectionPage({
             <Link
               href={`${lp}/products`}
               className="inline-block mt-4 text-sm font-semibold hover:underline"
-              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+              style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
             >
               {t('common.viewAll')}
             </Link>

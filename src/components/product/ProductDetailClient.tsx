@@ -757,7 +757,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
               <Link
                 href={`${langPrefix}${collectionHref({ path: collectionPathInChain(path, path.length - 1), slug: collection.slug })}`}
                 className="-order-2 text-xs font-medium uppercase tracking-widest hover:underline w-fit md:order-0"
-                style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+                style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
               >
                 {collectionName}
               </Link>

@@ -73,7 +73,7 @@ export default function StoreForgotPasswordPage() {
           <Link
             href={lp('/auth/login')}
             className="text-sm font-medium hover:underline"
-            style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+            style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
           >
             {t('backToLogin')}
           </Link>
@@ -116,7 +116,7 @@ export default function StoreForgotPasswordPage() {
             <Link
               href={lp('/auth/login')}
               className="font-medium hover:underline"
-              style={{ color: 'var(--theme-colors-price, var(--store-primary, #2563eb))' }}
+              style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
             >
               {t('backToLogin')}
             </Link>
