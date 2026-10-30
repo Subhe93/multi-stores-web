@@ -374,7 +374,9 @@
     "resetButton": "Parolayı Sıfırla",
     "loginSubtitle": "Hesabınıza giriş yapın",
     "showPassword": "Şifreyi göster",
-    "hidePassword": "Şifreyi gizle"
+    "hidePassword": "Şifreyi gizle",
+    "registerSubtitle": "Müşteri hesabınızı oluşturun",
+    "confirmPasswordPlaceholder": "Şifreyi tekrar girin"
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",

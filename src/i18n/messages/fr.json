@@ -374,7 +374,9 @@
     "resetButton": "Réinitialiser le mot de passe",
     "loginSubtitle": "Connectez-vous à votre compte",
     "showPassword": "Afficher le mot de passe",
-    "hidePassword": "Masquer le mot de passe"
+    "hidePassword": "Masquer le mot de passe",
+    "registerSubtitle": "Créez votre compte client",
+    "confirmPasswordPlaceholder": "Saisissez à nouveau le mot de passe"
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",

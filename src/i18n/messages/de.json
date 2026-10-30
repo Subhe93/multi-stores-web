@@ -374,7 +374,9 @@
     "resetButton": "Passwort zurücksetzen",
     "loginSubtitle": "Melde dich bei deinem Konto an",
     "showPassword": "Passwort anzeigen",
-    "hidePassword": "Passwort verbergen"
+    "hidePassword": "Passwort verbergen",
+    "registerSubtitle": "Erstelle dein Kundenkonto",
+    "confirmPasswordPlaceholder": "Passwort erneut eingeben"
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",

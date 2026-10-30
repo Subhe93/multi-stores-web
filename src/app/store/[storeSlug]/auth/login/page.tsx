@@ -60,7 +60,9 @@ export default function StoreLoginPage() {
           <Mail className="pointer-events-none absolute inset-s-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -87,6 +89,8 @@ export default function StoreLoginPage() {
           <Lock className="pointer-events-none absolute inset-s-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input
             id="password"
+            name="password"
+            autoComplete="current-password"
             type={showPassword ? 'text' : 'password'}
             required
             value={password}
@@ -98,7 +102,6 @@ export default function StoreLoginPage() {
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-            aria-pressed={showPassword}
             className="absolute inset-e-2 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition"
           >
             {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}

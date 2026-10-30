@@ -374,7 +374,9 @@
     "resetButton": "Återställ lösenord",
     "loginSubtitle": "Logga in på ditt konto",
     "showPassword": "Visa lösenord",
-    "hidePassword": "Dölj lösenord"
+    "hidePassword": "Dölj lösenord",
+    "registerSubtitle": "Skapa ditt kundkonto",
+    "confirmPasswordPlaceholder": "Ange lösenordet igen"
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",

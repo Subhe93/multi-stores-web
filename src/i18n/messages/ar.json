@@ -374,7 +374,9 @@
     "resetButton": "إعادة تعيين كلمة المرور",
     "loginSubtitle": "سجّل الدخول إلى حسابك",
     "showPassword": "إظهار كلمة المرور",
-    "hidePassword": "إخفاء كلمة المرور"
+    "hidePassword": "إخفاء كلمة المرور",
+    "registerSubtitle": "أنشئ حسابك كعميل",
+    "confirmPasswordPlaceholder": "أدخل كلمة المرور مرة أخرى"
   },
   "account": {
     "fullNamePlaceholder": "الاسم الكامل",

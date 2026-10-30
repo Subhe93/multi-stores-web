@@ -374,7 +374,9 @@
     "resetButton": "Reset Password",
     "loginSubtitle": "Sign in to your account",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "registerSubtitle": "Create your customer account",
+    "confirmPasswordPlaceholder": "Enter the password again"
   },
   "account": {
     "fullNamePlaceholder": "Full name",
