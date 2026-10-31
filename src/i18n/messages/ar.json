@@ -831,5 +831,12 @@
     "next": "الشريحة التالية",
     "galleryLabel": "معرض الصور",
     "galleryItem": "صورة المعرض {n}"
+  },
+  "editHint": {
+    "editProduct": "تعديل المنتج",
+    "editCollection": "تعديل المجموعة",
+    "editPage": "تعديل الصفحة",
+    "openDashboard": "فتح لوحة التحكم",
+    "dismiss": "إخفاء زر التعديل"
   }
 }

@@ -831,5 +831,12 @@
     "next": "Nästa bild",
     "galleryLabel": "Bildgalleri",
     "galleryItem": "Galleribild {n}"
+  },
+  "editHint": {
+    "editProduct": "Redigera produkt",
+    "editCollection": "Redigera kollektion",
+    "editPage": "Redigera sida",
+    "openDashboard": "Öppna instrumentpanelen",
+    "dismiss": "Dölj redigeringsknappen"
   }
 }

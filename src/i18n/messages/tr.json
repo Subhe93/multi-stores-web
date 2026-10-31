@@ -831,5 +831,12 @@
     "next": "Sonraki slayt",
     "galleryLabel": "Görsel galerisi",
     "galleryItem": "Galeri görseli {n}"
+  },
+  "editHint": {
+    "editProduct": "Ürünü düzenle",
+    "editCollection": "Koleksiyonu düzenle",
+    "editPage": "Sayfayı düzenle",
+    "openDashboard": "Paneli aç",
+    "dismiss": "Düzenle düğmesini gizle"
   }
 }

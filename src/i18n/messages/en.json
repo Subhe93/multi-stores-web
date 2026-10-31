@@ -831,5 +831,12 @@
     "next": "Next slide",
     "galleryLabel": "Image gallery",
     "galleryItem": "Gallery image {n}"
+  },
+  "editHint": {
+    "editProduct": "Edit product",
+    "editCollection": "Edit collection",
+    "editPage": "Edit page",
+    "openDashboard": "Open dashboard",
+    "dismiss": "Hide edit button"
   }
 }

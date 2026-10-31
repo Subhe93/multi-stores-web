@@ -831,5 +831,12 @@
     "next": "Nächste Folie",
     "galleryLabel": "Bildergalerie",
     "galleryItem": "Galeriebild {n}"
+  },
+  "editHint": {
+    "editProduct": "Produkt bearbeiten",
+    "editCollection": "Kollektion bearbeiten",
+    "editPage": "Seite bearbeiten",
+    "openDashboard": "Dashboard öffnen",
+    "dismiss": "Bearbeiten-Button ausblenden"
   }
 }

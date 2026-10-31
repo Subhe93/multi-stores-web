@@ -18,6 +18,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
+import { EditHintBoot } from '@/components/edit-hint/EditHintBoot';
 import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -540,6 +541,9 @@ export default async function StoreLayout({
           {hasTracking && (
             <StoreTracking storeSlug={storeSlug} tracking={store.tracking} policyHref={cookiePolicyHref} />
           )}
+          {/* Store-owner "Edit" button: renders nothing (and loads nothing)
+              unless the dashboard handed this browser an owner token. */}
+          <EditHintBoot storeSlug={storeSlug} />
           {/* Site-wide structured data: Organization + WebSite. */}
           <script
             type="application/ld+json"
