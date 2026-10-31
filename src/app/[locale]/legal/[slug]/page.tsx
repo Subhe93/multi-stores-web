@@ -5,6 +5,7 @@ import { buildPlatformAlternates } from '@/lib/locale-path';
 import { getPlatformName } from '@/lib/platform';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+import { routeSlug } from '@/lib/slugRoute';
 
 // Platform legal pages (Privacy / Terms / Refund / Shipping). Rendered on the
 // marketing site under /{locale}/legal/{slug}. The API supplies a localized
@@ -19,7 +20,9 @@ function isKnownSlug(slug: string): slug is LegalSlug {
 }
 
 export async function generateMetadata({ params }: LegalPageProps): Promise<Metadata> {
-  const { locale, slug } = await params;
+  const { locale, slug: rawSlug } = await params;
+  // Decoded once here; `legal.get` encodes it once (no double encoding).
+  const slug = routeSlug(rawSlug);
   if (!isKnownSlug(slug)) return {};
   try {
     const [page, platformName] = await Promise.all([
@@ -37,7 +40,9 @@ export async function generateMetadata({ params }: LegalPageProps): Promise<Meta
 }
 
 export default async function PlatformLegalPage({ params }: LegalPageProps) {
-  const { locale, slug } = await params;
+  const { locale, slug: rawSlug } = await params;
+  // Decoded once here; `legal.get` encodes it once (no double encoding).
+  const slug = routeSlug(rawSlug);
   if (!isKnownSlug(slug)) notFound();
 
   let page;

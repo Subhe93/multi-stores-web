@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
@@ -18,10 +18,11 @@ import { productAvailability } from '@/lib/productAvailability';
 import { projectProductForClient } from '@/lib/productPayload';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
+import { canonicalRedirectHref, encodeUrlPath, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{ lang?: string; [key: string]: string | string[] | undefined }>;
 }
 
 // The storefront product payload: everything ProductDetailClient renders plus
@@ -54,6 +55,15 @@ function productPathByLocale(product: Pick<ProductRecord, 'translations'>): Reco
 }
 
 /**
+ * Stored slug of the translation the request matched (any locale), or the
+ * normalized request slug when none matches (payload filtered by locale).
+ * Canonical / JSON-LD URLs use it, so they never echo a mis-cased request.
+ */
+function matchedProductSlug(product: Pick<ProductRecord, 'translations'>, requested: string): string {
+  return product.translations?.find((tr) => tr.slug && slugsEqual(tr.slug, requested))?.slug ?? requested;
+}
+
+/**
  * FAQPage markup for a product, picking each entry's translation for the
  * rendered locale. Answers are rich text, so tags are stripped — schema.org
  * expects plain text and Google rejects markup here.
@@ -83,7 +93,9 @@ export async function generateMetadata({
   params,
   searchParams,
 }: ProductDetailProps): Promise<Metadata> {
-  const { storeSlug, slug: productSlug } = await params;
+  const { storeSlug, slug: rawSlug } = await params;
+  // Next hands the param percent-encoded; the API gets the decoded lookup form.
+  const productSlug = routeSlug(rawSlug);
   const { lang } = await searchParams;
   try {
     const marketKey = await getRequestMarket();
@@ -105,7 +117,7 @@ export async function generateMetadata({
       locale,
       primaryLocale,
       secondaryLocales: secondary,
-      path: `/products/${productSlug}`,
+      path: `/products/${matchedProductSlug(product, productSlug)}`,
       markets: storeData?.markets,
       market: storeData?.market,
       noindex: await getRequestNoindex(),
@@ -140,8 +152,11 @@ export async function generateMetadata({
 }
 
 export default async function StoreProductDetailPage({ params, searchParams }: ProductDetailProps) {
-  const { storeSlug, slug: productSlug } = await params;
-  const { lang } = await searchParams;
+  const { storeSlug, slug: rawSlug } = await params;
+  // Next hands the param percent-encoded; the API gets the decoded lookup form.
+  const productSlug = routeSlug(rawSlug);
+  const query = await searchParams;
+  const { lang } = query;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';
 
@@ -167,6 +182,16 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     notFound();
   }
 
+  // Same product requested in another letter case or Unicode form: one
+  // permanent hop to the stored slug (WordPress canonical redirect). The
+  // stored slug is the fixed point, so this cannot loop.
+  // Only when a stored translation slug matched (never towards a guessed form).
+  const canonicalSlug = matchedProductSlug(product, productSlug);
+  const storedMatch = product.translations?.some((tr) => tr.slug === canonicalSlug);
+  if (storedMatch && isNonCanonicalSlugForm(rawSlug, canonicalSlug)) {
+    permanentRedirect(canonicalRedirectHref(`/products/${canonicalSlug}`, query));
+  }
+
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
   // the active theme using its sections + this product as the magic context.
   // The default layout below stays as the fallback for stores without one.
@@ -184,7 +209,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
     const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
-    const tplProductUrl = `${tplStoreBase}/products/${productSlug}`;
+    const tplProductUrl = `${tplStoreBase}${encodeUrlPath(`/products/${canonicalSlug}`)}`;
     const tplProductLd = buildProduct({
       name: tr?.title || 'Product',
       description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
@@ -224,7 +249,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         : [{ name: t('common.products'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '/products') }]),
       {
         name: tr?.title || 'Product',
-        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${productSlug}`),
+        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${canonicalSlug}`),
       },
     ]);
     return (
@@ -274,7 +299,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // prefix for primary locale, `/{locale}/...` for others).
   const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
-  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${productSlug}`);
+  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${canonicalSlug}`);
   const productImages = (product.images || [])
     .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
     .filter((u: string) => !!u);

@@ -384,8 +384,10 @@ export async function proxy(request: NextRequest) {
     pathname === '/sitemap.xml' || pathname === '/robots.txt';
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/builder-preview') ||
+    pathname === '/api' ||
+    pathname.startsWith('/api/') ||
+    pathname === '/builder-preview' ||
+    pathname.startsWith('/builder-preview/') ||
     // Self-hosted store fonts (src/app/fonts-cdn): same route on every host.
     pathname.startsWith('/fonts-cdn/')
   ) {

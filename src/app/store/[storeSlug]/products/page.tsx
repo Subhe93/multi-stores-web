@@ -14,6 +14,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
+import { isUsableSlug } from '@/lib/slugRoute';
 
 interface ProductPromotion {
   type?: string;
@@ -499,11 +500,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
               // Use any translation with a *usable* slug for the URL. Secondary-locale
               // translations sometimes have a degenerate slug (empty, or a stray "-"
               // when slugifying a non-Latin title strips everything) — those would
-              // resolve to a 404. We require at least one alphanumeric char.
-              const usable = (s?: string) => !!s && /[a-z0-9]/i.test(s);
+              // resolve to a 404. We require at least one letter or digit (any script).
               const slugTr =
-                product.translations.find((tr) => tr.locale === locale && usable(tr.slug)) ||
-                product.translations.find((tr) => usable(tr.slug));
+                product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
+                product.translations.find((tr) => isUsableSlug(tr.slug));
 
               return (
                 <ProductCard

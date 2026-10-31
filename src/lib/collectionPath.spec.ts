@@ -100,3 +100,49 @@ describe('resolveCollectionChain (M6.7 route resolver)', () => {
     expect(resolveCollectionChain(tree, ['skyltar', 'gamla', 'kid'])).toBeNull();
   });
 });
+
+// Next 16 hands catch-all params percent-ENCODED (`kläder` -> `kl%C3%A4der`),
+// while the tree carries the decoded DB slugs (SLUG-INVENTORY §0).
+describe('resolveCollectionChain with non-ASCII slugs', () => {
+  const unicodeTree: Node[] = [
+    {
+      id: 'parent',
+      slug: 'parent',
+      children: [
+        { id: 'sv', slug: 'kläder' },
+        { id: 'ar', slug: 'هدايا-للأم' },
+      ],
+    },
+    { id: 'ar-root', slug: 'هدايا' },
+  ];
+  const ids = (segments: string[]) =>
+    resolveCollectionChain(unicodeTree, segments)?.map((n) => n.id) ?? null;
+
+  it('resolves an encoded Swedish segment', () => {
+    expect(ids(['parent', 'kl%C3%A4der'])).toEqual(['parent', 'sv']);
+    expect(ids(['parent', encodeURIComponent('kläder')])).toEqual(['parent', 'sv']);
+  });
+
+  it('resolves encoded Arabic segments (root and child)', () => {
+    expect(ids([encodeURIComponent('هدايا')])).toEqual(['ar-root']);
+    expect(ids(['parent', encodeURIComponent('هدايا-للأم')])).toEqual(['parent', 'ar']);
+  });
+
+  it('accepts lowercase hex, decoded input, NFD input and another letter case', () => {
+    expect(ids(['parent', 'kl%c3%a4der'])).toEqual(['parent', 'sv']);
+    expect(ids(['parent', 'kläder'])).toEqual(['parent', 'sv']);
+    expect(ids(['parent', 'kläder'])).toEqual(['parent', 'sv']);
+    expect(ids(['parent', encodeURIComponent('kläder')])).toEqual(['parent', 'sv']);
+    expect(ids(['PARENT', 'KL%C3%84DER'])).toEqual(['parent', 'sv']);
+  });
+
+  it('matches a stored slug that is itself NFD', () => {
+    const nfdTree: Node[] = [{ id: 'x', slug: 'kläder' }];
+    expect(resolveCollectionChain(nfdTree, ['kl%C3%A4der'])?.map((n) => n.id)).toEqual(['x']);
+  });
+
+  it('still rejects a different slug and a flat child URL', () => {
+    expect(ids(['parent', 'klader'])).toBeNull();
+    expect(ids(['kl%C3%A4der'])).toBeNull();
+  });
+});

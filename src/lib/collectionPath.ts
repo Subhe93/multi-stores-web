@@ -2,6 +2,8 @@
 // page and the themed magic sections (M6 §2/§3). Pure functions only — this
 // module is imported by client components, so it must never import `next/*`.
 
+import { routeSlug } from './slugRoute';
+
 export interface CollectionPathNode {
   id: string;
   slug: string;
@@ -57,6 +59,11 @@ export function collectionPathInChain(
  * previous, every node active. Returns the matched chain (root → leaf) or
  * `null` for a flat child URL, wrong order, missing/extra segment, more than
  * `COLLECTION_PATH_MAX_DEPTH` segments or an inactive node.
+ *
+ * Segments may arrive percent-encoded (Next 16 encodes route params:
+ * `kläder` reaches the page as `kl%C3%A4der`), in another letter case or in
+ * NFD. Both sides are compared in lookup form (decoded, NFC, lowercase), so
+ * Swedish, Arabic and legacy un-normalized slugs all resolve.
  */
 export function resolveCollectionChain<
   T extends { slug: string; is_active?: boolean; children?: T[] },
@@ -65,7 +72,8 @@ export function resolveCollectionChain<
   const chain: T[] = [];
   let level: T[] = tree;
   for (const segment of segments) {
-    const node = level.find((n) => n.slug === segment);
+    const wanted = routeSlug(segment);
+    const node = level.find((n) => routeSlug(n.slug) === wanted);
     if (!node || node.is_active === false) return null;
     chain.push(node);
     level = node.children ?? [];

@@ -22,6 +22,7 @@ import { isSvgSrc } from '@/lib/storeMedia';
 import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
 import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
+import { isUsableSlug } from '@/lib/slugRoute';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
 
 function clamp(n: number, min: number, max: number): number {
@@ -40,11 +41,10 @@ const HERO_HEIGHTS: readonly HeroHeight[] = ['sm', 'md', 'lg'];
 const LONG_DESCRIPTION_CLASS =
   'prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto';
 
-// A translation with a *usable* slug for the URL. Secondary-locale
-// translations sometimes have a degenerate slug (empty, or a stray "-" when
-// slugifying a non-Latin title strips everything) — those would resolve to a
-// 404. We require at least one alphanumeric char.
-const usable = (s?: string) => !!s && /[a-z0-9]/i.test(s);
+// Product links use a translation with a *usable* slug (`isUsableSlug`).
+// Secondary-locale translations sometimes have a degenerate slug (empty, or a
+// stray "-" when slugifying a non-Latin title strips everything) — those
+// would resolve to a 404. A letter or digit in any script is required.
 
 function pickCollectionTranslation(translations: ListingCollection['translations'] | undefined, locale: string) {
   if (!translations?.length) return undefined;
@@ -358,8 +358,8 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           product.translations.find((tr) => tr.locale === 'en') ||
           product.translations[0];
         const slugTr =
-          product.translations.find((tr) => tr.locale === locale && usable(tr.slug)) ||
-          product.translations.find((tr) => usable(tr.slug));
+          product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
+          product.translations.find((tr) => isUsableSlug(tr.slug));
         return (
           <ProductCard
             key={product.id}

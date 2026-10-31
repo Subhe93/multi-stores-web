@@ -14,6 +14,7 @@ import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { isUsableSlug } from '@/lib/slugRoute';
 
 interface Product {
   id: string;
@@ -446,11 +447,10 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
               // Use any translation with a *usable* slug for the URL. Secondary-locale
               // translations sometimes have a degenerate slug (empty, or a stray "-"
               // when slugifying a non-Latin title strips everything) — those would
-              // resolve to a 404. We require at least one alphanumeric char.
-              const usable = (s?: string) => !!s && /[a-z0-9]/i.test(s);
+              // resolve to a 404. We require at least one letter or digit (any script).
               const slugTr =
-                product.translations.find((tr) => tr.locale === locale && usable(tr.slug)) ||
-                product.translations.find((tr) => usable(tr.slug));
+                product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
+                product.translations.find((tr) => isUsableSlug(tr.slug));
 
               return (
                 <ProductCard

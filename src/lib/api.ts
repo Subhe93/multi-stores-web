@@ -130,9 +130,11 @@ export const storefront = {
     return api(`/storefront/${slug}/products${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
   },
 
+  // Slug arguments are DECODED (pages run route params through `routeSlug`);
+  // they are percent-encoded exactly once here.
   getProduct: async (slug: string, productSlug: string, locale?: string, market?: MarketRef) => {
     const query = locale ? `?locale=${locale}` : '';
-    return api(`/storefront/${slug}/products/${productSlug}${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
+    return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
   },
 
   getCategories: async (slug: string) =>
@@ -147,7 +149,7 @@ export const storefront = {
     api(`/storefront/${slug}/menus`, await cacheOpts(slug)),
 
   getPage: async (slug: string, pageSlug: string) =>
-    api(`/storefront/${slug}/pages/${pageSlug}`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/pages/${encodeURIComponent(pageSlug)}`, await cacheOpts(slug)),
 
   // v2 published page snapshot (null if no published version).
   getPublishedHome: async (slug: string) =>
@@ -155,7 +157,7 @@ export const storefront = {
 
   getPublishedPage: async (slug: string, pageSlug: string, type?: 'STATIC' | 'LANDING' | 'PRODUCT_TEMPLATE') => {
     const query = type ? `?type=${type}` : '';
-    return api(`/storefront/${slug}/v2/pages/${pageSlug}${query}`, await cacheOpts(slug));
+    return api(`/storefront/${slug}/v2/pages/${encodeURIComponent(pageSlug)}${query}`, await cacheOpts(slug));
   },
 
   // Single PRODUCT_TEMPLATE per store. Null when not published.
@@ -211,6 +213,8 @@ export const legal = {
       next: { tags: ['legal'], revalidate: LEGAL_REVALIDATE_SECONDS },
     }),
 
+  // `slug` is DECODED (the pages run the route param through `routeSlug`),
+  // so it is percent-encoded exactly once here.
   get: async (slug: string, locale: string) =>
     api<LegalPage>(`/legal/${encodeURIComponent(slug)}?locale=${encodeURIComponent(locale)}`, {
       next: { tags: ['legal', `legal:${slug}`], revalidate: LEGAL_REVALIDATE_SECONDS },

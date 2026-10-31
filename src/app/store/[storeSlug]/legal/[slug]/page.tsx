@@ -4,6 +4,7 @@ import { legal, storefront, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { routeSlug } from '@/lib/slugRoute';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is
@@ -50,7 +51,9 @@ export async function generateMetadata({
   params,
   searchParams,
 }: StoreLegalPageProps): Promise<Metadata> {
-  const { storeSlug, slug } = await params;
+  const { storeSlug, slug: rawSlug } = await params;
+  // Decoded once here; `legal.get` encodes it once (no double encoding).
+  const slug = routeSlug(rawSlug);
   const { lang } = await searchParams;
   if (!isKnownSlug(slug)) return {};
 
@@ -88,7 +91,9 @@ export async function generateMetadata({
 }
 
 export default async function StoreLegalPage({ params, searchParams }: StoreLegalPageProps) {
-  const { storeSlug, slug } = await params;
+  const { storeSlug, slug: rawSlug } = await params;
+  // Decoded once here; `legal.get` encodes it once (no double encoding).
+  const slug = routeSlug(rawSlug);
   const { lang } = await searchParams;
   if (!isKnownSlug(slug)) notFound();
 

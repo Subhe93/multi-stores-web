@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, marketPublicHostname, storeHref, type MarketUrlInput } from './storeUrl';
+import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, marketPublicHostname, storeHref, storeLocalePath, type MarketUrlInput } from './storeUrl';
 
 // hreflang matrix for the markets app (M1-DESIGN §8): 2 markets × locales,
 // collision handling, x-default, translated slugs, and — above all — that a
@@ -63,6 +63,46 @@ describe('buildStoreAlternates (no markets)', () => {
 
   it('falls back to the primary locale for an unknown ?lang', () => {
     expect(buildStoreAlternates({ ...legacy, locale: 'zz' }).canonical).toBe('https://shop.example.com/products/foo');
+  });
+});
+
+describe('non-ASCII slugs in absolute URLs', () => {
+  const origin = 'https://shop.example.com';
+
+  it('storeLocalePath percent-encodes path segments (lowercase hex)', () => {
+    expect(storeLocalePath(origin, 'sv', 'sv', '/collections/parent/kläder')).toBe(
+      'https://shop.example.com/collections/parent/kl%c3%a4der',
+    );
+    expect(storeLocalePath(origin, 'ar', 'sv', '/products/هدية')).toBe(
+      'https://shop.example.com/ar/products/%d9%87%d8%af%d9%8a%d8%a9',
+    );
+  });
+
+  it('does not double-encode an already-encoded path', () => {
+    expect(storeLocalePath(origin, 'sv', 'sv', '/collections/kl%C3%A4der')).toBe(
+      'https://shop.example.com/collections/kl%c3%a4der',
+    );
+  });
+
+  it('keeps ASCII paths and the root byte-identical', () => {
+    expect(storeLocalePath(origin, 'sv', 'sv', '/products/3d_presenter')).toBe(
+      'https://shop.example.com/products/3d_presenter',
+    );
+    expect(storeLocalePath(origin, 'sv', 'sv', '/')).toBe('https://shop.example.com');
+    expect(storeLocalePath(origin, 'ar', 'sv', '')).toBe('https://shop.example.com/ar');
+  });
+
+  it('canonical and hreflang carry the encoded form', () => {
+    const alt = buildStoreAlternates({
+      origin,
+      locale: 'ar',
+      primaryLocale: 'sv',
+      secondaryLocales: ['ar'],
+      path: '/collections/kläder',
+    });
+    expect(alt.canonical).toBe('https://shop.example.com/ar/collections/kl%c3%a4der');
+    expect(alt.languages.sv).toBe('https://shop.example.com/collections/kl%c3%a4der');
+    expect(alt.languages['x-default']).toBe('https://shop.example.com/collections/kl%c3%a4der');
   });
 });
 

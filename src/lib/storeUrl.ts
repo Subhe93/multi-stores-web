@@ -1,5 +1,6 @@
 import { marketHreflangCode } from './market-routing';
 import type { MarketIndexing } from './market';
+import { encodeUrlPath } from './slugRoute';
 
 /** The slice of a market needed to build URLs for it (M1-DESIGN §4.3). */
 export interface MarketUrlInput {
@@ -132,6 +133,7 @@ export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale:
  * hreflang alternates (path-prefix, not query strings).
  *
  * `path` must start with `/` or be the empty string for the storefront root.
+ * Its segments may be raw slugs or already percent-encoded.
  */
 export function storeLocalePath(
   origin: string,
@@ -139,7 +141,10 @@ export function storeLocalePath(
   primaryLocale: string,
   path: string = '',
 ): string {
-  const safePath = path === '/' ? '' : path;
+  // Slugs are stored decoded (Arabic, ä, …): every absolute URL built here
+  // (canonical, hreflang, sitemap <loc>, JSON-LD) carries the percent-encoded
+  // form. Idempotent, so an already-encoded browser pathname is fine too.
+  const safePath = path === '/' ? '' : encodeUrlPath(path);
   return locale === primaryLocale
     ? `${origin}${safePath}`
     : `${origin}/${locale}${safePath}`;

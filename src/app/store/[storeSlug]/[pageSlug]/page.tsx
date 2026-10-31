@@ -13,6 +13,7 @@ import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
+import { routeSlug } from '@/lib/slugRoute';
 
 // Static pages now have two backends:
 // - v2 Page (with sections, versions, SEO panel) — preferred when published
@@ -68,7 +69,8 @@ interface PageProps {
 }
 
 // Avoid colliding with sibling routes that share the [pageSlug] segment.
-const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account', 'collections', 'p', 'market-not-found']);
+// Compared against the normalized slug, so `/Cart` is reserved like `/cart`.
+const RESERVED_SLUGS = new Set(['products', 'cart', 'checkout', 'auth', 'account', 'collections', 'legal', 'p', 'market-not-found']);
 
 async function fetchData(storeSlug: string, pageSlug: string) {
   const [store, v2, legacy] = await Promise.all([
@@ -82,7 +84,10 @@ async function fetchData(storeSlug: string, pageSlug: string) {
 }
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
-  const { storeSlug, pageSlug } = await params;
+  const { storeSlug, pageSlug: rawSlug } = await params;
+  // Next hands the param percent-encoded; lookups use the decoded,
+  // NFC, lowercase form (the API encodes it once).
+  const pageSlug = routeSlug(rawSlug);
   if (RESERVED_SLUGS.has(pageSlug)) return {};
   const { lang } = await searchParams;
 
@@ -157,7 +162,10 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 }
 
 export default async function StoreStaticPage({ params, searchParams }: PageProps) {
-  const { storeSlug, pageSlug } = await params;
+  const { storeSlug, pageSlug: rawSlug } = await params;
+  // Next hands the param percent-encoded; lookups use the decoded,
+  // NFC, lowercase form (the API encodes it once).
+  const pageSlug = routeSlug(rawSlug);
   const { lang } = await searchParams;
 
   if (RESERVED_SLUGS.has(pageSlug)) notFound();

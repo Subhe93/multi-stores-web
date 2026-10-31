@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import type { CSSProperties, FocusEventHandler, PointerEventHandler, ReactNode, Ref } from 'react';
+import { decodeRouteParam } from '@/lib/slugRoute';
 
 export function ActiveLink({
   href,
@@ -65,9 +66,11 @@ export function ActiveLink({
 
 /** Whether `href` points at the current page (prefix match unless `exact`). */
 export function useIsActiveHref(href: string | undefined, exact?: boolean): boolean {
-  const pathname = usePathname() || '';
+  // Both sides percent-decoded: menu hrefs carry raw slugs (`/collections/kläder`,
+  // Arabic) while the pathname may be encoded.
+  const pathname = decodeRouteParam(usePathname() || '');
   // Compare on pathname only — strip query/hash from the href before matching.
-  const hrefPath = (href || '').split('?')[0].split('#')[0];
+  const hrefPath = decodeRouteParam((href || '').split('?')[0].split('#')[0]);
   if (!hrefPath || hrefPath === '#') return false;
   return exact
     ? pathname === hrefPath

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
@@ -17,6 +17,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
+import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
 import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
 
 interface ProductPromotion {
@@ -71,6 +72,7 @@ interface CollectionPageProps {
     search?: string;
     lang?: string;
     sort?: string;
+    [key: string]: string | string[] | undefined;
   }>;
 }
 
@@ -101,7 +103,8 @@ export default async function CollectionPage({
   searchParams,
 }: CollectionPageProps) {
   const { storeSlug, path: pathSegments } = await params;
-  const { search, lang, sort } = await searchParams;
+  const query = await searchParams;
+  const { search, lang, sort } = query;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';
 
@@ -138,7 +141,17 @@ export default async function CollectionPage({
   const collection = chain[chain.length - 1]!;
   // The product filter keeps using the leaf slug; URLs use the full path.
   const handle = collection.slug;
-  const collectionBase = collectionHref({ path: pathSegments, slug: handle });
+  // Stored slugs root → leaf. URLs are built from these, never from the
+  // (percent-encoded, possibly differently cased) request segments.
+  const chainSlugs = chain.map((n) => n.slug);
+  // Same collection requested in another letter case or Unicode form
+  // (`/collections/Kläder`, NFD): one permanent hop to the stored form, like
+  // WordPress' canonical redirect. Stored slugs are the fixed point, so this
+  // cannot loop.
+  if ((pathSegments || []).some((seg, i) => isNonCanonicalSlugForm(seg, chainSlugs[i]!))) {
+    permanentRedirect(canonicalRedirectHref(collectionHref({ path: chainSlugs, slug: handle }), query));
+  }
+  const collectionBase = collectionHref({ path: chainSlugs, slug: handle });
 
   const collectionTranslation = pickTranslation(collection.translations, locale);
   const collectionName = collectionTranslation?.name || handle;
@@ -458,7 +471,7 @@ export default async function CollectionPage({
                 return (
                   <Link
                     key={child.id}
-                    href={`${lp}${collectionHref({ path: child.path ?? [...pathSegments, child.slug], slug: child.slug })}`}
+                    href={`${lp}${collectionHref({ path: child.path ?? [...chainSlugs, child.slug], slug: child.slug })}`}
                     className="px-4 py-2 rounded-full text-xs font-semibold bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     {tr?.name || child.slug}
@@ -493,11 +506,10 @@ export default async function CollectionPage({
               // Use any translation with a *usable* slug for the URL. Secondary-locale
               // translations sometimes have a degenerate slug (empty, or a stray "-"
               // when slugifying a non-Latin title strips everything) — those would
-              // resolve to a 404. We require at least one alphanumeric char.
-              const usable = (s?: string) => !!s && /[a-z0-9]/i.test(s);
+              // resolve to a 404. We require at least one letter or digit (any script).
               const slugTr =
-                product.translations.find((tr) => tr.locale === locale && usable(tr.slug)) ||
-                product.translations.find((tr) => usable(tr.slug));
+                product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
+                product.translations.find((tr) => isUsableSlug(tr.slug));
 
               return (
                 <ProductCard
@@ -585,7 +597,7 @@ export async function generateMetadata({
       locale,
       primaryLocale,
       secondaryLocales: secondary,
-      path: collectionHref({ path: pathSegments, slug: handle }),
+      path: collectionHref({ path: chain.map((n) => n.slug), slug: handle }),
       markets: store?.markets,
       market: store?.market,
       noindex: await getRequestNoindex(),
