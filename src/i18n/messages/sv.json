@@ -323,7 +323,8 @@
     "kustomSyncFailed": "Din beställning kunde inte uppdateras i kassan. Ladda om sidan och försök igen.",
     "shippingUnavailable": "Tyvärr kan vi inte skicka till den adress du angav. Prova en annan adress.",
     "shippingCalculatedInKustom": "Frakten beräknas i kassan när du har angett din adress.",
-    "accountCreatedNote": "Vi har skapat ett konto för {email} så att du kan följa din beställning. Ett välkomstmejl är på väg.",
+    "accountCreatedNote": "Vi har skapat ett konto för {email} så att du kan följa din beställning.",
+    "accountEmailedNote": "Vi har mejlat dig ditt lösenord och en länk för att logga in med ett klick.",
     "setPasswordLink": "Välj ett lösenord",
     "retry": "Försök igen",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "Visa lösenord",
     "hidePassword": "Dölj lösenord",
     "registerSubtitle": "Skapa ditt kundkonto",
-    "confirmPasswordPlaceholder": "Ange lösenordet igen"
+    "confirmPasswordPlaceholder": "Ange lösenordet igen",
+    "magicTitle": "Loggar in dig",
+    "magicLoading": "Ett ögonblick, vi loggar in dig…",
+    "magicSuccess": "Du är inloggad. Vi tar dig till ditt konto…",
+    "magicInvalidTitle": "Länken går inte att använda",
+    "magicInvalid": "Den här inloggningslänken har gått ut eller har redan använts.",
+    "magicInvalidHint": "Logga in med din e-postadress och ditt lösenord, eller återställ lösenordet om du inte har det.",
+    "magicLogin": "Logga in",
+    "magicForgot": "Glömt lösenordet?"
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",

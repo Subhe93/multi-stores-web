@@ -72,6 +72,29 @@ export interface RegisterData {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  /** Store context so the API brands the welcome email (optional). */
+  store_slug?: string;
+  hostname?: string;
+  locale?: string;
+}
+
+/** Body of POST /auth/guest-register: the server generates the password
+ *  and emails it together with a one-click login link. */
+export interface GuestRegisterData {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  store_slug?: string;
+  hostname?: string;
+  locale?: string;
+}
+
+/** Token pair as returned by /auth/login, /auth/register and /auth/magic-login. */
+export interface AuthTokensPayload {
+  access_token: string;
+  refresh_token: string;
+  user?: { role?: string } | null;
 }
 
 interface AuthTokens {
@@ -100,6 +123,15 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<User>;
   register: (data: RegisterData) => Promise<string>;
+  /** Create a CUSTOMER with a server-generated password (guest checkout).
+   *  Resolves with the access token, like `register`. */
+  registerGuest: (data: GuestRegisterData) => Promise<string>;
+  /**
+   * Sign in with a token pair obtained elsewhere (e.g. /auth/magic-login).
+   * Only CUSTOMER accounts are accepted; others reject with
+   * NOT_CUSTOMER_ACCOUNT and nothing is kept in storage.
+   */
+  loginWithTokens: (data: AuthTokensPayload) => Promise<User>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   getProfile: () => Promise<User>;
@@ -259,6 +291,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return profile;
   }, [applyProfile]);
 
+  // Store a token pair from another sign-in flow (magic link). Mirrors
+  // login(): the profile decides, and dashboard accounts are rejected.
+  const loginWithTokens = useCallback(async (data: AuthTokensPayload): Promise<User> => {
+    // Reject early when the response already says it is not a customer, so
+    // the tokens never touch storage.
+    if (data.user?.role && data.user.role !== 'CUSTOMER') throw notCustomerAccountError();
+
+    const tokens: AuthTokens = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+    };
+    saveTokens(tokens);
+    setToken(tokens.accessToken);
+
+    const profile = await api<User>('/auth/me', { token: tokens.accessToken });
+    if (!applyProfile(profile)) throw notCustomerAccountError();
+
+    window.dispatchEvent(new CustomEvent('auth-changed'));
+    return profile;
+  }, [applyProfile]);
+
+  // Guest checkout account: the server picks the password and emails it.
+  const registerGuest = useCallback(async (data: GuestRegisterData): Promise<string> => {
+    const result = await api<AuthRegisterResponse>('/auth/guest-register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const tokens: AuthTokens = {
+      accessToken: result.access_token,
+      refreshToken: result.refresh_token,
+    };
+    saveTokens(tokens);
+    setToken(tokens.accessToken);
+
+    try {
+      const profile = await api<User>('/auth/me', { token: tokens.accessToken });
+      setUser(profile);
+    } catch {
+      // Profile fetch failed but the token is saved
+    }
+
+    window.dispatchEvent(new CustomEvent('auth-changed'));
+    return tokens.accessToken;
+  }, []);
+
   // Register a new account — returns the access token for immediate use
   const register = useCallback(async (data: RegisterData): Promise<string> => {
     const result = await api<AuthRegisterResponse>('/auth/register', {
@@ -338,6 +415,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login,
     register,
+    registerGuest,
+    loginWithTokens,
     logout,
     forgotPassword,
     getProfile,

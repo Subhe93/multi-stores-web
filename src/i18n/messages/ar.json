@@ -323,7 +323,8 @@
     "kustomSyncFailed": "تعذّر تحديث طلبك في صفحة الدفع. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.",
     "shippingUnavailable": "للأسف لا يمكننا الشحن إلى العنوان الذي أدخلته. يرجى تجربة عنوان آخر.",
     "shippingCalculatedInKustom": "يتم احتساب الشحن في صفحة الدفع بعد إدخال عنوانك.",
-    "accountCreatedNote": "أنشأنا حساباً للبريد {email} لتتمكن من متابعة طلبك. تحقق من بريدك الوارد لرسالة الترحيب.",
+    "accountCreatedNote": "أنشأنا حساباً للبريد {email} لتتمكن من متابعة طلبك.",
+    "accountEmailedNote": "أرسلنا إليك بالبريد الإلكتروني كلمة المرور ورابط دخول بنقرة واحدة.",
     "setPasswordLink": "تعيين كلمة مرور",
     "retry": "حاول مرة أخرى",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "إظهار كلمة المرور",
     "hidePassword": "إخفاء كلمة المرور",
     "registerSubtitle": "أنشئ حسابك كعميل",
-    "confirmPasswordPlaceholder": "أدخل كلمة المرور مرة أخرى"
+    "confirmPasswordPlaceholder": "أدخل كلمة المرور مرة أخرى",
+    "magicTitle": "جارٍ تسجيل دخولك",
+    "magicLoading": "لحظة من فضلك، نقوم بتسجيل دخولك…",
+    "magicSuccess": "تم تسجيل دخولك. ننقلك الآن إلى حسابك…",
+    "magicInvalidTitle": "لم يعد هذا الرابط صالحاً",
+    "magicInvalid": "انتهت صلاحية رابط الدخول هذا أو سبق استخدامه.",
+    "magicInvalidHint": "سجّل الدخول ببريدك الإلكتروني وكلمة المرور، أو أعد تعيين كلمة المرور إن لم تكن تعرفها.",
+    "magicLogin": "تسجيل الدخول",
+    "magicForgot": "نسيت كلمة المرور؟"
   },
   "account": {
     "fullNamePlaceholder": "الاسم الكامل",

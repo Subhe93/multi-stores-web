@@ -323,7 +323,8 @@
     "kustomSyncFailed": "Ihre Bestellung konnte im Checkout nicht aktualisiert werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut.",
     "shippingUnavailable": "Leider können wir nicht an die eingegebene Adresse liefern. Bitte versuchen Sie es mit einer anderen Adresse.",
     "shippingCalculatedInKustom": "Die Versandkosten werden im Checkout berechnet, sobald Sie Ihre Adresse eingeben.",
-    "accountCreatedNote": "Wir haben ein Konto für {email} erstellt, damit Sie Ihre Bestellung verfolgen können. Eine Willkommens-E-Mail ist unterwegs.",
+    "accountCreatedNote": "Wir haben ein Konto für {email} erstellt, damit Sie Ihre Bestellung verfolgen können.",
+    "accountEmailedNote": "Wir haben Ihnen Ihr Passwort und einen Link zur Anmeldung mit einem Klick per E-Mail gesendet.",
     "setPasswordLink": "Passwort festlegen",
     "retry": "Erneut versuchen",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
     "registerSubtitle": "Erstelle dein Kundenkonto",
-    "confirmPasswordPlaceholder": "Passwort erneut eingeben"
+    "confirmPasswordPlaceholder": "Passwort erneut eingeben",
+    "magicTitle": "Anmeldung läuft",
+    "magicLoading": "Einen Moment, wir melden Sie an…",
+    "magicSuccess": "Sie sind angemeldet. Wir leiten Sie zu Ihrem Konto weiter…",
+    "magicInvalidTitle": "Dieser Link ist nicht mehr gültig",
+    "magicInvalid": "Dieser Anmeldelink ist abgelaufen oder wurde bereits verwendet.",
+    "magicInvalidHint": "Melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an oder setzen Sie Ihr Passwort zurück, falls Sie es nicht kennen.",
+    "magicLogin": "Anmelden",
+    "magicForgot": "Passwort vergessen?"
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",

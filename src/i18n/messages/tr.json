@@ -323,7 +323,8 @@
     "kustomSyncFailed": "Siparişiniz ödeme sayfasında güncellenemedi. Lütfen sayfayı yenileyip tekrar deneyin.",
     "shippingUnavailable": "Maalesef girdiğiniz adrese gönderim yapamıyoruz. Lütfen farklı bir adres deneyin.",
     "shippingCalculatedInKustom": "Kargo ücreti, adresinizi girdikten sonra ödeme sayfasında hesaplanır.",
-    "accountCreatedNote": "Siparişinizi takip edebilmeniz için {email} adresine bir hesap oluşturduk. Gelen kutunuzda hoş geldiniz e-postasını kontrol edin.",
+    "accountCreatedNote": "Siparişinizi takip edebilmeniz için {email} adresine bir hesap oluşturduk.",
+    "accountEmailedNote": "Şifrenizi ve tek tıkla giriş bağlantısını size e-postayla gönderdik.",
     "setPasswordLink": "Şifre belirle",
     "retry": "Tekrar dene",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "Şifreyi göster",
     "hidePassword": "Şifreyi gizle",
     "registerSubtitle": "Müşteri hesabınızı oluşturun",
-    "confirmPasswordPlaceholder": "Şifreyi tekrar girin"
+    "confirmPasswordPlaceholder": "Şifreyi tekrar girin",
+    "magicTitle": "Giriş yapılıyor",
+    "magicLoading": "Bir saniye, oturumunuzu açıyoruz…",
+    "magicSuccess": "Giriş yaptınız. Hesabınıza yönlendiriliyorsunuz…",
+    "magicInvalidTitle": "Bu bağlantı artık kullanılamıyor",
+    "magicInvalid": "Bu giriş bağlantısının süresi dolmuş veya bağlantı daha önce kullanılmış.",
+    "magicInvalidHint": "E-posta adresiniz ve şifrenizle giriş yapın ya da şifrenizi bilmiyorsanız sıfırlayın.",
+    "magicLogin": "Giriş yap",
+    "magicForgot": "Şifrenizi mi unuttunuz?"
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",

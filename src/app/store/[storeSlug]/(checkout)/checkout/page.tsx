@@ -8,6 +8,7 @@ import { Elements, useStripe, useElements, CardElement } from '@stripe/react-str
 import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
+import { createCheckoutAccount, guestAccountNoteKey } from '@/lib/checkoutAccount';
 import { useCart } from '@/hooks/useCart';
 import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
@@ -147,6 +148,14 @@ const COUNTRIES = [
 // custom domains: "shop.merchant.com" yielded "shop", getStore 404'd, and on
 // an independent store the connected Stripe account was never resolved.
 
+// Flag the order for the confirmation page's "we emailed your login" note.
+// Best-effort: storage may be unavailable (private mode).
+function rememberGuestAccount(orderId: string, email: string) {
+  try {
+    sessionStorage.setItem(guestAccountNoteKey(orderId), email);
+  } catch { /* the note is optional */ }
+}
+
 // Build the payment-config endpoint, scoped to the current store when known so
 // the API can return the store's connected-account details (independent stores)
 // and, for market stores, to the request market (`?market=`, `&preview=1` on a
@@ -193,7 +202,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const lp = useLocalePath();
   const stripe = useStripe();
   const elements = useElements();
-  const { token, user, login, register } = useAuth();
+  const { token, user, login, register, registerGuest } = useAuth();
   const {
     items, subtotal, total, coupon, currency,
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
@@ -711,6 +720,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     setLoading(true);
 
     let activeToken = token;
+    // Set when this submit created a guest account (server-made password).
+    let createdGuestAccount = false;
     const fullName = `${form.first_name} ${form.last_name}`.trim();
     // The server re-quotes for the address country and rejects an id it no
     // longer offers; a legacy single-cost quote has no id, so nothing is sent
@@ -723,16 +734,20 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     try {
       // Guest: auto-register then sync cart
       if (!activeToken) {
-        const pwd = wantAccount && accountPassword.length >= 8
-          ? accountPassword
-          : `Guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-
+        // No password is made in the browser: without a chosen password the
+        // server generates one and emails it with a one-click login link.
         try {
-          activeToken = await register({
-            email: form.email, password: pwd, role: 'CUSTOMER',
-            first_name: form.first_name, last_name: form.last_name,
-            phone: form.phone || undefined,
-          });
+          const created = await createCheckoutAccount(
+            {
+              wantAccount, password: accountPassword,
+              email: form.email, first_name: form.first_name, last_name: form.last_name,
+              phone: form.phone || undefined,
+              storeSlug, hostname: window.location.hostname, locale,
+            },
+            { register, registerGuest },
+          );
+          activeToken = created.token;
+          createdGuestAccount = created.guest;
         } catch (regErr: unknown) {
           if (wantAccount && accountPassword) {
             try {
@@ -853,6 +868,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         } catch { /* webhook will reconcile as a fallback */ }
 
         await clearCart();
+        if (createdGuestAccount) rememberGuestAccount(order.id, form.email);
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
       } else {
         const order = await api<OrderResponse>('/orders', {
@@ -869,6 +885,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           }),
         });
         await clearCart();
+        if (createdGuestAccount) rememberGuestAccount(order.id, form.email);
         router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
       }
     } catch (err: unknown) {

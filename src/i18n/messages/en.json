@@ -323,7 +323,8 @@
     "kustomSyncFailed": "We could not update your order in the checkout. Please reload the page and try again.",
     "shippingUnavailable": "Unfortunately we cannot ship to the address you entered. Please try a different address.",
     "shippingCalculatedInKustom": "Shipping is calculated in the checkout once you enter your address.",
-    "accountCreatedNote": "We created an account for {email} so you can follow your order. Check your inbox for a welcome email.",
+    "accountCreatedNote": "We created an account for {email} so you can follow your order.",
+    "accountEmailedNote": "We emailed you your password and a one-click login link.",
     "setPasswordLink": "Set a password",
     "retry": "Try again",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "registerSubtitle": "Create your customer account",
-    "confirmPasswordPlaceholder": "Enter the password again"
+    "confirmPasswordPlaceholder": "Enter the password again",
+    "magicTitle": "Signing you in",
+    "magicLoading": "One moment, we're signing you in…",
+    "magicSuccess": "You're signed in. Taking you to your account…",
+    "magicInvalidTitle": "This link can't be used",
+    "magicInvalid": "This login link has expired or was already used.",
+    "magicInvalidHint": "Log in with your email and password, or reset your password if you don't have it.",
+    "magicLogin": "Log in",
+    "magicForgot": "Forgot password?"
   },
   "account": {
     "fullNamePlaceholder": "Full name",

@@ -323,7 +323,8 @@
     "kustomSyncFailed": "Impossible de mettre à jour votre commande dans le module de paiement. Veuillez recharger la page et réessayer.",
     "shippingUnavailable": "Malheureusement, nous ne livrons pas à l’adresse saisie. Veuillez essayer une autre adresse.",
     "shippingCalculatedInKustom": "Les frais de livraison sont calculés lors du paiement, une fois votre adresse saisie.",
-    "accountCreatedNote": "Nous avons créé un compte pour {email} afin que vous puissiez suivre votre commande. Un e-mail de bienvenue vous a été envoyé.",
+    "accountCreatedNote": "Nous avons créé un compte pour {email} afin que vous puissiez suivre votre commande.",
+    "accountEmailedNote": "Nous vous avons envoyé par e-mail votre mot de passe et un lien de connexion en un clic.",
     "setPasswordLink": "Définir un mot de passe",
     "retry": "Réessayer",
     "kustomValidationReasons": {
@@ -376,7 +377,15 @@
     "showPassword": "Afficher le mot de passe",
     "hidePassword": "Masquer le mot de passe",
     "registerSubtitle": "Créez votre compte client",
-    "confirmPasswordPlaceholder": "Saisissez à nouveau le mot de passe"
+    "confirmPasswordPlaceholder": "Saisissez à nouveau le mot de passe",
+    "magicTitle": "Connexion en cours",
+    "magicLoading": "Un instant, nous vous connectons…",
+    "magicSuccess": "Vous êtes connecté. Redirection vers votre compte…",
+    "magicInvalidTitle": "Ce lien n'est plus valide",
+    "magicInvalid": "Ce lien de connexion a expiré ou a déjà été utilisé.",
+    "magicInvalidHint": "Connectez-vous avec votre e-mail et votre mot de passe, ou réinitialisez votre mot de passe si vous ne le connaissez pas.",
+    "magicLogin": "Se connecter",
+    "magicForgot": "Mot de passe oublié ?"
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",

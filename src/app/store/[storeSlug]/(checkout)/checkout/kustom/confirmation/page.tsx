@@ -223,12 +223,14 @@ function KustomConfirmationContent() {
         </div>
 
         {/* Guest checkout: an account was created from the email Kustom
-            collected. Point to the forgot-password flow to choose a password. */}
+            collected; its password and a one-click login link were emailed.
+            The forgot-password flow stays offered to choose a new password. */}
         {accountCreated && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-gray-700">
             <UserRound className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
             <div>
               <p>{t('checkout.accountCreatedNote', { email: confirmation!.customer_email! })}</p>
+              <p className="mt-1">{t('checkout.accountEmailedNote')}</p>
               <Link
                 href={lp('/auth/forgot-password')}
                 className="inline-block mt-1 font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
