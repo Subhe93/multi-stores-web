@@ -63,7 +63,9 @@ function defaultUrl(type: ItemKey, lp: string): string {
     case 'search': return `${lp}/products`;
     case 'cart': return `${lp}/cart`;
     case 'account': return `${lp}/account`;
-    case 'wishlist': return `${lp}/account/wishlist`;
+    // There is no wishlist page; a wishlist item without a custom URL is
+    // not rendered (see the filter in MobileBottomNav).
+    case 'wishlist': return '';
     case 'categories': return `${lp}/products`;
     case 'menu': return '#menu';
     default: return '#';
@@ -83,7 +85,11 @@ function localizeUrl(rawUrl: string, lp: string, locale: string): string {
 
 function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRenderProps) {
   const lp = locale !== primaryLocale ? `/${locale}` : '';
-  const items = ((content.items as BottomNavItem[]) || []).filter((i) => i.type);
+  // Legacy 'wishlist' items only render when the creator gave them a URL:
+  // the storefront has no wishlist page to fall back to.
+  const items = ((content.items as BottomNavItem[]) || []).filter(
+    (i) => i.type && (i.type !== 'wishlist' || Boolean(i.url?.trim())),
+  );
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
   const fg = colorOr(settings.text_color, 'var(--theme-colors-muted)');
   const activeFg = colorOr(settings.active_color, 'var(--theme-colors-primary)');
@@ -146,7 +152,6 @@ const ITEM_OPTIONS = [
   { value: 'categories', label: { en: 'Categories', ar: 'الفئات' } },
   { value: 'cart', label: { en: 'Cart', ar: 'السلة' } },
   { value: 'account', label: { en: 'Account', ar: 'الحساب' } },
-  { value: 'wishlist', label: { en: 'Wishlist', ar: 'المفضّلة' } },
   { value: 'menu', label: { en: 'Menu', ar: 'القائمة' } },
   { value: 'custom', label: { en: 'Custom link', ar: 'رابط مخصّص' } },
 ];
@@ -158,8 +163,8 @@ export const mobileBottomNavSection: SectionDefinition = {
     icon: 'smartphone',
     category: 'header',
     description: {
-      en: 'Fixed icon bar at the bottom of the viewport on mobile only. Six destinations baked in (Home, Search, Cart, Account, Wishlist, Categories) plus a custom-link slot. Hidden ≥ md.',
-      ar: 'شريط أيقونات ثابت أسفل الشاشة على الجوال فقط. ست وجهات جاهزة (رئيسية، بحث، سلة، حساب، مفضّلة، فئات) مع خانة لرابط مخصّص. مخفي على الشاشات الأكبر.',
+      en: 'Fixed icon bar at the bottom of the viewport on mobile only. Five destinations baked in (Home, Search, Cart, Account, Categories) plus a custom-link slot. Hidden ≥ md.',
+      ar: 'شريط أيقونات ثابت أسفل الشاشة على الجوال فقط. خمس وجهات جاهزة (رئيسية، بحث، سلة، حساب، فئات) مع خانة لرابط مخصّص. مخفي على الشاشات الأكبر.',
     },
     pageTypes: ['HEADER', 'FOOTER'],
     translatable: ['items'],

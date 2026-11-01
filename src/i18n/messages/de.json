@@ -385,7 +385,12 @@
     "magicInvalid": "Dieser Anmeldelink ist abgelaufen oder wurde bereits verwendet.",
     "magicInvalidHint": "Melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an oder setzen Sie Ihr Passwort zurück, falls Sie es nicht kennen.",
     "magicLogin": "Anmelden",
-    "magicForgot": "Passwort vergessen?"
+    "magicForgot": "Passwort vergessen?",
+    "wrongStoreAccount": "Dieses Konto gehört zu einem anderen Shop. Melden Sie sich mit Ihrem Konto für diesen Shop an oder erstellen Sie eines.",
+    "emailExistsInStore": "Für diese E-Mail-Adresse gibt es in diesem Shop bereits ein Konto — bitte melden Sie sich an.",
+    "platformStaffOnly": "Diese Anmeldung ist für Shop-Inhaber und Partner.",
+    "platformCustomerSignIn": "Sie kaufen als Kunde ein? Melden Sie sich in dem Shop an, in dem Sie eingekauft haben.",
+    "platformForgotHint": "In einem Shop eingekauft? Setzen Sie Ihr Passwort auf der Website dieses Shops zurück."
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",
@@ -739,7 +744,10 @@
     "DESIGNER_STORAGE_FULL": "Fotos können gerade nicht hochgeladen werden. Bitte versuche es später erneut.",
     "DESIGNER_UPLOAD_BUSY": "Gerade werden zu viele Bilder verarbeitet. Bitte versuchen Sie es gleich noch einmal.",
     "DESIGNER_ASSET_NOT_FOUND": "Dieses Foto ist nicht mehr verfügbar. Bitte lade es erneut hoch.",
-    "DESIGNER_ADDONS_INVALID": "Die gewählten Extras sind ungültig. Bitte wähle sie erneut."
+    "DESIGNER_ADDONS_INVALID": "Die gewählten Extras sind ungültig. Bitte wähle sie erneut.",
+    "STORE_REQUIRED": "Melden Sie sich auf der Website des Shops an oder erstellen Sie dort Ihr Konto.",
+    "CUSTOMER_STORE_MISMATCH": "Dieses Konto gehört zu einem anderen Shop.",
+    "NOT_CUSTOMER_ACCOUNT": "Dies ist ein Dashboard-Konto, kein Kundenkonto."
   },
   "builderPreview": {
     "moveUp": "Nach oben",

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/format';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
@@ -196,14 +197,15 @@ export default function StoreOrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { token } = useAuth();
+
   useEffect(() => {
-    const token = localStorage.getItem('auth_access_token');
     if (!token || !orderId) return;
     api<OrderDetail>(`/orders/${orderId}`, { token })
       .then(setOrder)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, token]);
 
   if (loading) {
     return (

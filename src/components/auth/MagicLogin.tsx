@@ -6,10 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2, LinkIcon, CheckCircle2 } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useAuth, isNotCustomerAccountError, type AuthTokensPayload } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { useAuth, isNotCustomerAccountError, isStoreMismatchError } from '@/hooks/useAuth';
 
-type Status = 'loading' | 'success' | 'invalid' | 'notCustomer';
+type Status = 'loading' | 'success' | 'invalid' | 'notCustomer' | 'wrongStore';
 
 /** Token from the URL fragment (`#token=`, current emails: never sent to the
  *  server, so it stays out of access logs) or the query string (`?token=`,
@@ -50,7 +49,7 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
   const t = useTranslations('auth');
   const router = useRouter();
   const lp = useLocalePath();
-  const { loginWithTokens } = useAuth();
+  const { loginWithMagicToken } = useAuth();
   const [status, setStatus] = useState<Status>('loading');
   const started = useRef(false);
 
@@ -67,16 +66,21 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
         return;
       }
       try {
-        const data = await api<AuthTokensPayload>('/auth/magic-login', {
-          method: 'POST',
-          body: JSON.stringify({ token }),
-        });
-        await loginWithTokens(data);
+        // The store variant sends its store context: a link of another
+        // store's customer is refused by the API without being spent.
+        await loginWithMagicToken(token);
         setStatus('success');
-        // The platform has no account area; customers land on its home page.
+        // Only reachable in a store: the platform accepts no customer session
+        // (loginWithTokens rejects it with CUSTOMER_STORE_MISMATCH).
         router.replace(variant === 'store' ? lp('/account') : '/');
       } catch (err) {
-        setStatus(isNotCustomerAccountError(err) ? 'notCustomer' : 'invalid');
+        setStatus(
+          isNotCustomerAccountError(err)
+            ? 'notCustomer'
+            : isStoreMismatchError(err)
+              ? 'wrongStore'
+              : 'invalid',
+        );
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -123,10 +127,14 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
       </div>
       <h1 className={title}>{t('magicInvalidTitle')}</h1>
       <p className={`${muted} mb-2`}>
-        {status === 'notCustomer' ? t('dashboardAccountNotAllowed') : t('magicInvalid')}
+        {status === 'notCustomer'
+          ? t('dashboardAccountNotAllowed')
+          : status === 'wrongStore'
+            ? (isStore ? t('wrongStoreAccount') : t('platformCustomerSignIn'))
+            : t('magicInvalid')}
       </p>
       {status === 'invalid' && <p className={`${muted} mb-8`}>{t('magicInvalidHint')}</p>}
-      {status === 'notCustomer' && <div className="mb-8" />}
+      {status !== 'invalid' && <div className="mb-8" />}
 
       <Link
         href={lp('/auth/login')}

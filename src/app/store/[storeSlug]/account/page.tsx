@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { IfApp } from '@/components/IfApp';
 import { useStoreApp } from '@/hooks/useStoreApps';
 import { Package, MapPin, Pencil, Loader2, Lock, Check, Building2 } from 'lucide-react';
@@ -58,12 +59,14 @@ export default function StoreAccountPage() {
   const [pwdMsg, setPwdMsg] = useState('');
   const [pwdError, setPwdError] = useState('');
 
+  // The account layout renders this page only once the session is known.
+  const { token: authToken, replaceTokens } = useAuth();
   function getToken() {
-    return localStorage.getItem('auth_access_token');
+    return authToken;
   }
 
   useEffect(() => {
-    const token = getToken();
+    const token = authToken;
     if (!token) return;
     api<UserProfile>('/auth/me', { token })
       .then((data) => {
@@ -82,7 +85,7 @@ export default function StoreAccountPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [authToken]);
 
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -164,7 +167,9 @@ export default function StoreAccountPage() {
     setPwdSaving(true);
 
     try {
-      await api('/auth/change-password', {
+      // The API revokes every token issued before the change and returns a
+      // fresh pair for this session.
+      const res = await api<{ access_token?: string; refresh_token?: string }>('/auth/change-password', {
         method: 'PUT',
         token,
         body: JSON.stringify({
@@ -172,6 +177,9 @@ export default function StoreAccountPage() {
           new_password: pwdForm.new_password,
         }),
       });
+      if (res?.access_token && res.refresh_token) {
+        replaceTokens({ access_token: res.access_token, refresh_token: res.refresh_token });
+      }
       setPwdMsg(t('passwordChanged'));
       setPwdForm({ current_password: '', new_password: '', confirm_password: '' });
       setShowPwdForm(false);

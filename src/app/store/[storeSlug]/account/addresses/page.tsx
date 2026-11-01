@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { IfApp } from '@/components/IfApp';
 import { useStoreApp } from '@/hooks/useStoreApps';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
@@ -73,18 +74,20 @@ export default function StoreAddressesPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // The account layout renders this page only once the session is known.
+  const { token: authToken } = useAuth();
   function getToken() {
-    return localStorage.getItem('auth_access_token');
+    return authToken;
   }
 
   useEffect(() => {
-    const token = getToken();
+    const token = authToken;
     if (!token) return;
     api<Address[]>('/customers/me/addresses', { token })
       .then((data) => setAddresses(Array.isArray(data) ? data : []))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load addresses'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [authToken]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));

@@ -3,10 +3,10 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
 
 export default function StoreRegisterPage() {
@@ -14,6 +14,10 @@ export default function StoreRegisterPage() {
   const router = useRouter();
   const lp = useLocalePath();
   const apiError = useApiError();
+  const locale = useLocale();
+  // The provider adds this store's context (store_slug + hostname), so the
+  // account is created in this store only.
+  const { register } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -40,19 +44,19 @@ export default function StoreRegisterPage() {
     setLoading(true);
 
     try {
-      await api('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email,
-          password,
-          role: 'CUSTOMER',
-          first_name: firstName,
-          last_name: lastName,
-        }),
+      await register({
+        email,
+        password,
+        role: 'CUSTOMER',
+        first_name: firstName,
+        last_name: lastName,
+        locale,
       });
-      router.push(lp('/auth/login'));
+      // Signed in right away: go to the account page.
+      router.push(lp('/account'));
     } catch (err: unknown) {
-      setError(apiError(err));
+      const code = (err as { code?: string } | null)?.code;
+      setError(code === 'AUTH_EMAIL_EXISTS' ? t('emailExistsInStore') : apiError(err));
     } finally {
       setLoading(false);
     }

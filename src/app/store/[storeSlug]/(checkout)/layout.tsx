@@ -84,7 +84,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

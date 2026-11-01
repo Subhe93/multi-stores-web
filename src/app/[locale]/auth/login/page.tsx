@@ -2,7 +2,6 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 
@@ -10,9 +9,14 @@ import { api } from '@/lib/api';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
 const STAFF_ROLES = ['CREATOR', 'PROVIDER', 'ADMIN'];
 
+/**
+ * Platform sign-in is for staff only. Customer accounts belong to one store
+ * and sign in on that store, so the request carries no store context (the
+ * API then only matches staff) and a customer session is never kept here.
+ */
+
 export default function LoginPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,14 +39,13 @@ export default function LoginPage() {
 
       // Creators/providers manage their store in the dashboard app (separate origin —
       // tokens aren't shared), so send them there to sign in instead of the storefront.
-      if (STAFF_ROLES.includes(data.user.role)) {
+      if (STAFF_ROLES.includes(data.user?.role)) {
         window.location.href = `${DASHBOARD_URL}/auth/login`;
         return;
       }
 
-      localStorage.setItem('auth_access_token', data.access_token);
-      if (data.refresh_token) localStorage.setItem('auth_refresh_token', data.refresh_token);
-      router.push('/');
+      // Anything else is a customer account: its tokens are not stored.
+      setError(t('platformCustomerSignIn'));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(message);
@@ -56,8 +59,11 @@ export default function LoginPage() {
       <h1 className="text-2xl font-semibold text-slate-800 text-center mb-2">
         {t('loginTitle')}
       </h1>
-      <p className="text-slate-500 text-center mb-8">
-        {t('signIn')}
+      <p className="text-slate-500 text-center mb-2">
+        {t('platformStaffOnly')}
+      </p>
+      <p className="text-slate-500 text-center text-sm mb-8">
+        {t('platformCustomerSignIn')}
       </p>
 
       {error && (

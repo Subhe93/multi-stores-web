@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { storefront, legal, resolveMediaUrl, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
 import { getPlatformName } from '@/lib/platform';
+import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { preload } from 'react-dom';
 import { buildGoogleFontsHref, loadInlineFonts } from '@/lib/storeFonts';
@@ -231,8 +232,15 @@ export default async function StoreLayout({
   let store: Store;
   try {
     store = await storefront.getStore(storeSlug, marketKey) as Store;
-  } catch {
-    notFound();
+  } catch (err) {
+    // Only a definitive API answer (404 STORE_NOT_FOUND, other 4xx) means
+    // the store does not exist. An unreachable API (maintenance window,
+    // network error, 502/503/504, timeout) must never become a 404 that
+    // search engines act on: it is thrown, so the error boundary answers a
+    // 5xx. The proxy normally catches the outage first and serves the 503
+    // maintenance page (src/lib/apiAvailability.ts).
+    if (isDefinitiveNotFound(err)) notFound();
+    throw new StoreUnavailableError();
   }
 
   // Published HEADER / FOOTER chrome. Either can be null — that means the
@@ -495,7 +503,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
         ) : fontsHref && (

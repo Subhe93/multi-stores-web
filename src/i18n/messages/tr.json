@@ -385,7 +385,12 @@
     "magicInvalid": "Bu giriş bağlantısının süresi dolmuş veya bağlantı daha önce kullanılmış.",
     "magicInvalidHint": "E-posta adresiniz ve şifrenizle giriş yapın ya da şifrenizi bilmiyorsanız sıfırlayın.",
     "magicLogin": "Giriş yap",
-    "magicForgot": "Şifrenizi mi unuttunuz?"
+    "magicForgot": "Şifrenizi mi unuttunuz?",
+    "wrongStoreAccount": "Bu hesap başka bir mağazaya ait. Bu mağazadaki hesabınızla giriş yapın veya yeni bir hesap oluşturun.",
+    "emailExistsInStore": "Bu e-postanın bu mağazada zaten bir hesabı var — giriş yapın.",
+    "platformStaffOnly": "Bu giriş mağaza sahipleri ve iş ortakları içindir.",
+    "platformCustomerSignIn": "Müşteri olarak mı alışveriş yapıyorsunuz? Alışveriş yaptığınız mağazada giriş yapın.",
+    "platformForgotHint": "Bir mağazadan mı alışveriş yaptınız? Şifrenizi o mağazanın sitesinden sıfırlayın."
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",
@@ -739,7 +744,10 @@
     "DESIGNER_STORAGE_FULL": "Şu anda fotoğraf yüklenemiyor. Lütfen daha sonra tekrar dene.",
     "DESIGNER_UPLOAD_BUSY": "Şu anda çok fazla görsel işleniyor. Lütfen biraz sonra tekrar deneyin.",
     "DESIGNER_ASSET_NOT_FOUND": "Bu fotoğraf artık mevcut değil. Lütfen yeniden yükle.",
-    "DESIGNER_ADDONS_INVALID": "Seçilen ekstralar geçerli değil. Lütfen yeniden seçin."
+    "DESIGNER_ADDONS_INVALID": "Seçilen ekstralar geçerli değil. Lütfen yeniden seçin.",
+    "STORE_REQUIRED": "Mağazanın kendi sitesinde giriş yapın veya hesap oluşturun.",
+    "CUSTOMER_STORE_MISMATCH": "Bu hesap başka bir mağazaya ait.",
+    "NOT_CUSTOMER_ACCOUNT": "Bu bir panel hesabıdır, müşteri hesabı değildir."
   },
   "builderPreview": {
     "moveUp": "Yukarı taşı",

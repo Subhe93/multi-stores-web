@@ -9,6 +9,12 @@ import {
 } from '@/lib/market-routing';
 import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
 import { marketPublicHostname } from '@/lib/storeUrl';
+import {
+  isApiUnavailableStatus,
+  maintenanceHeaders,
+  maintenanceHtml,
+  maintenanceLang,
+} from '@/lib/apiAvailability';
 
 // Main platform hostnames — everything else is treated as a store subdomain
 // or a custom CNAME. Configurable via NEXT_PUBLIC_PLATFORM_HOSTS.
@@ -69,9 +75,18 @@ export type HostRoute = {
    *  the default market's public host when it has no StoreDomain row. */
   customDomain: string | null;
 };
-type DomainCacheEntry = { route: HostRoute | null; expiresAt: number };
+/**
+ * The host lookup could not reach the API (network error, timeout, or a
+ * 502/503/504 from the reverse proxy). Not a "no such store" answer: the
+ * proxy serves the 503 maintenance page instead of a 404.
+ */
+export const API_UNAVAILABLE = 'api-unavailable' as const;
+type HostLookup = HostRoute | null | typeof API_UNAVAILABLE;
+type DomainCacheEntry = { route: HostLookup; expiresAt: number };
 const POSITIVE_TTL_MS = 60_000;
 const NEGATIVE_TTL_MS = 10_000;
+// Short, so the storefront comes back within seconds of the API.
+const UNAVAILABLE_TTL_MS = 5_000;
 const domainCache = new Map<string, DomainCacheEntry>();
 // Neither lookup may stall a request: the custom-host lookup times out to a
 // miss (cached briefly), the market-context call to the legacy route (L11).
@@ -144,14 +159,23 @@ function readCustomDomain(raw: unknown): string | null {
 }
 
 /** Custom host → `GET /stores/by-domain/:host` (slug + market + redirect). */
-async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
+async function fetchCustomHostRoute(host: string): Promise<HostRoute | null | typeof API_UNAVAILABLE> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HOST_LOOKUP_TIMEOUT_MS);
+  let res: Response;
   try {
-    const res = await fetch(
+    res = await fetch(
       `${API_URL}/stores/by-domain/${encodeURIComponent(host)}`,
       { cache: 'no-store', signal: controller.signal },
     );
+  } catch {
+    // Network error or timeout: the API is unreachable, which says nothing
+    // about whether this host is a store.
+    clearTimeout(timer);
+    return API_UNAVAILABLE;
+  }
+  try {
+    if (isApiUnavailableStatus(res.status)) return API_UNAVAILABLE;
     if (!res.ok) return null;
     // API wraps responses via TransformInterceptor: { success, data, timestamp }.
     // Read `data.*` first; fall back to bare fields in case the interceptor
@@ -179,8 +203,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
       customDomain: market ? readCustomDomain(data.custom_domain) : null,
     };
   } catch {
-    // Network error — the caller caches the miss briefly so we don't stall
-    // on every request if the API is momentarily unreachable.
+    // Unreadable body (or the body read timed out): cached briefly as a miss.
     return null;
   } finally {
     clearTimeout(timer);
@@ -192,7 +215,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null> {
  * error, non-2xx or timeout yields the legacy route (no market) so a store
  * without the app — or an API hiccup — never changes today's behaviour.
  */
-async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
+async function fetchPlatformHostRoute(slug: string): Promise<HostRoute | typeof API_UNAVAILABLE> {
   const legacy: HostRoute = {
     slug,
     market: null,
@@ -205,11 +228,19 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute> {
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HOST_LOOKUP_TIMEOUT_MS);
+  let res: Response;
   try {
-    const res = await fetch(
+    res = await fetch(
       `${API_URL}/stores/${encodeURIComponent(slug)}/market-context`,
       { cache: 'no-store', signal: controller.signal },
     );
+  } catch {
+    // API unreachable (network error / timeout): maintenance, not legacy.
+    clearTimeout(timer);
+    return API_UNAVAILABLE;
+  }
+  try {
+    if (isApiUnavailableStatus(res.status)) return API_UNAVAILABLE;
     if (!res.ok) return legacy;
     type Ctx = {
       enabled?: boolean;
@@ -291,7 +322,7 @@ async function resolveHost(
   host: string,
   platformSlug: string | null,
   preview: { slug: string; key: string } | null = null,
-): Promise<HostRoute | null> {
+): Promise<HostLookup> {
   if (!platformSlug && !HOSTNAME_RE.test(host)) return null;
 
   const now = Date.now();
@@ -304,12 +335,17 @@ async function resolveHost(
       (await fetchPlatformHostRoute(platformSlug))
     : await fetchCustomHostRoute(host);
 
-  const ttl = route && !route.legacy ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS;
+  const ttl =
+    route === API_UNAVAILABLE
+      ? UNAVAILABLE_TTL_MS
+      : route && !route.legacy
+        ? POSITIVE_TTL_MS
+        : NEGATIVE_TTL_MS;
   domainCache.set(host, { route, expiresAt: now + ttl });
   return route;
 }
 
-async function resolveStoreHost(hostname: string): Promise<HostRoute | null> {
+async function resolveStoreHost(hostname: string): Promise<HostLookup> {
   const host = hostname.split(':')[0]!.toLowerCase();
 
   // Main platform — not a store
@@ -399,7 +435,19 @@ export async function proxy(request: NextRequest) {
   // costs is cached per host (domainCache), so static requests stay cheap.
   const isStaticLike = !isSitemapOrRobots && pathname.includes('.');
 
-  const route = await resolveStoreHost(hostname);
+  const lookup = await resolveStoreHost(hostname);
+  // API unreachable while resolving a store host (maintenance window, crash):
+  // 503 + Retry-After instead of a 404 / platform fallback, so crawlers see a
+  // temporary outage. Static files are still served; robots.txt and
+  // sitemap.xml get the 503 too (crawlers then pause the whole host).
+  if (lookup === API_UNAVAILABLE) {
+    if (isStaticLike) return NextResponse.next();
+    return new NextResponse(maintenanceHtml(maintenanceLang(request.headers.get('accept-language'))), {
+      status: 503,
+      headers: maintenanceHeaders(),
+    });
+  }
+  const route = lookup;
   const storeSlug = route?.slug ?? null;
 
   // Store redirects (M4.4 §6.4): only when the host lookup reported a

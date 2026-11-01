@@ -144,7 +144,7 @@ export default async function BuilderPreviewPage({
   const messages = (await import(`@/i18n/messages/${activeLocale}.json`)).default;
 
   return (
-    <StoreProviders locale={activeLocale} storeCurrency={currency} storeTax={normalizeStoreTax(store.tax)}>
+    <StoreProviders locale={activeLocale} storeSlug={storeSlug} storeCurrency={currency} storeTax={normalizeStoreTax(store.tax)}>
       <NextIntlClientProvider locale={activeLocale} messages={messages}>
         <BuilderPreviewClient
           storeSlug={storeSlug}

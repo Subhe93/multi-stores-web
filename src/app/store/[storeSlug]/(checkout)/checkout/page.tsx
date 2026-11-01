@@ -7,7 +7,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useAuth, isNotCustomerAccountError } from '@/hooks/useAuth';
+import { useAuth, isNotCustomerAccountError, isStoreMismatchError, readStoredAccessToken } from '@/hooks/useAuth';
 import { createCheckoutAccount, guestAccountNoteKey } from '@/lib/checkoutAccount';
 import { useCart } from '@/hooks/useCart';
 import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
@@ -671,12 +671,15 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       await login(loginEmail, loginPassword);
       setShowLogin(false);
     } catch (err: unknown) {
-      // Dashboard accounts get a dedicated message; wrong-password and other
-      // failures keep the generic message path.
+      // Dashboard accounts and other stores' customers get a dedicated
+      // message; wrong-password and other failures keep the API error path.
+      // login() sends this store's context, so only this store's account matches.
       if (isNotCustomerAccountError(err)) {
         setLoginError(t('auth.dashboardAccountNotAllowed'));
+      } else if (isStoreMismatchError(err)) {
+        setLoginError(t('auth.wrongStoreAccount'));
       } else {
-        setLoginError(err instanceof Error ? err.message : 'Login failed');
+        setLoginError(apiError(err));
       }
     } finally {
       setLoginLoading(false);
@@ -749,17 +752,23 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
           activeToken = created.token;
           createdGuestAccount = created.guest;
         } catch (regErr: unknown) {
+          // Accounts are per store: "email exists" means it exists in this
+          // store, so the shopper is asked to log in here.
+          const regMessage = (regErr as { code?: string } | null)?.code === 'AUTH_EMAIL_EXISTS'
+            ? t('auth.emailExistsInStore')
+            : apiError(regErr);
           if (wantAccount && accountPassword) {
             try {
+              // Same store context as the register call (useAuth adds it).
               await login(form.email, accountPassword);
-              activeToken = localStorage.getItem('auth_access_token');
+              activeToken = readStoredAccessToken();
             } catch {
-              setError(regErr instanceof Error ? regErr.message : 'Registration failed.');
+              setError(regMessage);
               setLoading(false);
               return;
             }
           } else {
-            setError(regErr instanceof Error ? regErr.message : 'Could not create account. Please log in above.');
+            setError(regMessage);
             setLoading(false);
             return;
           }

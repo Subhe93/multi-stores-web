@@ -40,11 +40,13 @@ function invalidLink(): never {
   throw err;
 }
 
-function renderPage() {
+function renderPage(variant: 'store' | 'platform' = 'store') {
+  // The store tree passes its route slug and id; the platform tree passes none.
+  const store = variant === 'store' ? { storeSlug: 'shop', storeId: 'store-1' } : {};
   return render(
     <StrictMode>
-      <AuthProvider>
-        <MagicLogin variant="store" />
+      <AuthProvider {...store}>
+        <MagicLogin variant={variant} />
       </AuthProvider>
     </StrictMode>,
   );
@@ -70,7 +72,7 @@ describe('MagicLogin', () => {
       access_token: 'access-1',
       refresh_token: 'refresh-1',
     });
-    h.routes['/auth/me'] = () => ({ id: 'u1', name: 'A', email: 'a@x.se', role: 'CUSTOMER' });
+    h.routes['/auth/me'] = () => ({ id: 'u1', name: 'A', email: 'a@x.se', role: 'CUSTOMER', store_id: 'store-1' });
     const changed = vi.fn();
     window.addEventListener('auth-changed', changed);
 
@@ -82,7 +84,10 @@ describe('MagicLogin', () => {
 
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/account'));
     // Strict mode runs the effect twice; the single-use token is sent once.
-    expect(magicCalls()).toEqual([{ endpoint: '/auth/magic-login', body: { token: 'secret-token' } }]);
+    // The store variant sends its store context (checked before the link is spent).
+    expect(magicCalls()).toEqual([
+      { endpoint: '/auth/magic-login', body: { token: 'secret-token', store_slug: 'shop', hostname: window.location.hostname } },
+    ]);
     expect(localStorage.getItem('auth_access_token')).toBe('access-1');
     expect(localStorage.getItem('auth_refresh_token')).toBe('refresh-1');
     expect(changed).toHaveBeenCalled();
@@ -111,14 +116,17 @@ describe('MagicLogin', () => {
       access_token: 'access-3',
       refresh_token: 'refresh-3',
     });
-    h.routes['/auth/me'] = () => ({ id: 'u1', name: 'A', email: 'a@x.se', role: 'CUSTOMER' });
+    h.routes['/auth/me'] = () => ({ id: 'u1', name: 'A', email: 'a@x.se', role: 'CUSTOMER', store_id: 'store-1' });
 
     renderPage();
 
     expect(window.location.hash).toBe('');
     expect(window.location.search).toBe('?utm=mail');
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/account'));
-    expect(magicCalls()).toEqual([{ endpoint: '/auth/magic-login', body: { token: 'hash-token' } }]);
+    // The store variant sends its store context (checked before the link is spent).
+    expect(magicCalls()).toEqual([
+      { endpoint: '/auth/magic-login', body: { token: 'hash-token', store_slug: 'shop', hostname: window.location.hostname } },
+    ]);
   });
 
   it('does not call the API without a token', async () => {
@@ -142,5 +150,37 @@ describe('MagicLogin', () => {
     expect(await screen.findByText('dashboardAccountNotAllowed')).toBeInTheDocument();
     expect(localStorage.getItem('auth_access_token')).toBeNull();
     expect(h.replace).not.toHaveBeenCalled();
+  });
+
+  it('refuses a customer of another store and keeps no tokens', async () => {
+    h.routes['/auth/magic-login'] = () => ({
+      user: { role: 'CUSTOMER' },
+      access_token: 'access-4',
+      refresh_token: 'refresh-4',
+    });
+    h.routes['/auth/me'] = () => ({ id: 'u2', name: 'B', email: 'b@x.se', role: 'CUSTOMER', store_id: 'store-2' });
+
+    renderPage();
+
+    expect(await screen.findByText('wrongStoreAccount')).toBeInTheDocument();
+    expect(localStorage.getItem('auth_access_token')).toBeNull();
+    expect(localStorage.getItem('auth_refresh_token')).toBeNull();
+    expect(h.replace).not.toHaveBeenCalled();
+  });
+
+  it('sends a customer on the platform to their store', async () => {
+    h.routes['/auth/magic-login'] = () => ({
+      user: { role: 'CUSTOMER' },
+      access_token: 'access-5',
+      refresh_token: 'refresh-5',
+    });
+    h.routes['/auth/me'] = () => ({ id: 'u1', name: 'A', email: 'a@x.se', role: 'CUSTOMER', store_id: 'store-1' });
+
+    renderPage('platform');
+
+    expect(await screen.findByText('platformCustomerSignIn')).toBeInTheDocument();
+    expect(localStorage.getItem('auth_access_token')).toBeNull();
+    // The platform page has no store: no store context is sent.
+    expect(magicCalls()).toEqual([{ endpoint: '/auth/magic-login', body: { token: 'secret-token' } }]);
   });
 });

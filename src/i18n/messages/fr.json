@@ -385,7 +385,12 @@
     "magicInvalid": "Ce lien de connexion a expiré ou a déjà été utilisé.",
     "magicInvalidHint": "Connectez-vous avec votre e-mail et votre mot de passe, ou réinitialisez votre mot de passe si vous ne le connaissez pas.",
     "magicLogin": "Se connecter",
-    "magicForgot": "Mot de passe oublié ?"
+    "magicForgot": "Mot de passe oublié ?",
+    "wrongStoreAccount": "Ce compte appartient à une autre boutique. Connectez-vous avec votre compte de cette boutique ou créez-en un.",
+    "emailExistsInStore": "Cet e-mail a déjà un compte dans cette boutique — connectez-vous.",
+    "platformStaffOnly": "Cette connexion est réservée aux propriétaires de boutique et aux partenaires.",
+    "platformCustomerSignIn": "Vous êtes client ? Connectez-vous sur la boutique où vous avez fait vos achats.",
+    "platformForgotHint": "Vous avez acheté dans une boutique ? Réinitialisez votre mot de passe sur le site de cette boutique."
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",
@@ -739,7 +744,10 @@
     "DESIGNER_STORAGE_FULL": "Les photos ne peuvent pas être importées pour le moment. Réessayez plus tard.",
     "DESIGNER_UPLOAD_BUSY": "Trop d’images sont en cours de traitement. Veuillez réessayer dans un instant.",
     "DESIGNER_ASSET_NOT_FOUND": "Cette photo n’est plus disponible. Veuillez l’importer à nouveau.",
-    "DESIGNER_ADDONS_INVALID": "Les options choisies ne sont pas valides. Veuillez les choisir à nouveau."
+    "DESIGNER_ADDONS_INVALID": "Les options choisies ne sont pas valides. Veuillez les choisir à nouveau.",
+    "STORE_REQUIRED": "Connectez-vous ou créez votre compte sur le site de la boutique.",
+    "CUSTOMER_STORE_MISMATCH": "Ce compte appartient à une autre boutique.",
+    "NOT_CUSTOMER_ACCOUNT": "Ceci est un compte tableau de bord, pas un compte client."
   },
   "builderPreview": {
     "moveUp": "Monter",

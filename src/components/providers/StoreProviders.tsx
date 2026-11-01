@@ -58,6 +58,7 @@ function CartProviderWithAuth({
 export function StoreProviders({
   children,
   locale,
+  storeSlug,
   storeId,
   storeCurrency,
   storeTax,
@@ -71,7 +72,12 @@ export function StoreProviders({
 }: {
   children: ReactNode;
   locale?: string;
-  /** Store the cart belongs to — needed for store-scoped coupon validation. */
+  /** Route param `[storeSlug]`. Customer accounts are per store, so every
+   *  auth request carries it; without it (platform pages) only staff can
+   *  sign in and customer sessions are dropped. */
+  storeSlug?: string;
+  /** Store the cart belongs to — needed for store-scoped coupon validation;
+   *  also the store a signed-in customer must belong to. */
   storeId?: string;
   /** The store's currency — cart and checkout display it instead of the
    *  platform default stamped on individual items. */
@@ -105,7 +111,7 @@ export function StoreProviders({
   // the app's settings actually do.
   const b2bSettings = useMemo(() => (b2bApp ? normalizeB2bSettings(b2bApp.settings) : null), [b2bApp]);
   return (
-    <AuthProvider>
+    <AuthProvider storeSlug={storeSlug} storeId={storeId}>
       <StoreTaxProvider value={storeTax ?? null}>
         <StoreAppsProvider value={storeApps}>
           <BuyerTypeProvider

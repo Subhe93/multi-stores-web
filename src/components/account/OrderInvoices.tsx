@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Download, FileText, Loader2, RotateCw } from 'lucide-react';
 import { useApiError } from '@/lib/useApiError';
 import { downloadAuthed } from '@/lib/download';
+import { useAuth } from '@/hooks/useAuth';
 import {
   fetchOrderInvoices,
   formatInvoiceAmount,
@@ -33,9 +34,9 @@ export function OrderInvoices({ orderId }: { orderId: string }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_access_token');
     if (!token || !orderId) return;
     let cancelled = false;
     setLoadFailed(false);
@@ -48,7 +49,7 @@ export function OrderInvoices({ orderId }: { orderId: string }) {
         if (!cancelled && window.location.hash === '#invoices') setLoadFailed(true);
       });
     return () => { cancelled = true; };
-  }, [orderId, reloadKey]);
+  }, [orderId, reloadKey, token]);
 
   const hasItems = !!items && items.length > 0;
 
@@ -86,7 +87,6 @@ export function OrderInvoices({ orderId }: { orderId: string }) {
   if (!items || items.length === 0) return null;
 
   const handleDownload = async (inv: InvoiceSummary) => {
-    const token = localStorage.getItem('auth_access_token');
     if (!token) return;
     setBusyId(inv.id);
     setRowError(null);

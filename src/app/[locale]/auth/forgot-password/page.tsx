@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 
+/** Staff password reset: no store context is sent, so the API only matches
+ *  staff accounts. Customers reset on the store where they shopped. */
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth');
   const [email, setEmail] = useState('');
@@ -37,8 +39,11 @@ export default function ForgotPasswordPage() {
       <h1 className="text-2xl font-semibold text-slate-800 text-center mb-2">
         {t('forgotPasswordTitle')}
       </h1>
-      <p className="text-slate-500 text-center mb-8">
+      <p className="text-slate-500 text-center mb-2">
         {t('resetPasswordDesc')}
+      </p>
+      <p className="text-slate-500 text-center text-sm mb-8">
+        {t('platformForgotHint')}
       </p>
 
       {success ? (

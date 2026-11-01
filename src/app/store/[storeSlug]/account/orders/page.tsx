@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/format';
 import { Package, ChevronRight } from 'lucide-react';
 
@@ -43,9 +44,9 @@ export default function StoreOrdersPage() {
   const locale = useLocale();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_access_token');
     if (!token) return;
     api<Order[] | { data?: Order[] } | null>('/orders/my', { token })
       .then((data) => {
@@ -54,7 +55,7 @@ export default function StoreOrdersPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (

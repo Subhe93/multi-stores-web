@@ -2,38 +2,23 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
-import { useMarket } from '@/hooks/useMarket';
 
 export default function StoreForgotPasswordPage() {
   const t = useTranslations('auth');
   const lp = useLocalePath();
-  const pathname = usePathname();
   const apiError = useApiError();
-  // Markets app: the reset link must come back on this market's domain, so
-  // the request carries the hostname (validated server-side, M1-DESIGN D1).
-  const market = useMarket();
+  // The provider sends this store's context: store_slug from the route param
+  // and the hostname, so the reset targets this store's customer account and
+  // the link comes back on this domain (validated server-side, M1-DESIGN D1).
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Resolve store slug from subdomain (usePathname returns the user-visible URL
-  // after middleware rewrite, e.g. "/auth/forgot-password" not
-  // "/store/ahmed-design/auth/forgot-password", so read from the hostname).
-  const PLATFORM_DOMAINS = ['localhost', 'platform.com', 'www.platform.com'];
-  const storeSlug = typeof window !== 'undefined'
-    ? (() => {
-        const hostname = window.location.hostname;
-        if (PLATFORM_DOMAINS.includes(hostname)) return '';
-        const parts = hostname.split('.');
-        return parts.length >= 2 ? parts[0]! : '';
-      })()
-    : pathname.match(/\/store\/([^/]+)/)?.[1] || '';
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -41,14 +26,7 @@ export default function StoreForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await api('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({
-          email,
-          ...(storeSlug ? { store_slug: storeSlug } : {}),
-          ...(market ? { hostname: window.location.hostname } : {}),
-        }),
-      });
+      await forgotPassword(email);
       // Always show a neutral success message — never reveal whether the email exists.
       setSuccess(true);
     } catch (err: unknown) {
