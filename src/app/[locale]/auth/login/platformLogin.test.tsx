@@ -53,6 +53,21 @@ describe('platform login (staff only)', () => {
     expect(localStorage.getItem('auth_refresh_token')).toBeNull();
   });
 
+  it('sends a two-step verification challenge to the dashboard login', async () => {
+    h.response = { requires_2fa: true, challenge_token: 'c', expires_in: 300 };
+    const location = window.location;
+    // jsdom cannot navigate: capture the href assignment instead.
+    Object.defineProperty(window, 'location', { configurable: true, value: { href: '' } });
+    try {
+      render(<LoginPage />);
+      submit('admin@x.se');
+      await waitFor(() => expect(window.location.href).toMatch(/\/auth\/login$/));
+      expect(screen.queryByText('platformCustomerSignIn', { selector: 'div' })).toBeNull();
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: location });
+    }
+  });
+
   it('shows the staff-only copy and the customer hint up front', () => {
     render(<LoginPage />);
     expect(screen.getByText('platformStaffOnly')).toBeInTheDocument();

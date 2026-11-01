@@ -29,9 +29,11 @@ export default function LoginPage() {
 
     try {
       const data = await api<{
-        user: { role: string };
-        access_token: string;
-        refresh_token: string;
+        user?: { role: string };
+        access_token?: string;
+        refresh_token?: string;
+        // Set instead of tokens when the account has two-step verification.
+        requires_2fa?: boolean;
       }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
@@ -39,7 +41,9 @@ export default function LoginPage() {
 
       // Creators/providers manage their store in the dashboard app (separate origin —
       // tokens aren't shared), so send them there to sign in instead of the storefront.
-      if (STAFF_ROLES.includes(data.user?.role)) {
+      // Only staff accounts can have two-step verification, so a 2FA challenge
+      // means a staff account too: it finishes signing in on the dashboard.
+      if (data.requires_2fa === true || STAFF_ROLES.includes(data.user?.role ?? '')) {
         window.location.href = `${DASHBOARD_URL}/auth/login`;
         return;
       }
