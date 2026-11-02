@@ -28,6 +28,8 @@
 .sd-auth-mobile-logo { display: inline-flex; }
 @media (min-width: 960px) { .sd-auth-mobile-logo { display: none; } }
 .sd-auth-card { width: 100%; max-width: 460px; background: var(--sd-white); border: 1px solid var(--sd-line); border-radius: var(--sd-radius); padding: 32px 22px; box-shadow: 0 30px 60px -40px rgba(20, 45, 54, 0.35); }
+/* The register card is wider: the account-kind rows need the room. */
+.sd-auth-card.sd-auth-card-wide { max-width: 560px; }
 @media (min-width: 640px) { .sd-auth-card { padding: 44px 40px; } }
 .sd-auth-card-center { text-align: center; }
 
@@ -58,16 +60,15 @@
 
 /* Account-kind cards (register): a radio group of three cards. */
 .sd-auth-kinds { display: grid; grid-template-columns: 1fr; gap: 10px; }
-@media (min-width: 560px) { .sd-auth-kinds { grid-template-columns: repeat(3, 1fr); } }
-.sd-auth-kind { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 14px 16px; border: 1.5px solid var(--sd-line); border-radius: 14px; background: var(--sd-ivory); color: var(--sd-navy); text-align: start; cursor: pointer; user-select: none; transition: border-color .25s ease, background-color .25s ease, box-shadow .25s ease; }
+.sd-auth-kind { display: grid; grid-template-columns: 40px 1fr; column-gap: 14px; row-gap: 2px; align-items: start; padding: 14px 16px; border: 1.5px solid var(--sd-line); border-radius: 14px; background: var(--sd-ivory); color: var(--sd-navy); text-align: start; cursor: pointer; user-select: none; transition: border-color .25s ease, background-color .25s ease, box-shadow .25s ease; }
 .sd-auth-kind:hover { border-color: rgba(21, 184, 166, 0.5); background: var(--sd-white); }
 .sd-auth-kind:focus-visible { outline: 3px solid var(--sd-amber); outline-offset: 2px; }
 .sd-auth-kind.is-selected { border-color: var(--sd-teal); background: var(--sd-white); box-shadow: 0 0 0 3px rgba(21, 184, 166, 0.18); }
-.sd-auth-kind-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(21, 184, 166, 0.12); color: var(--sd-teal-deep); margin-bottom: 2px; }
+.sd-auth-kind-icon { grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(21, 184, 166, 0.12); color: var(--sd-teal-deep); }
 .sd-auth-kind-icon svg { width: 18px; height: 18px; }
 .sd-auth-kind.is-selected .sd-auth-kind-icon { background: var(--sd-teal); color: var(--sd-white); }
-.sd-auth-kind-title { font-size: 0.9rem; font-weight: 700; line-height: 1.25; }
-.sd-auth-kind-desc { font-size: 0.78rem; line-height: 1.45; color: var(--sd-muted); }
+.sd-auth-kind-title { font-size: 0.95rem; font-weight: 700; line-height: 1.25; }
+.sd-auth-kind-desc { font-size: 0.82rem; line-height: 1.45; color: var(--sd-muted); }
 
 /* Terms checkbox */
 .sd-auth-check { display: flex; align-items: flex-start; gap: 10px; font-size: 0.86rem; line-height: 1.5; color: var(--sd-ink); cursor: pointer; }

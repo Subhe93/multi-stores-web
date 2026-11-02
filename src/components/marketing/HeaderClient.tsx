@@ -78,7 +78,9 @@ export function HeaderClient({ locale, homeHref, links, loginHref, loginLabel, c
       if (!el) return;
       gsap.set(el, { yPercent: -100, autoAlpha: 0 });
       return onPageReveal(() => {
-        gsap.to(el, { yPercent: 0, autoAlpha: 1, duration: 1.1, ease: EASE.expo, delay: 0.2 });
+        // clearProps: a transform left on the fixed header would become the
+        // containing block of the fixed drawer (it would size to the header).
+        gsap.to(el, { yPercent: 0, autoAlpha: 1, duration: 1.1, ease: EASE.expo, delay: 0.2, clearProps: 'transform' });
       });
     },
     { scope: ref },
@@ -153,7 +155,7 @@ export function HeaderClient({ locale, homeHref, links, loginHref, loginLabel, c
         .sd-header-burger span { display: block; width: 22px; height: 2px; background: var(--sd-navy); border-radius: 2px; transition: transform .35s ease, opacity .35s ease; }
         .sd-header-burger[aria-expanded="true"] span:first-child { transform: translateY(4px) rotate(45deg); }
         .sd-header-burger[aria-expanded="true"] span:last-child { transform: translateY(-4px) rotate(-45deg); }
-        .sd-header-drawer { position: fixed; inset: 72px 0 0 0; background: var(--sd-ivory); transform: translateY(-8px); opacity: 0; pointer-events: none; transition: opacity .35s ease, transform .35s ease; }
+        .sd-header-drawer { position: fixed; top: 72px; inset-inline: 0; height: calc(100dvh - 72px); overflow-y: auto; background: var(--sd-ivory); transform: translateY(-8px); opacity: 0; pointer-events: none; transition: opacity .35s ease, transform .35s ease; }
         .sd-header-drawer.is-open { opacity: 1; transform: none; pointer-events: auto; }
         .sd-header-drawer nav { display: flex; flex-direction: column; gap: 6px; padding: 24px 20px; }
         .sd-header-drawer nav > a { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--sd-navy); text-decoration: none; padding: 12px 0; border-bottom: 1px solid var(--sd-line); }

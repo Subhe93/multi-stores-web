@@ -132,11 +132,11 @@ export default function RegisterPage() {
     accountKind ? (accountKind === kind ? 0 : -1) : index === 0 ? 0 : -1;
 
   return (
-    <div className="sd-auth-card">
+    <div className="sd-auth-card sd-auth-card-wide">
       <div className="sd-auth-head">
         <span className="sd-eyebrow sd-eyebrow-teal">
           <span className="sd-eyebrow-dot" aria-hidden="true" />
-          {t('platformStaffOnly')}
+          {t('brandEyebrow')}
         </span>
         <h1 className="sd-auth-title">{t('registerTitle')}</h1>
       </div>
