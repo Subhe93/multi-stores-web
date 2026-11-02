@@ -398,7 +398,7 @@ html, body {
   --sd-white: #FFFFFF;
   --sd-radius: 20px;
   --sd-font: var(--font-manrope), 'Manrope', system-ui, sans-serif;
-  --sd-font-ar: var(--font-arabic-ui), 'IBM Plex Sans Arabic', var(--sd-font);
+  --sd-font-ar: var(--font-arabic-ui), 'Alexandria', var(--sd-font);
 }
 
 .sd-root {

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Manrope, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import { Manrope, Alexandria } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { locales, isRtl } from '@/i18n/config';
@@ -10,10 +10,11 @@ import { COMPANY, CONTACT_EMAIL, HEX } from '@/lib/brand';
 import { MotionShim } from '@/components/marketing/providers/MotionShim';
 
 // Brand typography for every platform page (landing, company, legal, auth).
-// Manrope has no Arabic glyphs, so IBM Plex Sans Arabic takes over via the
+// Manrope has no Arabic glyphs, so Alexandria (a geometric Arabic face whose
+// heavy weights match Manrope's headlines) takes over via the
 // `--font-arabic-ui` variable when the page is Arabic (see globals.css).
 const manrope = Manrope({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'], variable: '--font-manrope', display: 'swap' });
-const plexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic'], weight: ['400', '500', '600', '700'], variable: '--font-arabic-ui', display: 'swap' });
+const alexandria = Alexandria({ subsets: ['arabic'], weight: ['400', '500', '600', '700', '800'], variable: '--font-arabic-ui', display: 'swap' });
 
 export default async function LocaleLayout({
   children,
@@ -46,7 +47,7 @@ export default async function LocaleLayout({
     <div
       dir={isRtl(locale) ? 'rtl' : 'ltr'}
       lang={locale}
-      className={`${manrope.variable} ${plexArabic.variable}`}
+      className={`${manrope.variable} ${alexandria.variable}`}
       style={{ '--sd-theme-color': HEX.navy } as React.CSSProperties}
     >
       <MotionShim />
