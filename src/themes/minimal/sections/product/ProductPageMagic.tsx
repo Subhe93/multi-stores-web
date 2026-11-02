@@ -20,7 +20,6 @@ export const productPageMagicSection: SectionDefinition = {
       { key: 'show_trust_badges', type: 'boolean', label: { en: 'Show trust badges', ar: 'إظهار شارات الثقة' }, defaultValue: true },
       { key: 'show_shipping', type: 'boolean', label: { en: 'Show shipping & delivery', ar: 'إظهار الشحن والتوصيل' }, defaultValue: true },
       { key: 'show_tabs', type: 'boolean', label: { en: 'Show tabs (description / specs / FAQ)', ar: 'إظهار التابات (الوصف / المواصفات / الأسئلة)' }, defaultValue: true },
-      { key: 'show_tags', type: 'boolean', label: { en: 'Show tags', ar: 'إظهار الوسوم' }, defaultValue: true },
       {
         key: 'button_style',
         type: 'select',
@@ -49,7 +48,6 @@ export const productPageMagicSection: SectionDefinition = {
     show_trust_badges: true,
     show_shipping: true,
     show_tabs: true,
-    show_tags: true,
     button_style: 'solid',
     gallery_aspect: 'square',
   },

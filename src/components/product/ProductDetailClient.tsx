@@ -100,7 +100,6 @@ export interface ProductData {
     ui?: unknown;
     children?: unknown[];
   }[];
-  tags?: { tag: string }[];
   category?: { translations: { locale: string; name: string }[] };
   creator_categories?: {
     id: string;
@@ -202,7 +201,6 @@ export interface ProductDetailOptions {
   showTrustBadges?: boolean;
   showShipping?: boolean;
   showTabs?: boolean;
-  showTags?: boolean;
   buttonStyle?: 'solid' | 'outline';
   /** Gallery main-image aspect ratio (builder setting; defaults to square). */
   galleryAspect?: 'square' | 'portrait' | 'landscape';
@@ -304,7 +302,6 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
   const showTrustBadges = options?.showTrustBadges ?? true;
   const showShipping = options?.showShipping ?? true;
   const showTabs = options?.showTabs ?? true;
-  const showTags = options?.showTags ?? true;
   const buttonStyle = options?.buttonStyle ?? 'solid';
 
   // ── State ─────────────────────────────────────────────
@@ -1252,20 +1249,6 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                   ));
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {showTags && product.tags && product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {product.tags.map(({ tag }) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 bg-gray-50"
-                >
-                  {tag}
-                </span>
-              ))}
             </div>
           )}
         </div>

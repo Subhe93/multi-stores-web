@@ -117,11 +117,12 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
         primaryLocale={primaryLocale}
         currency={currency}
         langPrefix={langPrefix}
+        // Legacy `show_tags` may still exist in old page snapshots; it is ignored
+        // (product tags were retired 2026-11-02).
         options={{
           showTrustBadges: settings.show_trust_badges !== false,
           showShipping: settings.show_shipping !== false,
           showTabs: settings.show_tabs !== false,
-          showTags: settings.show_tags !== false,
           buttonStyle: (settings.button_style as 'solid' | 'outline') || 'solid',
           galleryAspect: (settings.gallery_aspect as 'square' | 'portrait' | 'landscape') || 'square',
         }}
