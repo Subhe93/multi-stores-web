@@ -41,45 +41,177 @@
     "no": "Nej"
   },
   "home": {
-    "title": "{name} Marknadsplats",
-    "subtitle": "Plattformen som kopplar samman produktleverantörer med kreativa designers för att bygga unika nätbutiker.",
-    "getStarted": "Kom igång",
-    "badge": "Det nya sättet att sälja online",
-    "heroLine1": "Bygg din butik,",
-    "heroLine2": "Sälj din kreativitet",
-    "joinCreator": "Gå med som kreatör",
-    "joinCreatorDesc": "Designa produkter och bygg din butik",
-    "joinProvider": "Gå med som leverantör",
-    "joinProviderDesc": "Förse kreatörer med produkter",
-    "howItWorks": "Så fungerar det",
-    "howItWorksDesc": "Tre enkla steg för att börja sälja unika, anpassade produkter online.",
-    "step1Title": "Leverantörer lägger till produkter",
-    "step1Desc": "Tillverkare och leverantörer listar sina produkter med anpassningsalternativ och varianter.",
-    "step2Title": "Kreatörer designar och säljer",
-    "step2Desc": "Designers väljer produkter, lägger till sina kreativa designer, sätter priser och lanserar sin egen varumärkesbutik.",
-    "step3Title": "Kunder handlar och köper",
-    "step3Desc": "Kunder upptäcker unika produkter i kreatörsbutiker, anpassar dem och beställer med trygghet.",
-    "whyUs": "Allt du behöver för att lyckas",
-    "feat1Title": "Din egen varumärkesbutik",
-    "feat1Desc": "Få en anpassad subdomän med ditt varumärkesnamn, dina färger och din logotyp. Helt din.",
-    "feat2Title": "Kreativt designlager",
-    "feat2Desc": "Använd dina designer på vilken produkt som helst — från t-shirts till smycken. Mockuper genereras automatiskt.",
-    "feat3Title": "Automatisk intäktsdelning",
-    "feat3Desc": "Intäkterna delas automatiskt mellan leverantör, kreatör och plattform via Stripe Connect.",
-    "feat4Title": "Flerspråkiga butiker",
-    "feat4Desc": "Sälj globalt med automatiskt översatta butiker som stöder arabiska, engelska, turkiska och tyska.",
-    "feat5Title": "Sidbyggare",
-    "feat5Desc": "Bygg vackra produktsidor med dra-och-släpp-block — hero, galleri, FAQ, recensioner och mer.",
-    "feat6Title": "Säkra betalningar",
-    "feat6Desc": "Drivs av Stripe med fullständig PCI-efterlevnad. Kunder betalar säkert, du får betalt pålitligt.",
-    "ctaTitle": "Redo att börja sälja?",
-    "ctaDesc": "Gå med tusentals kreatörer och leverantörer som tillsammans bygger framtidens e-handel.",
-    "providers": "Leverantörer",
-    "providersDesc": "Lägg till dina produkter och låt kreatörer marknadsföra dem världen över",
-    "creators": "Kreatörer",
-    "creatorsDesc": "Lägg till dina kreativa designer och bygg din egen butik",
-    "customers": "Kunder",
-    "customersDesc": "Upptäck unika anpassade produkter från talangfulla kreatörer"
+    "meta": {
+      "title": "{name} — Många butiker. En dörr.",
+      "description": "ShopsDoor är en plattform för att bygga och driva fristående nätbutiker: produkter, ordrar, betalningar och marknader, allt bakom en dörr."
+    },
+    "nav": {
+      "features": "Funktioner",
+      "how": "Så fungerar det",
+      "pricing": "Priser",
+      "contact": "Kontakt",
+      "company": "Företaget",
+      "login": "Logga in",
+      "getStarted": "Kom igång",
+      "menu": "Meny",
+      "close": "Stäng"
+    },
+    "hero": {
+      "badge": "Tidig tillgång — Byggd i Sverige",
+      "title1": "Många fristående butiker.",
+      "title2": "En dörr.",
+      "lead": "ShopsDoor ger fristående säljare allt som behövs för att öppna en nätbutik: en butiksbyggare, produkter och ordrar, säkra betalningar och marknader på flera språk och i flera valutor.",
+      "ctaPrimary": "Skapa din butik",
+      "ctaSecondary": "Se hur det fungerar",
+      "scroll": "Skrolla",
+      "sceneNewOrder": "Ny order",
+      "sceneJustNow": "just nu",
+      "scenePaid": "Betald",
+      "sceneStore": "Din butik",
+      "sceneOpen": "Öppen",
+      "marquee": {
+        "fashion": "Mode",
+        "ceramics": "Keramik",
+        "coffee": "Kafferosterier",
+        "jewellery": "Smycken",
+        "books": "Böcker",
+        "skincare": "Hudvård",
+        "furniture": "Möbler",
+        "plants": "Växter",
+        "vintage": "Vintage",
+        "bakeries": "Bagerier",
+        "art": "Konsttryck",
+        "toys": "Leksaker"
+      }
+    },
+    "trust": {
+      "stripe": "Betalningar via Stripe",
+      "markets": "Flera valutor och språk",
+      "eu": "Drivs från Sverige (EU)",
+      "domains": "Din egen domän"
+    },
+    "features": {
+      "eyebrow": "Funktioner",
+      "title": "Allt en butik behöver, bakom en dörr.",
+      "lead": "Sätt upp, sälj och väx utan att pussla ihop olika verktyg. Funktioner märkta ”Kommer snart” är fortfarande under utveckling.",
+      "comingSoon": "Kommer snart",
+      "live": "Tillgänglig",
+      "items": {
+        "builder": {
+          "title": "Butiks- och sidbyggare",
+          "desc": "Välj ett tema, lägg in sektioner och publicera sidor utan kod. Dina varumärkesfärger, typsnitt och logotyp överallt."
+        },
+        "products": {
+          "title": "Produkter, varianter och lager",
+          "desc": "Enkla eller variabla produkter, kollektioner, lagersaldon och bilder per variant, hanterade från en och samma panel."
+        },
+        "orders": {
+          "title": "Ordrar och leverans",
+          "desc": "Se varje order, uppdatera status, lägg till fraktsätt och håll kunderna informerade via e-post."
+        },
+        "payments": {
+          "title": "Betalningar via Stripe",
+          "desc": "Kort och lokala betalsätt via Stripe. Utbetalningarna går direkt till ditt eget Stripe-konto."
+        },
+        "markets": {
+          "title": "Marknader, språk och valutor",
+          "desc": "Sälj samma butik i flera länder, med eget språk, egen valuta och egen domän för varje marknad."
+        },
+        "domains": {
+          "title": "Egna domäner",
+          "desc": "Börja på en gratis ShopsDoor-subdomän och koppla din egen domän när du är redo."
+        },
+        "analytics": {
+          "title": "Statistik och insikter",
+          "desc": "Försäljning, trafik och bästsäljare i en tydlig vy."
+        },
+        "marketing": {
+          "title": "E-postkampanjer",
+          "desc": "Skicka nyhetsbrev och erbjudanden till dina kunder direkt från panelen."
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "Så fungerar det",
+      "title": "Öppna din dörr i tre steg.",
+      "lead": "Från registrering till första ordern, utan utvecklare.",
+      "steps": {
+        "s1": {
+          "title": "Skapa din butik",
+          "desc": "Registrera dig, namnge din butik och välj ett tema. Du får en ShopsDoor-adress direkt.",
+          "caption": "yourstore.shopsdoor.com"
+        },
+        "s2": {
+          "title": "Lägg till produkter och koppla betalningar",
+          "desc": "Lägg till dina produkter, sätt priser och frakt och koppla ditt Stripe-konto för att få betalt.",
+          "caption": "Stripe · ansluten"
+        },
+        "s3": {
+          "title": "Publicera och väx",
+          "desc": "Dela din butik, koppla din egen domän och öppna nya marknader när du är redo.",
+          "caption": "yourdomain.com"
+        }
+      },
+      "stepLabel": "Steg"
+    },
+    "pricing": {
+      "eyebrow": "Priser",
+      "title": "Enkla priser, kommer snart.",
+      "lead": "ShopsDoor är i tidig tillgång. Planer och priser publiceras här innan den allmänna lanseringen.",
+      "badge": "Lanseras snart",
+      "planName": "Tidig tillgång",
+      "planDesc": "För fristående säljare som vill vara först genom dörren.",
+      "price": "Priser meddelas senare",
+      "points": {
+        "p1": "Transparenta månadsplaner utan dolda avgifter",
+        "p2": "Betalningshantering debiteras av Stripe enligt Stripes ordinarie priser",
+        "p3": "Avsluta din prenumeration när du vill"
+      },
+      "cta": "Prata med oss om tidig tillgång",
+      "note": "Priserna visas i SEK och EUR, exklusive moms där det är tillämpligt.",
+      "ghost": "TIDIG TILLGÅNG",
+      "included": "Vad tidig tillgång innebär"
+    },
+    "contact": {
+      "eyebrow": "Kontakt",
+      "title": "Prata med oss.",
+      "lead": "Frågor om plattformen, tidig tillgång eller samarbeten? Skriv till oss så svarar en riktig människa.",
+      "emailLabel": "Skicka e-post",
+      "name": "Ditt namn",
+      "email": "Din e-postadress",
+      "message": "Meddelande",
+      "send": "Skicka meddelande",
+      "sending": "Skickar…",
+      "sent": "Tack – vi återkommer inom kort.",
+      "error": "Något gick fel. Skicka gärna ett e-postmeddelande direkt till oss.",
+      "notConfigured": "Kontaktformuläret är inte kopplat ännu. Skicka gärna ett e-postmeddelande direkt till oss.",
+      "companyLine": "ShopsDoor drivs av Namez AB, Sverige.",
+      "formTitle": "Skicka ett meddelande",
+      "formHint": "Varje meddelande läses av en person i ShopsDoor-teamet."
+    },
+    "footer": {
+      "tagline": "Bygg, hantera och utveckla din nätbutik.",
+      "operatedBy": "ShopsDoor drivs av Namez AB, ett bolag registrerat i Sverige.",
+      "product": "Produkt",
+      "company": "Företaget",
+      "legal": "Juridiskt",
+      "companyInfo": "Företagsinformation",
+      "rights": "Alla rättigheter förbehållna."
+    },
+    "door": {
+      "eyebrow": "Genom dörren",
+      "title": "Vad som finns bakom dörren",
+      "c1": "En kontrollpanel.",
+      "c1sub": "Produkter, ordrar, sidor och betalningar för varje butik du driver, på ett ställe.",
+      "c2": "Varje marknad, språk och valuta.",
+      "c2sub": "Öppna samma butik för nya länder med eget språk, egna priser och egen domän.",
+      "c3": "Din egen domän.",
+      "c3sub": "Börja på en gratis ShopsDoor-adress och flytta till din egen domän när du vill.",
+      "chipCurrencies": "SEK · EUR · USD",
+      "chipLanguages": "sv · en · ar · tr · de · fr",
+      "chipDomain": "dinbutik.se",
+      "scrollHint": "Scrolla för att öppna"
+    }
   },
   "product": {
     "allProducts": "Alla produkter",
@@ -855,5 +987,26 @@
     "editPage": "Redigera sida",
     "openDashboard": "Öppna instrumentpanelen",
     "dismiss": "Dölj redigeringsknappen"
+  },
+  "company": {
+    "meta": {
+      "title": "Företagsinformation — {name}",
+      "description": "Juridisk information om Namez AB, bolaget som driver ShopsDoor."
+    },
+    "eyebrow": "Företagsinformation",
+    "title": "Vem som står bakom ShopsDoor.",
+    "lead": "ShopsDoor är ett varumärke och en plattform som drivs av Namez AB, ett aktiebolag registrerat i Sverige.",
+    "legalEntity": "Juridisk person",
+    "orgNumber": "Organisationsnummer",
+    "vatNumber": "Momsregistreringsnummer",
+    "address": "Registrerad adress",
+    "country": "Land",
+    "email": "Kontakt-e-post",
+    "platform": "Plattform",
+    "platformValue": "ShopsDoor (shopsdoor.com)",
+    "roleTitle": "Namez AB:s roll",
+    "roleText": "Namez AB äger och driver plattformen ShopsDoor, ingår användarvillkoren med säljarna och behandlar personuppgifter enligt integritetspolicyn. Betalningar hanteras av Stripe; varje säljare får sina utbetalningar till sitt eget Stripe-konto.",
+    "legalLinks": "Juridiska dokument",
+    "backHome": "Tillbaka till startsidan"
   }
 }

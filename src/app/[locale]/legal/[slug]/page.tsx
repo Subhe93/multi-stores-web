@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { legal, LEGAL_SLUGS, type LegalSlug } from '@/lib/api';
-import { buildPlatformAlternates } from '@/lib/locale-path';
+import { buildPlatformAlternates, localePath } from '@/lib/locale-path';
 import { getPlatformName } from '@/lib/platform';
-import { MarketingHeader } from '@/components/marketing/MarketingHeader';
-import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
+import { Eyebrow } from '@/components/marketing/ui/Eyebrow';
+import { Reveal } from '@/components/marketing/ui/Reveal';
 import { routeSlug } from '@/lib/slugRoute';
 
 // Platform legal pages (Privacy / Terms / Refund / Shipping). Rendered on the
@@ -52,18 +55,44 @@ export default async function PlatformLegalPage({ params }: LegalPageProps) {
     notFound();
   }
 
+  const t = await getTranslations({ locale, namespace: 'home' });
+  const updated = new Date(page.updated_at);
+  const updatedLabel = Number.isNaN(updated.getTime())
+    ? null
+    : new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(updated);
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>
-      <MarketingHeader locale={locale} />
-      {/* pt-24 leaves room for the fixed marketing header. */}
-      <main className="flex-1 container mx-auto px-4 pt-24 pb-16 max-w-3xl">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">{page.title}</h1>
-        <div
-          className="prose prose-gray max-w-none"
-          dangerouslySetInnerHTML={{ __html: page.content }}
-        />
-      </main>
-      <MarketingFooter locale={locale} />
-    </div>
+    <MarketingShell locale={locale} solidHeader>
+      {/* Top padding clears the fixed 72px header. */}
+      <section className="sd-section sd-legal" style={{ paddingTop: 'calc(72px + clamp(40px, 6vw, 80px))' }}>
+        <div className="sd-container sd-legal-container">
+          <Reveal className="sd-legal-head">
+            <Eyebrow>{t('footer.legal')}</Eyebrow>
+            <h1 className="sd-h2 sd-legal-title">{page.title}</h1>
+            {updatedLabel && (
+              <p className="sd-legal-updated">
+                <time dateTime={updated.toISOString()}>{updatedLabel}</time>
+              </p>
+            )}
+          </Reveal>
+          <Reveal className="sd-card sd-legal-card" delay={0.1}>
+            <div className="sd-prose" dangerouslySetInnerHTML={{ __html: page.content }} />
+          </Reveal>
+          <Reveal className="sd-legal-foot" delay={0.15}>
+            <Link href={localePath('/company', locale)} className="sd-link">{t('footer.companyInfo')}</Link>
+          </Reveal>
+        </div>
+      </section>
+
+      <style>{`
+        .sd-legal-container { max-width: 880px; display: flex; flex-direction: column; gap: 32px; }
+        .sd-legal-head { display: flex; flex-direction: column; gap: 18px; align-items: flex-start; }
+        .sd-legal-title { max-width: 18ch; }
+        .sd-legal-updated { font-size: 0.9rem; color: var(--sd-muted); }
+        .sd-legal-card { padding: clamp(24px, 4vw, 48px); }
+        .sd-legal-card:hover { transform: none; box-shadow: none; border-color: var(--sd-line); }
+        .sd-legal-foot { font-weight: 600; color: var(--sd-teal-deep); }
+      `}</style>
+    </MarketingShell>
   );
 }

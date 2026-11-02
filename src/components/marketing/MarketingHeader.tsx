@@ -1,41 +1,32 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { localePath } from '@/lib/locale-path';
-import { getPlatformName } from '@/lib/platform';
-import { ThemeToggle } from '@/components/home/ThemeToggle';
+import { NAV } from '@/lib/brand';
+import { HeaderClient } from './HeaderClient';
 
-// Shared marketing-site header used by the [locale] landing page and the
-// platform legal pages so they share the same top chrome.
-export async function MarketingHeader({ locale }: { locale: string }) {
+// Shared marketing-site header (landing, company, legal). Server component
+// that resolves copy and hands the interactive shell to HeaderClient.
+export async function MarketingHeader({ locale, solid = false }: { locale: string; solid?: boolean }) {
   const t = await getTranslations({ locale, namespace: 'home' });
-  const tc = await getTranslations({ locale, namespace: 'common' });
-  const platformName = await getPlatformName();
+  const home = localePath('/', locale);
+  // Anchors only work on the landing page; other pages link back to it.
+  const links = NAV.map((item) => ({
+    id: item.id,
+    label: t(`nav.${item.id}` as 'nav.features'),
+    href: solid ? `${home}${item.href}` : item.href,
+  }));
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50" style={{ borderBottom: '1px solid var(--border)' }}>
-      <div className="absolute inset-0 backdrop-blur-xl" style={{ background: 'var(--bg-nav)' }} />
-      <div className="relative max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href={localePath('/', locale)} className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-brand)' }}>
-          {platformName}
-        </Link>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Link
-            href={localePath('/auth/login', locale)}
-            className="text-sm font-medium transition px-4 py-2 hidden sm:block"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {tc('login')}
-          </Link>
-          <Link
-            href={localePath('/auth/register', locale)}
-            className="text-sm font-medium transition px-5 py-2 rounded-full"
-            style={{ background: 'var(--cta-btn-bg)', color: 'var(--cta-btn-text)' }}
-          >
-            {t('getStarted')}
-          </Link>
-        </div>
-      </div>
-    </nav>
+    <HeaderClient
+      locale={locale}
+      homeHref={home}
+      links={links}
+      loginHref={localePath('/auth/login', locale)}
+      loginLabel={t('nav.login')}
+      ctaHref={localePath('/auth/register', locale)}
+      ctaLabel={t('nav.getStarted')}
+      menuLabel={t('nav.menu')}
+      closeLabel={t('nav.close')}
+      solid={solid}
+    />
   );
 }

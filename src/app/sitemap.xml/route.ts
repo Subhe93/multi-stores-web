@@ -3,7 +3,8 @@ import { legal, LEGAL_SLUGS } from '@/lib/api';
 
 /**
  * Platform-level sitemap (served at the marketing-domain root). Lists the
- * landing page + the four legal pages, with hreflang alternates for every
+ * landing page, the company page and the four legal pages, with hreflang
+ * alternates for every
  * supported locale. The default locale has NO prefix; secondary locales use
  * `/{locale}/...` (the form the proxy expects and Google prefers).
  *
@@ -57,6 +58,8 @@ export async function GET() {
   const entries: string[] = [];
   // Landing page
   entries.push(urlEntry('/', new Date()));
+  // Company information page (static copy; refreshed with each deploy)
+  entries.push(urlEntry('/company', new Date()));
   // Legal pages
   for (const p of legalPaths) {
     entries.push(urlEntry(`/legal/${p.slug}`, p.lastmod));

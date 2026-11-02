@@ -4,7 +4,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-export const DEFAULT_PLATFORM_NAME = 'Multi Stores';
+export const DEFAULT_PLATFORM_NAME = 'ShopsDoor';
 
 /**
  * Server-side fetch of the platform name. Cost profile:

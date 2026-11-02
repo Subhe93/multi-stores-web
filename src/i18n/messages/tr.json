@@ -41,45 +41,177 @@
     "no": "Hayır"
   },
   "home": {
-    "title": "{name} Pazar Yeri",
-    "subtitle": "Ürün tedarikçilerini yaratıcı tasarımcılarla buluşturarak benzersiz çevrimiçi mağazalar oluşturan platform.",
-    "getStarted": "Başlayın",
-    "badge": "Çevrimiçi satışın yeni yolu",
-    "heroLine1": "Mağazanızı Kurun,",
-    "heroLine2": "Yaratıcılığınızı Satın",
-    "joinCreator": "Tasarımcı Olarak Katıl",
-    "joinCreatorDesc": "Ürün tasarlayın ve mağazanızı oluşturun",
-    "joinProvider": "Tedarikçi Olarak Katıl",
-    "joinProviderDesc": "Tasarımcılara ürün tedarik edin",
-    "howItWorks": "Nasıl Çalışır",
-    "howItWorksDesc": "Benzersiz kişiselleştirilmiş ürünleri çevrimiçi satmaya başlamak için üç basit adım.",
-    "step1Title": "Tedarikçiler Ürün Ekler",
-    "step1Desc": "Ürün üreticileri ve tedarikçileri, kişiselleştirme seçenekleri ve varyantlarıyla ürünlerini listeler.",
-    "step2Title": "Tasarımcılar Tasarlar ve Satar",
-    "step2Desc": "Tasarımcılar ürünleri seçer, yaratıcı tasarımlarını ekler, fiyatları belirler ve kendi markalı mağazalarını açar.",
-    "step3Title": "Müşteriler Alışveriş Yapar",
-    "step3Desc": "Müşteriler tasarımcı mağazalarında benzersiz ürünler keşfeder, kişiselleştirir ve güvenle sipariş verir.",
-    "whyUs": "Başarı İçin İhtiyacınız Olan Her Şey",
-    "feat1Title": "Kendi Markalı Mağazanız",
-    "feat1Desc": "Marka adınız, renkleriniz ve logonuzla özel bir alt alan adı edinin. Tamamen sizin.",
-    "feat2Title": "Yaratıcı Tasarım Katmanı",
-    "feat2Desc": "Tişörtlerden takılara kadar her ürüne tasarımlarınızı uygulayın. Maketler otomatik oluşturulur.",
-    "feat3Title": "Otomatik Gelir Paylaşımı",
-    "feat3Desc": "Kazançlar Stripe Connect aracılığıyla tedarikçi, tasarımcı ve platform arasında otomatik olarak paylaştırılır.",
-    "feat4Title": "Çok Dilli Mağazalar",
-    "feat4Desc": "Arapça, İngilizce, Türkçe ve Almanca destekleyen otomatik çeviri ile küresel satış yapın.",
-    "feat5Title": "Sayfa Oluşturucu",
-    "feat5Desc": "Sürükle bırak blokları ile güzel ürün sayfaları oluşturun — hero, galeri, SSS, yorumlar ve daha fazlası.",
-    "feat6Title": "Güvenli Ödemeler",
-    "feat6Desc": "Tam PCI uyumluluğu ile Stripe tarafından desteklenmektedir. Müşteriler güvenle öder, siz güvenle kazanırsınız.",
-    "ctaTitle": "Satışa Başlamaya Hazır mısınız?",
-    "ctaDesc": "E-ticaretin geleceğini birlikte inşa eden binlerce tasarımcı ve tedarikçiye katılın.",
-    "providers": "Tedarikçiler",
-    "providersDesc": "Ürünlerinizi ekleyin ve tasarımcıların dünya çapında pazarlamasına izin verin",
-    "creators": "Tasarımcılar",
-    "creatorsDesc": "Yaratıcı tasarımlarınızı ekleyin ve kendi mağazanızı oluşturun",
-    "customers": "Müşteriler",
-    "customersDesc": "Yetenekli tasarımcılardan benzersiz kişiselleştirilmiş ürünler keşfedin"
+    "meta": {
+      "title": "{name} — Birçok mağaza. Tek kapı.",
+      "description": "ShopsDoor, bağımsız online mağazalar kurmak ve işletmek için bir platformdur: ürünler, siparişler, ödemeler ve pazarlar, hepsi tek kapının ardında."
+    },
+    "nav": {
+      "features": "Özellikler",
+      "how": "Nasıl çalışır",
+      "pricing": "Fiyatlandırma",
+      "contact": "İletişim",
+      "company": "Şirket",
+      "login": "Giriş yap",
+      "getStarted": "Hemen başla",
+      "menu": "Menü",
+      "close": "Kapat"
+    },
+    "hero": {
+      "badge": "Erken erişim — İsveç'te geliştirildi",
+      "title1": "Birçok bağımsız mağaza.",
+      "title2": "Tek kapı.",
+      "lead": "ShopsDoor, bağımsız satıcılara online mağaza açmak için gereken her şeyi sunar: mağaza oluşturucu, ürünler ve siparişler, güvenli ödemeler ve birden fazla dil ve para biriminde pazarlar.",
+      "ctaPrimary": "Mağazanı oluştur",
+      "ctaSecondary": "Nasıl çalıştığını gör",
+      "scroll": "Kaydır",
+      "sceneNewOrder": "Yeni sipariş",
+      "sceneJustNow": "az önce",
+      "scenePaid": "Ödendi",
+      "sceneStore": "Mağazan",
+      "sceneOpen": "Açık",
+      "marquee": {
+        "fashion": "Moda",
+        "ceramics": "Seramik",
+        "coffee": "Kahve kavurucuları",
+        "jewellery": "Takı",
+        "books": "Kitap",
+        "skincare": "Cilt bakımı",
+        "furniture": "Mobilya",
+        "plants": "Bitkiler",
+        "vintage": "Vintage",
+        "bakeries": "Fırınlar",
+        "art": "Sanat baskıları",
+        "toys": "Oyuncak"
+      }
+    },
+    "trust": {
+      "stripe": "Ödemeler Stripe ile",
+      "markets": "Çoklu para birimi ve dil",
+      "eu": "İsveç'ten (AB) yönetilir",
+      "domains": "Kendi alan adın"
+    },
+    "features": {
+      "eyebrow": "Özellikler",
+      "title": "Bir mağazanın ihtiyacı olan her şey, tek kapının ardında.",
+      "lead": "Araçları birbirine yamamak zorunda kalmadan kur, sat ve büyü. \"Çok yakında\" işaretli özellikler hâlâ geliştirme aşamasındadır.",
+      "comingSoon": "Çok yakında",
+      "live": "Kullanılabilir",
+      "items": {
+        "builder": {
+          "title": "Mağaza ve sayfa oluşturucu",
+          "desc": "Bir tema seç, bölümleri yerleştir ve kod yazmadan sayfalar yayınla. Marka renklerin, yazı tiplerin ve logon her yerde."
+        },
+        "products": {
+          "title": "Ürünler, varyantlar ve stok",
+          "desc": "Basit veya varyantlı ürünler, koleksiyonlar, stok seviyeleri ve varyant başına görseller, tek panelden yönetilir."
+        },
+        "orders": {
+          "title": "Siparişler ve teslimat",
+          "desc": "Her siparişi gör, durumunu güncelle, kargo yöntemleri ekle ve müşterilerini e-posta ile bilgilendir."
+        },
+        "payments": {
+          "title": "Stripe ile ödemeler",
+          "desc": "Stripe üzerinden kart ve yerel ödeme yöntemleri. Ödemeler doğrudan kendi Stripe hesabına aktarılır."
+        },
+        "markets": {
+          "title": "Pazarlar, diller ve para birimleri",
+          "desc": "Aynı mağazayı birden fazla ülkede, her birinin kendi dili, para birimi ve alan adıyla sat."
+        },
+        "domains": {
+          "title": "Özel alan adları",
+          "desc": "Ücretsiz bir ShopsDoor alt alan adıyla başla, hazır olduğunda kendi alan adını bağla."
+        },
+        "analytics": {
+          "title": "Analitik ve içgörüler",
+          "desc": "Satışlar, trafik ve en çok satanlar tek bir net görünümde."
+        },
+        "marketing": {
+          "title": "E-posta kampanyaları",
+          "desc": "Panelin içinden müşterilerine bültenler ve teklifler gönder."
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "Nasıl çalışır",
+      "title": "Kapını üç adımda aç.",
+      "lead": "Kayıttan ilk siparişe, geliştirici olmadan.",
+      "steps": {
+        "s1": {
+          "title": "Mağazanı oluştur",
+          "desc": "Kaydol, mağazana bir ad ver ve bir tema seç. Hemen bir ShopsDoor adresi alırsın.",
+          "caption": "yourstore.shopsdoor.com"
+        },
+        "s2": {
+          "title": "Ürün ekle ve ödemeleri bağla",
+          "desc": "Ürünlerini ekle, fiyat ve kargoyu belirle, ödeme almak için Stripe hesabını bağla.",
+          "caption": "Stripe · bağlı"
+        },
+        "s3": {
+          "title": "Yayınla ve büyü",
+          "desc": "Mağazanı paylaş, kendi alan adını bağla ve hazır olduğunda yeni pazarlar aç.",
+          "caption": "yourdomain.com"
+        }
+      },
+      "stepLabel": "Adım"
+    },
+    "pricing": {
+      "eyebrow": "Fiyatlandırma",
+      "title": "Basit fiyatlandırma, çok yakında.",
+      "lead": "ShopsDoor erken erişim aşamasındadır. Planlar ve fiyatlar genel kullanıma açılmadan önce burada yayımlanacaktır.",
+      "badge": "Yakında yayında",
+      "planName": "Erken erişim",
+      "planDesc": "Kapıdan ilk geçmek isteyen bağımsız satıcılar için.",
+      "price": "Fiyatlar açıklanacak",
+      "points": {
+        "p1": "Gizli ücret olmadan şeffaf aylık planlar",
+        "p2": "Ödeme işleme ücretleri Stripe tarafından standart tarifeleriyle faturalandırılır",
+        "p3": "Aboneliğini istediğin zaman iptal et"
+      },
+      "cta": "Erken erişim için bizimle konuş",
+      "note": "Fiyatlar SEK ve EUR olarak, geçerli olduğu durumlarda KDV hariç gösterilecektir.",
+      "ghost": "EARLY ACCESS",
+      "included": "Erken erişim ne anlama geliyor"
+    },
+    "contact": {
+      "eyebrow": "İletişim",
+      "title": "Bizimle konuş.",
+      "lead": "Platform, erken erişim veya iş ortaklıkları hakkında soruların mı var? Bize yaz, gerçek bir insan yanıtlayacak.",
+      "emailLabel": "E-posta gönder",
+      "name": "Adın",
+      "email": "E-posta adresin",
+      "message": "Mesaj",
+      "send": "Mesaj gönder",
+      "sending": "Gönderiliyor…",
+      "sent": "Teşekkürler — kısa süre içinde sana dönüş yapacağız.",
+      "error": "Bir şeyler yanlış gitti. Lütfen bize doğrudan e-posta gönder.",
+      "notConfigured": "İletişim formu henüz bağlı değil. Lütfen bize doğrudan e-posta gönder.",
+      "companyLine": "ShopsDoor, İsveç merkezli Namez AB tarafından işletilmektedir.",
+      "formTitle": "Mesaj gönder",
+      "formHint": "Her mesaj ShopsDoor ekibinden bir kişi tarafından okunur."
+    },
+    "footer": {
+      "tagline": "Online mağazanı kur, yönet ve büyüt.",
+      "operatedBy": "ShopsDoor, İsveç'te kayıtlı bir şirket olan Namez AB tarafından işletilmektedir.",
+      "product": "Ürün",
+      "company": "Şirket",
+      "legal": "Yasal",
+      "companyInfo": "Şirket bilgileri",
+      "rights": "Tüm hakları saklıdır."
+    },
+    "door": {
+      "eyebrow": "Kapıdan içeri",
+      "title": "Kapının ardında ne var",
+      "c1": "Tek panel.",
+      "c1sub": "Yönettiğiniz her mağazanın ürünleri, siparişleri, sayfaları ve ödemeleri tek bir yerde.",
+      "c2": "Her pazar, dil ve para birimi.",
+      "c2sub": "Aynı mağazayı kendi dili, fiyatları ve alan adıyla yeni ülkelere açın.",
+      "c3": "Kendi alan adınız.",
+      "c3sub": "Ücretsiz bir ShopsDoor adresiyle başlayın, dilediğiniz zaman kendi alan adınıza geçin.",
+      "chipCurrencies": "SEK · EUR · USD",
+      "chipLanguages": "sv · en · ar · tr · de · fr",
+      "chipDomain": "magazaniz.com",
+      "scrollHint": "Açmak için kaydırın"
+    }
   },
   "product": {
     "allProducts": "Tüm Ürünler",
@@ -855,5 +987,26 @@
     "editPage": "Sayfayı düzenle",
     "openDashboard": "Paneli aç",
     "dismiss": "Düzenle düğmesini gizle"
+  },
+  "company": {
+    "meta": {
+      "title": "Şirket bilgileri — {name}",
+      "description": "ShopsDoor'u işleten şirket Namez AB hakkında yasal bilgiler."
+    },
+    "eyebrow": "Şirket bilgileri",
+    "title": "ShopsDoor'un arkasında kim var.",
+    "lead": "ShopsDoor, İsveç'te kayıtlı bir limited şirket olan Namez AB tarafından işletilen bir marka ve platformdur.",
+    "legalEntity": "Tüzel kişilik",
+    "orgNumber": "Şirket sicil numarası",
+    "vatNumber": "KDV numarası",
+    "address": "Kayıtlı adres",
+    "country": "Ülke",
+    "email": "İletişim e-postası",
+    "platform": "Platform",
+    "platformValue": "ShopsDoor (shopsdoor.com)",
+    "roleTitle": "Namez AB'nin rolü",
+    "roleText": "Namez AB, ShopsDoor platformunun sahibidir ve işletmecisidir; satıcılarla Hizmet Şartları'nı imzalar ve kişisel verileri Gizlilik Politikası'nda açıklandığı şekilde işler. Ödemeler Stripe tarafından işlenir; her satıcı ödemelerini kendi Stripe hesabına alır.",
+    "legalLinks": "Yasal belgeler",
+    "backHome": "Ana sayfaya dön"
   }
 }

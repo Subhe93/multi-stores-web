@@ -93,7 +93,7 @@ export function StoreFooter({
   contact,
   currentLang = 'en',
   primaryLocale = 'en',
-  platformName = 'Multi Stores',
+  platformName = 'ShopsDoor',
 }: StoreFooterProps) {
   const t = useTranslations();
   const lp = useLocalePath();

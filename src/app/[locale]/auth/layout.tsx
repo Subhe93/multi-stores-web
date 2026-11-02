@@ -1,18 +1,18 @@
 import Link from 'next/link';
-import { getPlatformName } from '@/lib/platform';
+import { ShopsDoorLogo } from '@/components/brand/ShopsDoorLogo';
 
-// Auth layout - centered card on gradient background, no header/footer
+// Auth layout: centred card on the ivory brand background, logo on top,
+// no header/footer.
 export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const platformName = await getPlatformName();
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
+    <div className="sd-root min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ background: 'var(--sd-ivory)' }}>
       <div className="mb-8">
-        <Link href="/" className="text-2xl font-bold text-slate-800 tracking-tight">
-          {platformName}
+        <Link href="/" aria-label="ShopsDoor" className="inline-flex">
+          <ShopsDoorLogo size={36} />
         </Link>
       </div>
       <div className="w-full max-w-md">{children}</div>

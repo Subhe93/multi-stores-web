@@ -41,45 +41,177 @@
     "no": "Nein"
   },
   "home": {
-    "title": "{name} Marktplatz",
-    "subtitle": "Die Plattform, die Produktanbieter mit kreativen Designern verbindet, um einzigartige Online-Shops aufzubauen.",
-    "getStarted": "Loslegen",
-    "badge": "Der neue Weg, online zu verkaufen",
-    "heroLine1": "Bauen Sie Ihren Shop,",
-    "heroLine2": "Verkaufen Sie Ihre Kreativität",
-    "joinCreator": "Als Kreativer beitreten",
-    "joinCreatorDesc": "Produkte gestalten & Ihren Shop aufbauen",
-    "joinProvider": "Als Anbieter beitreten",
-    "joinProviderDesc": "Produkte an Kreative liefern",
-    "howItWorks": "So funktioniert es",
-    "howItWorksDesc": "Drei einfache Schritte, um einzigartige personalisierte Produkte online zu verkaufen.",
-    "step1Title": "Anbieter fügen Produkte hinzu",
-    "step1Desc": "Produkthersteller und Lieferanten listen ihre Produkte mit Anpassungsoptionen und Varianten.",
-    "step2Title": "Kreative gestalten & verkaufen",
-    "step2Desc": "Designer wählen Produkte aus, fügen ihre kreativen Designs hinzu, legen Preise fest und starten ihren eigenen Marken-Shop.",
-    "step3Title": "Kunden shoppen & kaufen",
-    "step3Desc": "Kunden entdecken einzigartige Produkte in Kreativ-Shops, personalisieren sie und bestellen mit Vertrauen.",
-    "whyUs": "Alles, was Sie für Ihren Erfolg brauchen",
-    "feat1Title": "Ihr eigener Marken-Shop",
-    "feat1Desc": "Erhalten Sie eine eigene Subdomain mit Ihrem Markennamen, Farben und Logo. Ganz Ihnen gehörend.",
-    "feat2Title": "Kreative Design-Ebene",
-    "feat2Desc": "Wenden Sie Ihre Designs auf jedes Produkt an — von T-Shirts bis Schmuck. Mockups werden automatisch erstellt.",
-    "feat3Title": "Automatische Umsatzverteilung",
-    "feat3Desc": "Einnahmen werden automatisch zwischen Anbieter, Kreativem und Plattform über Stripe Connect aufgeteilt.",
-    "feat4Title": "Mehrsprachige Shops",
-    "feat4Desc": "Verkaufen Sie weltweit mit automatisch übersetzten Shops, die Arabisch, Englisch, Türkisch und Deutsch unterstützen.",
-    "feat5Title": "Seitenersteller",
-    "feat5Desc": "Erstellen Sie schöne Produktseiten mit Drag & Drop-Blöcken — Hero, Galerie, FAQ, Bewertungen und mehr.",
-    "feat6Title": "Sichere Zahlungen",
-    "feat6Desc": "Powered by Stripe mit vollständiger PCI-Konformität. Kunden zahlen sicher, Sie werden zuverlässig bezahlt.",
-    "ctaTitle": "Bereit, mit dem Verkaufen zu starten?",
-    "ctaDesc": "Schließen Sie sich Tausenden von Kreativen und Anbietern an, die gemeinsam die Zukunft des E-Commerce gestalten.",
-    "providers": "Anbieter",
-    "providersDesc": "Fügen Sie Ihre Produkte hinzu und lassen Sie Kreative sie weltweit vermarkten",
-    "creators": "Kreative",
-    "creatorsDesc": "Fügen Sie Ihre kreativen Designs hinzu und erstellen Sie Ihren eigenen Shop",
-    "customers": "Kunden",
-    "customersDesc": "Entdecken Sie einzigartige personalisierte Produkte von talentierten Kreativen"
+    "meta": {
+      "title": "{name} — Viele Shops. Eine Tür.",
+      "description": "ShopsDoor ist eine Plattform zum Aufbau und Betrieb unabhängiger Onlineshops: Produkte, Bestellungen, Zahlungen und Märkte – alles hinter einer Tür."
+    },
+    "nav": {
+      "features": "Funktionen",
+      "how": "So funktioniert es",
+      "pricing": "Preise",
+      "contact": "Kontakt",
+      "company": "Unternehmen",
+      "login": "Anmelden",
+      "getStarted": "Jetzt starten",
+      "menu": "Menü",
+      "close": "Schließen"
+    },
+    "hero": {
+      "badge": "Early Access — Entwickelt in Schweden",
+      "title1": "Viele unabhängige Shops.",
+      "title2": "Eine Tür.",
+      "lead": "ShopsDoor gibt unabhängigen Händlern alles, um einen Onlineshop zu eröffnen: einen Shop-Baukasten, Produkte und Bestellungen, sichere Zahlungen und Märkte in mehreren Sprachen und Währungen.",
+      "ctaPrimary": "Shop erstellen",
+      "ctaSecondary": "So funktioniert es",
+      "scroll": "Scrollen",
+      "sceneNewOrder": "Neue Bestellung",
+      "sceneJustNow": "gerade eben",
+      "scenePaid": "Bezahlt",
+      "sceneStore": "Dein Shop",
+      "sceneOpen": "Geöffnet",
+      "marquee": {
+        "fashion": "Mode",
+        "ceramics": "Keramik",
+        "coffee": "Kaffeeröstereien",
+        "jewellery": "Schmuck",
+        "books": "Bücher",
+        "skincare": "Hautpflege",
+        "furniture": "Möbel",
+        "plants": "Pflanzen",
+        "vintage": "Vintage",
+        "bakeries": "Bäckereien",
+        "art": "Kunstdrucke",
+        "toys": "Spielzeug"
+      }
+    },
+    "trust": {
+      "stripe": "Zahlungen über Stripe",
+      "markets": "Mehrere Währungen & Sprachen",
+      "eu": "Betrieben aus Schweden (EU)",
+      "domains": "Deine eigene Domain"
+    },
+    "features": {
+      "eyebrow": "Funktionen",
+      "title": "Alles, was ein Shop braucht, hinter einer Tür.",
+      "lead": "Einrichten, verkaufen und wachsen, ohne Tools zusammenzuflicken. Funktionen mit „Demnächst“ sind noch in Entwicklung.",
+      "comingSoon": "Demnächst",
+      "live": "Verfügbar",
+      "items": {
+        "builder": {
+          "title": "Shop- & Seiten-Baukasten",
+          "desc": "Theme wählen, Abschnitte platzieren und Seiten ohne Code veröffentlichen. Deine Markenfarben, Schriften und dein Logo überall."
+        },
+        "products": {
+          "title": "Produkte, Varianten & Lagerbestand",
+          "desc": "Einfache oder variable Produkte, Kollektionen, Bestände und Bilder pro Variante – verwaltet in einem Dashboard."
+        },
+        "orders": {
+          "title": "Bestellungen & Versandabwicklung",
+          "desc": "Jede Bestellung sehen, den Status aktualisieren, Versandarten anlegen und Kunden per E-Mail informieren."
+        },
+        "payments": {
+          "title": "Zahlungen über Stripe",
+          "desc": "Karten und lokale Zahlungsmethoden über Stripe. Auszahlungen gehen direkt auf dein eigenes Stripe-Konto."
+        },
+        "markets": {
+          "title": "Märkte, Sprachen & Währungen",
+          "desc": "Denselben Shop in mehreren Ländern verkaufen – jeweils mit eigener Sprache, Währung und Domain."
+        },
+        "domains": {
+          "title": "Eigene Domains",
+          "desc": "Starte mit einer kostenlosen ShopsDoor-Subdomain und verbinde deine eigene Domain, wenn du bereit bist."
+        },
+        "analytics": {
+          "title": "Analysen & Einblicke",
+          "desc": "Umsatz, Traffic und Bestseller in einer klaren Übersicht."
+        },
+        "marketing": {
+          "title": "E-Mail-Kampagnen",
+          "desc": "Newsletter und Angebote direkt aus dem Dashboard an deine Kunden senden."
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "So funktioniert es",
+      "title": "Öffne deine Tür in drei Schritten.",
+      "lead": "Von der Registrierung bis zur ersten Bestellung – ohne Entwickler.",
+      "steps": {
+        "s1": {
+          "title": "Shop erstellen",
+          "desc": "Registrieren, Shop benennen und ein Theme wählen. Du erhältst sofort eine ShopsDoor-Adresse.",
+          "caption": "yourstore.shopsdoor.com"
+        },
+        "s2": {
+          "title": "Produkte anlegen & Zahlungen verbinden",
+          "desc": "Produkte hinzufügen, Preise und Versand festlegen und dein Stripe-Konto verbinden, um bezahlt zu werden.",
+          "caption": "Stripe · verbunden"
+        },
+        "s3": {
+          "title": "Veröffentlichen & wachsen",
+          "desc": "Shop teilen, eigene Domain verbinden und neue Märkte eröffnen, wenn du bereit bist.",
+          "caption": "yourdomain.com"
+        }
+      },
+      "stepLabel": "Schritt"
+    },
+    "pricing": {
+      "eyebrow": "Preise",
+      "title": "Einfache Preise, demnächst.",
+      "lead": "ShopsDoor befindet sich im Early Access. Tarife und Preise werden hier vor der allgemeinen Verfügbarkeit veröffentlicht.",
+      "badge": "Start in Kürze",
+      "planName": "Early Access",
+      "planDesc": "Für unabhängige Händler, die als Erste durch die Tür gehen wollen.",
+      "price": "Preise werden noch bekannt gegeben",
+      "points": {
+        "p1": "Transparente Monatstarife ohne versteckte Gebühren",
+        "p2": "Zahlungsabwicklung wird von Stripe zu den Standardkonditionen von Stripe abgerechnet",
+        "p3": "Abonnement jederzeit kündbar"
+      },
+      "cta": "Sprich mit uns über Early Access",
+      "note": "Preise werden in SEK und EUR angezeigt, ggf. zuzüglich Mehrwertsteuer.",
+      "ghost": "EARLY ACCESS",
+      "included": "Was Early Access bedeutet"
+    },
+    "contact": {
+      "eyebrow": "Kontakt",
+      "title": "Sprich mit uns.",
+      "lead": "Fragen zur Plattform, zum Early Access oder zu Partnerschaften? Schreib uns – ein echter Mensch antwortet.",
+      "emailLabel": "E-Mail schreiben",
+      "name": "Dein Name",
+      "email": "Deine E-Mail-Adresse",
+      "message": "Nachricht",
+      "send": "Nachricht senden",
+      "sending": "Wird gesendet…",
+      "sent": "Danke – wir melden uns in Kürze bei dir.",
+      "error": "Etwas ist schiefgelaufen. Bitte schreib uns direkt per E-Mail.",
+      "notConfigured": "Das Kontaktformular ist noch nicht angebunden. Bitte schreib uns direkt per E-Mail.",
+      "companyLine": "ShopsDoor wird von Namez AB, Schweden, betrieben.",
+      "formTitle": "Nachricht senden",
+      "formHint": "Jede Nachricht wird von einem Menschen aus dem ShopsDoor-Team gelesen."
+    },
+    "footer": {
+      "tagline": "Baue, verwalte und erweitere deinen Onlineshop.",
+      "operatedBy": "ShopsDoor wird von Namez AB betrieben, einem in Schweden eingetragenen Unternehmen.",
+      "product": "Produkt",
+      "company": "Unternehmen",
+      "legal": "Rechtliches",
+      "companyInfo": "Unternehmensangaben",
+      "rights": "Alle Rechte vorbehalten."
+    },
+    "door": {
+      "eyebrow": "Durch die Tür",
+      "title": "Was hinter der Tür liegt",
+      "c1": "Ein Dashboard.",
+      "c1sub": "Produkte, Bestellungen, Seiten und Zahlungen für jeden Shop, den du betreibst, an einem Ort.",
+      "c2": "Jeder Markt, jede Sprache, jede Währung.",
+      "c2sub": "Öffne denselben Shop für neue Länder mit eigener Sprache, eigenen Preisen und eigener Domain.",
+      "c3": "Deine eigene Domain.",
+      "c3sub": "Starte mit einer kostenlosen ShopsDoor-Adresse und wechsle jederzeit zu deiner eigenen Domain.",
+      "chipCurrencies": "SEK · EUR · USD",
+      "chipLanguages": "sv · en · ar · tr · de · fr",
+      "chipDomain": "deinshop.de",
+      "scrollHint": "Scrollen zum Öffnen"
+    }
   },
   "product": {
     "allProducts": "Alle Produkte",
@@ -855,5 +987,26 @@
     "editPage": "Seite bearbeiten",
     "openDashboard": "Dashboard öffnen",
     "dismiss": "Bearbeiten-Button ausblenden"
+  },
+  "company": {
+    "meta": {
+      "title": "Unternehmensangaben — {name}",
+      "description": "Rechtliche Angaben zu Namez AB, dem Unternehmen, das ShopsDoor betreibt."
+    },
+    "eyebrow": "Unternehmensangaben",
+    "title": "Wer hinter ShopsDoor steht.",
+    "lead": "ShopsDoor ist eine Marke und Plattform, die von Namez AB betrieben wird, einer in Schweden eingetragenen Gesellschaft mit beschränkter Haftung.",
+    "legalEntity": "Rechtsträger",
+    "orgNumber": "Organisationsnummer",
+    "vatNumber": "USt-IdNr.",
+    "address": "Eingetragene Adresse",
+    "country": "Land",
+    "email": "Kontakt-E-Mail",
+    "platform": "Plattform",
+    "platformValue": "ShopsDoor (shopsdoor.com)",
+    "roleTitle": "Rolle von Namez AB",
+    "roleText": "Namez AB besitzt und betreibt die ShopsDoor-Plattform, schließt die Nutzungsbedingungen mit den Händlern ab und verarbeitet personenbezogene Daten wie in der Datenschutzerklärung beschrieben. Zahlungen werden von Stripe abgewickelt; jeder Händler erhält Auszahlungen auf sein eigenes Stripe-Konto.",
+    "legalLinks": "Rechtsdokumente",
+    "backHome": "Zurück zur Startseite"
   }
 }
