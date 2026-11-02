@@ -98,6 +98,7 @@ export function HeaderClient({ locale, homeHref, links, loginHref, loginLabel, c
           ))}
         </nav>
         <div className="sd-header-actions">
+          <LanguageMenu locale={locale} label={languageLabel} />
           <Link href={loginHref} className="sd-link sd-header-link sd-header-login">
             {loginLabel}
           </Link>
@@ -123,6 +124,7 @@ export function HeaderClient({ locale, homeHref, links, loginHref, loginLabel, c
           <Link href={ctaHref} className="sd-btn sd-btn-primary" onClick={() => setOpen(false)}>
             <span className="sd-btn-label">{ctaLabel}</span>
           </Link>
+          <LanguageMenu locale={locale} label={languageLabel} variant="drawer" />
         </nav>
       </div>
       <style jsx global>{`
