@@ -575,15 +575,24 @@
     "accountKind": {
       "independent": {
         "title": "Independent store",
-        "desc": "Sell your own products with your own payments and domain."
+        "desc": "Sell your own products with your own payments and domain.",
+        "point1": "Your own payments and payouts",
+        "point2": "Your own domain and brand",
+        "point3": "Full store builder, products and orders"
       },
       "marketplace": {
         "title": "Influencer / marketplace store",
-        "desc": "Sell supplier products and your own; the platform handles payments, a commission applies."
+        "desc": "Sell supplier products and your own; the platform handles payments, a commission applies.",
+        "point1": "Sell from the supplier catalog or your own",
+        "point2": "Payments handled by the platform",
+        "point3": "Markets in several languages and currencies"
       },
       "supplier": {
         "title": "Supplier",
-        "desc": "List products that marketplace stores sell. Admin approval before listing."
+        "desc": "List products that marketplace stores sell. Admin approval before listing.",
+        "point1": "List products for marketplace stores to sell",
+        "point2": "Verification by the admin before listing",
+        "point3": "Orders and payouts in one place"
       }
     },
     "accountKindRequired": "Please choose an account type.",
@@ -593,7 +602,19 @@
     "termsLabel": "I accept the <terms>Terms of Service</terms> and the <privacy>Privacy Policy</privacy>.",
     "termsRequired": "Please accept the Terms of Service and the Privacy Policy to continue.",
     "emailDisposable": "Disposable email addresses are not accepted. Please use a permanent address.",
-    "emailExists": "An account with this email already exists. Sign in instead."
+    "emailExists": "An account with this email already exists. Sign in instead.",
+    "wizard": {
+      "step1": "Choose your path",
+      "step2": "Your details",
+      "title": "How do you want to use ShopsDoor?",
+      "lead": "Pick the account that matches how you sell. It takes about two minutes.",
+      "continue": "Continue",
+      "back": "Back",
+      "change": "Change",
+      "detailsTitle": "Your details",
+      "detailsLead": "Tell us who you are and choose a password.",
+      "createAccount": "Create account"
+    }
   },
   "account": {
     "fullNamePlaceholder": "Full name",

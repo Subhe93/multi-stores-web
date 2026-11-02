@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RegisterPage from './page';
 
-// Platform sign-up (onboarding SPEC §2 / §7): the three account-kind cards
-// are a radio group, the supplier card adds a company name, the terms
-// checkbox and the honeypot travel in the body, and the API error codes
-// map to friendly messages.
+// Platform sign-up (onboarding SPEC §2 / §7) as a two-step wizard: step 1 is
+// the radio group of three path cards, step 2 the details card (the supplier
+// path adds a company name). The terms checkbox and the honeypot travel in
+// the body, and the API error codes map to friendly messages.
 
 const apiMock = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/api', () => ({ api: apiMock }));
@@ -18,6 +18,14 @@ vi.mock('next-intl', () => ({
     return t;
   },
 }));
+// No GSAP in jsdom: the step reveal is cosmetic.
+vi.mock('@/lib/animations', () => ({
+  gsap: { fromTo: vi.fn() },
+  useGSAP: () => undefined,
+  DUR: { fast: 0 },
+  EASE: { out: 'none' },
+  prefersReducedMotion: () => true,
+}));
 
 afterEach(() => {
   apiMock.mockReset();
@@ -25,6 +33,10 @@ afterEach(() => {
 
 function fill(id: string, value: string) {
   fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
+}
+
+function continueToDetails() {
+  fireEvent.click(screen.getByRole('button', { name: /wizard\.continue/ }));
 }
 
 describe('RegisterPage', () => {
@@ -37,8 +49,12 @@ describe('RegisterPage', () => {
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(3);
     expect(radios.every((r) => r.getAttribute('aria-checked') === 'false')).toBe(true);
+    expect(screen.getByRole('button', { name: /wizard\.continue/ })).toBeDisabled();
     fireEvent.click(screen.getByRole('radio', { name: /accountKind\.marketplace/ }));
     expect(screen.getByRole('radio', { name: /accountKind\.marketplace/ })).toHaveAttribute('aria-checked', 'true');
+
+    continueToDetails();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
     expect(document.getElementById('companyName')).toBeNull();
 
     fill('firstName', 'Anna');
@@ -73,6 +89,7 @@ describe('RegisterPage', () => {
     fireEvent.keyDown(first, { key: 'ArrowRight' });
     fireEvent.keyDown(screen.getByRole('radio', { name: /accountKind\.marketplace/ }), { key: 'ArrowRight' });
     expect(screen.getByRole('radio', { name: /accountKind\.supplier/ })).toHaveAttribute('aria-checked', 'true');
+    continueToDetails();
     fill('companyName', 'Acme AB');
 
     fill('firstName', 'A');
@@ -91,19 +108,26 @@ describe('RegisterPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('emailDisposable');
   });
 
-  it('refuses to submit without a kind or without the terms', async () => {
+  it('refuses to submit without a kind or without the terms; Back keeps the values', async () => {
     render(<RegisterPage />);
+    fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByRole('alert')).toHaveTextContent('accountKindRequired');
+
+    fireEvent.click(screen.getByRole('radio', { name: /accountKind\.independent/ }));
+    continueToDetails();
     fill('firstName', 'A');
     fill('lastName', 'B');
     fill('email', 'a@b.se');
     fill('password', 'secret123');
     fill('confirmPassword', 'secret123');
     fireEvent.submit(document.querySelector('form')!);
-    expect(await screen.findByRole('alert')).toHaveTextContent('accountKindRequired');
-
-    fireEvent.click(screen.getByRole('radio', { name: /accountKind\.independent/ }));
-    fireEvent.submit(document.querySelector('form')!);
     expect(await screen.findByRole('alert')).toHaveTextContent('termsRequired');
     expect(apiMock).not.toHaveBeenCalled();
+
+    // Back to step 1 and forward again: the chosen path and the fields survive.
+    fireEvent.click(screen.getByRole('button', { name: /wizard\.back/ }));
+    expect(screen.getByRole('radio', { name: /accountKind\.independent/ })).toHaveAttribute('aria-checked', 'true');
+    continueToDetails();
+    expect((document.getElementById('email') as HTMLInputElement).value).toBe('a@b.se');
   });
 });

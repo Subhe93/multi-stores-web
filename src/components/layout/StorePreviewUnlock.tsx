@@ -2,7 +2,11 @@
 
 import { useEffect } from 'react';
 import { API_URL } from '@/lib/api';
-import { readEditHintToken, isPlausibleToken } from '@/components/edit-hint/editHintStorage';
+import {
+  consumeEditHintHandoff,
+  isPlausibleToken,
+  readEditHintToken,
+} from '@/components/edit-hint/editHintStorage';
 import { STORE_PREVIEW_COOKIE } from '@/lib/storeGate';
 import { encodePreviewCookie, readBrowserPreviewCookie } from '@/lib/storePreview';
 
@@ -55,12 +59,17 @@ export function StorePreviewReset() {
  * endpoint; on success it is copied into a session cookie and the page
  * reloads, so the server layout can fetch the full storefront with it.
  *
+ * The hand-off fragment (`#ms_edit=<token>`) is consumed here as well: the
+ * Edit button that normally does it is not mounted on the gate page, and
+ * the dashboard's "visit store" link lands on this page for a DRAFT store.
+ *
  * A cookie that is already present while this page still renders means
  * the server tried it and the API refused: it is cleared and nothing is
  * retried, so a stale token can never loop the page.
  */
 export function StorePreviewUnlock({ storeSlug }: { storeSlug: string }) {
   useEffect(() => {
+    consumeEditHintHandoff();
     if (hasPreviewCookie()) {
       clearPreviewCookie();
       return;

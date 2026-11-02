@@ -575,15 +575,24 @@
     "accountKind": {
       "independent": {
         "title": "Bağımsız mağaza",
-        "desc": "Kendi ödeme altyapınız ve alan adınızla kendi ürünlerinizi satın."
+        "desc": "Kendi ödeme altyapınız ve alan adınızla kendi ürünlerinizi satın.",
+        "point1": "Kendi ödemelerin ve hakedişlerin",
+        "point2": "Kendi alan adın ve markan",
+        "point3": "Tam mağaza oluşturucu, ürünler ve siparişler"
       },
       "marketplace": {
         "title": "Influencer / pazar yeri mağazası",
-        "desc": "Tedarikçi ürünlerini ve kendi ürünlerinizi satın; ödemeleri platform yönetir, komisyon uygulanır."
+        "desc": "Tedarikçi ürünlerini ve kendi ürünlerinizi satın; ödemeleri platform yönetir, komisyon uygulanır.",
+        "point1": "Tedarikçi kataloğundan veya kendi ürünlerinden sat",
+        "point2": "Ödemeleri platform yönetir",
+        "point3": "Birden çok dil ve para biriminde pazarlar"
       },
       "supplier": {
         "title": "Tedarikçi",
-        "desc": "Pazar yeri mağazalarının sattığı ürünleri listeleyin. Listeleme öncesi yönetici onayı gerekir."
+        "desc": "Pazar yeri mağazalarının sattığı ürünleri listeleyin. Listeleme öncesi yönetici onayı gerekir.",
+        "point1": "Pazar yeri mağazalarının satması için ürün listele",
+        "point2": "Listelemeden önce yönetici doğrulaması",
+        "point3": "Siparişler ve hakedişler tek yerde"
       }
     },
     "accountKindRequired": "Lütfen bir hesap türü seçin.",
@@ -593,7 +602,19 @@
     "termsLabel": "<terms>Hizmet Şartları</terms>nı ve <privacy>Gizlilik Politikası</privacy>nı kabul ediyorum.",
     "termsRequired": "Devam etmek için Hizmet Şartları ve Gizlilik Politikasını kabul edin.",
     "emailDisposable": "Geçici e-posta adresleri kabul edilmez. Lütfen kalıcı bir adres kullanın.",
-    "emailExists": "Bu e-posta ile zaten bir hesap var. Bunun yerine giriş yapın."
+    "emailExists": "Bu e-posta ile zaten bir hesap var. Bunun yerine giriş yapın.",
+    "wizard": {
+      "step1": "Yolunu seç",
+      "step2": "Bilgilerin",
+      "title": "ShopsDoor'u nasıl kullanmak istiyorsun?",
+      "lead": "Satış şekline uyan hesabı seç. Yaklaşık iki dakika sürer.",
+      "continue": "Devam et",
+      "back": "Geri",
+      "change": "Değiştir",
+      "detailsTitle": "Bilgilerin",
+      "detailsLead": "Kendini tanıt ve bir şifre seç.",
+      "createAccount": "Hesap oluştur"
+    }
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",

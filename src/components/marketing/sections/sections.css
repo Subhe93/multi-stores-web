@@ -14,10 +14,10 @@
 .sd-hero-badge-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--sd-teal); box-shadow: 0 0 0 4px rgba(21,184,166,.18); animation: sd-pulse 2.4s ease-in-out infinite; }
 .sd-hero-grid { display: grid; grid-template-columns: 1fr; gap: 26px 56px; align-items: end; }
 .sd-hero-title { display: contents; }
-.sd-hero-t1, .sd-hero-t2 { display: block; margin: 0; font-weight: 800; letter-spacing: -.045em; line-height: 1; font-size: clamp(3.2rem, 6vw, 5.6rem); color: var(--sd-navy); }
+.sd-hero-t1, .sd-hero-t2 { display: block; margin: 0; font-weight: 800; letter-spacing: -.045em; line-height: 1; font-size: clamp(2.8rem, 4.6vw, 4.2rem); color: var(--sd-navy); }
 .sd-hero-t1 { grid-column: 1 / -1; max-width: 11.5ch; }
 .sd-hero-t2 { color: transparent; -webkit-text-stroke: 2px var(--sd-teal); }
-[lang="ar"] .sd-hero-t1, [lang="ar"] .sd-hero-t2 { letter-spacing: 0; line-height: 1.18; font-size: clamp(2.6rem, 4.8vw, 4.4rem); }
+[lang="ar"] .sd-hero-t1, [lang="ar"] .sd-hero-t2 { letter-spacing: 0; line-height: 1.18; font-size: clamp(2.4rem, 3.8vw, 3.4rem); }
 [lang="ar"] .sd-hero-t2 { -webkit-text-stroke-width: 1.5px; }
 .sd-hero-side { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; padding-bottom: .22em; }
 .sd-hero-lead { margin: 0; max-width: 30rem; font-size: clamp(1.02rem, 1.3vw, 1.2rem); line-height: 1.55; color: var(--sd-ink); }
@@ -66,7 +66,7 @@
 .sd-door-caption { position: absolute; inset-inline-start: 0; top: 0; width: 100%; }
 .sd-door-index { display: block; margin-bottom: 14px; font-size: .75rem; font-weight: 700; letter-spacing: .22em; color: var(--sd-teal); text-align: start; }
 [dir="rtl"] .sd-door-index { text-align: right; }
-.sd-door-caption-title { margin: 0 0 14px; font-size: clamp(2.2rem, 3.6vw, 3.6rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-ivory); text-shadow: 0 2px 28px rgba(14,33,41,.55); }
+.sd-door-caption-title { margin: 0 0 14px; font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-ivory); text-shadow: 0 2px 28px rgba(14,33,41,.55); }
 [lang="ar"] .sd-door-caption-title { letter-spacing: 0; line-height: 1.2; }
 .sd-door-caption-sub { margin: 0; max-width: 30rem; font-size: 1.02rem; line-height: 1.6; color: rgba(247,244,236,.8); text-shadow: 0 1px 18px rgba(14,33,41,.7); }
 .sd-door-bars { display: flex; gap: 8px; width: 180px; margin-top: 30px; }
@@ -94,7 +94,7 @@
 .sd-features { overflow: hidden; }
 .sd-features-head { display: grid; grid-template-columns: 1fr; gap: 28px 64px; align-items: end; margin-bottom: clamp(40px, 6vw, 80px); }
 .sd-features-head-main { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
-.sd-features-title { margin: 0; max-width: 14ch; font-size: clamp(2.4rem, 4vw, 3.8rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-navy); }
+.sd-features-title { margin: 0; max-width: 14ch; font-size: clamp(2rem, 3.1vw, 2.8rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-navy); }
 [lang="ar"] .sd-features-title { letter-spacing: 0; line-height: 1.2; }
 .sd-features-head-side { display: flex; flex-direction: column; gap: 18px; }
 .sd-features-lead { margin: 0; max-width: 30rem; font-size: 1.02rem; line-height: 1.6; color: var(--sd-muted); }
@@ -159,7 +159,7 @@ html[data-js] .sd-root .sd-feature-preview { display: block; }
 @media (min-width: 1024px) {
   .sd-how-stage { height: 100svh; padding-block: 96px 40px; gap: 0; justify-content: space-between; }
   .sd-how-head { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: end; gap: 40px; }
-  .sd-how-title { font-size: clamp(2rem, 2.8vw, 2.6rem); }
+  .sd-how-title { font-size: clamp(1.8rem, 2.4vw, 2.3rem); }
   .sd-how-head-side { justify-self: end; }
   .sd-how-lead { max-width: 30rem; font-size: 1.05rem; }
   .sd-how-viewport { --sd-how-gutter: max(32px, calc((100vw - 1200px) / 2 + 32px)); padding-inline: var(--sd-how-gutter); overflow: visible; }
@@ -178,11 +178,11 @@ html[data-js] .sd-root .sd-feature-preview { display: block; }
 .sd-pricing { overflow: clip; }
 .sd-pricing-stage { position: relative; padding-block: clamp(16px, 5vw, 64px) 0; }
 .sd-pricing-ghost { position: absolute; inset-inline: 0; top: 50%; translate: 0 -50%; display: flex; flex-direction: column; align-items: center; pointer-events: none; user-select: none; z-index: 0; }
-.sd-pricing-ghost-line { display: block; font-family: var(--sd-font); font-size: clamp(4rem, 24vw, 22rem); font-weight: 800; letter-spacing: -.04em; line-height: .82; color: transparent; -webkit-text-stroke: 1px rgba(20,45,54,.45); white-space: nowrap; text-transform: uppercase; }
+.sd-pricing-ghost-line { display: block; font-family: var(--sd-font); font-size: clamp(3rem, 10vw, 9rem); font-weight: 800; letter-spacing: -.04em; line-height: .82; color: transparent; -webkit-text-stroke: 1px rgba(20,45,54,.45); white-space: nowrap; text-transform: uppercase; }
 .sd-pricing-wrap { position: relative; z-index: 1; max-width: 940px; margin-inline: auto; }
 .sd-pricing-card { display: grid; grid-template-columns: 1fr; gap: 32px; padding: clamp(28px, 4.5vw, 56px); border-radius: 32px; background: rgba(255,255,255,.76); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(20,45,54,.1); box-shadow: 0 50px 100px -50px rgba(20,45,54,.35), inset 0 1px 0 rgba(255,255,255,.8); }
 .sd-pricing-main { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
-.sd-pricing-plan { font-size: clamp(2.2rem, 3.2vw, 2.9rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-navy); margin: 0; }
+.sd-pricing-plan { font-size: clamp(1.9rem, 2.6vw, 2.4rem); font-weight: 800; letter-spacing: -.04em; line-height: .98; color: var(--sd-navy); margin: 0; }
 [lang="ar"] .sd-pricing-plan { letter-spacing: 0; line-height: 1.2; }
 .sd-pricing-desc { color: var(--sd-muted); line-height: 1.6; margin: 0; max-width: 28rem; font-size: 1.02rem; }
 .sd-pricing-price { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 1.05rem; font-weight: 700; color: var(--sd-navy); margin: 8px 0 0; padding-top: 18px; border-top: 1px solid rgba(20,45,54,.1); }
@@ -205,13 +205,13 @@ html[data-js] .sd-root .sd-feature-preview { display: block; }
 .sd-contact { overflow: clip; }
 .sd-contact-grid { display: grid; grid-template-columns: 1fr; gap: 48px; }
 .sd-contact-copy { display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
-.sd-contact-title { color: var(--sd-navy); margin: 0; font-size: clamp(2.6rem, 4.2vw, 3.7rem); max-width: 12ch; }
+.sd-contact-title { color: var(--sd-navy); margin: 0; font-size: clamp(2.1rem, 3.2vw, 2.8rem); max-width: 12ch; }
 .sd-contact-lead { margin: 0; }
 .sd-contact-direct { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 16px; width: 100%; }
 .sd-contact-label { font-size: .72rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--sd-muted); }
 [lang="ar"] .sd-contact-label { letter-spacing: .06em; }
 .sd-contact-mail { display: inline-flex; align-items: center; gap: clamp(10px, 1.4vw, 20px); max-width: 100%; color: var(--sd-navy); text-decoration: none; }
-.sd-contact-mail-text { font-size: clamp(1.6rem, 2.5vw, 2.7rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.02; overflow-wrap: normal; padding-bottom: .08em; background-image: linear-gradient(currentColor, currentColor); background-size: 0% 2px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size .6s cubic-bezier(.22,1,.36,1); }
+.sd-contact-mail-text { font-size: clamp(1.4rem, 2vw, 2.1rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.02; overflow-wrap: normal; padding-bottom: .08em; background-image: linear-gradient(currentColor, currentColor); background-size: 0% 2px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size .6s cubic-bezier(.22,1,.36,1); }
 .sd-contact-mail:hover .sd-contact-mail-text, .sd-contact-mail:focus-visible .sd-contact-mail-text { background-size: 100% 2px; }
 .sd-contact-mail-arrow { flex-shrink: 0; width: clamp(28px, 2.6vw, 44px); height: clamp(28px, 2.6vw, 44px); overflow: visible; }
 .sd-contact-mail-arrow path { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }

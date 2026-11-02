@@ -575,15 +575,24 @@
     "accountKind": {
       "independent": {
         "title": "Eigenständiger Shop",
-        "desc": "Verkaufen Sie Ihre eigenen Produkte mit eigener Zahlungsabwicklung und Domain."
+        "desc": "Verkaufen Sie Ihre eigenen Produkte mit eigener Zahlungsabwicklung und Domain.",
+        "point1": "Eigene Zahlungen und Auszahlungen",
+        "point2": "Eigene Domain und Marke",
+        "point3": "Kompletter Shop-Builder, Produkte und Bestellungen"
       },
       "marketplace": {
         "title": "Influencer- / Marktplatz-Shop",
-        "desc": "Verkaufen Sie Lieferantenprodukte und eigene; die Plattform wickelt Zahlungen ab, eine Provision fällt an."
+        "desc": "Verkaufen Sie Lieferantenprodukte und eigene; die Plattform wickelt Zahlungen ab, eine Provision fällt an.",
+        "point1": "Aus dem Lieferantenkatalog oder eigene Produkte verkaufen",
+        "point2": "Zahlungen übernimmt die Plattform",
+        "point3": "Märkte in mehreren Sprachen und Währungen"
       },
       "supplier": {
         "title": "Lieferant",
-        "desc": "Listen Sie Produkte, die Marktplatz-Shops verkaufen. Freigabe durch den Admin vor der Listung."
+        "desc": "Listen Sie Produkte, die Marktplatz-Shops verkaufen. Freigabe durch den Admin vor der Listung.",
+        "point1": "Produkte listen, die Marktplatz-Shops verkaufen",
+        "point2": "Prüfung durch den Admin vor der Listung",
+        "point3": "Bestellungen und Auszahlungen an einem Ort"
       }
     },
     "accountKindRequired": "Bitte wählen Sie einen Kontotyp.",
@@ -593,7 +602,19 @@
     "termsLabel": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>.",
     "termsRequired": "Bitte akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung, um fortzufahren.",
     "emailDisposable": "Wegwerf-E-Mail-Adressen werden nicht akzeptiert. Bitte verwenden Sie eine dauerhafte Adresse.",
-    "emailExists": "Mit dieser E-Mail existiert bereits ein Konto. Melden Sie sich stattdessen an."
+    "emailExists": "Mit dieser E-Mail existiert bereits ein Konto. Melden Sie sich stattdessen an.",
+    "wizard": {
+      "step1": "Weg wählen",
+      "step2": "Deine Angaben",
+      "title": "Wie möchtest du ShopsDoor nutzen?",
+      "lead": "Wähle das Konto, das zu deiner Art zu verkaufen passt. Dauert etwa zwei Minuten.",
+      "continue": "Weiter",
+      "back": "Zurück",
+      "change": "Ändern",
+      "detailsTitle": "Deine Angaben",
+      "detailsLead": "Sag uns, wer du bist, und wähle ein Passwort.",
+      "createAccount": "Konto erstellen"
+    }
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",

@@ -4,7 +4,7 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { ShopsDoorLogo } from '@/components/brand/ShopsDoorLogo';
 import { COMPANY } from '@/lib/brand';
 import { localePath } from '@/lib/locale-path';
-import './auth.css';
+import '../auth.css';
 
 // Reassurance lines on the brand panel: the landing's trust facts (home.trust).
 const TRUST_KEYS = ['stripe', 'markets', 'eu'] as const;

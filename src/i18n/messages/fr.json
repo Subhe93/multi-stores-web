@@ -575,15 +575,24 @@
     "accountKind": {
       "independent": {
         "title": "Boutique indépendante",
-        "desc": "Vendez vos propres produits avec vos propres paiements et votre domaine."
+        "desc": "Vendez vos propres produits avec vos propres paiements et votre domaine.",
+        "point1": "Vos propres paiements et versements",
+        "point2": "Votre propre domaine et votre marque",
+        "point3": "Créateur de boutique complet, produits et commandes"
       },
       "marketplace": {
         "title": "Boutique influenceur / marketplace",
-        "desc": "Vendez les produits de fournisseurs et les vôtres ; la plateforme gère les paiements, une commission s’applique."
+        "desc": "Vendez les produits de fournisseurs et les vôtres ; la plateforme gère les paiements, une commission s’applique.",
+        "point1": "Vendez depuis le catalogue fournisseurs ou vos produits",
+        "point2": "Paiements gérés par la plateforme",
+        "point3": "Marchés en plusieurs langues et devises"
       },
       "supplier": {
         "title": "Fournisseur",
-        "desc": "Référencez des produits vendus par les boutiques marketplace. Validation par l’admin avant publication."
+        "desc": "Référencez des produits vendus par les boutiques marketplace. Validation par l’admin avant publication.",
+        "point1": "Référencez des produits vendus par les boutiques marketplace",
+        "point2": "Vérification par l’administrateur avant publication",
+        "point3": "Commandes et versements au même endroit"
       }
     },
     "accountKindRequired": "Veuillez choisir un type de compte.",
@@ -593,7 +602,19 @@
     "termsLabel": "J’accepte les <terms>Conditions d’utilisation</terms> et la <privacy>Politique de confidentialité</privacy>.",
     "termsRequired": "Veuillez accepter les Conditions d’utilisation et la Politique de confidentialité pour continuer.",
     "emailDisposable": "Les adresses e-mail jetables ne sont pas acceptées. Veuillez utiliser une adresse permanente.",
-    "emailExists": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt."
+    "emailExists": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
+    "wizard": {
+      "step1": "Choisir sa voie",
+      "step2": "Vos informations",
+      "title": "Comment voulez-vous utiliser ShopsDoor ?",
+      "lead": "Choisissez le compte qui correspond à votre façon de vendre. Environ deux minutes.",
+      "continue": "Continuer",
+      "back": "Retour",
+      "change": "Modifier",
+      "detailsTitle": "Vos informations",
+      "detailsLead": "Dites-nous qui vous êtes et choisissez un mot de passe.",
+      "createAccount": "Créer le compte"
+    }
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",

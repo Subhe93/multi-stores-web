@@ -575,15 +575,24 @@
     "accountKind": {
       "independent": {
         "title": "Fristående butik",
-        "desc": "Sälj dina egna produkter med egna betalningar och egen domän."
+        "desc": "Sälj dina egna produkter med egna betalningar och egen domän.",
+        "point1": "Egna betalningar och utbetalningar",
+        "point2": "Egen domän och eget varumärke",
+        "point3": "Komplett butiksbyggare, produkter och ordrar"
       },
       "marketplace": {
         "title": "Influencer- / marknadsplatsbutik",
-        "desc": "Sälj leverantörers produkter och dina egna; plattformen hanterar betalningar, provision tillkommer."
+        "desc": "Sälj leverantörers produkter och dina egna; plattformen hanterar betalningar, provision tillkommer.",
+        "point1": "Sälj från leverantörskatalogen eller egna produkter",
+        "point2": "Betalningar sköts av plattformen",
+        "point3": "Marknader på flera språk och i flera valutor"
       },
       "supplier": {
         "title": "Leverantör",
-        "desc": "Lista produkter som marknadsplatsbutiker säljer. Godkännande av admin innan listning."
+        "desc": "Lista produkter som marknadsplatsbutiker säljer. Godkännande av admin innan listning.",
+        "point1": "Lista produkter som marknadsplatsbutiker säljer",
+        "point2": "Verifiering av admin innan listning",
+        "point3": "Ordrar och utbetalningar på ett ställe"
       }
     },
     "accountKindRequired": "Välj en kontotyp.",
@@ -593,7 +602,19 @@
     "termsLabel": "Jag godkänner <terms>användarvillkoren</terms> och <privacy>integritetspolicyn</privacy>.",
     "termsRequired": "Godkänn användarvillkoren och integritetspolicyn för att fortsätta.",
     "emailDisposable": "Tillfälliga e-postadresser accepteras inte. Använd en permanent adress.",
-    "emailExists": "Det finns redan ett konto med den här e-postadressen. Logga in i stället."
+    "emailExists": "Det finns redan ett konto med den här e-postadressen. Logga in i stället.",
+    "wizard": {
+      "step1": "Välj din väg",
+      "step2": "Dina uppgifter",
+      "title": "Hur vill du använda ShopsDoor?",
+      "lead": "Välj det konto som passar hur du säljer. Det tar ungefär två minuter.",
+      "continue": "Fortsätt",
+      "back": "Tillbaka",
+      "change": "Ändra",
+      "detailsTitle": "Dina uppgifter",
+      "detailsLead": "Berätta vem du är och välj ett lösenord.",
+      "createAccount": "Skapa konto"
+    }
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",
