@@ -47,6 +47,7 @@
     },
     "nav": {
       "features": "Fonctionnalités",
+      "sell": "Ce que vous pouvez vendre",
       "how": "Comment ça marche",
       "pricing": "Tarifs",
       "contact": "Contact",
@@ -130,6 +131,41 @@
           "title": "Campagnes e-mail",
           "desc": "Envoyez des newsletters et des offres à vos clients depuis le tableau de bord."
         }
+      }
+    },
+    "sell": {
+      "eyebrow": "Ce que vous pouvez vendre",
+      "title": "Vos propres produits, des produits personnalisés ou ceux d’un fournisseur.",
+      "lead": "Quatre types de produits tournent déjà sur ShopsDoor : des articles simples avec variantes, des cadeaux personnalisés à la commande, des produits expédiés par des fournisseurs vérifiés et des lots.",
+      "available": "Disponible",
+      "cards": {
+        "own": {
+          "title": "Vos propres produits",
+          "desc": "Simples ou avec variantes (taille, couleur), avec des images par variante et des niveaux de stock."
+        },
+        "custom": {
+          "title": "Produits personnalisés",
+          "desc": "Vos clients ajoutent noms, textes et photos dans l’éditeur intégré. Impression, gravure laser et impression 3D sont prises en charge."
+        },
+        "supplier": {
+          "title": "Produits de fournisseurs",
+          "desc": "Choisissez des produits de fournisseurs vérifiés et vendez-les sous votre marque. Le fournisseur expédie."
+        },
+        "bundle": {
+          "title": "Lots & coffrets cadeaux",
+          "desc": "Combinez plusieurs produits en une offre ou un coffret cadeau."
+        }
+      },
+      "categoriesLabel": "Catégories déjà vendues sur la plateforme",
+      "categories": {
+        "gifts": "Cadeaux personnalisés",
+        "signs": "Plaques de nom & lettres 3D",
+        "apparel": "Vêtements imprimés",
+        "wood": "Bois gravé au laser",
+        "jewellery": "Bijoux & accessoires",
+        "nfc": "Cartes de visite NFC",
+        "shoes": "Chaussures",
+        "tech": "Accessoires tech"
       }
     },
     "how": {

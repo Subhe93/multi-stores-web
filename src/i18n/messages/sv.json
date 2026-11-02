@@ -47,6 +47,7 @@
     },
     "nav": {
       "features": "Funktioner",
+      "sell": "Vad du kan sälja",
       "how": "Så fungerar det",
       "pricing": "Priser",
       "contact": "Kontakt",
@@ -130,6 +131,41 @@
           "title": "E-postkampanjer",
           "desc": "Skicka nyhetsbrev och erbjudanden till dina kunder direkt från panelen."
         }
+      }
+    },
+    "sell": {
+      "eyebrow": "Vad du kan sälja",
+      "title": "Egna produkter, personliga produkter eller produkter från leverantörer.",
+      "lead": "Fyra typer av produkter säljs på ShopsDoor i dag: enkla varor med varianter, personliga presenter som görs på beställning, produkter som verifierade leverantörer skickar, och paket.",
+      "available": "Tillgänglig",
+      "cards": {
+        "own": {
+          "title": "Dina egna produkter",
+          "desc": "Enkla eller med varianter som storlek och färg, med bilder per variant och lagersaldo."
+        },
+        "custom": {
+          "title": "Personliga produkter",
+          "desc": "Kunderna lägger till namn, text och foton i den inbyggda designern. Tryck, lasergravyr och 3D-print ingår som arbetsflöden."
+        },
+        "supplier": {
+          "title": "Leverantörsprodukter",
+          "desc": "Välj produkter från verifierade leverantörer och sälj dem under ditt eget varumärke. Leverantören skickar."
+        },
+        "bundle": {
+          "title": "Paket & presentset",
+          "desc": "Kombinera flera produkter till ett erbjudande eller presentset."
+        }
+      },
+      "categoriesLabel": "Kategorier som redan säljs på plattformen",
+      "categories": {
+        "gifts": "Personliga presenter",
+        "signs": "Namnskyltar & 3D-bokstäver",
+        "apparel": "Tryckta kläder",
+        "wood": "Lasergraverat trä",
+        "jewellery": "Smycken & accessoarer",
+        "nfc": "NFC-visitkort",
+        "shoes": "Skor",
+        "tech": "Tekniktillbehör"
       }
     },
     "how": {

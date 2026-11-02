@@ -47,6 +47,7 @@
     },
     "nav": {
       "features": "Features",
+      "sell": "What you can sell",
       "how": "How it works",
       "pricing": "Pricing",
       "contact": "Contact",
@@ -130,6 +131,41 @@
           "title": "Email campaigns",
           "desc": "Send newsletters and offers to your customers from inside the dashboard."
         }
+      }
+    },
+    "sell": {
+      "eyebrow": "What you can sell",
+      "title": "Your own products, personalised ones, or a supplier’s.",
+      "lead": "Four kinds of products run on ShopsDoor today: simple items with variants, personalised gifts made to order, products shipped by verified suppliers, and bundles.",
+      "available": "Available",
+      "cards": {
+        "own": {
+          "title": "Your own products",
+          "desc": "Simple or with variants like size and colour, with images per variant and stock levels."
+        },
+        "custom": {
+          "title": "Personalised products",
+          "desc": "Customers add names, text and photos in the built-in designer. Print, laser engraving and 3D-print workflows included."
+        },
+        "supplier": {
+          "title": "Supplier products",
+          "desc": "Pick products from verified suppliers and sell them under your own brand. The supplier ships."
+        },
+        "bundle": {
+          "title": "Bundles & gift sets",
+          "desc": "Combine several products into one offer or gift set."
+        }
+      },
+      "categoriesLabel": "Categories already selling on the platform",
+      "categories": {
+        "gifts": "Personalised gifts",
+        "signs": "Name signs & 3D letters",
+        "apparel": "Printed apparel",
+        "wood": "Laser-engraved wood",
+        "jewellery": "Jewellery & accessories",
+        "nfc": "NFC business cards",
+        "shoes": "Shoes",
+        "tech": "Tech accessories"
       }
     },
     "how": {

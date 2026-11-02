@@ -43,6 +43,7 @@ export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'hello@sho
 // `home.nav` dictionary keys with the same ids.
 export const NAV = [
   { id: 'features', href: '#features' },
+  { id: 'sell', href: '#sell' },
   { id: 'how', href: '#how-it-works' },
   { id: 'pricing', href: '#pricing' },
   { id: 'contact', href: '#contact' },

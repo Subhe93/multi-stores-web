@@ -6,6 +6,7 @@ import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { Hero } from '@/components/marketing/sections/Hero';
 import { DoorSequence } from '@/components/marketing/sections/DoorSequence';
 import { Features } from '@/components/marketing/sections/Features';
+import { Sell } from '@/components/marketing/sections/Sell';
 import { HowItWorks } from '@/components/marketing/sections/HowItWorks';
 import { Pricing } from '@/components/marketing/sections/Pricing';
 import { Contact } from '@/components/marketing/sections/Contact';
@@ -45,6 +46,7 @@ export default async function Home({
       <Hero locale={locale} />
       <DoorSequence locale={locale} />
       <Features locale={locale} />
+      <Sell locale={locale} />
       <HowItWorks locale={locale} />
       <Pricing locale={locale} />
       <Contact locale={locale} />

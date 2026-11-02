@@ -47,6 +47,7 @@
     },
     "nav": {
       "features": "Funktionen",
+      "sell": "Was Sie verkaufen können",
       "how": "So funktioniert es",
       "pricing": "Preise",
       "contact": "Kontakt",
@@ -130,6 +131,41 @@
           "title": "E-Mail-Kampagnen",
           "desc": "Newsletter und Angebote direkt aus dem Dashboard an deine Kunden senden."
         }
+      }
+    },
+    "sell": {
+      "eyebrow": "Was Sie verkaufen können",
+      "title": "Eigene Produkte, personalisierte Produkte oder Lieferantenprodukte.",
+      "lead": "Vier Produktarten laufen heute auf ShopsDoor: einfache Artikel mit Varianten, personalisierte Geschenke auf Bestellung, Produkte, die geprüfte Lieferanten versenden, und Bundles.",
+      "available": "Verfügbar",
+      "cards": {
+        "own": {
+          "title": "Eigene Produkte",
+          "desc": "Einfach oder mit Varianten wie Größe und Farbe, mit Bildern je Variante und Lagerbeständen."
+        },
+        "custom": {
+          "title": "Personalisierte Produkte",
+          "desc": "Kunden fügen im integrierten Designer Namen, Text und Fotos hinzu. Druck, Lasergravur und 3D-Druck sind als Workflows enthalten."
+        },
+        "supplier": {
+          "title": "Lieferantenprodukte",
+          "desc": "Wählen Sie Produkte geprüfter Lieferanten und verkaufen Sie sie unter Ihrer eigenen Marke. Der Lieferant versendet."
+        },
+        "bundle": {
+          "title": "Bundles & Geschenksets",
+          "desc": "Kombinieren Sie mehrere Produkte zu einem Angebot oder Geschenkset."
+        }
+      },
+      "categoriesLabel": "Kategorien, die bereits auf der Plattform verkauft werden",
+      "categories": {
+        "gifts": "Personalisierte Geschenke",
+        "signs": "Namensschilder & 3D-Buchstaben",
+        "apparel": "Bedruckte Kleidung",
+        "wood": "Lasergraviertes Holz",
+        "jewellery": "Schmuck & Accessoires",
+        "nfc": "NFC-Visitenkarten",
+        "shoes": "Schuhe",
+        "tech": "Technik-Zubehör"
       }
     },
     "how": {

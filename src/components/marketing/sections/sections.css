@@ -246,3 +246,53 @@ html[data-js] .sd-root .sd-feature-preview { display: block; }
   .sd-contact-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; }
   .sd-contact-copy { position: sticky; top: 112px; }
 }
+
+/* === SELL (what you can sell) === */
+/* Ivory section between Features (white) and How it works (navy): a shelf of
+   four product-kind cards, then two counter-running marquees of category pills.
+   The shelf becomes a scroll-snap row on phones with 16px gutters. */
+.sd-sell { overflow: clip; }
+.sd-sell-head { display: grid; grid-template-columns: 1fr; gap: 24px 64px; align-items: end; margin-bottom: clamp(36px, 5vw, 64px); }
+.sd-sell-head-main { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
+.sd-sell-title { margin: 0; max-width: 18ch; color: var(--sd-navy); }
+.sd-sell-head-side { display: flex; flex-direction: column; gap: 16px; }
+.sd-sell-lead { margin: 0; max-width: 30rem; }
+.sd-sell-shelf { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+/* `.sd-sell-shelf` prefix: sections.css is @imported before the .sd-card rule, so plain .sd-sell-card would lose the padding override */
+.sd-sell-shelf .sd-sell-card { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.sd-sell-art { position: relative; aspect-ratio: 320 / 200; background: var(--sd-ivory-2); border-bottom: 1px solid var(--sd-line); }
+.sd-sell-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sd-sell-body { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 22px 22px 24px; flex: 1; }
+.sd-sell-tile { position: absolute; top: -26px; inset-inline-start: 22px; box-shadow: 0 10px 24px -12px rgba(20,45,54,.35), 0 0 0 4px var(--sd-white); transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.sd-sell-card:hover .sd-sell-tile { transform: translateY(-4px) rotate(-6deg); }
+[dir="rtl"] .sd-sell-card:hover .sd-sell-tile { transform: translateY(-4px) rotate(6deg); }
+.sd-sell-card-title { margin: 30px 0 0; font-size: clamp(1.15rem, 1.5vw, 1.35rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; color: var(--sd-navy); }
+[lang="ar"] .sd-sell-card-title { letter-spacing: 0; line-height: 1.35; }
+.sd-sell-card-desc { margin: 0; font-size: .95rem; line-height: 1.6; color: var(--sd-muted); }
+.sd-sell-chip { margin-top: auto; padding-top: 0; }
+.sd-sell-body .sd-sell-chip { margin-top: 10px; }
+[lang="ar"] .sd-sell-chip { letter-spacing: 0; }
+.sd-sell-chip-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--sd-teal); box-shadow: 0 0 0 3px rgba(21,184,166,.2); }
+/* Categories: label + two marquees of pills in opposite directions */
+.sd-sell-categories { margin-top: clamp(48px, 7vw, 88px); }
+.sd-sell-categories-label { margin: 0 0 18px; font-size: .72rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--sd-teal-deep); }
+[lang="ar"] .sd-sell-categories-label { letter-spacing: .04em; font-size: .82rem; }
+.sd-sell-rows { display: flex; flex-direction: column; gap: 12px; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.sd-sell-marquee .sd-marquee-item { gap: 0; padding-inline-end: 12px; }
+.sd-sell-pill { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding-inline: 20px; border-radius: 999px; background: var(--sd-white); border: 1px solid var(--sd-line); font-size: .92rem; font-weight: 600; color: var(--sd-navy); white-space: nowrap; transition: border-color .4s ease, color .4s ease; }
+.sd-sell-pill::before { content: ''; width: 7px; height: 7px; border-radius: 999px; background: var(--sd-amber); flex-shrink: 0; }
+.sd-sell-marquee:nth-child(2) .sd-sell-pill::before { background: var(--sd-teal); }
+.sd-sell-pill:hover { border-color: rgba(21,184,166,.45); color: var(--sd-teal-deep); }
+/* Phones: horizontal scroll-snap row that bleeds to the viewport edge with 16px gutters */
+@media (max-width: 639px) {
+  .sd-sell-shelf-wrap { padding-inline: 0; }
+  .sd-sell-shelf { display: flex; gap: 14px; padding-inline: 16px; padding-bottom: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sd-sell-shelf::-webkit-scrollbar { display: none; }
+  .sd-sell-shelf .sd-sell-card { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
+  .sd-sell-shelf .sd-sell-card:hover { transform: none; box-shadow: none; border-color: var(--sd-line); }
+}
+@media (min-width: 1024px) {
+  .sd-sell-head { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .sd-sell-head-side { padding-bottom: 8px; }
+  .sd-sell-shelf { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+}

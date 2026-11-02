@@ -47,6 +47,7 @@
     },
     "nav": {
       "features": "Özellikler",
+      "sell": "Neler satabilirsiniz",
       "how": "Nasıl çalışır",
       "pricing": "Fiyatlandırma",
       "contact": "İletişim",
@@ -130,6 +131,41 @@
           "title": "E-posta kampanyaları",
           "desc": "Panelin içinden müşterilerine bültenler ve teklifler gönder."
         }
+      }
+    },
+    "sell": {
+      "eyebrow": "Neler satabilirsiniz",
+      "title": "Kendi ürünleriniz, kişiselleştirilmiş ürünler veya tedarikçi ürünleri.",
+      "lead": "Bugün ShopsDoor’da dört tür ürün satılıyor: varyantlı basit ürünler, sipariş üzerine kişiselleştirilen hediyeler, doğrulanmış tedarikçilerin gönderdiği ürünler ve paketler.",
+      "available": "Kullanılabilir",
+      "cards": {
+        "own": {
+          "title": "Kendi ürünleriniz",
+          "desc": "Basit ya da beden ve renk gibi varyantlı; her varyant için görsel ve stok seviyesi."
+        },
+        "custom": {
+          "title": "Kişiselleştirilmiş ürünler",
+          "desc": "Müşteriler yerleşik tasarımcıyla isim, metin ve fotoğraf ekler. Baskı, lazer kazıma ve 3D baskı iş akışları dahildir."
+        },
+        "supplier": {
+          "title": "Tedarikçi ürünleri",
+          "desc": "Doğrulanmış tedarikçilerden ürün seçin ve kendi markanızla satın. Gönderimi tedarikçi yapar."
+        },
+        "bundle": {
+          "title": "Paketler ve hediye setleri",
+          "desc": "Birden fazla ürünü tek bir teklifte veya hediye setinde birleştirin."
+        }
+      },
+      "categoriesLabel": "Platformda zaten satılan kategoriler",
+      "categories": {
+        "gifts": "Kişiselleştirilmiş hediyeler",
+        "signs": "İsim tabelaları ve 3D harfler",
+        "apparel": "Baskılı giyim",
+        "wood": "Lazer kazımalı ahşap",
+        "jewellery": "Takı ve aksesuar",
+        "nfc": "NFC kartvizitler",
+        "shoes": "Ayakkabı",
+        "tech": "Teknoloji aksesuarları"
       }
     },
     "how": {
