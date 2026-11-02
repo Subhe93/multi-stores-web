@@ -397,11 +397,14 @@ html, body {
   --sd-line: #E6E0D3;
   --sd-white: #FFFFFF;
   --sd-radius: 20px;
-  --sd-font: var(--font-manrope), 'Manrope', system-ui, sans-serif;
-  --sd-font-ar: var(--font-arabic-ui), 'Alexandria', var(--sd-font);
 }
 
 .sd-root {
+  /* The next/font variables (--font-manrope, --font-arabic-ui) live on the
+     locale wrapper that contains .sd-root, so the font stacks must be
+     declared here, not on :root, or var() resolves to nothing there. */
+  --sd-font: var(--font-manrope), 'Manrope', system-ui, sans-serif;
+  --sd-font-ar: var(--font-arabic-ui), 'Alexandria', var(--sd-font);
   background: var(--sd-ivory);
   color: var(--sd-ink);
   font-family: var(--sd-font);
