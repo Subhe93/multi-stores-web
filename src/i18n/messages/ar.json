@@ -534,7 +534,30 @@
     "requestFailed": "حدث خطأ ما. حاول مرة أخرى.",
     "backToHome": "العودة إلى الرئيسية",
     "brandEyebrow": "لأصحاب المتاجر والشركاء",
-    "brandTagline": "متاجر كثيرة. باب واحد."
+    "brandTagline": "متاجر كثيرة. باب واحد.",
+    "accountKindLabel": "فيمَ ستستخدم ShopsDoor؟",
+    "accountKind": {
+      "independent": {
+        "title": "متجر مستقل",
+        "desc": "بِع منتجاتك الخاصة عبر مدفوعاتك ونطاقك الخاصين."
+      },
+      "marketplace": {
+        "title": "متجر مؤثّر / سوق",
+        "desc": "بِع منتجات المورّدين ومنتجاتك؛ تتولى المنصة المدفوعات وتُطبَّق عمولة."
+      },
+      "supplier": {
+        "title": "مورّد",
+        "desc": "اعرض منتجات تبيعها متاجر السوق. تلزم موافقة الإدارة قبل العرض."
+      }
+    },
+    "accountKindRequired": "يرجى اختيار نوع الحساب.",
+    "companyName": "اسم الشركة",
+    "companyNamePlaceholder": "شركتك",
+    "companyNameRequired": "يرجى إدخال اسم الشركة.",
+    "termsLabel": "أوافق على <terms>شروط الخدمة</terms> و<privacy>سياسة الخصوصية</privacy>.",
+    "termsRequired": "يرجى الموافقة على شروط الخدمة وسياسة الخصوصية للمتابعة.",
+    "emailDisposable": "لا تُقبل عناوين البريد المؤقتة. يرجى استخدام عنوان دائم.",
+    "emailExists": "يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول بدلاً من ذلك."
   },
   "account": {
     "fullNamePlaceholder": "الاسم الكامل",
@@ -619,7 +642,13 @@
     "collectionSingular": "قسم",
     "collectionsCount": "أقسام",
     "noCollections": "لا توجد أقسام بعد.",
-    "viewCollection": "عرض القسم"
+    "viewCollection": "عرض القسم",
+    "comingSoonTitle": "قريباً",
+    "comingSoonBody": "هذا المتجر قيد التجهيز. عُد قريباً.",
+    "pausedTitle": "مغلق مؤقتاً",
+    "pausedBody": "هذا المتجر مغلق مؤقتاً. يرجى العودة لاحقاً.",
+    "previewBar": "معاينة — المتجر غير منشور بعد",
+    "previewBarExit": "إنهاء المعاينة"
   },
   "market": {
     "switchCountry": "تغيير الدولة",
@@ -1020,5 +1049,10 @@
     "roleText": "تملك Namez AB منصة ShopsDoor وتديرها، وتُبرم شروط الخدمة مع البائعين، وتعالج البيانات الشخصية وفق ما هو موضَّح في سياسة الخصوصية. تُعالَج المدفوعات عبر Stripe؛ ويستلم كل بائع تحويلاته في حسابه الخاص في Stripe.",
     "legalLinks": "الوثائق القانونية",
     "backHome": "العودة إلى الرئيسية"
+  },
+  "footer": {
+    "companyDetailsTitle": "بيانات الشركة",
+    "companyDetailsOrgNr": "رقم التسجيل",
+    "companyDetailsVat": "الرقم الضريبي"
   }
 }

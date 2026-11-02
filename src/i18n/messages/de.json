@@ -534,7 +534,30 @@
     "requestFailed": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
     "backToHome": "Zurück zur Startseite",
     "brandEyebrow": "Für Shop-Inhaber und Partner",
-    "brandTagline": "Viele Shops. Eine Tür."
+    "brandTagline": "Viele Shops. Eine Tür.",
+    "accountKindLabel": "Wofür möchten Sie ShopsDoor nutzen?",
+    "accountKind": {
+      "independent": {
+        "title": "Eigenständiger Shop",
+        "desc": "Verkaufen Sie Ihre eigenen Produkte mit eigener Zahlungsabwicklung und Domain."
+      },
+      "marketplace": {
+        "title": "Influencer- / Marktplatz-Shop",
+        "desc": "Verkaufen Sie Lieferantenprodukte und eigene; die Plattform wickelt Zahlungen ab, eine Provision fällt an."
+      },
+      "supplier": {
+        "title": "Lieferant",
+        "desc": "Listen Sie Produkte, die Marktplatz-Shops verkaufen. Freigabe durch den Admin vor der Listung."
+      }
+    },
+    "accountKindRequired": "Bitte wählen Sie einen Kontotyp.",
+    "companyName": "Firmenname",
+    "companyNamePlaceholder": "Ihr Unternehmen",
+    "companyNameRequired": "Bitte geben Sie Ihren Firmennamen ein.",
+    "termsLabel": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>.",
+    "termsRequired": "Bitte akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung, um fortzufahren.",
+    "emailDisposable": "Wegwerf-E-Mail-Adressen werden nicht akzeptiert. Bitte verwenden Sie eine dauerhafte Adresse.",
+    "emailExists": "Mit dieser E-Mail existiert bereits ein Konto. Melden Sie sich stattdessen an."
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",
@@ -619,7 +642,13 @@
     "collectionSingular": "Kollektion",
     "collectionsCount": "Kollektionen",
     "noCollections": "Noch keine Kollektionen.",
-    "viewCollection": "Kollektion ansehen"
+    "viewCollection": "Kollektion ansehen",
+    "comingSoonTitle": "Demnächst",
+    "comingSoonBody": "Dieser Shop wird gerade vorbereitet. Schauen Sie bald wieder vorbei.",
+    "pausedTitle": "Vorübergehend geschlossen",
+    "pausedBody": "Dieser Shop ist vorübergehend geschlossen. Bitte schauen Sie später wieder vorbei.",
+    "previewBar": "Vorschau — noch nicht veröffentlicht",
+    "previewBarExit": "Vorschau beenden"
   },
   "market": {
     "switchCountry": "Land wechseln",
@@ -1020,5 +1049,10 @@
     "roleText": "Namez AB besitzt und betreibt die ShopsDoor-Plattform, schließt die Nutzungsbedingungen mit den Händlern ab und verarbeitet personenbezogene Daten wie in der Datenschutzerklärung beschrieben. Zahlungen werden von Stripe abgewickelt; jeder Händler erhält Auszahlungen auf sein eigenes Stripe-Konto.",
     "legalLinks": "Rechtsdokumente",
     "backHome": "Zurück zur Startseite"
+  },
+  "footer": {
+    "companyDetailsTitle": "Firmenangaben",
+    "companyDetailsOrgNr": "Org.-Nr.",
+    "companyDetailsVat": "USt-IdNr."
   }
 }

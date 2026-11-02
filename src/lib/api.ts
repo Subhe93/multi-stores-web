@@ -1,5 +1,7 @@
 import { cache } from 'react';
 import { marketQuery, type MarketRef } from './market';
+import { isStoreNotLiveError, storeHomeHref } from './storeGate';
+import { previewFetchOptions, previewTokenFor, readBrowserPreviewCookie, resolveStorefrontFetchOptions } from './storePreview';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -81,6 +83,12 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     if (typeof json.line_id === 'string') err.line_id = json.line_id;
     if (typeof json.line_index === 'number') err.line_index = json.line_index;
     if (Array.isArray(json.errors)) err.errors = json.errors;
+    // Cart / checkout / order calls of a store that is not LIVE (409
+    // STORE_NOT_LIVE): send the browser to the store home, which renders
+    // the coming-soon page. The error is still thrown for the caller.
+    if (typeof window !== 'undefined' && isStoreNotLiveError(err)) {
+      window.location.assign(storeHomeHref(window.location.pathname));
+    }
     throw err;
   }
 
@@ -113,6 +121,72 @@ const cacheOpts = cache(async (slug: string): Promise<FetchOptions> => {
     : { cache: 'no-store' };
 });
 
+// ---------- Owner preview of a non-LIVE store (onboarding SPEC §3 / §7) ----------
+//
+// On the server the `ms_store_preview` cookie is read through a reader the
+// store layout registers (`src/lib/storeGate.server.ts`), so this shared
+// module never imports `next/headers`; in the browser `document.cookie` is
+// read directly (the cookie is not HttpOnly). The token is attached only to
+// the `storefront.*` reads of the slug it was accepted for, only while the
+// public payload of that store is gated, and always with `cache: 'no-store'`.
+
+type PreviewCookieReader = () => Promise<string | null>;
+let serverPreviewCookieReader: PreviewCookieReader | null = null;
+
+/** Server side: registers how the preview cookie of the current request is read. */
+export function registerServerPreviewCookieReader(reader: PreviewCookieReader): void {
+  serverPreviewCookieReader = reader;
+}
+
+async function readPreviewCookie(): Promise<string | null> {
+  if (typeof window !== 'undefined') return readBrowserPreviewCookie();
+  if (!serverPreviewCookieReader) return null;
+  try {
+    return await serverPreviewCookieReader();
+  } catch {
+    return null;
+  }
+}
+
+/** Public (unauthenticated, normally cached) store payload, read once per request for the gate check. */
+const publicStoreForGate = cache(async (slug: string): Promise<unknown> => {
+  try {
+    return await api(`/storefront/${slug}`, await cacheOpts(slug));
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * Fetch options of a storefront read: the cached public options, or — for
+ * a gated store whose preview cookie carries this slug's token — the
+ * owner's Bearer token with no caching. Deduped per request on the server.
+ */
+const storefrontOpts = cache(async (slug: string): Promise<FetchOptions> => {
+  const cookie = await readPreviewCookie();
+  const fallback = await cacheOpts(slug);
+  if (!cookie) return fallback;
+  if (typeof window !== 'undefined') {
+    // The browser cookie exists only while the store is gated (set by
+    // StorePreviewUnlock, dropped by StorePreviewReset on a LIVE store), so
+    // no extra gate read per call.
+    const token = previewTokenFor(slug, cookie);
+    return token ? previewFetchOptions(token) : fallback;
+  }
+  return resolveStorefrontFetchOptions({
+    slug,
+    store: (await publicStoreForGate(slug)) as { coming_soon?: boolean; paused?: boolean } | null,
+    cookie,
+    fallback,
+  });
+});
+
+/** The owner preview token in force for this slug's storefront reads (null when not previewing). */
+export async function getStorePreviewToken(slug: string): Promise<string | null> {
+  const opts = await storefrontOpts(slug);
+  return opts.token ?? null;
+}
+
 // Market → `?market=` suffix (markets app, M1-DESIGN §4.2), `marketQuery`
 // of `src/lib/market.ts`. Appended to the URL so each market has its own
 // cache entry (a preview adds `&preview=1`, its own entry again); the store
@@ -123,72 +197,72 @@ const cacheOpts = cache(async (slug: string): Promise<FetchOptions> => {
 // Storefront API helpers
 export const storefront = {
   getStore: async (slug: string, market?: MarketRef) =>
-    api(`/storefront/${slug}${marketQuery(market, false)}`, await cacheOpts(slug)),
+    api(`/storefront/${slug}${marketQuery(market, false)}`, await storefrontOpts(slug)),
 
   getProducts: async (slug: string, params?: Record<string, string>, market?: MarketRef) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return api(`/storefront/${slug}/products${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
+    return api(`/storefront/${slug}/products${query}${marketQuery(market, Boolean(query))}`, await storefrontOpts(slug));
   },
 
   // Slug arguments are DECODED (pages run route params through `routeSlug`);
   // they are percent-encoded exactly once here.
   getProduct: async (slug: string, productSlug: string, locale?: string, market?: MarketRef) => {
     const query = locale ? `?locale=${locale}` : '';
-    return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await cacheOpts(slug));
+    return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await storefrontOpts(slug));
   },
 
   getCategories: async (slug: string) =>
-    api(`/storefront/${slug}/categories`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/categories`, await storefrontOpts(slug)),
 
   getCreatorCategories: async (slug: string) =>
-    api(`/storefront/${slug}/creator-categories`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/creator-categories`, await storefrontOpts(slug)),
 
   // Navigation menus (WordPress-style) — chrome sections resolve a menu key
   // to its items via the storeContext built from this.
   getMenus: async (slug: string) =>
-    api(`/storefront/${slug}/menus`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/menus`, await storefrontOpts(slug)),
 
   getPage: async (slug: string, pageSlug: string) =>
-    api(`/storefront/${slug}/pages/${encodeURIComponent(pageSlug)}`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/pages/${encodeURIComponent(pageSlug)}`, await storefrontOpts(slug)),
 
   // v2 published page snapshot (null if no published version).
   getPublishedHome: async (slug: string) =>
-    api(`/storefront/${slug}/v2/home`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/home`, await storefrontOpts(slug)),
 
   getPublishedPage: async (slug: string, pageSlug: string, type?: 'STATIC' | 'LANDING' | 'PRODUCT_TEMPLATE') => {
     const query = type ? `?type=${type}` : '';
-    return api(`/storefront/${slug}/v2/pages/${encodeURIComponent(pageSlug)}${query}`, await cacheOpts(slug));
+    return api(`/storefront/${slug}/v2/pages/${encodeURIComponent(pageSlug)}${query}`, await storefrontOpts(slug));
   },
 
   // Single PRODUCT_TEMPLATE per store. Null when not published.
   getPublishedProductTemplate: async (slug: string) =>
-    api(`/storefront/${slug}/v2/product-template`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/product-template`, await storefrontOpts(slug)),
 
   // Single CATALOG_TEMPLATE (serves /products) and COLLECTION_TEMPLATE (serves
   // every /collections/[handle]) per store. Null when not published — the
   // routes then fall back to their built-in listing markup.
   getPublishedCatalogTemplate: async (slug: string) =>
-    api(`/storefront/${slug}/v2/catalog-template`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/catalog-template`, await storefrontOpts(slug)),
 
   getPublishedCollectionTemplate: async (slug: string) =>
-    api(`/storefront/${slug}/v2/collection-template`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/collection-template`, await storefrontOpts(slug)),
 
   // Store-wide chrome. Null when the creator hasn't published the HEADER /
   // FOOTER pages yet — StoreLayout falls back to its built-in components.
   getPublishedHeader: async (slug: string) =>
-    api(`/storefront/${slug}/v2/header`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/header`, await storefrontOpts(slug)),
 
   getPublishedFooter: async (slug: string) =>
-    api(`/storefront/${slug}/v2/footer`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/footer`, await storefrontOpts(slug)),
 
   // A real published product to use as the preview's sample. Null when the
   // store has no published products yet.
   getSampleProduct: async (slug: string) =>
-    api(`/storefront/${slug}/v2/sample-product`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/v2/sample-product`, await storefrontOpts(slug)),
 
   // Aggregated URL list for the storefront's sitemap.xml route.
   getSitemapData: async (slug: string, market?: MarketRef) =>
-    api(`/storefront/${slug}/sitemap-data${marketQuery(market, false)}`, await cacheOpts(slug)),
+    api(`/storefront/${slug}/sitemap-data${marketQuery(market, false)}`, await storefrontOpts(slug)),
 };
 
 // Platform-wide legal pages (Privacy / Terms / Refund / Shipping). Public,

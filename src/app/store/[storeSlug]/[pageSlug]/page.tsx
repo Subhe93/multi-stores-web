@@ -14,6 +14,7 @@ import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
 import { routeSlug } from '@/lib/slugRoute';
+import { substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
 
 // Static pages now have two backends:
 // - v2 Page (with sections, versions, SEO panel) — preferred when published
@@ -54,6 +55,7 @@ interface V2Page {
 
 interface StoreLite {
   name?: string;
+  trader_details?: TraderDetails | null;
   // Store currency, or the request market's when the Markets app is on.
   currency?: string;
   theme_key?: string;
@@ -285,7 +287,8 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
       {translation.content ? (
         <div
           className="prose prose-gray max-w-none"
-          dangerouslySetInnerHTML={{ __html: translation.content }}
+          // `{{trader.*}}` placeholders → the store's trader details (SPEC §7).
+          dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(translation.content, store?.trader_details) }}
         />
       ) : (
         <p className="text-gray-500">No content yet.</p>

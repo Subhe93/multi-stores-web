@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
+import { CompanyDetails } from '@/components/layout/CompanyDetails';
+import type { TraderDetails } from '@/lib/traderDetails';
 
 interface StoreFooterProps {
   storeName?: string;
@@ -28,6 +30,8 @@ interface StoreFooterProps {
     whatsapp?: string;
     address?: string;
   };
+  /** Seller identity (`store.trader_details`); the block is omitted until set. */
+  traderDetails?: TraderDetails | null;
   currentLang?: string;
   primaryLocale?: string;
   /** Admin-configured platform name — inherited, never hardcoded. */
@@ -91,6 +95,7 @@ export function StoreFooter({
   platformLegalPages,
   socials,
   contact,
+  traderDetails,
   currentLang = 'en',
   primaryLocale = 'en',
   platformName = 'ShopsDoor',
@@ -237,6 +242,9 @@ export function StoreFooter({
             ) : (
               <p className="text-sm text-white/70">{t('store.noContactInfo')}</p>
             )}
+
+            {/* Legal seller identity (e-handelslagen): shown once completed. */}
+            <CompanyDetails trader={traderDetails} headingColor="rgba(255,255,255,0.7)" className="mt-4 text-white/70" />
           </div>
         </div>
       </div>

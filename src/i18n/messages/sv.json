@@ -534,7 +534,30 @@
     "requestFailed": "Något gick fel. Försök igen.",
     "backToHome": "Tillbaka till startsidan",
     "brandEyebrow": "För butiksägare och partner",
-    "brandTagline": "Många butiker. En dörr."
+    "brandTagline": "Många butiker. En dörr.",
+    "accountKindLabel": "Vad ska du använda ShopsDoor till?",
+    "accountKind": {
+      "independent": {
+        "title": "Fristående butik",
+        "desc": "Sälj dina egna produkter med egna betalningar och egen domän."
+      },
+      "marketplace": {
+        "title": "Influencer- / marknadsplatsbutik",
+        "desc": "Sälj leverantörers produkter och dina egna; plattformen hanterar betalningar, provision tillkommer."
+      },
+      "supplier": {
+        "title": "Leverantör",
+        "desc": "Lista produkter som marknadsplatsbutiker säljer. Godkännande av admin innan listning."
+      }
+    },
+    "accountKindRequired": "Välj en kontotyp.",
+    "companyName": "Företagsnamn",
+    "companyNamePlaceholder": "Ditt företag",
+    "companyNameRequired": "Ange ditt företagsnamn.",
+    "termsLabel": "Jag godkänner <terms>användarvillkoren</terms> och <privacy>integritetspolicyn</privacy>.",
+    "termsRequired": "Godkänn användarvillkoren och integritetspolicyn för att fortsätta.",
+    "emailDisposable": "Tillfälliga e-postadresser accepteras inte. Använd en permanent adress.",
+    "emailExists": "Det finns redan ett konto med den här e-postadressen. Logga in i stället."
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",
@@ -619,7 +642,13 @@
     "collectionSingular": "kollektion",
     "collectionsCount": "kollektioner",
     "noCollections": "Inga kollektioner ännu.",
-    "viewCollection": "Visa kollektionen"
+    "viewCollection": "Visa kollektionen",
+    "comingSoonTitle": "Kommer snart",
+    "comingSoonBody": "Butiken förbereds just nu. Titta in igen snart.",
+    "pausedTitle": "Tillfälligt stängd",
+    "pausedBody": "Butiken är tillfälligt stängd. Välkommen tillbaka senare.",
+    "previewBar": "Förhandsgranskning — inte publicerad än",
+    "previewBarExit": "Avsluta förhandsgranskning"
   },
   "market": {
     "switchCountry": "Byt land",
@@ -1020,5 +1049,10 @@
     "roleText": "Namez AB äger och driver plattformen ShopsDoor, ingår användarvillkoren med säljarna och behandlar personuppgifter enligt integritetspolicyn. Betalningar hanteras av Stripe; varje säljare får sina utbetalningar till sitt eget Stripe-konto.",
     "legalLinks": "Juridiska dokument",
     "backHome": "Tillbaka till startsidan"
+  },
+  "footer": {
+    "companyDetailsTitle": "Företagsuppgifter",
+    "companyDetailsOrgNr": "Org.nr",
+    "companyDetailsVat": "Momsreg.nr"
   }
 }

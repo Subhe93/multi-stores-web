@@ -534,7 +534,30 @@
     "requestFailed": "Une erreur s'est produite. Veuillez réessayer.",
     "backToHome": "Retour à l'accueil",
     "brandEyebrow": "Pour les propriétaires de boutiques et partenaires",
-    "brandTagline": "Plusieurs boutiques. Une seule porte."
+    "brandTagline": "Plusieurs boutiques. Une seule porte.",
+    "accountKindLabel": "Comment utiliserez-vous ShopsDoor ?",
+    "accountKind": {
+      "independent": {
+        "title": "Boutique indépendante",
+        "desc": "Vendez vos propres produits avec vos propres paiements et votre domaine."
+      },
+      "marketplace": {
+        "title": "Boutique influenceur / marketplace",
+        "desc": "Vendez les produits de fournisseurs et les vôtres ; la plateforme gère les paiements, une commission s’applique."
+      },
+      "supplier": {
+        "title": "Fournisseur",
+        "desc": "Référencez des produits vendus par les boutiques marketplace. Validation par l’admin avant publication."
+      }
+    },
+    "accountKindRequired": "Veuillez choisir un type de compte.",
+    "companyName": "Nom de l’entreprise",
+    "companyNamePlaceholder": "Votre entreprise",
+    "companyNameRequired": "Veuillez saisir le nom de votre entreprise.",
+    "termsLabel": "J’accepte les <terms>Conditions d’utilisation</terms> et la <privacy>Politique de confidentialité</privacy>.",
+    "termsRequired": "Veuillez accepter les Conditions d’utilisation et la Politique de confidentialité pour continuer.",
+    "emailDisposable": "Les adresses e-mail jetables ne sont pas acceptées. Veuillez utiliser une adresse permanente.",
+    "emailExists": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt."
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",
@@ -619,7 +642,13 @@
     "collectionSingular": "collection",
     "collectionsCount": "collections",
     "noCollections": "Aucune collection pour le moment.",
-    "viewCollection": "Voir la collection"
+    "viewCollection": "Voir la collection",
+    "comingSoonTitle": "Bientôt disponible",
+    "comingSoonBody": "Cette boutique se prépare. Revenez bientôt.",
+    "pausedTitle": "Temporairement fermée",
+    "pausedBody": "Cette boutique est temporairement fermée. Merci de revenir plus tard.",
+    "previewBar": "Aperçu — pas encore en ligne",
+    "previewBarExit": "Quitter l’aperçu"
   },
   "market": {
     "switchCountry": "Changer de pays",
@@ -1020,5 +1049,10 @@
     "roleText": "Namez AB détient et exploite la plateforme ShopsDoor, conclut les Conditions d'utilisation avec les vendeurs et traite les données personnelles comme décrit dans la Politique de confidentialité. Les paiements sont traités par Stripe ; chaque vendeur reçoit ses versements sur son propre compte Stripe.",
     "legalLinks": "Documents légaux",
     "backHome": "Retour à l'accueil"
+  },
+  "footer": {
+    "companyDetailsTitle": "Informations légales",
+    "companyDetailsOrgNr": "N° d’organisation",
+    "companyDetailsVat": "N° TVA"
   }
 }

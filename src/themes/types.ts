@@ -1,3 +1,4 @@
+import type { TraderDetails } from '@/lib/traderDetails';
 // Theme registry types. Themes are defined in code and referenced by `theme_key`
 // in the Store table. Creators override individual tokens via `theme_customizations`.
 
@@ -310,6 +311,8 @@ export interface StoreContext {
   /** Store-level social profile URLs (`theme.socials`, keyed by platform).
    *  Fallback for a SocialIcons item left at its platform-root default. */
   socials?: Partial<Record<string, string>>;
+  /** Seller identity (`store.trader_details`) for the footer's company details block. */
+  traderDetails?: TraderDetails | null;
 }
 
 /** Resolve a menu's items by key from a StoreContext. When `locale` is

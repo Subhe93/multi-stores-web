@@ -20,6 +20,12 @@ import { getRequestMarket, getRequestNoindex, getRequestSuggestedMarket } from '
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { EditHintBoot } from '@/components/edit-hint/EditHintBoot';
+import { loadGatedStore, type GatedStore } from '@/lib/storeGate.server';
+import { storeGate } from '@/lib/storeGate';
+import { StoreGatePage } from '@/components/layout/StoreGatePage';
+import { StorePreviewBar } from '@/components/layout/StorePreviewBar';
+import { StorePreviewReset } from '@/components/layout/StorePreviewUnlock';
+import type { TraderDetails } from '@/lib/traderDetails';
 import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -67,6 +73,14 @@ interface TypographyStyle {
 interface Store {
   id: string;
   name: string;
+  /** Publication state (onboarding SPEC §3); LIVE for every store before the migration. */
+  status?: string;
+  /** Reduced payload of a store that is not LIVE yet (no catalog). */
+  coming_soon?: boolean;
+  /** Reduced payload of a PAUSED store. */
+  paused?: boolean;
+  /** Seller identity shown in the footer and legal pages (SPEC §1). */
+  trader_details?: TraderDetails | null;
   currency?: string;
   /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
   tax?: StoreTaxConfig | null;
@@ -187,6 +201,16 @@ export async function generateMetadata({
     // so those fields silently did nothing. Per-locale still wins.
     const storeSeo = store.theme?.seo;
 
+    // Not LIVE: the layout renders the coming-soon / closed page for every
+    // route; it must never be indexed (the body also emits a robots meta).
+    if (storeGate(store) !== 'live') {
+      return {
+        metadataBase: new URL(origin),
+        title: trans?.name || store.name,
+        robots: { index: false, follow: false },
+      };
+    }
+
     return {
       // Resolves relative URLs (e.g. a page's uploaded OG image) against this
       // store's own origin rather than Next's localhost default.
@@ -229,9 +253,12 @@ export default async function StoreLayout({
   // AUTO on the platform subdomain.
   const noindex = await getRequestNoindex();
 
-  let store: Store;
+  let gated: GatedStore<Store>;
   try {
-    store = await storefront.getStore(storeSlug, marketKey) as Store;
+    // Publication gate: a store that is not LIVE answers a reduced payload
+    // (`coming_soon` / `paused`); the owner's preview cookie unlocks the
+    // full storefront through `GET /storefront/:slug/preview`.
+    gated = await loadGatedStore<Store>(storeSlug, marketKey);
   } catch (err) {
     // Only a definitive API answer (404 STORE_NOT_FOUND, other 4xx) means
     // the store does not exist. An unreachable API (maintenance window,
@@ -241,6 +268,28 @@ export default async function StoreLayout({
     // maintenance page (src/lib/apiAvailability.ts).
     if (isDefinitiveNotFound(err)) notFound();
     throw new StoreUnavailableError();
+  }
+  const store: Store = gated.store;
+  const storePreview = gated.preview;
+
+  // Not LIVE and no owner preview: the branded "Coming soon" / "Temporarily
+  // closed" page replaces the whole storefront (every route, noindex).
+  if (gated.gate !== 'live') {
+    const gateLocale = urlLocale || store.language_config?.primary_locale || 'en';
+    const gateTokens = mergeTokens(resolveTheme(store.theme_key).tokens, store.theme_customizations);
+    const gateName = store.theme?.translations?.[gateLocale]?.name || store.name || storeSlug;
+    return (
+      <NextIntlClientProvider locale={gateLocale} messages={await getMessages()}>
+        <StoreGatePage
+          kind={gated.gate}
+          storeSlug={storeSlug}
+          storeName={gateName}
+          logoUrl={store.logo_url}
+          primaryColor={store.theme?.primaryColor || gateTokens.colors.primary}
+          locale={gateLocale}
+        />
+      </NextIntlClientProvider>
+    );
   }
 
   // Published HEADER / FOOTER chrome. Either can be null — that means the
@@ -552,6 +601,8 @@ export default async function StoreLayout({
           {/* Store-owner "Edit" button: renders nothing (and loads nothing)
               unless the dashboard handed this browser an owner token. */}
           <EditHintBoot storeSlug={storeSlug} />
+          {/* Owner preview of a store that is not LIVE yet. */}
+          {storePreview ? <StorePreviewBar /> : <StorePreviewReset />}
           {/* Site-wide structured data: Organization + WebSite. */}
           <script
             type="application/ld+json"
@@ -579,6 +630,7 @@ export default async function StoreLayout({
               apps: storeApps,
               ...(store.market ? { market: store.market, markets: store.markets ?? [] } : {}),
               ...(socials ? { socials } : {}),
+              ...(store.trader_details ? { traderDetails: store.trader_details } : {}),
             };
 
             const headerSections = publishedHeader?.snapshot?.sections;
@@ -664,6 +716,7 @@ export default async function StoreLayout({
                     platformLegalPages={platformLegalPages}
                     socials={socials}
                     contact={contact}
+                    traderDetails={store.trader_details}
                     currentLang={currentLang}
                     primaryLocale={primaryLocale}
                     platformName={platformName}

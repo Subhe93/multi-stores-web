@@ -5,6 +5,7 @@ import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { routeSlug } from '@/lib/slugRoute';
+import { substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
 
 // Platform legal pages mirrored into the store tree so each storefront can
 // link to /legal/{slug} on its own subdomain. Locale on the store tree is
@@ -13,6 +14,7 @@ import { routeSlug } from '@/lib/slugRoute';
 
 interface StoreLite {
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+  trader_details?: TraderDetails | null;
   custom_domain?: string | null;
   market?: MarketRoute | null;
   markets?: MarketRoute[];
@@ -97,7 +99,7 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
   const { lang } = await searchParams;
   if (!isKnownSlug(slug)) notFound();
 
-  const { locale } = await resolveLocale(storeSlug, lang);
+  const { locale, store } = await resolveLocale(storeSlug, lang);
 
   let page;
   try {
@@ -114,7 +116,8 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
       <h1 className="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
       <div
         className="prose prose-gray max-w-none"
-        dangerouslySetInnerHTML={{ __html: page.content }}
+        // `{{trader.*}}` placeholders → the store's trader details (SPEC §7).
+        dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(page.content, store?.trader_details) }}
       />
     </div>
   );

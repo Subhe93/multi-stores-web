@@ -9,6 +9,7 @@ import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr } from '../../../elementStyles';
+import { CompanyDetails } from '@/components/layout/CompanyDetails';
 
 interface FooterLink {
   label?: string;
@@ -45,7 +46,13 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext 
   const headingColor = colorOr(settings.heading_color, 'var(--theme-colors-text)');
   const linkColor = colorOr(settings.link_color, 'var(--theme-colors-muted)');
 
-  if (columns.length === 0) {
+  // Legal seller identity (SPEC §7): rendered under the columns once the
+  // owner completed the trader details; nothing until then.
+  const companyDetails = storeContext?.traderDetails ? (
+    <CompanyDetails trader={storeContext.traderDetails} headingColor={headingColor} className="mt-8" />
+  ) : null;
+
+  if (columns.length === 0 && !companyDetails) {
     return (
       <div
         className="text-center py-10 px-4"
@@ -106,6 +113,7 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext 
             </div>
           ))}
         </div>
+        {companyDetails}
       </div>
     </div>
   );

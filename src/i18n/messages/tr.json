@@ -534,7 +534,30 @@
     "requestFailed": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
     "backToHome": "Ana sayfaya dön",
     "brandEyebrow": "Mağaza sahipleri ve iş ortakları için",
-    "brandTagline": "Birçok mağaza. Tek kapı."
+    "brandTagline": "Birçok mağaza. Tek kapı.",
+    "accountKindLabel": "ShopsDoor'u ne için kullanacaksınız?",
+    "accountKind": {
+      "independent": {
+        "title": "Bağımsız mağaza",
+        "desc": "Kendi ödeme altyapınız ve alan adınızla kendi ürünlerinizi satın."
+      },
+      "marketplace": {
+        "title": "Influencer / pazar yeri mağazası",
+        "desc": "Tedarikçi ürünlerini ve kendi ürünlerinizi satın; ödemeleri platform yönetir, komisyon uygulanır."
+      },
+      "supplier": {
+        "title": "Tedarikçi",
+        "desc": "Pazar yeri mağazalarının sattığı ürünleri listeleyin. Listeleme öncesi yönetici onayı gerekir."
+      }
+    },
+    "accountKindRequired": "Lütfen bir hesap türü seçin.",
+    "companyName": "Şirket adı",
+    "companyNamePlaceholder": "Şirketiniz",
+    "companyNameRequired": "Lütfen şirket adınızı girin.",
+    "termsLabel": "<terms>Hizmet Şartları</terms>nı ve <privacy>Gizlilik Politikası</privacy>nı kabul ediyorum.",
+    "termsRequired": "Devam etmek için Hizmet Şartları ve Gizlilik Politikasını kabul edin.",
+    "emailDisposable": "Geçici e-posta adresleri kabul edilmez. Lütfen kalıcı bir adres kullanın.",
+    "emailExists": "Bu e-posta ile zaten bir hesap var. Bunun yerine giriş yapın."
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",
@@ -619,7 +642,13 @@
     "collectionSingular": "koleksiyon",
     "collectionsCount": "koleksiyon",
     "noCollections": "Henüz koleksiyon yok.",
-    "viewCollection": "Koleksiyonu gör"
+    "viewCollection": "Koleksiyonu gör",
+    "comingSoonTitle": "Çok yakında",
+    "comingSoonBody": "Bu mağaza hazırlanıyor. Yakında tekrar bakın.",
+    "pausedTitle": "Geçici olarak kapalı",
+    "pausedBody": "Bu mağaza geçici olarak kapalı. Lütfen daha sonra tekrar deneyin.",
+    "previewBar": "Önizleme — henüz yayında değil",
+    "previewBarExit": "Önizlemeden çık"
   },
   "market": {
     "switchCountry": "Ülke değiştir",
@@ -1020,5 +1049,10 @@
     "roleText": "Namez AB, ShopsDoor platformunun sahibidir ve işletmecisidir; satıcılarla Hizmet Şartları'nı imzalar ve kişisel verileri Gizlilik Politikası'nda açıklandığı şekilde işler. Ödemeler Stripe tarafından işlenir; her satıcı ödemelerini kendi Stripe hesabına alır.",
     "legalLinks": "Yasal belgeler",
     "backHome": "Ana sayfaya dön"
+  },
+  "footer": {
+    "companyDetailsTitle": "Şirket bilgileri",
+    "companyDetailsOrgNr": "Sicil no.",
+    "companyDetailsVat": "KDV no."
   }
 }
