@@ -523,7 +523,18 @@
     "emailExistsInStore": "هذا البريد لديه حساب في هذا المتجر بالفعل — سجّل الدخول.",
     "platformStaffOnly": "تسجيل الدخول هنا مخصّص لأصحاب المتاجر والشركاء.",
     "platformCustomerSignIn": "تتسوّق كعميل؟ سجّل الدخول في المتجر الذي تسوّقت منه.",
-    "platformForgotHint": "تسوّقت من متجر؟ أعد تعيين كلمة المرور من موقع ذلك المتجر."
+    "platformForgotHint": "تسوّقت من متجر؟ أعد تعيين كلمة المرور من موقع ذلك المتجر.",
+    "emailPlaceholder": "you@example.com",
+    "firstNamePlaceholder": "أحمد",
+    "lastNamePlaceholder": "العلي",
+    "registerPasswordPlaceholder": "6 أحرف على الأقل",
+    "passwordMin6": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+    "loginFailed": "فشل تسجيل الدخول. حاول مرة أخرى.",
+    "registerFailed": "فشل إنشاء الحساب. حاول مرة أخرى.",
+    "requestFailed": "حدث خطأ ما. حاول مرة أخرى.",
+    "backToHome": "العودة إلى الرئيسية",
+    "brandEyebrow": "لأصحاب المتاجر والشركاء",
+    "brandTagline": "متاجر كثيرة. باب واحد."
   },
   "account": {
     "fullNamePlaceholder": "الاسم الكامل",

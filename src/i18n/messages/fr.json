@@ -523,7 +523,18 @@
     "emailExistsInStore": "Cet e-mail a déjà un compte dans cette boutique — connectez-vous.",
     "platformStaffOnly": "Cette connexion est réservée aux propriétaires de boutique et aux partenaires.",
     "platformCustomerSignIn": "Vous êtes client ? Connectez-vous sur la boutique où vous avez fait vos achats.",
-    "platformForgotHint": "Vous avez acheté dans une boutique ? Réinitialisez votre mot de passe sur le site de cette boutique."
+    "platformForgotHint": "Vous avez acheté dans une boutique ? Réinitialisez votre mot de passe sur le site de cette boutique.",
+    "emailPlaceholder": "vous@exemple.fr",
+    "firstNamePlaceholder": "Marie",
+    "lastNamePlaceholder": "Dupont",
+    "registerPasswordPlaceholder": "Au moins 6 caractères",
+    "passwordMin6": "Le mot de passe doit contenir au moins 6 caractères.",
+    "loginFailed": "Échec de la connexion. Veuillez réessayer.",
+    "registerFailed": "Échec de l'inscription. Veuillez réessayer.",
+    "requestFailed": "Une erreur s'est produite. Veuillez réessayer.",
+    "backToHome": "Retour à l'accueil",
+    "brandEyebrow": "Pour les propriétaires de boutiques et partenaires",
+    "brandTagline": "Plusieurs boutiques. Une seule porte."
   },
   "account": {
     "fullNamePlaceholder": "Nom complet",

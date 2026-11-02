@@ -523,7 +523,18 @@
     "emailExistsInStore": "Bu e-postanın bu mağazada zaten bir hesabı var — giriş yapın.",
     "platformStaffOnly": "Bu giriş mağaza sahipleri ve iş ortakları içindir.",
     "platformCustomerSignIn": "Müşteri olarak mı alışveriş yapıyorsunuz? Alışveriş yaptığınız mağazada giriş yapın.",
-    "platformForgotHint": "Bir mağazadan mı alışveriş yaptınız? Şifrenizi o mağazanın sitesinden sıfırlayın."
+    "platformForgotHint": "Bir mağazadan mı alışveriş yaptınız? Şifrenizi o mağazanın sitesinden sıfırlayın.",
+    "emailPlaceholder": "siz@ornek.com",
+    "firstNamePlaceholder": "Ahmet",
+    "lastNamePlaceholder": "Yılmaz",
+    "registerPasswordPlaceholder": "En az 6 karakter",
+    "passwordMin6": "Şifre en az 6 karakter olmalıdır.",
+    "loginFailed": "Giriş başarısız. Lütfen tekrar deneyin.",
+    "registerFailed": "Kayıt başarısız. Lütfen tekrar deneyin.",
+    "requestFailed": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "backToHome": "Ana sayfaya dön",
+    "brandEyebrow": "Mağaza sahipleri ve iş ortakları için",
+    "brandTagline": "Birçok mağaza. Tek kapı."
   },
   "account": {
     "fullNamePlaceholder": "Ad Soyad",

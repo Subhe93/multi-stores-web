@@ -523,7 +523,18 @@
     "emailExistsInStore": "Für diese E-Mail-Adresse gibt es in diesem Shop bereits ein Konto — bitte melden Sie sich an.",
     "platformStaffOnly": "Diese Anmeldung ist für Shop-Inhaber und Partner.",
     "platformCustomerSignIn": "Sie kaufen als Kunde ein? Melden Sie sich in dem Shop an, in dem Sie eingekauft haben.",
-    "platformForgotHint": "In einem Shop eingekauft? Setzen Sie Ihr Passwort auf der Website dieses Shops zurück."
+    "platformForgotHint": "In einem Shop eingekauft? Setzen Sie Ihr Passwort auf der Website dieses Shops zurück.",
+    "emailPlaceholder": "sie@beispiel.de",
+    "firstNamePlaceholder": "Max",
+    "lastNamePlaceholder": "Mustermann",
+    "registerPasswordPlaceholder": "Mindestens 6 Zeichen",
+    "passwordMin6": "Das Passwort muss mindestens 6 Zeichen lang sein.",
+    "loginFailed": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "registerFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "requestFailed": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "backToHome": "Zurück zur Startseite",
+    "brandEyebrow": "Für Shop-Inhaber und Partner",
+    "brandTagline": "Viele Shops. Eine Tür."
   },
   "account": {
     "fullNamePlaceholder": "Vor- und Nachname",

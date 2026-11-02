@@ -523,7 +523,18 @@
     "emailExistsInStore": "This email already has an account in this store — log in.",
     "platformStaffOnly": "This sign-in is for store owners and partners.",
     "platformCustomerSignIn": "Shopping as a customer? Sign in on the store where you shopped.",
-    "platformForgotHint": "Shopped in a store? Reset your password on that store's site."
+    "platformForgotHint": "Shopped in a store? Reset your password on that store's site.",
+    "emailPlaceholder": "you@example.com",
+    "firstNamePlaceholder": "John",
+    "lastNamePlaceholder": "Doe",
+    "registerPasswordPlaceholder": "At least 6 characters",
+    "passwordMin6": "Password must be at least 6 characters.",
+    "loginFailed": "Login failed. Please try again.",
+    "registerFailed": "Registration failed. Please try again.",
+    "requestFailed": "Something went wrong. Please try again.",
+    "backToHome": "Back to home",
+    "brandEyebrow": "For store owners & partners",
+    "brandTagline": "Many stores. One door."
   },
   "account": {
     "fullNamePlaceholder": "Full name",

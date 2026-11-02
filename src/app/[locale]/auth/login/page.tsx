@@ -51,7 +51,7 @@ export default function LoginPage() {
       // Anything else is a customer account: its tokens are not stored.
       setError(t('platformCustomerSignIn'));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      const message = err instanceof Error ? err.message : t('loginFailed');
       setError(message);
     } finally {
       setLoading(false);
@@ -59,50 +59,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-      <h1 className="text-2xl font-semibold text-slate-800 text-center mb-2">
-        {t('loginTitle')}
-      </h1>
-      <p className="text-slate-500 text-center mb-2">
-        {t('platformStaffOnly')}
-      </p>
-      <p className="text-slate-500 text-center text-sm mb-8">
-        {t('platformCustomerSignIn')}
-      </p>
+    <div className="sd-auth-card">
+      <div className="sd-auth-head">
+        <span className="sd-eyebrow sd-eyebrow-teal">
+          <span className="sd-eyebrow-dot" aria-hidden="true" />
+          {t('platformStaffOnly')}
+        </span>
+        <h1 className="sd-auth-title">{t('loginTitle')}</h1>
+        <p className="sd-auth-hint">{t('platformCustomerSignIn')}</p>
+      </div>
 
       {error && (
-        <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="sd-auth-alert sd-auth-alert-error" role="alert">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="sd-auth-form">
         {/* Email field */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+        <div className="sd-auth-field">
+          <label htmlFor="email" className="sd-auth-label">
             {t('email')}
           </label>
           <input
             id="email"
             type="email"
             required
+            autoComplete="email"
+            dir="ltr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+            placeholder={t('emailPlaceholder')}
+            className="sd-auth-input"
           />
         </div>
 
         {/* Password field */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+        <div className="sd-auth-field">
+          <div className="sd-auth-field-row">
+            <label htmlFor="password" className="sd-auth-label">
               {t('password')}
             </label>
-            <Link
-              href="/auth/forgot-password"
-              className="text-sm text-slate-500 hover:text-slate-800 transition"
-            >
+            <Link href="/auth/forgot-password" className="sd-auth-link sd-auth-link-sm">
               {t('forgotPassword')}
             </Link>
           </div>
@@ -110,27 +108,24 @@ export default function LoginPage() {
             id="password"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+            placeholder={t('passwordPlaceholder')}
+            className="sd-auth-input"
           />
         </div>
 
         {/* Submit button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {loading ? t('signIn') + '...' : t('signIn')}
+        <button type="submit" disabled={loading} className="sd-btn sd-btn-primary sd-auth-submit">
+          <span className="sd-btn-label">{loading ? t('signIn') + '...' : t('signIn')}</span>
         </button>
       </form>
 
       {/* Register link */}
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="sd-auth-foot">
         {t('noAccount')}{' '}
-        <Link href="/auth/register" className="font-medium text-slate-800 hover:underline">
+        <Link href="/auth/register" className="sd-auth-link">
           {t('signUp')}
         </Link>
       </p>

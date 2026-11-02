@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
 
       setSuccess(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      const message = err instanceof Error ? err.message : t('requestFailed');
       setError(message);
     } finally {
       setLoading(false);
@@ -35,68 +35,59 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-      <h1 className="text-2xl font-semibold text-slate-800 text-center mb-2">
-        {t('forgotPasswordTitle')}
-      </h1>
-      <p className="text-slate-500 text-center mb-2">
-        {t('resetPasswordDesc')}
-      </p>
-      <p className="text-slate-500 text-center text-sm mb-8">
-        {t('platformForgotHint')}
-      </p>
+    <div className="sd-auth-card">
+      <div className="sd-auth-head">
+        <h1 className="sd-auth-title">{t('forgotPasswordTitle')}</h1>
+        <p className="sd-auth-sub">{t('resetPasswordDesc')}</p>
+        <p className="sd-auth-hint">{t('platformForgotHint')}</p>
+      </div>
 
       {success ? (
         // Success state
-        <div className="text-center">
-          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+        <div className="sd-auth-stack sd-auth-card-center">
+          <div className="sd-auth-alert sd-auth-alert-success" role="status">
             {t('resetLinkSent')}
           </div>
-          <Link
-            href="/auth/login"
-            className="text-sm font-medium text-slate-800 hover:underline"
-          >
+          <Link href="/auth/login" className="sd-auth-link">
             {t('backToLogin')}
           </Link>
         </div>
       ) : (
         <>
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="sd-auth-alert sd-auth-alert-error" role="alert">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="sd-auth-form">
             {/* Email field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <div className="sd-auth-field">
+              <label htmlFor="email" className="sd-auth-label">
                 {t('email')}
               </label>
               <input
                 id="email"
                 type="email"
                 required
+                autoComplete="email"
+                dir="ltr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+                placeholder={t('emailPlaceholder')}
+                className="sd-auth-input"
               />
             </div>
 
             {/* Submit button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {loading ? t('sendResetLink') + '...' : t('sendResetLink')}
+            <button type="submit" disabled={loading} className="sd-btn sd-btn-primary sd-auth-submit">
+              <span className="sd-btn-label">{loading ? t('sendResetLink') + '...' : t('sendResetLink')}</span>
             </button>
           </form>
 
           {/* Back to login link */}
-          <p className="mt-6 text-center text-sm text-slate-500">
-            <Link href="/auth/login" className="font-medium text-slate-800 hover:underline">
+          <p className="sd-auth-foot">
+            <Link href="/auth/login" className="sd-auth-link">
               {t('backToLogin')}
             </Link>
           </p>

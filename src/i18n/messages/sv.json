@@ -523,7 +523,18 @@
     "emailExistsInStore": "Den här e-postadressen har redan ett konto i den här butiken — logga in.",
     "platformStaffOnly": "Den här inloggningen är för butiksägare och partner.",
     "platformCustomerSignIn": "Handlar du som kund? Logga in i butiken där du handlade.",
-    "platformForgotHint": "Har du handlat i en butik? Återställ lösenordet på butikens webbplats."
+    "platformForgotHint": "Har du handlat i en butik? Återställ lösenordet på butikens webbplats.",
+    "emailPlaceholder": "du@exempel.se",
+    "firstNamePlaceholder": "Anna",
+    "lastNamePlaceholder": "Andersson",
+    "registerPasswordPlaceholder": "Minst 6 tecken",
+    "passwordMin6": "Lösenordet måste innehålla minst 6 tecken.",
+    "loginFailed": "Inloggningen misslyckades. Försök igen.",
+    "registerFailed": "Registreringen misslyckades. Försök igen.",
+    "requestFailed": "Något gick fel. Försök igen.",
+    "backToHome": "Tillbaka till startsidan",
+    "brandEyebrow": "För butiksägare och partner",
+    "brandTagline": "Många butiker. En dörr."
   },
   "account": {
     "fullNamePlaceholder": "För- och efternamn",

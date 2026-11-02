@@ -33,12 +33,12 @@ export default function RegisterPage() {
 
     // Client-side validation
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('passwordsNoMatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('passwordMin6'));
       return;
     }
 
@@ -59,7 +59,7 @@ export default function RegisterPage() {
       // Creators/providers manage their store in the dashboard app — send them there to sign in.
       window.location.href = `${DASHBOARD_URL}/auth/login`;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      const message = err instanceof Error ? err.message : t('registerFailed');
       setError(message);
     } finally {
       setLoading(false);
@@ -67,37 +67,35 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-      <h1 className="text-2xl font-semibold text-slate-800 text-center mb-2">
-        {t('registerTitle')}
-      </h1>
-      <p className="text-slate-500 text-center mb-8">
-        {t('registerAs')}
-      </p>
+    <div className="sd-auth-card">
+      <div className="sd-auth-head">
+        <span className="sd-eyebrow sd-eyebrow-teal">
+          <span className="sd-eyebrow-dot" aria-hidden="true" />
+          {t('platformStaffOnly')}
+        </span>
+        <h1 className="sd-auth-title">{t('registerTitle')}</h1>
+      </div>
 
       {error && (
-        <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="sd-auth-alert sd-auth-alert-error" role="alert">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Role selector tabs */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+      <form onSubmit={handleSubmit} className="sd-auth-form">
+        {/* Role selector: pill segmented control */}
+        <div className="sd-auth-field">
+          <span className="sd-auth-label" id="register-role-label">
             {t('registerAs')}
-          </label>
-          <div className="flex rounded-lg border border-slate-300 overflow-hidden">
+          </span>
+          <div className="sd-auth-segment" role="group" aria-labelledby="register-role-label">
             {ROLES.map((r) => (
               <button
                 key={r.value}
                 type="button"
                 onClick={() => setRole(r.value)}
-                className={`flex-1 py-2 text-sm font-medium transition ${
-                  role === r.value
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
+                aria-pressed={role === r.value}
+                className={role === r.value ? 'is-active' : undefined}
               >
                 {r.label}
               </button>
@@ -106,99 +104,101 @@ export default function RegisterPage() {
         </div>
 
         {/* Name fields */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-1.5">
+        <div className="sd-auth-grid-2">
+          <div className="sd-auth-field">
+            <label htmlFor="firstName" className="sd-auth-label">
               {t('firstName')}
             </label>
             <input
               id="firstName"
               type="text"
               required
+              autoComplete="given-name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              placeholder="John"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+              placeholder={t('firstNamePlaceholder')}
+              className="sd-auth-input"
             />
           </div>
-          <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-1.5">
+          <div className="sd-auth-field">
+            <label htmlFor="lastName" className="sd-auth-label">
               {t('lastName')}
             </label>
             <input
               id="lastName"
               type="text"
               required
+              autoComplete="family-name"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              placeholder="Doe"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+              placeholder={t('lastNamePlaceholder')}
+              className="sd-auth-input"
             />
           </div>
         </div>
 
         {/* Email field */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+        <div className="sd-auth-field">
+          <label htmlFor="email" className="sd-auth-label">
             {t('email')}
           </label>
           <input
             id="email"
             type="email"
             required
+            autoComplete="email"
+            dir="ltr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+            placeholder={t('emailPlaceholder')}
+            className="sd-auth-input"
           />
         </div>
 
         {/* Password field */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+        <div className="sd-auth-field">
+          <label htmlFor="password" className="sd-auth-label">
             {t('password')}
           </label>
           <input
             id="password"
             type="password"
             required
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
-            className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+            placeholder={t('registerPasswordPlaceholder')}
+            className="sd-auth-input"
           />
         </div>
 
         {/* Confirm password field */}
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
+        <div className="sd-auth-field">
+          <label htmlFor="confirmPassword" className="sd-auth-label">
             {t('confirmPassword')}
           </label>
           <input
             id="confirmPassword"
             type="password"
             required
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-enter your password"
-            className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition"
+            placeholder={t('confirmPasswordPlaceholder')}
+            className="sd-auth-input"
           />
         </div>
 
         {/* Submit button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {loading ? t('signUp') + '...' : t('signUp')}
+        <button type="submit" disabled={loading} className="sd-btn sd-btn-primary sd-auth-submit">
+          <span className="sd-btn-label">{loading ? t('signUp') + '...' : t('signUp')}</span>
         </button>
       </form>
 
       {/* Login link */}
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="sd-auth-foot">
         {t('hasAccount')}{' '}
-        <Link href="/auth/login" className="font-medium text-slate-800 hover:underline">
+        <Link href="/auth/login" className="sd-auth-link">
           {t('signIn')}
         </Link>
       </p>

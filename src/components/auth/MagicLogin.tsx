@@ -86,25 +86,27 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isStore = variant === 'store';
+  // The platform variant uses the ShopsDoor auth classes (auth.css); the
+  // store variant keeps the storefront look driven by the store's theme.
   const card = isStore
     ? 'bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center'
-    : 'bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center';
-  const title = isStore ? 'text-2xl font-semibold text-gray-900 mb-2' : 'text-2xl font-semibold text-slate-800 mb-2';
-  const muted = isStore ? 'text-sm text-gray-500' : 'text-sm text-slate-500';
+    : 'sd-auth-card sd-auth-card-center';
+  const title = isStore ? 'text-2xl font-semibold text-gray-900 mb-2' : 'sd-auth-title mb-2';
+  const muted = isStore ? 'text-sm text-gray-500' : 'sd-auth-sub';
 
   if (status === 'loading' || status === 'success') {
     return (
       <div className={card} aria-live="polite" aria-busy={status === 'loading'}>
-        <div className="mx-auto mb-5 flex size-12 items-center justify-center">
+        <div className={isStore ? 'mx-auto mb-5 flex size-12 items-center justify-center' : 'sd-auth-status sd-auth-status-teal'}>
           {status === 'loading' ? (
             <Loader2
-              className={`size-8 animate-spin ${isStore ? '' : 'text-slate-700'}`}
+              className={`size-8 animate-spin ${isStore ? '' : 'sd-accent'}`}
               style={isStore ? { color: 'var(--store-primary, #2563eb)' } : undefined}
               aria-hidden="true"
             />
           ) : (
             <CheckCircle2
-              className={`size-8 ${isStore ? '' : 'text-green-600'}`}
+              className="size-8"
               style={isStore ? { color: 'var(--store-primary, #16a34a)' } : undefined}
               aria-hidden="true"
             />
@@ -118,12 +120,12 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
 
   const primaryBtn = isStore
     ? 'block w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-90'
-    : 'block w-full rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 transition';
+    : 'sd-btn sd-btn-primary sd-auth-submit';
 
   return (
     <div className={card} role="alert">
-      <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-amber-50">
-        <LinkIcon className="size-6 text-amber-600" aria-hidden="true" />
+      <div className={isStore ? 'mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-amber-50' : 'sd-auth-status sd-auth-status-amber'}>
+        <LinkIcon className={isStore ? 'size-6 text-amber-600' : 'size-6'} aria-hidden="true" />
       </div>
       <h1 className={title}>{t('magicInvalidTitle')}</h1>
       <p className={`${muted} mb-2`}>
@@ -141,11 +143,11 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
         className={primaryBtn}
         style={isStore ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
       >
-        {t('magicLogin')}
+        {isStore ? t('magicLogin') : <span className="sd-btn-label">{t('magicLogin')}</span>}
       </Link>
       <Link
         href={lp('/auth/forgot-password')}
-        className={`mt-4 inline-block text-sm font-medium underline underline-offset-2 hover:opacity-80 ${isStore ? '' : 'text-slate-800'}`}
+        className={isStore ? 'mt-4 inline-block text-sm font-medium underline underline-offset-2 hover:opacity-80' : 'sd-auth-link mt-5 inline-block'}
         style={isStore ? { color: LINK_COLOR } : undefined}
       >
         {t('magicForgot')}
