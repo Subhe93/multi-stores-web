@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { DASHBOARD_LOGIN_URL } from '@/lib/brand';
 
 /** Staff password reset: no store context is sent, so the API only matches
  *  staff accounts. Customers reset on the store where they shopped. */
@@ -48,9 +48,9 @@ export default function ForgotPasswordPage() {
           <div className="sd-auth-alert sd-auth-alert-success" role="status">
             {t('resetLinkSent')}
           </div>
-          <Link href="/auth/login" className="sd-auth-link">
+          <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
             {t('backToLogin')}
-          </Link>
+          </a>
         </div>
       ) : (
         <>
@@ -87,9 +87,9 @@ export default function ForgotPasswordPage() {
 
           {/* Back to login link */}
           <p className="sd-auth-foot">
-            <Link href="/auth/login" className="sd-auth-link">
+            <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
               {t('backToLogin')}
-            </Link>
+            </a>
           </p>
         </>
       )}

@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { ArrowLeft, Check } from 'lucide-react';
 import { ShopsDoorLogo } from '@/components/brand/ShopsDoorLogo';
 import { COMPANY } from '@/lib/brand';
+import { localePath } from '@/lib/locale-path';
 import './auth.css';
 
 // Reassurance lines on the brand panel: the landing's trust facts (home.trust).
@@ -20,13 +21,14 @@ export default async function AuthLayout({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'auth' });
   const th = await getTranslations({ locale, namespace: 'home' });
+  const home = localePath('/', locale);
 
   return (
     <div className="sd-root sd-auth">
       <aside className="sd-auth-brand">
         <div className="sd-pattern sd-auth-brand-pattern" aria-hidden="true" />
         <div className="sd-auth-brand-glow" aria-hidden="true" />
-        <Link href="/" aria-label="ShopsDoor" className="sd-auth-brand-logo">
+        <Link href={home} aria-label="ShopsDoor" className="sd-auth-brand-logo">
           <ShopsDoorLogo variant="reversed" size={36} />
         </Link>
         <div className="sd-auth-brand-copy">
@@ -50,11 +52,11 @@ export default async function AuthLayout({
       </aside>
 
       <main className="sd-auth-main">
-        <Link href="/" aria-label="ShopsDoor" className="sd-auth-mobile-logo">
+        <Link href={home} aria-label="ShopsDoor" className="sd-auth-mobile-logo">
           <ShopsDoorLogo size={34} />
         </Link>
         {children}
-        <Link href="/" className="sd-auth-back">
+        <Link href={home} className="sd-auth-back">
           <ArrowLeft aria-hidden="true" />
           {t('backToHome')}
         </Link>

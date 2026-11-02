@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { localePath } from '@/lib/locale-path';
 import { legal, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
-import { CONTACT_EMAIL, NAV } from '@/lib/brand';
+import { CONTACT_EMAIL, DASHBOARD_LOGIN_URL, NAV } from '@/lib/brand';
 import { ShopsDoorLogo } from '@/components/brand/ShopsDoorLogo';
 import { Reveal } from './ui/Reveal';
 
@@ -47,7 +47,7 @@ export async function MarketingFooter({ locale }: { locale: string }) {
             <ul>
               <li><Link href={localePath('/company', locale)} className="sd-link">{t('footer.companyInfo')}</Link></li>
               <li><a href={`mailto:${CONTACT_EMAIL}`} className="sd-link" dir="ltr">{CONTACT_EMAIL}</a></li>
-              <li><Link href={localePath('/auth/login', locale)} className="sd-link">{tc('login')}</Link></li>
+              <li><a href={DASHBOARD_LOGIN_URL} className="sd-link">{tc('login')}</a></li>
               <li><Link href={localePath('/auth/register', locale)} className="sd-link">{tc('register')}</Link></li>
             </ul>
           </div>

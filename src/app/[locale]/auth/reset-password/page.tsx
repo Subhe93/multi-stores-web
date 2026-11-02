@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { DASHBOARD_LOGIN_URL } from '@/lib/brand';
 
 export default function ResetPasswordPage() {
   const t = useTranslations('auth');
@@ -66,9 +66,9 @@ export default function ResetPasswordPage() {
           <div className="sd-auth-alert sd-auth-alert-error" role="alert">
             {t('invalidResetLink')}
           </div>
-          <Link href="/auth/login" className="sd-auth-link">
+          <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
             {t('backToLogin')}
-          </Link>
+          </a>
         </div>
       ) : success ? (
         // Success state
@@ -76,9 +76,9 @@ export default function ResetPasswordPage() {
           <div className="sd-auth-alert sd-auth-alert-success" role="status">
             {t('resetSuccess')}
           </div>
-          <Link href="/auth/login" className="sd-auth-link">
+          <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
             {t('backToLogin')}
-          </Link>
+          </a>
         </div>
       ) : (
         <>
@@ -131,9 +131,9 @@ export default function ResetPasswordPage() {
 
           {/* Back to login link */}
           <p className="sd-auth-foot">
-            <Link href="/auth/login" className="sd-auth-link">
+            <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
               {t('backToLogin')}
-            </Link>
+            </a>
           </p>
         </>
       )}

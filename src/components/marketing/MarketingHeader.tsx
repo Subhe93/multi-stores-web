@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { localePath } from '@/lib/locale-path';
-import { NAV } from '@/lib/brand';
+import { DASHBOARD_LOGIN_URL, NAV } from '@/lib/brand';
 import { HeaderClient } from './HeaderClient';
 
 // Shared marketing-site header (landing, company, legal). Server component
@@ -20,7 +20,7 @@ export async function MarketingHeader({ locale, solid = false }: { locale: strin
       locale={locale}
       homeHref={home}
       links={links}
-      loginHref={localePath('/auth/login', locale)}
+      loginHref={DASHBOARD_LOGIN_URL}
       loginLabel={t('nav.login')}
       ctaHref={localePath('/auth/register', locale)}
       ctaLabel={t('nav.getStarted')}

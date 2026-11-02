@@ -33,6 +33,10 @@ export const COMPANY = {
   vatNumber: process.env.NEXT_PUBLIC_COMPANY_VAT || '',
 } as const;
 
+// The dashboard is where store owners and partners sign in (separate origin).
+export const DASHBOARD_URL = (process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002').replace(/\/$/, '');
+export const DASHBOARD_LOGIN_URL = `${DASHBOARD_URL}/auth/login`;
+
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'hello@shopsdoor.com';
 
 // In-page anchors of the landing page, in display order. Labels come from the

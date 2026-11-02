@@ -1,29 +1,25 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { DASHBOARD_LOGIN_URL } from '@/lib/brand';
 
-type Role = 'creator' | 'provider';
-
-// Dashboard app URL — staff (creator/provider) sign in there after registering.
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
+// Must match the API's RegisterDto (MinLength 8) so the server never has to
+// reject what the form accepted.
+const PASSWORD_MIN_LENGTH = 8;
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
+  const locale = useLocale();
 
-  // Customers register through their store's storefront, not the platform.
-  const ROLES: { value: Role; label: string }[] = [
-    { value: 'creator', label: t('creator') },
-    { value: 'provider', label: t('provider') },
-  ];
+  // Public sign-up creates store-owner (CREATOR) accounts only. Customers
+  // register on their store; partner (PROVIDER) accounts are created by admins.
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<Role>('creator');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -37,27 +33,30 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('passwordMin6'));
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(t('passwordMin8'));
       return;
     }
 
     setLoading(true);
 
     try {
-      await api('/auth/register', {
+      const data = await api<{ dashboard_login_url?: string }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           email,
           password,
-          role: role.toUpperCase(),
+          role: 'CREATOR',
           first_name: firstName,
           last_name: lastName,
+          locale,
         }),
       });
 
-      // Creators/providers manage their store in the dashboard app — send them there to sign in.
-      window.location.href = `${DASHBOARD_URL}/auth/login`;
+      // The API returns a single-use dashboard sign-in link, so the new owner
+      // lands in the dashboard already signed in; the plain login page is
+      // the fallback.
+      window.location.href = data?.dashboard_login_url || DASHBOARD_LOGIN_URL;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('registerFailed');
       setError(message);
@@ -83,26 +82,6 @@ export default function RegisterPage() {
       )}
 
       <form onSubmit={handleSubmit} className="sd-auth-form">
-        {/* Role selector: pill segmented control */}
-        <div className="sd-auth-field">
-          <span className="sd-auth-label" id="register-role-label">
-            {t('registerAs')}
-          </span>
-          <div className="sd-auth-segment" role="group" aria-labelledby="register-role-label">
-            {ROLES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => setRole(r.value)}
-                aria-pressed={role === r.value}
-                className={role === r.value ? 'is-active' : undefined}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Name fields */}
         <div className="sd-auth-grid-2">
           <div className="sd-auth-field">
@@ -198,9 +177,9 @@ export default function RegisterPage() {
       {/* Login link */}
       <p className="sd-auth-foot">
         {t('hasAccount')}{' '}
-        <Link href="/auth/login" className="sd-auth-link">
+        <a href={DASHBOARD_LOGIN_URL} className="sd-auth-link">
           {t('signIn')}
-        </Link>
+        </a>
       </p>
     </div>
   );
