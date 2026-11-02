@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ShopsDoorLogo } from '@/components/brand/ShopsDoorLogo';
 import { gsap, useGSAP, EASE, onPageReveal } from '@/lib/animations';
+import { LanguageMenu } from './LanguageMenu';
 
 interface NavLink {
   id: string;
@@ -21,6 +22,7 @@ interface Props {
   ctaLabel: string;
   menuLabel: string;
   closeLabel: string;
+  languageLabel: string;
   solid: boolean;
 }
 
@@ -28,7 +30,7 @@ interface Props {
  * Fixed header: transparent over the hero, frosted ivory once the page
  * scrolls. Intro slides down after the page-reveal handshake.
  */
-export function HeaderClient({ homeHref, links, loginHref, loginLabel, ctaHref, ctaLabel, menuLabel, closeLabel, solid }: Props) {
+export function HeaderClient({ locale, homeHref, links, loginHref, loginLabel, ctaHref, ctaLabel, menuLabel, closeLabel, languageLabel, solid }: Props) {
   const ref = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(solid);
   const [open, setOpen] = useState(false);
@@ -134,6 +136,15 @@ export function HeaderClient({ homeHref, links, loginHref, loginLabel, ctaHref, 
         .sd-header-nav { display: none; align-items: center; gap: 32px; }
         .sd-header-link { font-size: 0.93rem; font-weight: 500; color: var(--sd-navy); }
         .sd-header-actions { display: flex; align-items: center; gap: 18px; }
+        .sd-lang { position: relative; }
+        .sd-lang-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 0; cursor: pointer; padding: 8px 6px; font: inherit; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; }
+        .sd-lang-menu { position: absolute; top: calc(100% + 8px); inset-inline-end: 0; min-width: 160px; margin: 0; padding: 6px; list-style: none; background: var(--sd-ivory); border: 1px solid var(--sd-line); border-radius: 12px; box-shadow: 0 18px 40px -18px rgba(20, 45, 54, 0.35); z-index: 95; }
+        .sd-lang-menu a { display: block; padding: 9px 12px; border-radius: 8px; font-size: 0.9rem; color: var(--sd-navy); text-decoration: none; }
+        .sd-lang-menu a:hover { background: rgba(20, 45, 54, 0.06); }
+        .sd-lang-menu a.is-active { font-weight: 700; color: var(--sd-teal-deep, #0F9484); }
+        .sd-lang-drawer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+        .sd-lang-drawer a { padding: 8px 14px; border: 1px solid var(--sd-line); border-radius: 999px; font-size: 0.9rem; color: var(--sd-navy); text-decoration: none; }
+        .sd-lang-drawer a.is-active { background: var(--sd-navy); color: var(--sd-ivory); border-color: var(--sd-navy); }
         .sd-header-login { display: none; }
         .sd-header-cta { height: 44px; padding-inline: 20px; font-size: 0.9rem; display: none; }
         .sd-header-burger { width: 44px; height: 44px; display: inline-flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; background: transparent; border: 0; cursor: pointer; }

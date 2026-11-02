@@ -54,7 +54,8 @@
       "login": "Sign in",
       "getStarted": "Get started",
       "menu": "Menu",
-      "close": "Close"
+      "close": "Close",
+      "language": "Language"
     },
     "hero": {
       "badge": "Early access · Built in Sweden",

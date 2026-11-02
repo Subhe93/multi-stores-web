@@ -26,6 +26,7 @@ export async function MarketingHeader({ locale, solid = false }: { locale: strin
       ctaLabel={t('nav.getStarted')}
       menuLabel={t('nav.menu')}
       closeLabel={t('nav.close')}
+      languageLabel={t('nav.language')}
       solid={solid}
     />
   );
