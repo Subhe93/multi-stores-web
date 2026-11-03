@@ -1,6 +1,7 @@
 import { marketHreflangCode } from './market-routing';
 import type { MarketIndexing } from './market';
 import { encodeUrlPath } from './slugRoute';
+import { platformHosts } from './platformHosts';
 
 /** The slice of a market needed to build URLs for it (M1-DESIGN §4.3). */
 export interface MarketUrlInput {
@@ -68,33 +69,38 @@ export function previewOrigin(storeSlug: string, marketKey: string): string {
   }
 }
 
-/** Platform host from NEXT_PUBLIC_WEB_URL (lower-case, no port, no `www.`). */
-function platformHost(): string | null {
-  const base = process.env.NEXT_PUBLIC_WEB_URL;
-  if (!base) return null;
-  try {
-    return new URL(base).hostname.toLowerCase().replace(/^www\./, '');
-  } catch {
-    return null;
+/**
+ * Platform apex hosts (lower-case, no port, no `www.`): the host of
+ * NEXT_PUBLIC_WEB_URL plus NEXT_PUBLIC_PLATFORM_HOSTS, so links to the old
+ * and the new platform domain are both recognised during a domain move.
+ * Empty when NEXT_PUBLIC_WEB_URL is unset or invalid and no list is given.
+ */
+function platformApexHosts(): string[] {
+  if (!process.env.NEXT_PUBLIC_WEB_URL && !process.env.NEXT_PUBLIC_PLATFORM_HOSTS) return [];
+  const out: string[] = [];
+  for (const h of platformHosts()) {
+    const bare = h.replace(/^www\./, '');
+    if (!out.includes(bare)) out.push(bare);
   }
+  return out;
 }
 
 /**
  * Make a stored link safe for the host it is rendered on. Builder content
- * sometimes carries an absolute platform URL (`https://iwings-digital.com/
- * products`, `https://<slug>.iwings-digital.com/cart`): on a custom domain
+ * sometimes carries an absolute platform URL (`https://<platform apex>/
+ * products`, `https://<slug>.<platform apex>/cart`): on a custom domain
  * that sends the visitor to another host and loses the cart cookie. A URL
- * whose host is the platform host, any `<slug>.` subdomain of it, or the
- * `www.` form of either, becomes a relative path (path + query + hash).
- * Everything else — external links, mailto/tel, relative paths — is returned
- * unchanged.
+ * whose host is one of the platform apexes (old or new, see
+ * `platformHosts`), any `<slug>.` subdomain of one, or the `www.` form of
+ * either, becomes a relative path (path + query + hash). Everything else —
+ * external links, mailto/tel, relative paths — is returned unchanged.
  */
 export function storeHref(raw: string): string {
   if (typeof raw !== 'string') return raw;
   const trimmed = raw.trim();
   if (!/^https?:\/\//i.test(trimmed)) return raw;
-  const platform = platformHost();
-  if (!platform) return raw;
+  const platforms = platformApexHosts();
+  if (platforms.length === 0) return raw;
   let url: URL;
   try {
     url = new URL(trimmed);
@@ -102,7 +108,7 @@ export function storeHref(raw: string): string {
     return raw;
   }
   const host = url.hostname.toLowerCase().replace(/^www\./, '');
-  if (host !== platform && !host.endsWith(`.${platform}`)) return raw;
+  if (!platforms.some((p) => host === p || host.endsWith(`.${p}`))) return raw;
   return `${url.pathname}${url.search}${url.hash}` || '/';
 }
 

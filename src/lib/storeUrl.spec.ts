@@ -326,4 +326,21 @@ describe('storeHref', () => {
     expect(storeHref('https://iwings-digital.com/products')).toBe('/products');
     expect(storeHref('https://shop.iwings-digital.com/products')).toBe('/products');
   });
+
+  it('domain move: every host of NEXT_PUBLIC_PLATFORM_HOSTS is relative-ised, old and new', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', 'https://shopsdoor.com');
+    vi.stubEnv('NEXT_PUBLIC_PLATFORM_HOSTS', 'shopsdoor.com,www.shopsdoor.com,iwings-digital.com,www.iwings-digital.com');
+    expect(storeHref('https://muba.shopsdoor.com/cart')).toBe('/cart');
+    expect(storeHref('https://muba.iwings-digital.com/cart')).toBe('/cart');
+    expect(storeHref('https://www.iwings-digital.com/products?x=1')).toBe('/products?x=1');
+    expect(storeHref('https://shopsdoor.com')).toBe('/');
+    expect(storeHref('https://notiwings-digital.com/x')).toBe('https://notiwings-digital.com/x');
+    expect(storeHref('https://namez.se/products')).toBe('https://namez.se/products');
+  });
+
+  it('the list alone (no NEXT_PUBLIC_WEB_URL) is enough', () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_PLATFORM_HOSTS', 'iwings-digital.com');
+    expect(storeHref('https://muba.iwings-digital.com/cart')).toBe('/cart');
+  });
 });

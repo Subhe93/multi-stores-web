@@ -9,6 +9,7 @@ import {
 } from '@/lib/market-routing';
 import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
 import { marketPublicHostname } from '@/lib/storeUrl';
+import { isPlatformHost, platformHosts, platformSubdomainOf, primaryPlatformDomain } from '@/lib/platformHosts';
 import {
   isApiUnavailableStatus,
   maintenanceHeaders,
@@ -17,17 +18,15 @@ import {
 } from '@/lib/apiAvailability';
 
 // Main platform hostnames — everything else is treated as a store subdomain
-// or a custom CNAME. Configurable via NEXT_PUBLIC_PLATFORM_HOSTS.
-const PLATFORM_HOSTNAMES = (
-  process.env.NEXT_PUBLIC_PLATFORM_HOSTS ||
-  'localhost,iwings-digital.com,www.iwings-digital.com'
-)
-  .split(',')
-  .map((h) => h.trim().toLowerCase())
-  .filter(Boolean);
+// or a custom CNAME. The host of NEXT_PUBLIC_WEB_URL plus NEXT_PUBLIC_PLATFORM_HOSTS
+// (both the old and the new apex during a domain move); `localhost` alone
+// when nothing is configured.
+const PLATFORM_HOSTNAMES = platformHosts();
 
+// Domain the canonical `/store/<slug>` redirect sends visitors to: the
+// configured one, else the primary (first non-localhost) platform host.
 const PLATFORM_DOMAIN =
-  process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'localhost';
+  process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || primaryPlatformDomain(PLATFORM_HOSTNAMES);
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -349,19 +348,15 @@ async function resolveStoreHost(hostname: string): Promise<HostLookup> {
   const host = hostname.split(':')[0]!.toLowerCase();
 
   // Main platform — not a store
-  if (PLATFORM_HOSTNAMES.includes(host)) return null;
+  if (isPlatformHost(host, PLATFORM_HOSTNAMES)) return null;
 
-  // Platform subdomain: "my-store.localhost" or "my-store.iwings-digital.com".
-  // The slug is derived locally; the market context is an extra (fail-open)
-  // API call cached per host.
-  for (const platformHost of PLATFORM_HOSTNAMES) {
-    if (host.endsWith('.' + platformHost)) {
-      const subdomain = host.slice(0, -(platformHost.length + 1));
-      const slug = subdomain.split('.')[0] || null;
-      if (!slug) return null;
-      // `<slug>--<key>`: market preview (checked before anything else).
-      return await resolveHost(host, slug, parsePreviewLabel(slug));
-    }
+  // Platform subdomain: "my-store.localhost" or "my-store.<any platform
+  // host>". The slug is derived locally; the market context is an extra
+  // (fail-open) API call cached per host.
+  const sub = platformSubdomainOf(host, PLATFORM_HOSTNAMES);
+  if (sub) {
+    // `<slug>--<key>`: market preview (checked before anything else).
+    return await resolveHost(host, sub.label, parsePreviewLabel(sub.label));
   }
 
   // Not a platform host → treat as custom CNAME, resolve via API

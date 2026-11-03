@@ -8,22 +8,34 @@ import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
+import { dashboardOrigins } from '@/lib/platformHosts';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
 // Only the builder that embedded this preview may drive it, and messages go
 // only to it. Sections here render straight from the incoming payload (some as
 // raw HTML), so an unrestricted listener let any page holding a handle to this
-// window inject content. Null when unconfigured, which falls back to the old
-// permissive behaviour rather than breaking the preview outright.
-const PARENT_ORIGIN: string | null = (() => {
-  const configured = process.env.NEXT_PUBLIC_DASHBOARD_URL;
-  if (!configured) return null;
+// window inject content. The dashboard may live on more than one origin during
+// a domain move (NEXT_PUBLIC_DASHBOARD_URL + NEXT_PUBLIC_DASHBOARD_ORIGINS), so
+// an allow-list is checked and replies go to the origin that embedded us.
+// Empty when unconfigured, which falls back to the old permissive behaviour
+// rather than breaking the preview outright.
+const PARENT_ORIGINS: readonly string[] = dashboardOrigins();
+
+/** Origin to address the parent with: the embedding dashboard, else '*' when unconfigured. */
+function parentOrigin(): string {
+  if (PARENT_ORIGINS.length === 0) return '*';
   try {
-    return new URL(configured).origin;
+    const referrer = document.referrer ? new URL(document.referrer).origin : '';
+    if (referrer && PARENT_ORIGINS.includes(referrer)) return referrer;
   } catch {
-    return null;
+    /* no usable referrer */
   }
-})();
+  return PARENT_ORIGINS[0]!;
+}
+
+function isAllowedParentOrigin(origin: string): boolean {
+  return PARENT_ORIGINS.length === 0 || PARENT_ORIGINS.includes(origin);
+}
 
 interface InitialPreviewState {
   themeKey: string;
@@ -88,7 +100,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   useEffect(() => {
     function onMessage(e: MessageEvent<IncomingMessage>) {
       if (e.source !== window.parent) return;
-      if (PARENT_ORIGIN && e.origin !== PARENT_ORIGIN) return;
+      if (!isAllowedParentOrigin(e.origin)) return;
       const data = e.data;
       if (!data || typeof data !== 'object') return;
 
@@ -128,7 +140,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
 
     window.addEventListener('message', onMessage);
     // Tell the dashboard we're ready to receive the initial sync.
-    window.parent?.postMessage({ type: 'PREVIEW_READY' }, PARENT_ORIGIN ?? '*');
+    window.parent?.postMessage({ type: 'PREVIEW_READY' }, parentOrigin());
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
@@ -147,7 +159,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       if (anchor) e.preventDefault();
       window.parent?.postMessage(
         { type: 'SECTION_CLICKED', section_id: node.dataset.sectionId },
-        PARENT_ORIGIN ?? '*',
+        parentOrigin(),
       );
     }
     function onSubmit(e: SubmitEvent) {
@@ -232,7 +244,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
         }
         window.parent?.postMessage(
           { type: 'INLINE_EDIT', section_id: sectionId, path, value },
-          PARENT_ORIGIN ?? '*',
+          parentOrigin(),
         );
       };
       const onBlur = () => finish(true);
@@ -441,7 +453,7 @@ function SectionToolbar({
     e.stopPropagation();
     window.parent?.postMessage(
       { type: 'SECTION_ACTION', section_id: sectionId, action },
-      PARENT_ORIGIN ?? '*',
+      parentOrigin(),
     );
   };
 
