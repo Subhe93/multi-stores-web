@@ -78,6 +78,8 @@
 
 /* Honeypot: off-screen for people, present in the DOM for bots. */
 .sd-auth-honeypot { position: absolute; inset-inline-start: -10000px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+/* Turnstile widget (sign-up): reserve the widget height so the form does not jump. */
+.sd-auth-captcha { min-height: 65px; }
 
 /* Primary action: the landing's pill button, full width, as <button> or <a>. */
 .sd-auth-submit { width: 100%; height: 50px; border: 0; cursor: pointer; font-family: inherit; margin-top: 4px; }

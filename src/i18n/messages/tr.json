@@ -598,6 +598,10 @@
     "termsLabel": "<terms>Hizmet Şartları</terms>nı ve <privacy>Gizlilik Politikası</privacy>nı kabul ediyorum.",
     "termsRequired": "Devam etmek için Hizmet Şartları ve Gizlilik Politikasını kabul edin.",
     "emailDisposable": "Geçici e-posta adresleri kabul edilmez. Lütfen kalıcı bir adres kullanın.",
+    "captchaFailed": "Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
+    "captchaUnavailable": "Güvenlik doğrulaması geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
+    "captchaRequired": "Lütfen güvenlik doğrulamasını tamamlayın.",
+    "captchaLabel": "Güvenlik doğrulaması",
     "emailExists": "Bu e-posta ile zaten bir hesap var. Bunun yerine giriş yapın.",
     "wizard": {
       "step1": "Yolunu seç",

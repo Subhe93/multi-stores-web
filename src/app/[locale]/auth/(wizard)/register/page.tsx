@@ -8,6 +8,7 @@ import { DASHBOARD_LOGIN_URL } from '@/lib/brand';
 import { localePath } from '@/lib/locale-path';
 import { gsap, useGSAP, DUR, EASE, prefersReducedMotion } from '@/lib/animations';
 import { RegisterArt } from './RegisterArt';
+import { TURNSTILE_SITE_KEY, TurnstileWidget } from './Turnstile';
 
 // Must match the API's RegisterDto (MinLength 8) so the server never has to
 // reject what the form accepted.
@@ -30,6 +31,8 @@ const CODED_ERRORS: Record<string, string> = {
   AUTH_TERMS_REQUIRED: 'termsRequired',
   AUTH_EMAIL_DISPOSABLE: 'emailDisposable',
   AUTH_EMAIL_EXISTS: 'emailExists',
+  AUTH_CAPTCHA_FAILED: 'captchaFailed',
+  AUTH_CAPTCHA_UNAVAILABLE: 'captchaUnavailable',
 };
 
 type Step = 1 | 2;
@@ -61,6 +64,10 @@ export default function RegisterPage() {
   // Honeypot: hidden from people, filled by bots; the API ignores such
   // submissions silently (SPEC §2).
   const [website, setWebsite] = useState('');
+  // Turnstile (wave 3): only while the site key is set. The token is
+  // single-use, so the widget is reset after every failed submit.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -144,6 +151,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError(t('captchaRequired'));
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -159,6 +171,7 @@ export default function RegisterPage() {
           ...(accountKind === 'supplier' ? { company_name: companyName.trim() } : {}),
           locale,
           website,
+          ...(TURNSTILE_SITE_KEY && captchaToken ? { turnstile_token: captchaToken } : {}),
         }),
       });
 
@@ -170,6 +183,10 @@ export default function RegisterPage() {
       const code = (err as ApiError | null)?.code;
       const key = code ? CODED_ERRORS[code] : undefined;
       setError(key ? t(key) : t('registerFailed'));
+      if (TURNSTILE_SITE_KEY) {
+        setCaptchaToken(null);
+        setCaptchaReset((n) => n + 1);
+      }
     } finally {
       setLoading(false);
     }
@@ -418,6 +435,19 @@ export default function RegisterPage() {
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
+
+              {/* Security check (Cloudflare Turnstile), only with a site key */}
+              {TURNSTILE_SITE_KEY && (
+                <div className="sd-auth-field">
+                  <TurnstileWidget
+                    siteKey={TURNSTILE_SITE_KEY}
+                    language={locale}
+                    label={t('captchaLabel')}
+                    onToken={setCaptchaToken}
+                    resetSignal={captchaReset}
+                  />
+                </div>
+              )}
 
               {/* Terms + privacy */}
               <label className="sd-auth-check">

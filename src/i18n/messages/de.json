@@ -598,6 +598,10 @@
     "termsLabel": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>.",
     "termsRequired": "Bitte akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung, um fortzufahren.",
     "emailDisposable": "Wegwerf-E-Mail-Adressen werden nicht akzeptiert. Bitte verwenden Sie eine dauerhafte Adresse.",
+    "captchaFailed": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "captchaUnavailable": "Die Sicherheitsprüfung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
+    "captchaRequired": "Bitte schließen Sie die Sicherheitsprüfung ab.",
+    "captchaLabel": "Sicherheitsprüfung",
     "emailExists": "Mit dieser E-Mail existiert bereits ein Konto. Melden Sie sich stattdessen an.",
     "wizard": {
       "step1": "Weg wählen",

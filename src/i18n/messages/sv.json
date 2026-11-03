@@ -598,6 +598,10 @@
     "termsLabel": "Jag godkänner <terms>användarvillkoren</terms> och <privacy>integritetspolicyn</privacy>.",
     "termsRequired": "Godkänn användarvillkoren och integritetspolicyn för att fortsätta.",
     "emailDisposable": "Tillfälliga e-postadresser accepteras inte. Använd en permanent adress.",
+    "captchaFailed": "Säkerhetskontrollen misslyckades. Försök igen.",
+    "captchaUnavailable": "Säkerhetskontrollen är tillfälligt otillgänglig. Försök igen om en stund.",
+    "captchaRequired": "Slutför säkerhetskontrollen.",
+    "captchaLabel": "Säkerhetskontroll",
     "emailExists": "Det finns redan ett konto med den här e-postadressen. Logga in i stället.",
     "wizard": {
       "step1": "Välj din väg",

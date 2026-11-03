@@ -598,6 +598,10 @@
     "termsLabel": "J’accepte les <terms>Conditions d’utilisation</terms> et la <privacy>Politique de confidentialité</privacy>.",
     "termsRequired": "Veuillez accepter les Conditions d’utilisation et la Politique de confidentialité pour continuer.",
     "emailDisposable": "Les adresses e-mail jetables ne sont pas acceptées. Veuillez utiliser une adresse permanente.",
+    "captchaFailed": "La vérification de sécurité a échoué. Veuillez réessayer.",
+    "captchaUnavailable": "La vérification de sécurité est temporairement indisponible. Veuillez réessayer dans un instant.",
+    "captchaRequired": "Veuillez effectuer la vérification de sécurité.",
+    "captchaLabel": "Vérification de sécurité",
     "emailExists": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
     "wizard": {
       "step1": "Choisir sa voie",
