@@ -1,5 +1,6 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 
@@ -65,8 +66,10 @@ function LogoList({ settings, content, locale }: SectionRenderProps) {
         {items.map((l, i) => {
           const img = (
             <img
-              src={resolveMediaUrl(l.image!)}
+              {...responsiveImgProps(resolveMediaUrl(l.image!), '200px')}
               alt={l.alt || ''}
+              height={48}
+              decoding="async"
               loading="lazy"
               className="max-h-12 w-auto mx-auto object-contain transition-all duration-300"
               style={

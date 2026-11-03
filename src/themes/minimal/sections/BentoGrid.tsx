@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
@@ -80,7 +81,7 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
                 {img && (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt={t.title || ''} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    <img {...responsiveImgProps(img, '(min-width: 768px) 50vw, 100vw')} alt={t.title || ''} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                     <span className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.6) 100%)' }} />
                   </>
                 )}

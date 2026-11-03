@@ -171,7 +171,7 @@ export function DesignerBackBlock({ session: s, locale, maxUploadMb, minDpi }: B
                       <span className="block aspect-[5/7] w-full overflow-hidden rounded-md bg-gray-100">
                         {tpl.thumbnail_url ? (
                           // eslint-disable-next-line @next/next/no-img-element -- public template thumbnail
-                          <img src={tpl.thumbnail_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          <img src={tpl.thumbnail_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                         ) : null}
                       </span>
                       <span className="line-clamp-2 text-xs text-gray-800" dir="auto">

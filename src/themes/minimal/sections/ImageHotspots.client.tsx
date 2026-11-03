@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { ArrowUpRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
@@ -96,8 +97,9 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
         <div ref={containerRef} className="relative mx-auto w-full max-w-4xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={resolveMediaUrl(image)}
+            {...responsiveImgProps(resolveMediaUrl(image), '(min-width: 896px) 896px, 100vw')}
             alt={heading || ''}
+            decoding="async"
             loading="lazy"
             className="w-full h-auto object-cover"
             style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-md)' }}

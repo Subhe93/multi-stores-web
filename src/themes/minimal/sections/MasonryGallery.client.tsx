@@ -225,7 +225,8 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={resolveMediaUrl(images[openIndex].image || '')}
+                    {...responsiveImgProps(resolveMediaUrl(images[openIndex].image || ''), '90vw')}
+                    decoding="async"
                     alt={images[openIndex].caption || ''}
                     className="max-h-[80vh] max-w-full object-contain"
                     style={{ borderRadius: 'var(--theme-radius-sm)' }}

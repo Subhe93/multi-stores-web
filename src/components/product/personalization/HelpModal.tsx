@@ -4,6 +4,7 @@ import { useEffect, useId, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 
 interface HelpModalProps {
   open: boolean;
@@ -65,7 +66,7 @@ export function HelpModal({ open, onClose, title, text, imageUrl }: HelpModalPro
         {text && <p className="whitespace-pre-line text-sm text-gray-700 leading-relaxed">{text}</p>}
         {imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={resolveMediaUrl(imageUrl)} alt="" className="mt-4 w-full rounded-lg border border-gray-100" />
+          <img {...responsiveImgProps(resolveMediaUrl(imageUrl), '(max-width: 480px) 100vw, 448px')} alt="" loading="lazy" decoding="async" className="mt-4 w-full rounded-lg border border-gray-100" />
         )}
         <div className="mt-5 flex justify-end">
           <button

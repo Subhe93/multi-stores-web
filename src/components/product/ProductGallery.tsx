@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
-import { isSvgSrc } from '@/lib/storeMedia';
+import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 
 interface GalleryImage {
   id: string;
@@ -343,7 +343,8 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
           </button>
 
           <img
-            src={currentImage.url}
+            {...responsiveImgProps(currentImage.url, '92vw')}
+            decoding="async"
             alt={currentImage.alt ?? t('product.productImage')}
             className="max-h-[90vh] max-w-[92vw] object-contain select-none"
             onClick={(e) => { e.stopPropagation(); didSwipe.current = false; }}

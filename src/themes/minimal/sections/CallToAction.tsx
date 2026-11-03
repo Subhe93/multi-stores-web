@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
@@ -94,7 +95,7 @@ function CallToAction({ settings, content }: SectionRenderProps) {
         style={{ borderRadius: 'var(--theme-radius-lg)' }}
       >
         {resolvedImage && (
-          <img src={resolvedImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img {...responsiveImgProps(resolvedImage, '100vw')} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
         )}
         <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} />
         <div className="relative">
@@ -124,7 +125,7 @@ function CallToAction({ settings, content }: SectionRenderProps) {
         </div>
         {resolvedImage && (
           <div className="h-64 md:h-full min-h-70">
-            <img src={resolvedImage} alt="" className="w-full h-full object-cover" />
+            <img {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
           </div>
         )}
       </section>

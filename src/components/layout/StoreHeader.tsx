@@ -18,6 +18,7 @@ import { BuyerTypeToggle } from './BuyerTypeToggle';
 import { CartBadge } from './CartBadge';
 import { IfApp } from '@/components/IfApp';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { collectionHref } from '@/lib/collectionPath';
 
 // Resolved page shape after picking the right translation
@@ -548,8 +549,9 @@ export function StoreHeader({
         <Link prefetch={false} href={lp('/')} className="flex items-center gap-2 shrink-0">
           {logoUrl && (
             <img
-              src={resolveMediaUrl(logoUrl)}
+              {...responsiveImgProps(resolveMediaUrl(logoUrl), `${logoSize * 5}px`)}
               alt={displayName}
+              height={logoSize}
               style={{ height: logoSize, width: 'auto' }}
               className="object-contain rounded"
             />

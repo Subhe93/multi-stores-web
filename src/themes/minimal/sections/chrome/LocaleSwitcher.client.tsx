@@ -22,6 +22,9 @@ function Flag({ url }: { url: string; label: string }) {
       src={url}
       alt=""
       aria-hidden
+      width={20}
+      height={15}
+      decoding="async"
       onError={() => setFailed(true)}
       className="w-5 h-3.75 rounded-xs object-cover shrink-0 ring-1 ring-black/5"
     />

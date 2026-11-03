@@ -15,6 +15,7 @@ import Link from 'next/link';
 // floods the origin with dynamic RSC renders on each page view.
 import { ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
@@ -140,7 +141,8 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                         style={{ borderRadius: 'var(--theme-radius-md)' }}
                       >
                         <img
-                          src={resolveMediaUrl(trigger.feature.image)}
+                          {...responsiveImgProps(resolveMediaUrl(trigger.feature.image), '320px')}
+                          decoding="async"
                           alt={trigger.feature.caption || ''}
                           loading="lazy"
                           className="w-full aspect-4/3 object-cover transition-transform duration-500 group-hover/feat:scale-105"

@@ -1,6 +1,7 @@
 import { Quote, Star } from 'lucide-react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
@@ -117,8 +118,11 @@ function Testimonials({ settings, content, locale }: SectionRenderProps) {
               <figcaption className="flex items-center gap-3 mt-auto">
                 {t.avatar ? (
                   <img
-                    src={resolveMediaUrl(t.avatar)}
+                    {...responsiveImgProps(resolveMediaUrl(t.avatar), '40px')}
                     alt={t.author || ''}
+                    width={40}
+                    height={40}
+                    decoding="async"
                     loading="lazy"
                     className="size-10 rounded-full object-cover shrink-0"
                   />

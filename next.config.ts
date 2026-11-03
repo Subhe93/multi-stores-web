@@ -46,6 +46,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // Kept open on purpose: imported (WordPress) content and section media
+    // can hold absolute URLs on third-party hosts, not only the API origin.
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
       { protocol: 'http', hostname: '**' },
@@ -54,6 +56,14 @@ const nextConfig: NextConfig = {
     // (SSRF protection). In dev the API serves images from localhost, so allow
     // it there only — production uses a public API host where the block is moot.
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== 'production',
+    // AVIF first (smaller), WebP fallback for browsers without AVIF.
+    formats: ['image/avif', 'image/webp'],
+    // Upload URLs get a fresh name per upload and are served `immutable` for a year by
+    // the API, so optimized variants can be cached just as long.
+    minimumCacheTTL: 31536000,
+    // Uploads are capped at 2000px by the API, so the 3840 default is dropped.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [32, 48, 64, 96, 128, 256, 384],
   },
 };
 

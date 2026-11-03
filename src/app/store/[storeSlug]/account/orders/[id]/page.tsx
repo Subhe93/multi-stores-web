@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api, resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/format';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
@@ -337,7 +338,7 @@ export default function StoreOrderDetailPage() {
               <div key={item.id} className="py-3 space-y-1">
                 <div className="flex items-center gap-3">
                   {imgUrl ? (
-                    <img src={resolveMediaUrl(imgUrl)} alt={title} className="w-12 h-12 rounded-lg object-cover border border-gray-100" />
+                    <img {...responsiveImgProps(resolveMediaUrl(imgUrl), '48px')} alt={title} width={48} height={48} loading="lazy" decoding="async" className="w-12 h-12 rounded-lg object-cover border border-gray-100" />
                   ) : (
                     <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px] text-center leading-tight">{t('product.noImage')}</div>
                   )}

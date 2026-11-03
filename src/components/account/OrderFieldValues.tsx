@@ -105,6 +105,10 @@ export function OrderFieldValues({ rows, locale, primaryLocale, className }: Ord
                   src={resolveMediaUrl(src)}
                   alt={row.upload?.original_name || g.label}
                   title={row.upload?.original_name || undefined}
+                  width={40}
+                  height={40}
+                  loading="lazy"
+                  decoding="async"
                   className="w-10 h-10 rounded-md object-cover border border-gray-200"
                 />
               ) : (

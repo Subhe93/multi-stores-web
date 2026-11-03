@@ -11,6 +11,7 @@ import { DesignLineExtras } from '@/components/cart/DesignLineExtras';
 import { formatPrice } from '@/lib/format';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { CartFieldValue } from '@/components/cart/CartItem';
 import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
 import { hasPersonalizationGroups } from '@multi-stores/core/personalization/display';
@@ -153,9 +154,13 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
       <div className="relative w-20 h-20 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
+            // Design proofs stay raw (onError fallback); catalog images get a srcset.
             <img
-              src={img}
+              {...(proofImg ? { src: img } : responsiveImgProps(img, '80px'))}
               alt={title}
+              width={80}
+              height={80}
+              decoding="async"
               className={`w-full h-full ${proofImg ? 'object-contain bg-white' : 'object-cover'}`}
               onError={proofImg ? () => setProofFailed(true) : undefined}
             />
@@ -411,7 +416,7 @@ export default function StoreCartPage() {
                       <div className="relative w-10 h-10 shrink-0">
                         <div className="w-full h-full rounded overflow-hidden border border-gray-200 bg-white">
                           {img ? (
-                            <img src={img} alt={title} className="w-full h-full object-cover" />
+                            <img {...responsiveImgProps(img, '40px')} alt={title} width={40} height={40} decoding="async" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-gray-100" />
                           )}

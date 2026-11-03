@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Loader2, ShoppingBag, Tag, X, Minus, Plus, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { formatPrice } from '@/lib/format';
 import type { B2bNetTotals, TaxExemptReason, TaxLine, TaxPricingMode } from '@/lib/tax';
 import { summaryUnitAmounts, type ExemptLinePrice } from '@/lib/taxExemption';
@@ -206,7 +207,7 @@ export function OrderSummary({
                 <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-white ${unavailable ? 'opacity-50 grayscale' : ''}`}>
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={title} className="w-full h-full object-cover" />
+                    <img {...responsiveImgProps(img, '56px')} alt={title} width={56} height={56} decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                       <ShoppingBag className="w-5 h-5 text-gray-300" />

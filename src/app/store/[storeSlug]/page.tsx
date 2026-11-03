@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import { collectionHref } from '@/lib/collectionPath';
 import { buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildHomeJsonLd } from '@/lib/pageJsonLd';
@@ -383,11 +384,12 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                   className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {thumb ? (
-                    <img
+                    <StoreImage
                       src={thumb}
                       alt={title}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      fill
+                      sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 17vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   ) : (
                     <div

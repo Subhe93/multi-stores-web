@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
@@ -121,7 +122,7 @@ export default async function CheckoutLayout({
                   // The logo already carries the brand; repeating the store
                   // name next to it looked like a duplicate wordmark.
                   <img
-                    src={resolveMediaUrl(store.logo_url)}
+                    {...responsiveImgProps(resolveMediaUrl(store.logo_url), '240px')}
                     alt={storeName}
                     className="h-9 w-auto object-contain"
                   />

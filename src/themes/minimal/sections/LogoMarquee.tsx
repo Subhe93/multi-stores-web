@@ -1,5 +1,6 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
 
 interface LogoItem {
@@ -52,8 +53,10 @@ function LogoMarquee({ settings, content, locale }: SectionRenderProps) {
   const renderLogo = (l: LogoItem, key: string) => {
     const img = (
       <img
-        src={resolveMediaUrl(l.image!)}
+        {...responsiveImgProps(resolveMediaUrl(l.image!), '160px')}
         alt={l.alt || ''}
+        height={40}
+        decoding="async"
         loading="lazy"
         className="max-h-10 w-auto object-contain transition-all duration-300"
         style={grayscale ? { filter: 'grayscale(1)', opacity: 0.65 } : undefined}

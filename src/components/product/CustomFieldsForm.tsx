@@ -110,13 +110,13 @@ function FileInput({ accept, images = false, multiple, value, onChange }: {
           {urls.map((url, i) => (
             <div key={i} className="relative group">
               {isImage ? (
-                <img src={url} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                <img src={url} alt="" width={64} height={64} loading="lazy" decoding="async" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
               ) : (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600">
                   {/* Customer uploads always have a WebP preview (a placeholder for PDF/AI). */}
                   {url.includes('/uploads/customer-previews/') ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" className="w-6 h-6 rounded object-cover" />
+                    <img src={url} alt="" width={24} height={24} loading="lazy" decoding="async" className="w-6 h-6 rounded object-cover" />
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}

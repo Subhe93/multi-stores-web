@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
@@ -148,7 +149,8 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
           {/* Before image — full frame underneath. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={resolveMediaUrl(imageBefore)}
+            {...responsiveImgProps(resolveMediaUrl(imageBefore), '(min-width: 896px) 896px, 100vw')}
+            decoding="async"
             alt={labelBefore || ''}
             loading="lazy"
             draggable={false}
@@ -157,7 +159,8 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
           {/* After image — clipped so only the part right of the divider shows. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={resolveMediaUrl(imageAfter)}
+            {...responsiveImgProps(resolveMediaUrl(imageAfter), '(min-width: 896px) 896px, 100vw')}
+            decoding="async"
             alt={labelAfter || ''}
             loading="lazy"
             draggable={false}

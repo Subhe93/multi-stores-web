@@ -130,6 +130,7 @@ export function CustomerUpload({
               <img
                 src={preview}
                 alt={t('product.uploadPreview')}
+                decoding="async"
                 className="w-full h-full object-contain rounded-lg"
               />
             </div>

@@ -10,6 +10,7 @@
 import { useId } from 'react';
 import Link from 'next/link';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
 
@@ -130,8 +131,9 @@ function BlockView({ block }: { block: Block }) {
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={resolveMediaUrl(block.image)}
+          {...responsiveImgProps(resolveMediaUrl(block.image), '(min-width: 768px) 50vw, 100vw')}
           alt={block.alt || ''}
+          decoding="async"
           loading="lazy"
           className={`w-full object-cover ${ASPECT_CLASS[aspect]} ${block.rounded ? '' : ''}`}
           style={block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined}

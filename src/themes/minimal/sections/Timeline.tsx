@@ -4,6 +4,7 @@
 // All offsets use logical properties so the layout mirrors cleanly under RTL.
 
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, mediaFx } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
@@ -91,8 +92,9 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
       {item.image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={resolveMediaUrl(item.image)}
+          {...responsiveImgProps(resolveMediaUrl(item.image), '(max-width: 640px) 100vw, 384px')}
           alt={item.title || ''}
+          decoding="async"
           loading="lazy"
           className="w-full max-w-sm aspect-[16/10] object-cover mt-2"
           style={mediaFx({ radius: 'var(--theme-radius-md)', shadow: 'var(--theme-shadow-sm)' })}

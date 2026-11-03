@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import { StorePreviewUnlock } from './StorePreviewUnlock';
 
 interface StoreGatePageProps {
@@ -39,7 +40,7 @@ export async function StoreGatePage({ kind, storeSlug, storeName, logoUrl, prima
         <div className="w-full max-w-md flex flex-col items-center gap-6">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="h-16 w-auto object-contain" />
+            <img {...responsiveImgProps(logo, '256px')} alt="" height={64} className="h-16 w-auto object-contain" />
           ) : (
             <div
               aria-hidden="true"
