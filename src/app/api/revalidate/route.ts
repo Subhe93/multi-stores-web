@@ -10,6 +10,11 @@ import { storeTag } from '@/lib/api';
 // POST /api/revalidate
 //   headers: x-revalidate-secret: <REVALIDATE_SECRET>
 //   body:    { "slug": "my-store" }  — revalidates everything tagged store:<slug>
+//            { "tag": "legal" }      — platform legal pages (or "legal:<slug>")
+
+// Platform-wide tags the API may purge; anything else is rejected so the
+// endpoint cannot be used to flush arbitrary cache entries.
+const PLATFORM_TAG = /^legal(?::[a-z0-9-]{1,80})?$/;
 export async function POST(req: NextRequest) {
   const secret = process.env.REVALIDATE_SECRET;
   if (!secret) {
@@ -27,8 +32,9 @@ export async function POST(req: NextRequest) {
   }
 
   let slug: string | undefined;
+  let tag: string | undefined;
   try {
-    ({ slug } = await req.json());
+    ({ slug, tag } = await req.json());
   } catch {
     return NextResponse.json(
       { revalidated: false, error: 'Invalid JSON body' },
@@ -36,9 +42,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (typeof tag === 'string') {
+    if (!PLATFORM_TAG.test(tag)) {
+      return NextResponse.json(
+        { revalidated: false, error: 'Unknown "tag"' },
+        { status: 400 },
+      );
+    }
+    revalidateTag(tag, 'max');
+    return NextResponse.json({ revalidated: true, tag, now: Date.now() });
+  }
+
   if (!slug) {
     return NextResponse.json(
-      { revalidated: false, error: 'Missing "slug"' },
+      { revalidated: false, error: 'Missing "slug" or "tag"' },
       { status: 400 },
     );
   }
