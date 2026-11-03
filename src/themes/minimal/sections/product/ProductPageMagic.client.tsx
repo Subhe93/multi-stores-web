@@ -13,12 +13,13 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
+import { normalizeTrustBadges } from '@/lib/trustBadgeIcons';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import type { SectionRenderProps } from '../../../types';
 
 type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
 
-export function ProductPageMagic({ settings, locale, primaryLocale, product, currency }: SectionRenderProps) {
+export function ProductPageMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
   const t = useTranslations();
   // No product in context (e.g. builder preview before a sample loads) — show a
   // recognisable placeholder rather than crashing.
@@ -117,10 +118,11 @@ export function ProductPageMagic({ settings, locale, primaryLocale, product, cur
         primaryLocale={primaryLocale}
         currency={currency}
         langPrefix={langPrefix}
-        // Legacy `show_tags` may still exist in old page snapshots; it is ignored
-        // (product tags were retired 2026-11-02).
+        // Legacy `show_tags` / `show_trust_badges` may still exist in old page
+        // snapshots; both are ignored (tags retired 2026-11-02, the hardcoded
+        // trust claims retired 2026-11-03 — badges are now owner-written content).
         options={{
-          showTrustBadges: settings.show_trust_badges !== false,
+          trustBadges: normalizeTrustBadges(content?.trust_badges),
           showShipping: settings.show_shipping !== false,
           showTabs: settings.show_tabs !== false,
           buttonStyle: (settings.button_style as 'solid' | 'outline') || 'solid',

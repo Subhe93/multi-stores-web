@@ -118,5 +118,5 @@ export const marqueeTextSection: SectionDefinition = {
   },
   Component: MarqueeText,
   defaultSettings: { separator: '✦', size: 'lg', speed: 'normal', style: 'solid' },
-  defaultContent: { text: 'Free shipping worldwide' },
+  defaultContent: { text: 'Welcome to our store' },
 };

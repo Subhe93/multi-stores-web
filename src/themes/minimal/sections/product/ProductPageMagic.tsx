@@ -1,5 +1,6 @@
 // Definition file — see FaqList.tsx for the RSC boundary rationale.
 
+import { TRUST_BADGE_ICON_OPTIONS } from '@/lib/trustBadgeIcons';
 import type { SectionDefinition } from '../../../types';
 // Lazy client chunk (M5 D24), see ./lazy.tsx.
 import { ProductPageMagic } from './lazy';
@@ -15,9 +16,25 @@ export const productPageMagicSection: SectionDefinition = {
       ar: 'جسم المنتج الكامل — المعرض، السعر، الباندلز، الخيارات، الحقول المخصّصة، الشحن والتابات. مطابق لتصميم صفحة المنتج الكامل.',
     },
     pageTypes: ['PRODUCT_TEMPLATE'],
-    translatable: [],
+    // `trust_badges` is per-locale content: the owner writes each claim
+    // themselves, so nothing is asserted on their behalf. Legacy snapshots may
+    // still carry `settings.show_trust_badges`; the storefront ignores it.
+    translatable: ['trust_badges'],
     schema: [
-      { key: 'show_trust_badges', type: 'boolean', label: { en: 'Show trust badges', ar: 'إظهار شارات الثقة' }, defaultValue: true },
+      {
+        key: 'trust_badges',
+        type: 'repeater',
+        label: { en: 'Trust badges', ar: 'شارات الثقة' },
+        description: {
+          en: 'Only state what is true for this store (e.g. shipping terms, returns, payment). Nothing is shown until you add badges.',
+          ar: 'اذكر فقط ما ينطبق فعلاً على متجرك (مثل شروط الشحن، الإرجاع، الدفع). لا يظهر شيء حتى تضيف شارات.',
+        },
+        fields: [
+          { key: 'icon', type: 'select', label: { en: 'Icon', ar: 'الأيقونة' }, options: TRUST_BADGE_ICON_OPTIONS },
+          { key: 'label', type: 'text', label: { en: 'Label', ar: 'التسمية' } },
+          { key: 'description', type: 'text', label: { en: 'Description (optional)', ar: 'الوصف (اختياري)' } },
+        ],
+      },
       { key: 'show_shipping', type: 'boolean', label: { en: 'Show shipping & delivery', ar: 'إظهار الشحن والتوصيل' }, defaultValue: true },
       { key: 'show_tabs', type: 'boolean', label: { en: 'Show tabs (description / specs / FAQ)', ar: 'إظهار التابات (الوصف / المواصفات / الأسئلة)' }, defaultValue: true },
       {
@@ -45,7 +62,6 @@ export const productPageMagicSection: SectionDefinition = {
   },
   Component: ProductPageMagic,
   defaultSettings: {
-    show_trust_badges: true,
     show_shipping: true,
     show_tabs: true,
     button_style: 'solid',

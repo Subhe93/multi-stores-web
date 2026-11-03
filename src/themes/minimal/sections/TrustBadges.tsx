@@ -1,24 +1,10 @@
-import { Award, CreditCard, HeadphonesIcon, Leaf, RefreshCw, ShieldCheck, Star, Truck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import {
+  TRUST_BADGE_ICONS as ICONS,
+  TRUST_BADGE_ICON_OPTIONS as ICON_OPTIONS,
+  type TrustBadgeItem as BadgeItem,
+} from '@/lib/trustBadgeIcons';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
-
-interface BadgeItem {
-  icon?: string;
-  label?: string;
-  description?: string;
-}
-
-// Map icon name → lucide component. Keeps the schema string-only so it
-// serialises cleanly without component references.
-const ICONS: Record<string, typeof Truck> = {
-  truck: Truck,
-  refresh: RefreshCw,
-  shield: ShieldCheck,
-  card: CreditCard,
-  award: Award,
-  star: Star,
-  headphones: HeadphonesIcon,
-  leaf: Leaf,
-};
 
 function TrustBadges({ settings, content, locale }: SectionRenderProps) {
   const items = (content.items as BadgeItem[]) || [];
@@ -135,17 +121,6 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
   );
 }
 
-const ICON_OPTIONS = [
-  { value: 'truck', label: { en: 'Truck (shipping)', ar: 'شاحنة (شحن)' } },
-  { value: 'refresh', label: { en: 'Refresh (returns)', ar: 'تحديث (إرجاع)' } },
-  { value: 'shield', label: { en: 'Shield (secure)', ar: 'درع (آمن)' } },
-  { value: 'card', label: { en: 'Card (payment)', ar: 'بطاقة (دفع)' } },
-  { value: 'award', label: { en: 'Award (quality)', ar: 'جائزة (جودة)' } },
-  { value: 'star', label: { en: 'Star (rated)', ar: 'نجمة (مقيّم)' } },
-  { value: 'headphones', label: { en: 'Headphones (support)', ar: 'سماعات (دعم)' } },
-  { value: 'leaf', label: { en: 'Leaf (eco)', ar: 'ورقة (بيئي)' } },
-];
-
 export const trustBadgesSection: SectionDefinition = {
   schema: {
     id: 'trust-badges',
@@ -153,8 +128,8 @@ export const trustBadgesSection: SectionDefinition = {
     icon: 'shield-check',
     category: 'social',
     description: {
-      en: 'Row of reassurance points (free shipping, returns, secure payment...). Cards or inline.',
-      ar: 'صف من نقاط الطمأنينة (شحن مجاني، إرجاع، دفع آمن...). بطاقات أو سطر واحد.',
+      en: 'Row of reassurance points you can stand behind (shipping terms, returns, secure payment…). Cards or inline.',
+      ar: 'صف من نقاط الطمأنينة التي تنطبق فعلاً على متجرك (شروط الشحن، الإرجاع، الدفع الآمن…). بطاقات أو سطر واحد.',
     },
     translatable: ['items'],
     schema: [

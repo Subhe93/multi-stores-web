@@ -67,7 +67,7 @@ export const announcementBarSection: SectionDefinition = {
   },
   defaultContent: {
     messages: [
-      { text: 'Free shipping on orders over $50', link_label: 'Shop now', link_url: '/products' },
+      { text: 'Welcome to our store', link_label: 'Shop now', link_url: '/products' },
     ],
   },
 };

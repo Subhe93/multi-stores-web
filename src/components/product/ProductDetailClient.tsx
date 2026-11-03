@@ -33,9 +33,10 @@ import {
   useDesignerSession,
 } from '@/components/designer/DesignerSession';
 import type { DesignedLine } from '@/components/designer/DesignerInline';
+import { TRUST_BADGE_ICONS, type TrustBadgeItem } from '@/lib/trustBadgeIcons';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
-  Shield, RotateCcw, Star, Loader2, Tag, Zap, Gift, Percent, X,
+  ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────
@@ -198,7 +199,11 @@ export interface ProductData {
 // the fallback product route is unaffected; the builder's `product-page`
 // section passes a subset to honor its simple show/hide settings.
 export interface ProductDetailOptions {
-  showTrustBadges?: boolean;
+  /**
+   * Owner-written reassurance badges (builder `product-page` section content).
+   * Nothing is rendered when absent or empty — there are no default claims.
+   */
+  trustBadges?: TrustBadgeItem[];
   showShipping?: boolean;
   showTabs?: boolean;
   buttonStyle?: 'solid' | 'outline';
@@ -299,7 +304,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
   // Presentation toggles — default to "show everything" so the standalone
   // product page is unchanged; the builder section overrides per its settings.
-  const showTrustBadges = options?.showTrustBadges ?? true;
+  const trustBadges = options?.trustBadges ?? [];
   const showShipping = options?.showShipping ?? true;
   const showTabs = options?.showTabs ?? true;
   const buttonStyle = options?.buttonStyle ?? 'solid';
@@ -1156,21 +1161,24 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             )}
           </div>
 
-          {/* Trust badges */}
-          {showTrustBadges && (
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: Truck, label: t('product.trustFreeShipping') },
-              { icon: Shield, label: t('product.trustSecurePayment') },
-              { icon: RotateCcw, label: t('product.trustEasyReturns') },
-              { icon: Star, label: t('product.trustTopQuality') },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--store-primary, #2563eb)' }} />
-                <span className="text-xs font-medium text-gray-600">{label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Trust badges — only the owner's own claims, never defaults */}
+          {trustBadges.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {trustBadges.map((badge, i) => {
+                const Icon = (badge.icon && TRUST_BADGE_ICONS[badge.icon]) || ShieldCheck;
+                return (
+                  <div key={`${badge.label}-${i}`} className="flex items-center gap-2.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--store-primary, #2563eb)' }} />
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-gray-600">{badge.label}</div>
+                      {badge.description && (
+                        <div className="text-[11px] text-gray-400 leading-snug">{badge.description}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {/* Shipping & Delivery */}

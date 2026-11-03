@@ -152,7 +152,7 @@ export const minimalTheme: Theme = {
       settings: { layout: 'cards' },
       content: {
         items: [
-          { icon: 'truck', label: 'Free shipping' },
+          { icon: 'shield', label: 'Secure payment' },
           { icon: 'refresh', label: 'Easy returns' },
           { icon: 'shield', label: 'Secure payment' },
         ],
