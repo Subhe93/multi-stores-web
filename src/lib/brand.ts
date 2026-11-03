@@ -28,8 +28,8 @@ export const COMPANY = {
   legalName: 'Namez AB',
   country: 'Sweden',
   countryCode: 'SE',
-  orgNumber: process.env.NEXT_PUBLIC_COMPANY_ORG_NUMBER || '',
-  address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '',
+  orgNumber: process.env.NEXT_PUBLIC_COMPANY_ORG_NUMBER || '559295-1007',
+  address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || 'Hagavägen 36, 784 40 Borlänge, Sweden',
   vatNumber: process.env.NEXT_PUBLIC_COMPANY_VAT || '',
 } as const;
 
