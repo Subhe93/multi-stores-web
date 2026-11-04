@@ -512,9 +512,15 @@ export function AuthProvider({
     const currentToken = token ?? getSavedToken();
     try {
       if (currentToken) {
+        // The refresh token goes along so the API records it as revoked; a
+        // copy stolen earlier then stops working too.
+        const refreshToken = getSavedRefreshToken();
         await api('/auth/logout', {
           method: 'POST',
           token: currentToken,
+          ...(refreshToken && {
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          }),
         });
       }
     } catch {

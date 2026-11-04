@@ -87,7 +87,11 @@ function IsolatedEmbed({ html, css, js, minHeight }: { html: string; css: string
       <iframe
         title="Embedded content"
         srcDoc={srcDoc}
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+        // No allow-same-origin: a srcdoc frame would otherwise share the
+        // store origin and could read the customer's session tokens or lift
+        // its own sandbox. The frame runs on an opaque origin; the height
+        // reporter only needs postMessage.
+        sandbox="allow-scripts allow-popups allow-forms allow-presentation"
         loading="lazy"
         className="w-full block"
         style={{ height, border: 0, borderRadius: 'var(--theme-radius-md)' }}
