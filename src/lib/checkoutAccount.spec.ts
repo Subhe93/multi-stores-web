@@ -20,6 +20,20 @@ function deps() {
 }
 
 describe('createCheckoutAccount', () => {
+  it('passes the Turnstile token to either call when present', async () => {
+    const guest = deps();
+    await createCheckoutAccount({ ...base, wantAccount: false, password: '', turnstileToken: 'cf-tok' }, guest);
+    expect(guest.registerGuest.mock.calls[0]![0]).toMatchObject({ turnstile_token: 'cf-tok' });
+
+    const account = deps();
+    await createCheckoutAccount({ ...base, wantAccount: true, password: 'long-enough', turnstileToken: 'cf-tok' }, account);
+    expect(account.register.mock.calls[0]![0]).toMatchObject({ turnstile_token: 'cf-tok' });
+
+    const none = deps();
+    await createCheckoutAccount({ ...base, wantAccount: false, password: '', turnstileToken: null }, none);
+    expect(none.registerGuest.mock.calls[0]![0]).not.toHaveProperty('turnstile_token');
+  });
+
   it('uses guest-register with the store context and no client password', async () => {
     const d = deps();
     const res = await createCheckoutAccount({ ...base, wantAccount: false, password: '' }, d);

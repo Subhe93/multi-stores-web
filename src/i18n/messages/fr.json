@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "Les options choisies ne sont pas valides. Veuillez les choisir à nouveau.",
     "STORE_REQUIRED": "Connectez-vous ou créez votre compte sur le site de la boutique.",
     "CUSTOMER_STORE_MISMATCH": "Ce compte appartient à une autre boutique.",
-    "NOT_CUSTOMER_ACCOUNT": "Ceci est un compte tableau de bord, pas un compte client."
+    "NOT_CUSTOMER_ACCOUNT": "Ceci est un compte tableau de bord, pas un compte client.",
+    "AUTH_CAPTCHA_FAILED": "La vérification de sécurité a échoué. Veuillez réessayer.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "La vérification de sécurité est temporairement indisponible. Veuillez réessayer dans un instant."
   },
   "builderPreview": {
     "moveUp": "Monter",

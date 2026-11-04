@@ -138,6 +138,8 @@ export interface RegisterData {
   store_slug?: string;
   hostname?: string;
   locale?: string;
+  /** Cloudflare Turnstile token, when storefront customer captcha is on. */
+  turnstile_token?: string;
 }
 
 /** Body of POST /auth/guest-register: the server generates the password
@@ -150,6 +152,7 @@ export interface GuestRegisterData {
   store_slug?: string;
   hostname?: string;
   locale?: string;
+  turnstile_token?: string;
 }
 
 /** Token pair as returned by /auth/login, /auth/register and /auth/magic-login. */

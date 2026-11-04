@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "Seçilen ekstralar geçerli değil. Lütfen yeniden seçin.",
     "STORE_REQUIRED": "Mağazanın kendi sitesinde giriş yapın veya hesap oluşturun.",
     "CUSTOMER_STORE_MISMATCH": "Bu hesap başka bir mağazaya ait.",
-    "NOT_CUSTOMER_ACCOUNT": "Bu bir panel hesabıdır, müşteri hesabı değildir."
+    "NOT_CUSTOMER_ACCOUNT": "Bu bir panel hesabıdır, müşteri hesabı değildir.",
+    "AUTH_CAPTCHA_FAILED": "Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "Güvenlik doğrulaması geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin."
   },
   "builderPreview": {
     "moveUp": "Yukarı taşı",

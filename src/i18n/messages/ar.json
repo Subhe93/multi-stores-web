@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "الإضافات المختارة غير صالحة. يرجى اختيارها من جديد.",
     "STORE_REQUIRED": "سجّل الدخول أو أنشئ حسابك من موقع المتجر نفسه.",
     "CUSTOMER_STORE_MISMATCH": "هذا الحساب تابع لمتجر آخر.",
-    "NOT_CUSTOMER_ACCOUNT": "هذا حساب لوحة تحكم وليس حساب عميل."
+    "NOT_CUSTOMER_ACCOUNT": "هذا حساب لوحة تحكم وليس حساب عميل.",
+    "AUTH_CAPTCHA_FAILED": "فشل التحقق الأمني. يرجى المحاولة مرة أخرى.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "التحقق الأمني غير متاح مؤقتاً. يرجى المحاولة بعد قليل."
   },
   "builderPreview": {
     "moveUp": "تحريك لأعلى",

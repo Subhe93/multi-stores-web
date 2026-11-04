@@ -2,8 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useUrlToken } from '@/lib/urlToken';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
 import { useApiError } from '@/lib/useApiError';
@@ -11,9 +11,9 @@ import { useApiError } from '@/lib/useApiError';
 export default function StoreResetPasswordPage() {
   const t = useTranslations('auth');
   const lp = useLocalePath();
-  const searchParams = useSearchParams();
   const apiError = useApiError();
-  const token = searchParams.get('token');
+  // `#token=` in current emails, `?token=` in older ones; undefined until read.
+  const token = useUrlToken();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,7 +63,7 @@ export default function StoreResetPasswordPage() {
       </h1>
       <p className="text-gray-500 text-center text-sm mb-8">{t('resetPasswordPageDesc')}</p>
 
-      {!token ? (
+      {token === undefined ? null : !token ? (
         <div className="text-center">
           <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {t('invalidResetLink')}

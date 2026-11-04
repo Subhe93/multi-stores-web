@@ -10,33 +10,7 @@ import { useAuth, isNotCustomerAccountError, isStoreMismatchError } from '@/hook
 
 type Status = 'loading' | 'success' | 'invalid' | 'notCustomer' | 'wrongStore';
 
-/** Token from the URL fragment (`#token=`, current emails: never sent to the
- *  server, so it stays out of access logs) or the query string (`?token=`,
- *  links mailed before the switch). */
-function readToken(): string | null {
-  try {
-    const fromHash = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token');
-    return fromHash || new URLSearchParams(window.location.search).get('token');
-  } catch {
-    return null;
-  }
-}
-
-/** Remove `token` from the address bar (query and fragment) so it does not
- *  linger in history, bookmarks or a shared screenshot. Other params stay. */
-function stripTokenFromUrl() {
-  try {
-    const url = new URL(window.location.href);
-    const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-    const inHash = hash.has('token');
-    if (!url.searchParams.has('token') && !inHash) return;
-    url.searchParams.delete('token');
-    hash.delete('token');
-    const rest = hash.toString();
-    const fragment = inHash ? (rest ? `#${rest}` : '') : url.hash;
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${fragment}`);
-  } catch { /* non-fatal: the token is single-use anyway */ }
-}
+import { readUrlToken as readToken, stripTokenFromUrl } from '@/lib/urlToken';
 
 const LINK_COLOR = 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))';
 

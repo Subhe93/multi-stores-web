@@ -17,6 +17,8 @@ export interface CheckoutAccountInput {
   storeSlug?: string;
   hostname?: string;
   locale?: string;
+  /** Turnstile token (storefront customer captcha on), sent with either call. */
+  turnstileToken?: string | null;
 }
 
 export interface CheckoutAccountDeps {
@@ -39,6 +41,7 @@ export async function createCheckoutAccount(
     store_slug: input.storeSlug || undefined,
     hostname: input.hostname || undefined,
     locale: input.locale || undefined,
+    ...(input.turnstileToken ? { turnstile_token: input.turnstileToken } : {}),
   };
   const profile = {
     email: input.email,

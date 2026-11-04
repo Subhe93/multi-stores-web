@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "Die gewählten Extras sind ungültig. Bitte wähle sie erneut.",
     "STORE_REQUIRED": "Melden Sie sich auf der Website des Shops an oder erstellen Sie dort Ihr Konto.",
     "CUSTOMER_STORE_MISMATCH": "Dieses Konto gehört zu einem anderen Shop.",
-    "NOT_CUSTOMER_ACCOUNT": "Dies ist ein Dashboard-Konto, kein Kundenkonto."
+    "NOT_CUSTOMER_ACCOUNT": "Dies ist ein Dashboard-Konto, kein Kundenkonto.",
+    "AUTH_CAPTCHA_FAILED": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "Die Sicherheitsprüfung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal."
   },
   "builderPreview": {
     "moveUp": "Nach oben",

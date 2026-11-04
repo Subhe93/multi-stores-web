@@ -1,6 +1,14 @@
 import path from 'node:path';
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
+import {
+  cspContextFrom,
+  cspHeaders,
+  exactHostPattern,
+  marketingCspDirectives,
+  storefrontCspDirectives,
+} from './src/lib/csp';
+import { dashboardOriginsFrom, platformHostsFrom } from './src/lib/platformHosts';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -10,13 +18,56 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // the parent folder that holds all four repos, here and on the server.
 const workspaceRoot = path.join(__dirname, '..');
 
-// Security headers for every storefront response. No CSP here (the dashboard
-// and API are handled separately). `/builder-preview` is framed by the
-// dashboard's builder, so it gets everything except X-Frame-Options.
+// Security headers for every storefront response. `/builder-preview` is
+// framed by the dashboard's builder, so it gets everything except
+// X-Frame-Options. CSP rules come separately below (CSP_HEADER_RULES).
 const SECURITY_HEADERS = [
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+];
+
+// Content-Security-Policy (security audit M6), Report-Only until CSP_ENFORCE=1;
+// see src/lib/csp.ts and plans/security-hardening/CSP-ROLLOUT.md. Evaluated
+// at build time like every headers() value. The rules below are mutually
+// exclusive, so each response carries exactly one policy:
+// - /builder-preview: storefront policy, framable by the dashboard origins;
+// - an exact platform host (marketing, sign-in, register): marketing policy,
+//   except /store/* (path-based store URLs, used in dev);
+// - everything else (store subdomains, custom domains): storefront policy.
+const cspContext = cspContextFrom(process.env);
+const marketingHost = exactHostPattern(
+  platformHostsFrom(process.env.NEXT_PUBLIC_PLATFORM_HOSTS, process.env.NEXT_PUBLIC_WEB_URL),
+);
+const storefrontCsp = cspHeaders(cspContext, storefrontCspDirectives(cspContext));
+const CSP_HEADER_RULES = [
+  {
+    source: '/builder-preview/:path*',
+    headers: cspHeaders(
+      cspContext,
+      storefrontCspDirectives(cspContext, {
+        frameAncestors: dashboardOriginsFrom(
+          process.env.NEXT_PUBLIC_DASHBOARD_URL,
+          process.env.NEXT_PUBLIC_DASHBOARD_ORIGINS,
+        ),
+      }),
+    ),
+  },
+  {
+    source: '/((?!builder-preview|store(?:/|$)).*)',
+    has: [{ type: 'host' as const, value: marketingHost }],
+    headers: cspHeaders(cspContext, marketingCspDirectives(cspContext)),
+  },
+  {
+    source: '/store/:path*',
+    has: [{ type: 'host' as const, value: marketingHost }],
+    headers: storefrontCsp,
+  },
+  {
+    source: '/((?!builder-preview).*)',
+    missing: [{ type: 'host' as const, value: marketingHost }],
+    headers: storefrontCsp,
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -40,6 +91,7 @@ const nextConfig: NextConfig = {
         source: '/((?!builder-preview).*)',
         headers: [...SECURITY_HEADERS, { key: 'X-Frame-Options', value: 'SAMEORIGIN' }],
       },
+      ...CSP_HEADER_RULES,
     ];
   },
   typescript: {

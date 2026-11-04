@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "Valda tillval är inte giltiga. Välj dem igen.",
     "STORE_REQUIRED": "Logga in eller skapa ditt konto på butikens egen webbplats.",
     "CUSTOMER_STORE_MISMATCH": "Det här kontot hör till en annan butik.",
-    "NOT_CUSTOMER_ACCOUNT": "Detta är ett instrumentpanelskonto, inte ett kundkonto."
+    "NOT_CUSTOMER_ACCOUNT": "Detta är ett instrumentpanelskonto, inte ett kundkonto.",
+    "AUTH_CAPTCHA_FAILED": "Säkerhetskontrollen misslyckades. Försök igen.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "Säkerhetskontrollen är tillfälligt otillgänglig. Försök igen om en stund."
   },
   "builderPreview": {
     "moveUp": "Flytta upp",

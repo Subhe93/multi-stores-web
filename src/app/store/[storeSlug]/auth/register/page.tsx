@@ -8,6 +8,7 @@ import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
+import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
 
 export default function StoreRegisterPage() {
   const t = useTranslations('auth');
@@ -27,6 +28,9 @@ export default function StoreRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Turnstile (only when switched on for storefront customers).
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -40,6 +44,10 @@ export default function StoreRegisterPage() {
       setError(t('passwordMinLength'));
       return;
     }
+    if (CUSTOMER_CAPTCHA_ON && !captchaToken) {
+      setError(t('captchaRequired'));
+      return;
+    }
 
     setLoading(true);
 
@@ -51,12 +59,15 @@ export default function StoreRegisterPage() {
         first_name: firstName,
         last_name: lastName,
         locale,
+        ...(captchaToken ? { turnstile_token: captchaToken } : {}),
       });
       // Signed in right away: go to the account page.
       router.push(lp('/account'));
     } catch (err: unknown) {
       const code = (err as { code?: string } | null)?.code;
       setError(code === 'AUTH_EMAIL_EXISTS' ? t('emailExistsInStore') : apiError(err));
+      // The token was spent by this attempt.
+      if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -149,6 +160,8 @@ export default function StoreRegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('confirmPasswordPlaceholder')} className={withIcon} />
           </div>
         </div>
+
+        <CustomerCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
 
         <button
           type="submit"

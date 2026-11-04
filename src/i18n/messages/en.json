@@ -977,7 +977,9 @@
     "DESIGNER_ADDONS_INVALID": "The selected add-ons are not valid. Please choose them again.",
     "STORE_REQUIRED": "Sign in or create your account on the store's own site.",
     "CUSTOMER_STORE_MISMATCH": "This account belongs to another store.",
-    "NOT_CUSTOMER_ACCOUNT": "This is a dashboard account, not a customer account."
+    "NOT_CUSTOMER_ACCOUNT": "This is a dashboard account, not a customer account.",
+    "AUTH_CAPTCHA_FAILED": "The security check failed. Please try again.",
+    "AUTH_CAPTCHA_UNAVAILABLE": "The security check is temporarily unavailable. Please try again in a moment."
   },
   "builderPreview": {
     "moveUp": "Move up",

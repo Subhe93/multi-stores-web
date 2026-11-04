@@ -42,6 +42,7 @@ import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
 import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { availableLines } from '@/lib/cartAvailability';
 import { checkoutCountryOptions } from '@/lib/checkoutCountries';
+import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -280,6 +281,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   const [orderNotes, setOrderNotes] = useState('');
   const [wantAccount, setWantAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
+  // Turnstile for the guest account created at checkout (when switched on).
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
@@ -631,6 +635,9 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     if (wantAccount && !isLoggedIn && accountPassword.length < 8) {
       errs.password = t('checkout.errors.fieldRequired');
     }
+    if (CUSTOMER_CAPTCHA_ON && !isLoggedIn && !captchaToken) {
+      errs.captcha = t('auth.captchaRequired');
+    }
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -746,12 +753,15 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               email: form.email, first_name: form.first_name, last_name: form.last_name,
               phone: form.phone || undefined,
               storeSlug, hostname: window.location.hostname, locale,
+              turnstileToken: captchaToken,
             },
             { register, registerGuest },
           );
           activeToken = created.token;
           createdGuestAccount = created.guest;
         } catch (regErr: unknown) {
+          // The captcha token was spent by this attempt.
+          if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
           // Accounts are per store: "email exists" means it exists in this
           // store, so the shopper is asked to log in here.
           const regMessage = (regErr as { code?: string } | null)?.code === 'AUTH_EMAIL_EXISTS'
@@ -1118,6 +1128,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                       {fieldErrors.password && <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>}
                     </div>
                   )}
+                  <CustomerCaptcha className="mt-3" onToken={setCaptchaToken} resetSignal={captchaReset} />
+                  {fieldErrors.captcha && <p className="mt-1 text-xs text-red-500">{fieldErrors.captcha}</p>}
                 </div>
               )}
 

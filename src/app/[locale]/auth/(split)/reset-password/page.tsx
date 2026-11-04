@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useUrlToken } from '@/lib/urlToken';
 import { api } from '@/lib/api';
 import { DASHBOARD_LOGIN_URL } from '@/lib/brand';
 
 export default function ResetPasswordPage() {
   const t = useTranslations('auth');
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  // `#token=` in current emails, `?token=` in older ones; undefined until read.
+  const token = useUrlToken();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
         <p className="sd-auth-sub">{t('resetPasswordPageDesc')}</p>
       </div>
 
-      {!token ? (
+      {token === undefined ? null : !token ? (
         // Invalid / missing token state
         <div className="sd-auth-stack sd-auth-card-center">
           <div className="sd-auth-alert sd-auth-alert-error" role="alert">
