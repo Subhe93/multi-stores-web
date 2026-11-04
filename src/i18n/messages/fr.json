@@ -680,6 +680,7 @@
     "RETURNED": "Retournée"
   },
   "store": {
+    "noContentYet": "Pas encore de contenu.",
     "poweredBy": "Propulsé par <b>{name}</b>",
     "featuredProducts": "Produits en vedette",
     "featuredSubtitle": "Des produits sélectionnés rien que pour vous",

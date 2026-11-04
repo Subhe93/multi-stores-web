@@ -680,6 +680,7 @@
     "RETURNED": "İade Alındı"
   },
   "store": {
+    "noContentYet": "Henüz içerik yok.",
     "poweredBy": "<b>{name}</b> tarafından desteklenmektedir",
     "featuredProducts": "Öne Çıkan Ürünler",
     "featuredSubtitle": "Sizin için özenle seçilmiş ürünler",

@@ -680,6 +680,7 @@
     "RETURNED": "مرتجع"
   },
   "store": {
+    "noContentYet": "لا يوجد محتوى بعد.",
     "poweredBy": "يعمل بواسطة <b>{name}</b>",
     "featuredProducts": "منتجات مميزة",
     "featuredSubtitle": "منتجات مختارة خصيصاً لك",

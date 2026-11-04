@@ -5,7 +5,8 @@ import { collectionHref } from '@/lib/collectionPath';
 
 interface SitemapPage {
   slug: string;
-  lastmod: string | Date;
+  /** Null when the API has no modification date (e.g. a default template). */
+  lastmod: string | Date | null;
   /** Markets app only: translated slug per locale (products). */
   slugs?: Record<string, string>;
 }
@@ -18,7 +19,7 @@ interface SitemapCollection extends SitemapPage {
 interface SitemapData {
   locales: string[];
   primaryLocale: string;
-  home: { lastmod: string | Date } | null;
+  home: { lastmod: string | Date | null } | null;
   static_pages: SitemapPage[];
   landing_pages: SitemapPage[];
   products: SitemapPage[];
@@ -39,9 +40,17 @@ function xe(s: string): string {
 }
 
 // Format a date for <lastmod>. Accepts both Date objects and ISO strings (the
-// API serialises Date → ISO over JSON).
-function toIso(d: string | Date): string {
-  return (typeof d === 'string' ? new Date(d) : d).toISOString();
+// API serialises Date → ISO over JSON). Null / unparsable → null, and the
+// entry is emitted without <lastmod> (the tag is optional).
+function toIso(d: string | Date | null | undefined): string | null {
+  if (!d) return null;
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function lastmodLine(d: string | Date | null | undefined): string[] {
+  const iso = toIso(d);
+  return iso ? [`    <lastmod>${iso}</lastmod>`] : [];
 }
 
 /**
@@ -114,7 +123,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
   // Build one <url> entry. `path` is subdomain-relative ('' for home, `/foo`).
   // Primary locale = no prefix; secondary locales use `/{locale}/...` (Google
   // prefers path-prefix over query strings for hreflang).
-  function urlEntry(path: string, lastmod: string | Date): string {
+  function urlEntry(path: string, lastmod: string | Date | null): string {
     const canonical = storeLocalePath(base, primary, primary, path);
 
     const alternates = allLocales
@@ -127,7 +136,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
     return [
       '  <url>',
       `    <loc>${xe(canonical)}</loc>`,
-      `    <lastmod>${toIso(lastmod)}</lastmod>`,
+      ...lastmodLine(lastmod),
       alternates,
       `    <xhtml:link rel="alternate" hreflang="x-default" href="${xe(canonical)}" />`,
       '  </url>',
@@ -164,7 +173,7 @@ function buildMarketSitemap(
   const marketLocales = Array.from(new Set([primary, ...market.locales]));
   const markets = data.markets?.length ? data.markets : [market];
 
-  function urlEntries(path: string, lastmod: string | Date, pathByLocale?: Record<string, string>): string[] {
+  function urlEntries(path: string, lastmod: string | Date | null, pathByLocale?: Record<string, string>): string[] {
     return marketLocales.map((loc) => {
       const { canonical, languages } = buildStoreAlternates({
         origin: base,
@@ -183,7 +192,7 @@ function buildMarketSitemap(
       return [
         '  <url>',
         `    <loc>${xe(canonical)}</loc>`,
-        `    <lastmod>${toIso(lastmod)}</lastmod>`,
+        ...lastmodLine(lastmod),
         alternates,
         '  </url>',
       ].join('\n');

@@ -9,7 +9,8 @@ const sitemapData = {
   landing_pages: [{ slug: 'هدية-لأمي', lastmod: '2026-10-01T00:00:00.000Z' }],
   products: [{ slug: 'tröja', lastmod: '2026-10-01T00:00:00.000Z' }],
   collections: [{ slug: 'kläder', path: ['parent', 'kläder'], lastmod: '2026-10-01T00:00:00.000Z' }],
-  legal_pages: [],
+  // A default-template legal page has no modification date.
+  legal_pages: [{ slug: 'privacy', lastmod: null }],
 };
 
 vi.mock('@/lib/api', () => ({
@@ -55,5 +56,17 @@ describe('store sitemap.xml slug encoding', () => {
     expect(xml).toContain(
       '<xhtml:link rel="alternate" hreflang="ar" href="https://shop.example.com/ar/collections/parent/kl%c3%a4der" />',
     );
+  });
+});
+
+describe('store sitemap.xml legal pages', () => {
+  it('lists a legal page with a null lastmod without a <lastmod> tag', async () => {
+    const xml = await sitemapXml();
+    const entry = xml
+      .split('<url>')
+      .find((chunk) => chunk.includes('<loc>https://shop.example.com/legal/privacy</loc>'));
+    expect(entry).toBeDefined();
+    expect(entry).not.toContain('<lastmod>');
+    expect(xml).not.toContain('Invalid');
   });
 });

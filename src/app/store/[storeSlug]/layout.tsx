@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import { storefront, legal, resolveMediaUrl, LEGAL_SLUGS, type LegalPageSummary } from '@/lib/api';
+import { storefront, resolveMediaUrl, LEGAL_SLUGS, type StoreLegalPageSummary } from '@/lib/api';
 import { getPlatformName } from '@/lib/platform';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin } from '@/lib/storeUrl';
@@ -79,6 +79,8 @@ interface Store {
   coming_soon?: boolean;
   /** Reduced payload of a PAUSED store. */
   paused?: boolean;
+  /** MARKETPLACE | INDEPENDENT; decides which legal footer links render. */
+  store_type?: string;
   /** Seller identity shown in the footer and legal pages (SPEC §1). */
   trader_details?: TraderDetails | null;
   currency?: string;
@@ -468,17 +470,17 @@ export default async function StoreLayout({
   // Locale prefix is applied client-side (useLocalePath) like every page link.
   const cookiePolicyHref = cookiePage ? `/${cookiePage.slug}` : null;
 
-  // Platform legal pages (Privacy / Terms / Refund / Shipping). Fetched here
-  // so the footer renders them with the same localized titles the admin
-  // published. Soft-fail to an empty list so a transient API hiccup never
-  // blanks the storefront.
-  let platformLegalPages: LegalPageSummary[] = [];
+  // Legal pages (Privacy / Terms / Refund / Shipping) at /legal/{slug}: the
+  // store's own page titles, the default template's, or the platform's for
+  // MARKETPLACE stores — resolved by the API per store and locale. Soft-fail
+  // to an empty list so a transient API hiccup never blanks the storefront.
+  let platformLegalPages: StoreLegalPageSummary[] = [];
   try {
-    const all = await legal.list(currentLang);
+    const all = await storefront.getLegalPages(storeSlug, currentLang, await getRequestMarket());
     const bySlug = new Map(all.map((p) => [p.slug, p] as const));
     platformLegalPages = LEGAL_SLUGS
       .map((slug) => bySlug.get(slug))
-      .filter((p): p is LegalPageSummary => !!p);
+      .filter((p): p is StoreLegalPageSummary => !!p);
   } catch {
     platformLegalPages = [];
   }
@@ -714,6 +716,7 @@ export default async function StoreLayout({
                     primaryColor={primaryColor}
                     pages={pages}
                     platformLegalPages={platformLegalPages}
+                    storeType={store.store_type}
                     socials={socials}
                     contact={contact}
                     traderDetails={store.trader_details}

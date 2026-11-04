@@ -14,9 +14,11 @@ interface StoreFooterProps {
   storeName?: string;
   primaryColor?: string;
   pages?: { slug: string; translations: { locale: string; title: string }[] }[];
-  /** Platform legal pages (Privacy / Terms / Refund / Shipping) injected by the
+  /** Legal pages at /legal/{slug} (Privacy / Terms / Refund / Shipping) injected by the
    *  layout. Pre-localized titles come from the API. */
   platformLegalPages?: { slug: string; title: string }[];
+  /** MARKETPLACE | INDEPENDENT (`store.store_type`). */
+  storeType?: string;
   socials?: {
     instagram?: string;
     facebook?: string;
@@ -93,6 +95,7 @@ export function StoreFooter({
   primaryColor,
   pages,
   platformLegalPages,
+  storeType,
   socials,
   contact,
   traderDetails,
@@ -104,7 +107,16 @@ export function StoreFooter({
   const lp = useLocalePath();
   const year = new Date().getFullYear();
 
-  const legalPages = (pages ?? []).filter((p) => isLegalPage(p.slug));
+  // INDEPENDENT stores: the /legal/{slug} links cover every policy page — a
+  // store page that won a slug is served there (its `page_slug`), and the
+  // others are superseded by it — so listing keyword-matched store pages at
+  // their own URL too would duplicate the links. Only when the legal list
+  // actually loaded; MARKETPLACE stores keep both lists as before.
+  const legalLinks = platformLegalPages ?? [];
+  const legalCoversStorePages = storeType === 'INDEPENDENT' && legalLinks.length > 0;
+  const legalPages = legalCoversStorePages
+    ? []
+    : (pages ?? []).filter((p) => isLegalPage(p.slug));
 
   // Scheme-less values (`facebook.com/namez.se`) and bare handles are
   // normalised to absolute profile URLs; an empty value resolves to '#'.
@@ -192,7 +204,7 @@ export function StoreFooter({
                   {getPageTitle(page.translations, currentLang, primaryLocale)}
                 </Link>
               ))}
-              {/* Platform-wide legal pages — labels are pre-localized by the API. */}
+              {/* /legal/{slug} pages — labels are pre-localized by the API. */}
               {(platformLegalPages ?? []).map((page) => (
                 <Link
                   prefetch={false}

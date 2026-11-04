@@ -680,6 +680,7 @@
     "RETURNED": "Returnerad"
   },
   "store": {
+    "noContentYet": "Inget innehåll ännu.",
     "poweredBy": "Drivs av <b>{name}</b>",
     "featuredProducts": "Utvalda produkter",
     "featuredSubtitle": "Handplockade produkter just för dig",
