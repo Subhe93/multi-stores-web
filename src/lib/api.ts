@@ -195,7 +195,8 @@ export async function getStorePreviewToken(slug: string): Promise<string | null>
 // byte-identical to before.
 
 // Store legal page shapes (plans/store-legal-pages/SPEC.md, "API").
-export type StoreLegalSource = 'platform' | 'store_page' | 'template';
+// MARKETPLACE stores always get `template` (filled with Namez AB as the seller).
+export type StoreLegalSource = 'store_page' | 'template';
 
 export interface StoreLegalPageSummary {
   slug: string;
@@ -207,7 +208,6 @@ export interface StoreLegalPageSummary {
 
 export type StoreLegalPage =
   // `locale` = the locale whose text was actually served (may fall back).
-  | { source: 'platform'; title: string; content: string; updated_at: string | null; locale?: string }
   | { source: 'template'; title: string; content: string; updated_at: null; locale?: string }
   | {
       source: 'store_page';
@@ -216,14 +216,6 @@ export type StoreLegalPage =
       page_system: 'v2' | 'legacy';
       updated_at: string | null;
     };
-
-// Adds the platform `legal` tags to cached storefront options, so a platform
-// legal edit (revalidateTag('legal')) also refreshes MARKETPLACE store pages.
-function withLegalTags(opts: FetchOptions, legalSlug?: string): FetchOptions {
-  if (!opts.next?.tags) return opts;
-  const extra = legalSlug ? ['legal', `legal:${legalSlug}`] : ['legal'];
-  return { ...opts, next: { ...opts.next, tags: [...opts.next.tags, ...extra] } };
-}
 
 // Storefront API helpers
 export const storefront = {
@@ -293,20 +285,20 @@ export const storefront = {
 
   // Store legal pages (Privacy / Terms / Refund / Shipping) served at
   // `/legal/{slug}` on the store host: the store's own page, else a filled
-  // default template, else (MARKETPLACE stores) the platform text. Store
-  // tagged like every storefront read; MARKETPLACE rows also carry the
-  // platform `legal` tags so a platform edit refreshes them.
+  // default template (MARKETPLACE stores: always the template, with Namez AB
+  // as the seller). Store tagged like every storefront read; the platform
+  // LegalPage texts are never involved, so no platform `legal` tags.
   getLegalPages: async (slug: string, locale: string, market?: MarketRef) =>
     api<StoreLegalPageSummary[]>(
       `/storefront/${slug}/legal?locale=${encodeURIComponent(locale)}${marketQuery(market, true)}`,
-      withLegalTags(await storefrontOpts(slug)),
+      await storefrontOpts(slug),
     ),
 
   // `legalSlug` is DECODED; it is percent-encoded exactly once here.
   getLegalPage: async (slug: string, legalSlug: string, locale: string, market?: MarketRef) =>
     api<StoreLegalPage>(
       `/storefront/${slug}/legal/${encodeURIComponent(legalSlug)}?locale=${encodeURIComponent(locale)}${marketQuery(market, true)}`,
-      withLegalTags(await storefrontOpts(slug), legalSlug),
+      await storefrontOpts(slug),
     ),
 
   // Aggregated URL list for the storefront's sitemap.xml route.

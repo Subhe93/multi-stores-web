@@ -18,8 +18,8 @@ import { buildStorePageMetadata, fetchStorePage, StorePageView } from '@/compone
 // SPEC). The API resolves what the URL shows:
 // - `store_page`: the store's own published page, rendered exactly as at its
 //   own `/{page_slug}` URL (StorePageView), canonical here;
-// - `template`: the default template filled with the store's trader details;
-// - `platform`: the platform text (MARKETPLACE stores).
+// - `template`: the default template filled with the store's trader details
+//   (MARKETPLACE stores: always, filled with Namez AB as the seller).
 // Locale on the store tree is resolved from `?lang=` (set by the proxy when
 // the URL had a locale prefix) and falls back to the store's primary locale.
 
@@ -47,7 +47,7 @@ function localePrefix(locale: string, store: StoreLite | null): string {
 }
 
 /**
- * Template / platform html with `{{trader.*}}` resolved and its relative
+ * Template html with `{{trader.*}}` resolved and its relative
  * `/legal/...` links carrying the current locale prefix (the same rule as
  * every other store link), so a secondary-locale page links within its locale.
  */
@@ -186,8 +186,8 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
       <h1 className="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
       <div
         className="prose prose-gray max-w-none"
-        // Template html arrives filled; `{{trader.*}}` left in platform text
-        // resolve to the store's trader details (no-op when none remain).
+        // Template html arrives filled; any `{{trader.*}}` left would resolve
+        // to the store's trader details (no-op when none remain).
         dangerouslySetInnerHTML={{ __html: legalHtml(page.content, store, locale) }}
       />
     </div>
