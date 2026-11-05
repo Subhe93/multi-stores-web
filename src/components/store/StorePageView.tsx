@@ -13,7 +13,7 @@ import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
-import { substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
+import { sellerDetailsOf, substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
 import { isRtl } from '@/i18n/config';
 
 // A store page (static or landing) rendered from either backend:
@@ -57,6 +57,8 @@ interface StoreLite {
   name?: string;
   store_type?: string;
   trader_details?: TraderDetails | null;
+  /** Seller of record: the platform operator on MARKETPLACE stores. */
+  seller_details?: TraderDetails | null;
   // Store currency, or the request market's when the Markets app is on.
   currency?: string;
   theme_key?: string;
@@ -325,7 +327,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
         <div
           className="prose prose-gray max-w-none"
           // `{{trader.*}}` placeholders → the store's trader details (SPEC §7).
-          dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(translation.content, store?.trader_details) }}
+          dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(translation.content, sellerDetailsOf(store)) }}
         />
       ) : (
         <p className="text-gray-500">{t('store.noContentYet')}</p>

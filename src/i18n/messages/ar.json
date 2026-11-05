@@ -1112,6 +1112,7 @@
   },
   "footer": {
     "companyDetailsTitle": "بيانات الشركة",
+    "companyDetailsSoldBy": "البائع: {company} عبر {brand}",
     "companyDetailsOrgNr": "رقم التسجيل",
     "companyDetailsVat": "الرقم الضريبي"
   }

@@ -25,7 +25,7 @@ import { storeGate } from '@/lib/storeGate';
 import { StoreGatePage } from '@/components/layout/StoreGatePage';
 import { StorePreviewBar } from '@/components/layout/StorePreviewBar';
 import { StorePreviewReset } from '@/components/layout/StorePreviewUnlock';
-import type { TraderDetails } from '@/lib/traderDetails';
+import { sellerDetailsOf, type TraderDetails } from '@/lib/traderDetails';
 import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -83,6 +83,8 @@ interface Store {
   store_type?: string;
   /** Seller identity shown in the footer and legal pages (SPEC §1). */
   trader_details?: TraderDetails | null;
+  /** Seller of record: the platform operator on MARKETPLACE stores. */
+  seller_details?: TraderDetails | null;
   currency?: string;
   /** Tax settings (pricing mode, catalog display flag) — API-CONTRACT-TAX §3. */
   tax?: StoreTaxConfig | null;
@@ -534,6 +536,8 @@ export default async function StoreLayout({
   const sameAs = (['instagram', 'facebook', 'twitter', 'tiktok', 'youtube'] as const)
     .map((platform) => resolveSocialHref(platform, socials?.[platform] || ''))
     .filter((u) => /^https?:\/\//i.test(u));
+  // Seller of record shown in the footer: Namez AB on MARKETPLACE stores.
+  const sellerDetails = sellerDetailsOf(store);
   const organizationLd = buildOrganization({
     name: storeName,
     url: storeUrl,
@@ -632,7 +636,7 @@ export default async function StoreLayout({
               apps: storeApps,
               ...(store.market ? { market: store.market, markets: store.markets ?? [] } : {}),
               ...(socials ? { socials } : {}),
-              ...(store.trader_details ? { traderDetails: store.trader_details } : {}),
+              ...(sellerDetails ? { traderDetails: sellerDetails } : {}),
             };
 
             const headerSections = publishedHeader?.snapshot?.sections;
@@ -719,7 +723,7 @@ export default async function StoreLayout({
                     storeType={store.store_type}
                     socials={socials}
                     contact={contact}
-                    traderDetails={store.trader_details}
+                    traderDetails={sellerDetails}
                     currentLang={currentLang}
                     primaryLocale={primaryLocale}
                     platformName={platformName}

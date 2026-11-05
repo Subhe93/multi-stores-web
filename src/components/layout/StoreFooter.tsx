@@ -32,7 +32,7 @@ interface StoreFooterProps {
     whatsapp?: string;
     address?: string;
   };
-  /** Seller identity (`store.trader_details`); the block is omitted until set. */
+  /** Seller of record (`seller_details ?? trader_details`); omitted until set. */
   traderDetails?: TraderDetails | null;
   currentLang?: string;
   primaryLocale?: string;

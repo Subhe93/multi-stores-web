@@ -311,7 +311,11 @@ export interface StoreContext {
   /** Store-level social profile URLs (`theme.socials`, keyed by platform).
    *  Fallback for a SocialIcons item left at its platform-root default. */
   socials?: Partial<Record<string, string>>;
-  /** Seller identity (`store.trader_details`) for the footer's company details block. */
+  /**
+   * Seller of record for the footer's company details block:
+   * `store.seller_details` (platform operator on MARKETPLACE stores), else
+   * `store.trader_details`.
+   */
   traderDetails?: TraderDetails | null;
 }
 

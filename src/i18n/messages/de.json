@@ -1112,6 +1112,7 @@
   },
   "footer": {
     "companyDetailsTitle": "Firmenangaben",
+    "companyDetailsSoldBy": "Verkauft von {company} auf {brand}",
     "companyDetailsOrgNr": "Org.-Nr.",
     "companyDetailsVat": "USt-IdNr."
   }

@@ -17,6 +17,28 @@ export interface TraderDetails {
   phone?: string | null;
   support_email?: string | null;
   completed_at?: string | null;
+  /** Set on `seller_details` when the platform operator is the seller (MARKETPLACE). */
+  is_platform?: boolean | null;
+  /** Platform brand name sent with a platform seller (e.g. "ShopsDoor"). */
+  platform_brand?: string | null;
+}
+
+/** Store payload fields that carry the seller identity. */
+export interface SellerSource {
+  /** Seller of record from the API: the platform for MARKETPLACE stores. */
+  seller_details?: TraderDetails | null;
+  /** The store's own trader details (legacy payloads without seller_details). */
+  trader_details?: TraderDetails | null;
+}
+
+/**
+ * The seller identity a storefront shows: `seller_details` (the platform
+ * operator on MARKETPLACE stores) with `trader_details` as the fallback for
+ * API payloads that predate it.
+ */
+export function sellerDetailsOf(store: SellerSource | null | undefined): TraderDetails | null {
+  if (!store) return null;
+  return store.seller_details ?? store.trader_details ?? null;
 }
 
 function text(value: unknown): string {
@@ -31,14 +53,45 @@ export function hasTraderDetails(td: TraderDetails | null | undefined): td is Tr
   );
 }
 
-/** Address as display lines: street line(s), then "postal code city", then country. */
-export function traderAddressLines(td: TraderDetails): string[] {
+/**
+ * Swedish org numbers / personnummer as written officially: "NNNNNN-NNNN"
+ * (12 digits: "YYYYMMDD-NNNN"). Applied when the country is SE or unknown;
+ * anything that is not a plain Swedish digit string is returned trimmed.
+ */
+export function formatOrgNumber(org: string | null | undefined, country?: string | null): string {
+  const raw = text(org);
+  if (!raw) return '';
+  const cc = text(country).toUpperCase();
+  if (cc && cc !== 'SE') return raw;
+  const digits = raw.replace(/[\s-]/g, '');
+  if (!/^\d+$/.test(digits)) return raw;
+  if (digits.length === 10) return `${digits.slice(0, 6)}-${digits.slice(6)}`;
+  if (digits.length === 12) return `${digits.slice(0, 8)}-${digits.slice(8)}`;
+  return raw;
+}
+
+/** Country name in `locale` for an ISO2 code; the upper-cased code otherwise. */
+function countryName(code: string, locale?: string): string {
+  const cc = code.toUpperCase();
+  if (!locale || !/^[A-Z]{2}$/.test(cc)) return cc;
+  try {
+    return new Intl.DisplayNames([locale, 'en'], { type: 'region' }).of(cc) || cc;
+  } catch {
+    return cc;
+  }
+}
+
+/**
+ * Address as display lines: street line(s), then "postal code city", then
+ * country (its name in `locale` when given, else the ISO2 code).
+ */
+export function traderAddressLines(td: TraderDetails, locale?: string): string[] {
   const lines: string[] = [];
   if (text(td.address_line1)) lines.push(text(td.address_line1));
   if (text(td.address_line2)) lines.push(text(td.address_line2));
   const cityLine = [text(td.postal_code), text(td.city)].filter(Boolean).join(' ');
   if (cityLine) lines.push(cityLine);
-  if (text(td.country)) lines.push(text(td.country).toUpperCase());
+  if (text(td.country)) lines.push(countryName(text(td.country), locale));
   return lines;
 }
 

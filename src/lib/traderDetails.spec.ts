@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hasTraderDetails, substituteTraderPlaceholders, traderAddressLines } from './traderDetails';
+import {
+  formatOrgNumber,
+  hasTraderDetails,
+  sellerDetailsOf,
+  substituteTraderPlaceholders,
+  traderAddressLines,
+} from './traderDetails';
 
 const td = {
   legal_name: 'Namez AB',
@@ -37,5 +43,28 @@ describe('traderDetails', () => {
   it('blanks the placeholders when the store has no trader details', () => {
     expect(substituteTraderPlaceholders('<p>{{trader.legal_name}}</p>', null)).toBe('<p></p>');
     expect(substituteTraderPlaceholders('<p>plain</p>', null)).toBe('<p>plain</p>');
+  });
+
+  it('localizes the country when a locale is given', () => {
+    expect(traderAddressLines(td, 'en')).toEqual(['Storgatan 1', '111 22 Stockholm', 'Sweden']);
+    expect(traderAddressLines(td, 'sv')).toEqual(['Storgatan 1', '111 22 Stockholm', 'Sverige']);
+  });
+
+  it('formats Swedish org numbers with the hyphen', () => {
+    expect(formatOrgNumber('5599123469', 'SE')).toBe('559912-3469');
+    expect(formatOrgNumber('559295-1007', 'SE')).toBe('559295-1007');
+    expect(formatOrgNumber(' 559912 3469 ', null)).toBe('559912-3469');
+    expect(formatOrgNumber('198001011234', 'se')).toBe('19800101-1234');
+    expect(formatOrgNumber('5599123469', 'DE')).toBe('5599123469');
+    expect(formatOrgNumber('HRB 12345', 'SE')).toBe('HRB 12345');
+    expect(formatOrgNumber(null)).toBe('');
+  });
+
+  it('prefers seller_details (platform on MARKETPLACE) over trader_details', () => {
+    const platform = { legal_name: 'Namez AB', org_number: '559295-1007', is_platform: true };
+    expect(sellerDetailsOf({ seller_details: platform, trader_details: td })).toBe(platform);
+    expect(sellerDetailsOf({ trader_details: td })).toBe(td);
+    expect(sellerDetailsOf({ seller_details: null, trader_details: null })).toBeNull();
+    expect(sellerDetailsOf(null)).toBeNull();
   });
 });

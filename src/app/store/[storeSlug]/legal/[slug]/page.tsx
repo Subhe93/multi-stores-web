@@ -11,7 +11,7 @@ import { ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd } from '@/lib/pageJsonLd';
 import { htmlExcerpt } from '@/lib/pageExcerpt';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
-import { substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
+import { sellerDetailsOf, substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
 import { buildStorePageMetadata, fetchStorePage, StorePageView } from '@/components/store/StorePageView';
 
 // Store legal pages at /legal/{slug} on the store host (store-legal-pages
@@ -27,6 +27,8 @@ interface StoreLite {
   name?: string;
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   trader_details?: TraderDetails | null;
+  /** Seller of record: the platform operator on MARKETPLACE stores. */
+  seller_details?: TraderDetails | null;
   custom_domain?: string | null;
   market?: MarketRoute | null;
   markets?: MarketRoute[];
@@ -52,7 +54,7 @@ function localePrefix(locale: string, store: StoreLite | null): string {
  * every other store link), so a secondary-locale page links within its locale.
  */
 function legalHtml(content: string, store: StoreLite | null, locale: string): string {
-  const html = substituteTraderPlaceholders(content, store?.trader_details);
+  const html = substituteTraderPlaceholders(content, sellerDetailsOf(store));
   const lp = localePrefix(locale, store);
   return lp ? html.replace(/href=(["'])\/legal\//g, `href=$1${lp}/legal/`) : html;
 }
@@ -115,7 +117,7 @@ export async function generateMetadata({
     storeCustomDomain: store?.custom_domain ?? null,
   });
 
-  const description = htmlExcerpt(substituteTraderPlaceholders(page.content, store?.trader_details)) || page.title;
+  const description = htmlExcerpt(substituteTraderPlaceholders(page.content, sellerDetailsOf(store))) || page.title;
   return {
     title: page.title,
     description,
@@ -162,7 +164,7 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
     siteName: store?.name,
     homeLabel: t('common.home'),
     name: page.title,
-    description: htmlExcerpt(substituteTraderPlaceholders(page.content, store?.trader_details)),
+    description: htmlExcerpt(substituteTraderPlaceholders(page.content, sellerDetailsOf(store))),
   });
 
   return (

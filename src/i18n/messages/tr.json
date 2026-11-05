@@ -1112,6 +1112,7 @@
   },
   "footer": {
     "companyDetailsTitle": "Şirket bilgileri",
+    "companyDetailsSoldBy": "{brand} üzerinde {company} tarafından satılır",
     "companyDetailsOrgNr": "Sicil no.",
     "companyDetailsVat": "KDV no."
   }

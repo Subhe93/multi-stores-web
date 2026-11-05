@@ -1,9 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { hasTraderDetails, traderAddressLines, type TraderDetails } from '@/lib/traderDetails';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatOrgNumber, hasTraderDetails, traderAddressLines, type TraderDetails } from '@/lib/traderDetails';
 
 interface CompanyDetailsProps {
+  /** Seller of record (`store.seller_details`, falling back to `trader_details`). */
   trader?: TraderDetails | null;
   /** Colour of the heading; the body inherits `color` from the parent. */
   headingColor?: string;
@@ -12,13 +13,19 @@ interface CompanyDetailsProps {
 
 /**
  * "Company details" block of the store footer (SPEC §7): legal name,
- * organisation number, address, email and phone from `store.trader_details`.
- * Renders nothing until the owner has completed the trader details.
+ * organisation number, address, email and phone of the seller of record:
+ * the platform operator on MARKETPLACE stores (with a "Sold by … on …"
+ * line), the store's own trader details otherwise. Renders nothing until
+ * the seller identity is known.
  */
 export function CompanyDetails({ trader, headingColor, className = '' }: CompanyDetailsProps) {
   const t = useTranslations('footer');
+  const locale = useLocale();
   if (!hasTraderDetails(trader)) return null;
-  const addressLines = traderAddressLines(trader);
+  const addressLines = traderAddressLines(trader, locale);
+  const orgNumber = formatOrgNumber(trader.org_number, trader.country);
+  const legalName = trader.legal_name?.trim();
+  const platformBrand = trader.platform_brand?.trim();
   const email = trader.support_email?.trim();
   const phone = trader.phone?.trim();
 
@@ -27,11 +34,16 @@ export function CompanyDetails({ trader, headingColor, className = '' }: Company
       <h3 className="text-xs font-semibold uppercase tracking-widest" style={headingColor ? { color: headingColor } : undefined}>
         {t('companyDetailsTitle')}
       </h3>
+      {trader.is_platform && legalName && platformBrand && (
+        <p className="leading-relaxed opacity-80" data-testid="company-details-sold-by">
+          {t('companyDetailsSoldBy', { company: legalName, brand: platformBrand })}
+        </p>
+      )}
       <address className="not-italic leading-relaxed opacity-80">
-        {trader.legal_name?.trim() && <div>{trader.legal_name.trim()}</div>}
-        {trader.org_number?.trim() && (
+        {legalName && <div>{legalName}</div>}
+        {orgNumber && (
           <div>
-            {t('companyDetailsOrgNr')} <span dir="ltr">{trader.org_number.trim()}</span>
+            {t('companyDetailsOrgNr')} <span dir="ltr">{orgNumber}</span>
           </div>
         )}
         {trader.vat_number?.trim() && (
