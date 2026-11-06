@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Manrope, Alexandria } from 'next/font/google';
+import { manrope, alexandria } from '../fonts/brand';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { locales, isRtl } from '@/i18n/config';
@@ -13,8 +13,7 @@ import { MotionShim } from '@/components/marketing/providers/MotionShim';
 // Manrope has no Arabic glyphs, so Alexandria (a geometric Arabic face whose
 // heavy weights match Manrope's headlines) takes over via the
 // `--font-arabic-ui` variable when the page is Arabic (see globals.css).
-const manrope = Manrope({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'], variable: '--font-manrope', display: 'swap' });
-const alexandria = Alexandria({ subsets: ['arabic'], weight: ['400', '500', '600', '700', '800'], variable: '--font-arabic-ui', display: 'swap' });
+// Both are self-hosted in ../fonts/brand.ts.
 
 export default async function LocaleLayout({
   children,

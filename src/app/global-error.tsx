@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useSyncExternalStore } from 'react';
-import { Inter } from 'next/font/google';
+import { inter } from './fonts/inter';
 import { defaultLocale, isRtl, locales, type Locale } from '@/i18n/config';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };

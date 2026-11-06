@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { inter } from "./fonts/inter";
 import { headers, cookies } from "next/headers";
 import { requestMarketRef } from '@/lib/market';
 import { storefront } from "@/lib/api";
@@ -7,8 +7,6 @@ import { getPlatformName } from "@/lib/platform";
 import { BRAND_TAGLINE, HEX } from "@/lib/brand";
 import { defaultLocale, rtlLocales } from "@/i18n/config";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
 
 // Without a metadataBase, Next resolves every relative URL (canonicals, OG
 // images) against http://localhost:3000 — which is what the platform's legal
