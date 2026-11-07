@@ -415,7 +415,7 @@
     "creditCard": "Kredit- / Debitkarte",
     "stripeDescription": "Sichere Zahlung über Stripe",
     "payAndPlaceOrder": "Bezahlen & Bestellen",
-    "stripeNotConfigured": "Kartenzahlung bald verfügbar",
+    "stripeNotConfigured": "Kartenzahlung ist derzeit nicht verfügbar",
     "noPaymentMethods": "Für diesen Shop sind derzeit keine Zahlungsmethoden verfügbar. Bitte versuchen Sie es später erneut.",
     "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "storeNotReady": "Shop-Daten werden noch geladen. Bitte versuchen Sie es gleich erneut.",
@@ -499,7 +499,24 @@
       "unavailable": "Ein oder mehrere Artikel in Ihrem Warenkorb sind nicht mehr verfügbar. Bitte aktualisieren Sie Ihren Warenkorb und versuchen Sie es erneut."
     },
     "personalizationInvalid": "Die Personalisierung von {products} muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
-    "personalizationInvalidGeneric": "Die Personalisierung eines Artikels in Ihrem Warenkorb muss aktualisiert werden, bevor Sie zur Kasse gehen können."
+    "personalizationInvalidGeneric": "Die Personalisierung eines Artikels in Ihrem Warenkorb muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
+    "stripeMethods": "Karte, Wallets und mehr",
+    "stripeNotLoaded": "Das Zahlungsformular wird noch geladen. Bitte versuche es gleich noch einmal.",
+    "stripeLoadFailed": "Die Zahlungsoptionen konnten nicht geladen werden. Bitte lade die Seite neu oder wähle eine andere Zahlungsart.",
+    "paymentProcessingTitle": "Deine Zahlung wird bearbeitet",
+    "paymentProcessingText": "Deine Bestellung ist eingegangen. Wir schicken dir eine E-Mail, sobald die Zahlung bestätigt ist.",
+    "paymentFailedTitle": "Zahlung nicht abgeschlossen",
+    "paymentFailedText": "Deine Zahlung wurde abgelehnt oder abgebrochen, und es wurde nichts abgebucht. Dein Warenkorb ist noch gespeichert.",
+    "retryPayment": "Erneut versuchen",
+    "authFailed": "Die Anmeldung ist fehlgeschlagen. Bitte versuche, dich anzumelden.",
+    "payAmount": "{amount} bezahlen",
+    "paymentSettingsChanged": "Die Zahlungseinstellungen haben sich geändert, bitte versuche es erneut.",
+    "paymentUncertain": "Wir konnten deine Zahlung nicht bestätigen. Bitte prüfe deine Verbindung und versuche es erneut – deine Bestellung bleibt erhalten, du wirst nicht doppelt belastet.",
+    "testModeBanner": "Testmodus – es wird kein echtes Geld abgebucht (nur du siehst das)",
+    "zeroTotalNoCard": "Für diese Bestellung ist nichts zu bezahlen, eine Kartenzahlung ist daher nicht nötig. Bitte wähle eine andere Zahlungsart oder kontaktiere den Shop.",
+    "bankPaymentDelay": "Banküberweisungen können einige Werktage dauern. Wir schicken dir eine E-Mail, sobald sie bestätigt ist.",
+    "paymentConfirmingTitle": "Wir bestätigen deine Zahlung",
+    "paymentConfirmingText": "Du erhältst eine E-Mail, sobald die Zahlung bestätigt ist. Du kannst diese Seite schließen."
   },
   "auth": {
     "passwordPlaceholder": "Passwort eingeben",
@@ -980,7 +997,12 @@
     "CUSTOMER_STORE_MISMATCH": "Dieses Konto gehört zu einem anderen Shop.",
     "NOT_CUSTOMER_ACCOUNT": "Dies ist ein Dashboard-Konto, kein Kundenkonto.",
     "AUTH_CAPTCHA_FAILED": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
-    "AUTH_CAPTCHA_UNAVAILABLE": "Die Sicherheitsprüfung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal."
+    "AUTH_CAPTCHA_UNAVAILABLE": "Die Sicherheitsprüfung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
+    "OWN_KEY_NOT_ACTIVE": "Kartenzahlungen sind für diesen Shop vorübergehend nicht verfügbar. Bitte wähle eine andere Zahlungsart oder versuche es später erneut.",
+    "PAYMENT_AMOUNT_TOO_SMALL": "Der Bestellwert liegt unter dem Mindestbetrag für Kartenzahlungen. Bitte füge weitere Artikel hinzu oder wähle eine andere Zahlungsart.",
+    "PAYMENT_NOT_REQUIRED": "Für diese Bestellung ist nichts zu bezahlen, daher ist keine Kartenzahlung nötig.",
+    "PAYMENT_ROUTE_CHANGED_RETRY": "Die Zahlungseinstellungen haben sich geändert, bitte versuche es erneut.",
+    "PAYMENT_PROVIDER_ERROR": "Der Zahlungsanbieter konnte diese Zahlung gerade nicht verarbeiten. Bitte versuche es gleich noch einmal oder wähle eine andere Zahlungsart."
   },
   "builderPreview": {
     "moveUp": "Nach oben",

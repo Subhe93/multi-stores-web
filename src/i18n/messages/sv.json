@@ -415,7 +415,7 @@
     "creditCard": "Kredit-/betalkort",
     "stripeDescription": "Säker betalning via Stripe",
     "payAndPlaceOrder": "Betala och lägg beställning",
-    "stripeNotConfigured": "Kortbetalningar kommer snart",
+    "stripeNotConfigured": "Kortbetalning är inte tillgänglig just nu",
     "noPaymentMethods": "Inga betalningsmetoder är tillgängliga för denna butik just nu. Försök igen senare.",
     "paymentFailed": "Betalningen misslyckades. Försök igen.",
     "storeNotReady": "Butiksinformationen laddas fortfarande. Försök igen om en stund.",
@@ -499,7 +499,24 @@
       "unavailable": "En eller flera varor i din varukorg är inte längre tillgängliga. Uppdatera din varukorg och försök igen."
     },
     "personalizationInvalid": "Personaliseringen av {products} måste uppdateras innan du kan gå till kassan.",
-    "personalizationInvalidGeneric": "Personaliseringen av en artikel i din varukorg måste uppdateras innan du kan gå till kassan."
+    "personalizationInvalidGeneric": "Personaliseringen av en artikel i din varukorg måste uppdateras innan du kan gå till kassan.",
+    "stripeMethods": "Kort, plånböcker och mer",
+    "stripeNotLoaded": "Betalformuläret laddas fortfarande. Försök igen om en stund.",
+    "stripeLoadFailed": "Betalningsalternativen kunde inte laddas. Ladda om sidan eller välj ett annat betalsätt.",
+    "paymentProcessingTitle": "Din betalning behandlas",
+    "paymentProcessingText": "Din beställning är lagd. Vi mejlar dig så snart betalningen är bekräftad.",
+    "paymentFailedTitle": "Betalningen slutfördes inte",
+    "paymentFailedText": "Betalningen nekades eller avbröts och du har inte debiterats. Din varukorg finns kvar.",
+    "retryPayment": "Försök igen",
+    "authFailed": "Inloggningen misslyckades. Försök att logga in.",
+    "payAmount": "Betala {amount}",
+    "paymentSettingsChanged": "Betalningsinställningarna har ändrats, försök igen.",
+    "paymentUncertain": "Vi kunde inte bekräfta din betalning. Kontrollera din anslutning och försök igen – din beställning finns kvar, så du debiteras inte två gånger.",
+    "testModeBanner": "Testläge – inga riktiga pengar dras (bara du ser detta)",
+    "zeroTotalNoCard": "Det finns inget att betala för den här beställningen, så kortbetalning behövs inte. Välj ett annat betalsätt eller kontakta butiken.",
+    "bankPaymentDelay": "Bankbetalningar kan ta några arbetsdagar. Vi mejlar dig när betalningen är bekräftad.",
+    "paymentConfirmingTitle": "Vi bekräftar din betalning",
+    "paymentConfirmingText": "Du får ett mejl så snart betalningen är bekräftad. Du kan stänga den här sidan."
   },
   "auth": {
     "passwordPlaceholder": "Ange ditt lösenord",
@@ -980,7 +997,12 @@
     "CUSTOMER_STORE_MISMATCH": "Det här kontot hör till en annan butik.",
     "NOT_CUSTOMER_ACCOUNT": "Detta är ett instrumentpanelskonto, inte ett kundkonto.",
     "AUTH_CAPTCHA_FAILED": "Säkerhetskontrollen misslyckades. Försök igen.",
-    "AUTH_CAPTCHA_UNAVAILABLE": "Säkerhetskontrollen är tillfälligt otillgänglig. Försök igen om en stund."
+    "AUTH_CAPTCHA_UNAVAILABLE": "Säkerhetskontrollen är tillfälligt otillgänglig. Försök igen om en stund.",
+    "OWN_KEY_NOT_ACTIVE": "Kortbetalning är tillfälligt otillgänglig för den här butiken. Välj ett annat betalsätt eller försök igen senare.",
+    "PAYMENT_AMOUNT_TOO_SMALL": "Beställningens totalbelopp är lägre än minimibeloppet för kortbetalning. Lägg till fler varor eller välj ett annat betalsätt.",
+    "PAYMENT_NOT_REQUIRED": "Det finns inget att betala för den här beställningen, så ingen kortbetalning behövs.",
+    "PAYMENT_ROUTE_CHANGED_RETRY": "Betalningsinställningarna har ändrats, försök igen.",
+    "PAYMENT_PROVIDER_ERROR": "Betalningsleverantören kunde inte hantera betalningen just nu. Försök igen om en stund eller välj ett annat betalsätt."
   },
   "builderPreview": {
     "moveUp": "Flytta upp",

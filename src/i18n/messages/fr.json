@@ -415,7 +415,7 @@
     "creditCard": "Carte de crédit / débit",
     "stripeDescription": "Paiement sécurisé via Stripe",
     "payAndPlaceOrder": "Payer et commander",
-    "stripeNotConfigured": "Paiement par carte bientôt disponible",
+    "stripeNotConfigured": "Le paiement par carte n'est pas disponible pour le moment",
     "noPaymentMethods": "Aucun moyen de paiement n'est actuellement disponible pour cette boutique. Veuillez réessayer plus tard.",
     "paymentFailed": "Échec du paiement. Veuillez réessayer.",
     "storeNotReady": "Chargement des informations de la boutique. Veuillez réessayer dans un instant.",
@@ -499,7 +499,24 @@
       "unavailable": "Un ou plusieurs articles de votre panier ne sont plus disponibles. Veuillez mettre à jour votre panier et réessayer."
     },
     "personalizationInvalid": "La personnalisation de {products} doit être mise à jour avant de passer commande.",
-    "personalizationInvalidGeneric": "La personnalisation d’un article de votre panier doit être mise à jour avant de passer commande."
+    "personalizationInvalidGeneric": "La personnalisation d’un article de votre panier doit être mise à jour avant de passer commande.",
+    "stripeMethods": "Carte, portefeuilles et plus",
+    "stripeNotLoaded": "Le formulaire de paiement est en cours de chargement. Veuillez réessayer dans un instant.",
+    "stripeLoadFailed": "Les options de paiement n’ont pas pu être chargées. Actualisez la page ou choisissez un autre moyen de paiement.",
+    "paymentProcessingTitle": "Votre paiement est en cours de traitement",
+    "paymentProcessingText": "Votre commande a été passée. Nous vous enverrons un e-mail dès que le paiement sera confirmé.",
+    "paymentFailedTitle": "Paiement non abouti",
+    "paymentFailedText": "Votre paiement a été refusé ou annulé et vous n’avez pas été débité. Votre panier est toujours enregistré.",
+    "retryPayment": "Réessayer",
+    "authFailed": "L'authentification a échoué. Veuillez essayer de vous connecter.",
+    "payAmount": "Payer {amount}",
+    "paymentSettingsChanged": "Les paramètres de paiement ont changé, veuillez réessayer.",
+    "paymentUncertain": "Nous n'avons pas pu confirmer votre paiement. Vérifiez votre connexion et réessayez — votre commande est conservée, vous ne serez pas débité deux fois.",
+    "testModeBanner": "Mode test — aucun argent réel n'est débité (vous seul voyez ceci)",
+    "zeroTotalNoCard": "Il n'y a rien à payer pour cette commande, le paiement par carte n'est donc pas nécessaire. Veuillez choisir un autre moyen de paiement ou contacter la boutique.",
+    "bankPaymentDelay": "Les paiements bancaires peuvent prendre quelques jours ouvrés. Nous vous enverrons un e-mail dès sa confirmation.",
+    "paymentConfirmingTitle": "Nous confirmons votre paiement",
+    "paymentConfirmingText": "Vous recevrez un e-mail dès que le paiement sera confirmé. Vous pouvez fermer cette page."
   },
   "auth": {
     "passwordPlaceholder": "Saisissez votre mot de passe",
@@ -980,7 +997,12 @@
     "CUSTOMER_STORE_MISMATCH": "Ce compte appartient à une autre boutique.",
     "NOT_CUSTOMER_ACCOUNT": "Ceci est un compte tableau de bord, pas un compte client.",
     "AUTH_CAPTCHA_FAILED": "La vérification de sécurité a échoué. Veuillez réessayer.",
-    "AUTH_CAPTCHA_UNAVAILABLE": "La vérification de sécurité est temporairement indisponible. Veuillez réessayer dans un instant."
+    "AUTH_CAPTCHA_UNAVAILABLE": "La vérification de sécurité est temporairement indisponible. Veuillez réessayer dans un instant.",
+    "OWN_KEY_NOT_ACTIVE": "Le paiement par carte est temporairement indisponible pour cette boutique. Choisissez un autre moyen de paiement ou réessayez plus tard.",
+    "PAYMENT_AMOUNT_TOO_SMALL": "Le total de la commande est inférieur au montant minimum pour un paiement par carte. Ajoutez d'autres articles ou choisissez un autre moyen de paiement.",
+    "PAYMENT_NOT_REQUIRED": "Il n'y a rien à payer pour cette commande, aucun paiement par carte n'est donc nécessaire.",
+    "PAYMENT_ROUTE_CHANGED_RETRY": "Les paramètres de paiement ont changé, veuillez réessayer.",
+    "PAYMENT_PROVIDER_ERROR": "Le prestataire de paiement n'a pas pu traiter ce paiement pour le moment. Veuillez réessayer dans un instant ou choisir un autre moyen de paiement."
   },
   "builderPreview": {
     "moveUp": "Monter",

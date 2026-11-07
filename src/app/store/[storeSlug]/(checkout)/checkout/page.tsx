@@ -4,7 +4,8 @@ import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } fr
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import type { Stripe, StripeElements, StripeElementsOptions, StripeError } from '@stripe/stripe-js';
 import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError, isStoreMismatchError, readStoredAccessToken } from '@/hooks/useAuth';
@@ -16,6 +17,21 @@ import { marketBody, marketQuery } from '@/lib/market';
 import { MarketPreviewCheckoutNotice } from '@/components/layout/MarketPreviewBanner';
 import { useApiError, useCodedApiError } from '@/lib/useApiError';
 import { getStripe } from '@/lib/stripe';
+import { checkoutViewerToken, storefrontViewerHeaders } from '@/lib/storePreview';
+import { readEditHintToken } from '@/components/edit-hint/editHintStorage';
+import {
+  confirmErrorOutcome,
+  intentStatusOutcome,
+  pendingAfterRouteChange,
+  readCreateIntent,
+  readStripeThemeFromDom,
+  settleUncertainPayment,
+  toStripeLocale,
+  toStripeMinorAmount,
+  type CreateIntentResponse,
+  type PaymentRoute,
+  type ReconcileResponse,
+} from '@/lib/stripeElements';
 import { formatPrice } from '@/lib/format';
 import { normalizeB2bNetTotals, normalizeTaxExemptReason, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type TaxLine } from '@/lib/tax';
 import { exemptLinePrices, normalizeQuoteTaxExemption } from '@/lib/taxExemption';
@@ -53,7 +69,25 @@ interface PaymentConfig {
   stripeAccount: string | null;
   /** Kustom Checkout is offered (independent store with configured credentials). */
   kustomEnabled: boolean;
+  /** Which Stripe account charges: the owner's own key, legacy Connect, or the platform. */
+  route?: PaymentRoute;
+  /** Owner preview with a Stripe test key: nothing real is charged. */
+  test_mode?: boolean;
 }
+// The unpaid Stripe order of the last attempt, reused when the shopper retries
+// without changing anything (no second order for the same cart).
+interface PendingStripeOrder {
+  signature: string;
+  token: string;
+  orderId: string;
+  /** Null until create-intent succeeded for this order. */
+  clientSecret: string | null;
+  /** Consecutive payment-route changes seen for this order (loop guard). */
+  routeChanges?: number;
+}
+// Own-key errors from the API that mean "card payments are down for this
+// store right now" rather than a problem with the order itself.
+const STRIPE_UNAVAILABLE_CODES = new Set(['OWN_KEY_NOT_ACTIVE', 'OWN_KEY_INVALID_OR_REVOKED']);
 // Resolved once per visit (store flags + platform payment config) and shared
 // by both checkout modes.
 interface PaymentAvailability {
@@ -63,6 +97,54 @@ interface PaymentAvailability {
   kustom: boolean;
   publishableKey: string | null;
   stripeAccount: string | null;
+  /** Route the publishable key belongs to (absent on older APIs). */
+  route?: PaymentRoute;
+  testMode: boolean;
+}
+// Store-level flags of the availability (the payment config is reloadable).
+interface StorePaymentFlags {
+  storeId?: string;
+  cod: boolean;
+  card: boolean;
+  kustom: boolean;
+}
+function buildAvailability(flags: StorePaymentFlags, config: PaymentConfig | null): PaymentAvailability {
+  return {
+    storeId: flags.storeId,
+    cod: flags.cod,
+    // Card is offered only when Stripe is configured (and active) for the
+    // store AND the store creator can accept charges.
+    stripe: Boolean(config?.stripeConfigured) && flags.card,
+    // Kustom is offered only when the payment config says so AND the store
+    // itself hasn't turned it off.
+    kustom: config?.kustomEnabled === true && flags.kustom,
+    publishableKey: config?.publishableKey ?? null,
+    stripeAccount: config?.stripeAccount ?? null,
+    route: config?.route,
+    testMode: config?.test_mode === true,
+  };
+}
+// Live Stripe.js + Elements of the mounted Payment Element.
+interface StripeHandles { stripe: Stripe; elements: StripeElements }
+
+// Lives inside the Elements provider: hands Stripe.js + Elements up to the
+// form (which sits outside the provider so a remount after a payment-route
+// change keeps everything the shopper typed) and renders the element.
+function StripePaymentBridge({
+  layout, onBind, onReady, onLoadError,
+}: {
+  layout: 'tabs' | 'accordion';
+  onBind: (handles: StripeHandles | null) => void;
+  onReady: () => void;
+  onLoadError: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  useEffect(() => {
+    onBind(stripe && elements ? { stripe, elements } : null);
+    return () => onBind(null);
+  }, [stripe, elements, onBind]);
+  return <PaymentElement options={{ layout }} onReady={onReady} onLoadError={onLoadError} />;
 }
 // One row of the shipping-method radio list, as quoted by POST /shipping/estimate.
 interface ShippingMethod {
@@ -167,6 +249,27 @@ function paymentConfigPath(storeSlug: string, market: ReturnType<typeof useMarke
     : '/payments/config';
 }
 
+// The config read carries the owner preview / edit-hint token (or the
+// shopper session) so an owner previewing with a Stripe TEST key gets it
+// back with `test_mode`; never cached (the answer depends on the viewer).
+function paymentConfigFetchOptions(storeSlug: string): { token?: string; cache: 'no-store' } {
+  const token = checkoutViewerToken(storeSlug, {
+    editHintToken: readEditHintToken(),
+    sessionToken: readStoredAccessToken(),
+  });
+  return token ? { token, cache: 'no-store' } : { cache: 'no-store' };
+}
+
+// The same viewer token as a header on create-intent / confirm, so the API
+// picks owner test mode exactly as it did for /payments/config. Read at call
+// time (a guest account created mid-submit is the session from then on).
+function paymentViewerHeaders(storeSlug: string): Record<string, string> {
+  return storefrontViewerHeaders(checkoutViewerToken(storeSlug, {
+    editHintToken: readEditHintToken(),
+    sessionToken: readStoredAccessToken(),
+  }));
+}
+
 // ── Input style helper ────────────────────────────────────────────────────────
 const inputCls = (err?: boolean) =>
   `w-full border rounded-md px-3 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 transition focus:outline-none focus:ring-2 ${
@@ -194,15 +297,23 @@ function SectionHeading({ children, first }: { children: React.ReactNode; first?
 }
 
 // ── Checkout Form ─────────────────────────────────────────────────────────────
-function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
+function CheckoutForm({
+  availability, reloadPaymentConfig,
+}: {
+  availability: PaymentAvailability;
+  /** Re-reads /payments/config (route / key changed); resolves when applied. */
+  reloadPaymentConfig: () => Promise<void>;
+}) {
   const router = useRouter();
   const t = useTranslations();
   const apiError = useApiError();
   const codedError = useCodedApiError();
   const locale = useLocale();
   const lp = useLocalePath();
-  const stripe = useStripe();
-  const elements = useElements();
+  // Stripe.js + Elements of the mounted Payment Element (null until ready).
+  const [stripeHandles, setStripeHandles] = useState<StripeHandles | null>(null);
+  // Bumped to remount Elements with a fresh Stripe.js after a route change.
+  const [stripeEpoch, setStripeEpoch] = useState(0);
   const { token, user, login, register, registerGuest } = useAuth();
   const {
     items, subtotal, total, coupon, currency,
@@ -274,8 +385,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // Kustom is its own mode; here it only drives the "pay with Kustom" link.
   const { cod: codAvailable, stripe: stripeAvailable, kustom: kustomAvailable, storeId } = availability;
   const [stripeReady, setStripeReady] = useState(false);
+  const [stripeLoadFailed, setStripeLoadFailed] = useState(false);
+  const pendingStripeRef = useRef<PendingStripeOrder | null>(null);
   // The desktop and mobile layouts each have their own payment panel, but Stripe
-  // allows only one CardElement per Elements provider — so we mount the card in
+  // allows only one Payment Element per Elements provider — so we mount it in
   // whichever layout is active for the current viewport.
   const [isDesktop, setIsDesktop] = useState(true);
   const [orderNotes, setOrderNotes] = useState('');
@@ -367,6 +480,42 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // the cart's registration-country tax estimate (INCLUSIVE only — in
   // EXCLUSIVE mode nothing is added until the server has quoted).
   const displayTotal = quote ? Number(quote.total) : finalTotal;
+  // The currency the API charges in (the order's, i.e. the quote's); the
+  // cart's until the server has quoted.
+  const paymentCurrency = (quote?.currency || currency || 'EUR').toUpperCase();
+  // A fully discounted order has nothing to pay: Stripe is never mounted
+  // or submitted for it (a PaymentIntent needs a positive amount).
+  const nothingToPay = Number.isFinite(displayTotal) && displayTotal <= 0;
+
+  // The publishable key is served by the API (/payments/config): the store
+  // owner's own key (OWN_KEY), the platform key + `stripeAccount` for a
+  // legacy Connect direct charge, or the platform key alone (marketplace).
+  const stripePromise = useMemo(
+    () => (availability.publishableKey ? getStripe(availability.publishableKey, availability.stripeAccount) : null),
+    [availability.publishableKey, availability.stripeAccount],
+  );
+  // Theme + locale of the element, read once: `fonts` cannot change after mount.
+  const [stripeBaseOptions] = useState<Pick<StripeElementsOptions, 'appearance' | 'fonts' | 'locale'>>(() => {
+    const theme = readStripeThemeFromDom();
+    return {
+      locale: toStripeLocale(locale),
+      appearance: theme.appearance,
+      ...(theme.fonts.length ? { fonts: theme.fonts } : {}),
+    };
+  });
+  // Deferred-intent Elements (mode + amount, no clientSecret): the element
+  // mounts before any order exists and the PaymentIntent is created at
+  // submit. Amount / currency follow the quote (the provider applies option
+  // changes through elements.update), so Klarna limits and the wallet sheet
+  // total match what the API will charge.
+  const stripeMinorAmount = toStripeMinorAmount(displayTotal, paymentCurrency);
+  const stripeOptions = useMemo<StripeElementsOptions>(() => ({
+    mode: 'payment',
+    amount: stripeMinorAmount,
+    currency: paymentCurrency.toLowerCase(),
+    ...stripeBaseOptions,
+  }), [stripeMinorAmount, paymentCurrency, stripeBaseOptions]);
+  const stripeElementsKey = `${availability.publishableKey ?? ''}|${availability.stripeAccount ?? ''}|${stripeEpoch}`;
   const pricingMode = (quote && normalizeTaxPricingMode(quote.tax_pricing_mode)) || taxPricingMode;
   const taxLines: TaxLine[] = quote
     ? normalizeTaxLines(quote.tax_lines)
@@ -570,7 +719,23 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     quoteMarketKey, quoteMarketPreview, isCompany, quoteVatNumber, vatCheckSettledKey,
   ]);
 
-  // Track viewport so only the active layout mounts the CardElement.
+  // The Payment Element remounts when the method, the layout or the Stripe
+  // account changes; the button waits for the new instance's `ready`.
+  useEffect(() => {
+    setStripeReady(false);
+    setStripeLoadFailed(false);
+  }, [paymentMethod, isDesktop, stripeEpoch, availability.publishableKey, availability.stripeAccount]);
+
+  // A shown payment error is focused so screen readers and keyboard users
+  // land on it (only the visible layout's box is focusable on screen).
+  const [errorFocusTick, setErrorFocusTick] = useState(0);
+  useEffect(() => {
+    if (!errorFocusTick) return;
+    const boxes = Array.from(document.querySelectorAll<HTMLElement>('[data-checkout-error]'));
+    boxes.find((el) => el.offsetParent !== null)?.focus();
+  }, [errorFocusTick]);
+
+  // Track viewport so only the active layout mounts the Payment Element.
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
     const update = () => setIsDesktop(mq.matches);
@@ -708,6 +873,27 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
     }
   }
 
+  // Card and validation errors come localized from Stripe (Elements locale);
+  // anything else gets the generic payment message.
+  function stripeErrorMessage(err: StripeError): string {
+    if ((err.type === 'card_error' || err.type === 'validation_error') && err.message) return err.message;
+    return t('checkout.paymentFailed');
+  }
+
+  // The store's Stripe account changed since the page loaded (own key
+  // activated / revoked): reload the config, remount Elements with the new
+  // key / account and keep the same unpaid order for the retry (its intent
+  // is re-requested on the new route). A second consecutive change for the
+  // same order drops it, so the next submit creates a fresh order.
+  async function handlePaymentRouteChanged() {
+    pendingStripeRef.current = pendingAfterRouteChange(pendingStripeRef.current);
+    try { await reloadPaymentConfig(); } catch { /* the remount retries with the current config */ }
+    setStripeHandles(null);
+    setStripeEpoch((n) => n + 1);
+    setError(t('checkout.paymentSettingsChanged'));
+    setErrorFocusTick((n) => n + 1);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -722,6 +908,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       setError(t('checkout.storeNotReady'));
       return;
     }
+    // Stripe: the charged amount comes from the order, so never submit while
+    // the quote (the total shown on the button) is being refreshed, and
+    // never for an order with nothing to pay.
+    if (paymentMethod === 'stripe' && (quoteLoading || nothingToPay)) return;
     if (!validate()) return;
     setError('');
     setErrorCartLink(false);
@@ -740,8 +930,44 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       selectedShippingMethod && !selectedShippingMethod.legacy
         ? { shipping_method_id: selectedShippingMethod.id }
         : {};
+    // Everything the Stripe order is made of: an unchanged retry reuses the
+    // unpaid order of the previous attempt instead of creating another one.
+    const stripeSignature = JSON.stringify({
+      form, saved: usingSavedAddress ? selectedAddressId : null, lines: quoteLinesKey,
+      shipping: shippingMethodBody, coupon: coupon?.code ?? null, notes: orderNotes,
+      b2b: b2bBody(), market: market?.key ?? null, total: displayTotal, currency: paymentCurrency,
+    });
+    // Handles captured for this attempt (a remount mid-submit must not mix
+    // two Stripe.js instances).
+    const handles = stripeHandles;
+    // A payment-stage error: shown and focused (role="alert" box).
+    const failPayment = (message: string) => {
+      setError(message);
+      setErrorFocusTick((n) => n + 1);
+    };
+    const pendingCandidate = pendingStripeRef.current;
+    const reusable =
+      paymentMethod === 'stripe' && token && pendingCandidate &&
+      pendingCandidate.signature === stripeSignature && pendingCandidate.token === token
+        ? pendingCandidate
+        : null;
 
     try {
+      // Stripe: validate the Payment Element first, inside the click, so
+      // wallet sheets (Apple Pay / Google Pay) open from the user gesture and
+      // nothing is created server-side for incomplete payment details.
+      if (paymentMethod === 'stripe') {
+        if (!handles) {
+          setError(t('checkout.stripeNotLoaded'));
+          return;
+        }
+        const { error: submitError } = await handles.elements.submit();
+        if (submitError) {
+          failPayment(stripeErrorMessage(submitError));
+          return;
+        }
+      }
+
       // Guest: auto-register then sync cart
       if (!activeToken) {
         // No password is made in the browser: without a chosen password the
@@ -785,7 +1011,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         }
 
         if (!activeToken) {
-          setError('Authentication failed. Please try logging in.');
+          setError(t('checkout.authFailed'));
           setLoading(false);
           return;
         }
@@ -805,8 +1031,10 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       }
 
       // 1. Resolve shipping address
-      let addressId: string;
-      if (usingSavedAddress) {
+      let addressId = '';
+      if (reusable) {
+        // Retrying the same unpaid order: its address already exists.
+      } else if (usingSavedAddress) {
         addressId = selectedAddressId!;
       } else {
         const company = isCompany ? companyPayload() : null;
@@ -828,7 +1056,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
 
       // 1b. b2b app: remember the company defaults on the customer (prefill
       // for the next checkout). Best-effort — the order carries the snapshot.
-      if (isCompany) {
+      if (isCompany && !reusable) {
         try {
           const company = companyPayload();
           await api('/customers/me', {
@@ -845,50 +1073,145 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
 
       // 2. Payment
       if (paymentMethod === 'stripe') {
-        if (!stripe || !elements) {
-          setError('Stripe is not loaded yet. Please try again.');
-          setLoading(false);
+        if (!handles) return;
+        const { stripe, elements } = handles;
+        // Order-first flow: create the order (awaiting payment) so the server
+        // derives the charge amount + the Stripe account, then pay for it.
+        let pending = reusable;
+        if (!pending) {
+          const order = await api<OrderResponse>('/orders', {
+            method: 'POST', token: activeToken,
+            body: JSON.stringify({
+              address_id: addressId,
+              store_id: storeId,
+              payment_method: 'STRIPE',
+              ...orderMarketBody(),
+              ...b2bBody(),
+              ...shippingMethodBody,
+              ...(coupon?.code ? { coupon_code: coupon.code } : {}),
+              ...(orderNotes ? { notes: orderNotes } : {}),
+            }),
+          });
+          pending = { signature: stripeSignature, token: activeToken, orderId: order.id, clientSecret: null };
+          pendingStripeRef.current = pending;
+        }
+        const orderId = pending.orderId;
+        // Set before confirming: a redirect method leaves this page.
+        if (createdGuestAccount) rememberGuestAccount(orderId, form.email);
+        const confirmationPath = (extra: string) =>
+          lp(`/checkout/confirmation?orderId=${encodeURIComponent(orderId)}${extra}`);
+        const tokenForOrder = activeToken;
+        // The order is placed (paid, or a payment that settles later).
+        const finishPlaced = async (state: 'paid' | 'processing') => {
+          pendingStripeRef.current = null;
+          if (state === 'paid') {
+            // Finalize the order server-side immediately (don't depend on
+            // the webhook arriving). The webhook remains as a backup.
+            try {
+              await api('/payments/confirm', {
+                method: 'POST', token: tokenForOrder, headers: paymentViewerHeaders(storeSlug),
+                body: JSON.stringify({ order_id: orderId }),
+              });
+            } catch { /* webhook will reconcile as a fallback */ }
+          }
+          await clearCart();
+          router.push(confirmationPath(state === 'processing' ? '&stripe_return=1&redirect_status=processing' : ''));
+        };
+
+        let clientSecret = pending.clientSecret;
+        if (!clientSecret) {
+          const intent = await api<CreateIntentResponse>(
+            '/payments/create-intent',
+            {
+              method: 'POST', token: activeToken, headers: paymentViewerHeaders(storeSlug),
+              body: JSON.stringify({ order_id: orderId }),
+            },
+          );
+          const outcome = readCreateIntent(intent, availability.route);
+          if (outcome.kind === 'paid' || outcome.kind === 'processing') {
+            await finishPlaced(outcome.kind);
+            return;
+          }
+          if (outcome.kind === 'route_changed') {
+            // The intent lives on another Stripe account than the one this
+            // page loaded Stripe.js for: reload, keep the same order.
+            await handlePaymentRouteChanged();
+            return;
+          }
+          if (outcome.kind === 'invalid') {
+            failPayment(t('checkout.paymentFailed'));
+            return;
+          }
+          clientSecret = outcome.clientSecret;
+          // An intent on the page's route ends a route-change streak.
+          pendingStripeRef.current = { ...pending, clientSecret, routeChanges: 0 };
+        }
+
+        const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+          elements,
+          clientSecret,
+          confirmParams: {
+            // Redirect methods (Klarna, iDEAL, bank redirects...) come back
+            // here; Stripe appends payment_intent + redirect_status.
+            return_url: `${window.location.origin}${confirmationPath('&stripe_return=1')}`,
+          },
+          redirect: 'if_required',
+        });
+        if (stripeError) {
+          const errOutcome = confirmErrorOutcome(stripeError);
+          if (errOutcome === 'invalid_details') {
+            // Nothing was attempted: same order, same intent.
+            failPayment(stripeErrorMessage(stripeError));
+            return;
+          }
+          if (errOutcome === 'declined') {
+            // A definitive decline marks the order failed server-side
+            // (stock released): the next attempt creates a new order.
+            pendingStripeRef.current = null;
+            failPayment(stripeErrorMessage(stripeError));
+            return;
+          }
+          if (errOutcome === 'paid' || errOutcome === 'processing') {
+            await finishPlaced(errOutcome);
+            return;
+          }
+          // Network / Stripe / unknown error: the charge may have gone
+          // through. Check the intent before offering a retry, and keep
+          // the order (and intent) so a retry can never charge twice.
+          // The server reconcile is asked only when Stripe.js cannot read the
+          // intent (it would mark a never-confirmed intent's order failed).
+          const retrieved = await stripe.retrievePaymentIntent(clientSecret)
+            .then((r) => r.paymentIntent ?? null)
+            .catch(() => null);
+          const reconciled = retrieved
+            ? null
+            : await api<ReconcileResponse>('/payments/confirm', {
+                method: 'POST', token: tokenForOrder, headers: paymentViewerHeaders(storeSlug),
+                body: JSON.stringify({ order_id: orderId }),
+              }).catch(() => null);
+          const settled = settleUncertainPayment(retrieved, reconciled);
+          if (settled === 'paid' || settled === 'processing') {
+            await finishPlaced(settled);
+            return;
+          }
+          if (settled === 'failed') {
+            pendingStripeRef.current = null;
+            failPayment(t('checkout.paymentFailed'));
+            return;
+          }
+          failPayment(t('checkout.paymentUncertain'));
           return;
         }
-        const cardElement = elements.getElement(CardElement);
-        if (!cardElement) { setError('Card element not found.'); setLoading(false); return; }
-
-        // Order-first flow: create the order (awaiting payment) so the server
-        // derives the charge amount + Connect destination, then pay for it.
-        const order = await api<OrderResponse>('/orders', {
-          method: 'POST', token: activeToken,
-          body: JSON.stringify({
-            address_id: addressId,
-            store_id: storeId,
-            payment_method: 'STRIPE',
-            ...orderMarketBody(),
-            ...b2bBody(),
-            ...shippingMethodBody,
-            ...(coupon?.code ? { coupon_code: coupon.code } : {}),
-            ...(orderNotes ? { notes: orderNotes } : {}),
-          }),
-        });
-
-        const { clientSecret } = await api<{ clientSecret: string; paymentIntentId: string }>(
-          '/payments/create-intent',
-          { method: 'POST', token: activeToken, body: JSON.stringify({ order_id: order.id }) },
-        );
-
-        const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card: cardElement } });
-        if (stripeError) { setError(stripeError.message || t('checkout.paymentFailed')); setLoading(false); return; }
-
-        // Finalize the order server-side immediately (don't depend on the
-        // webhook arriving). The webhook remains as a backup.
-        try {
-          await api('/payments/confirm', {
-            method: 'POST', token: activeToken,
-            body: JSON.stringify({ order_id: order.id }),
-          });
-        } catch { /* webhook will reconcile as a fallback */ }
-
-        await clearCart();
-        if (createdGuestAccount) rememberGuestAccount(order.id, form.email);
-        router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
+        const placed = intentStatusOutcome(paymentIntent?.status);
+        if (placed === 'paid' || placed === 'processing') {
+          // `processing`: bank debits and some methods settle later.
+          await finishPlaced(placed);
+          return;
+        }
+        // A failed intent ends the attempt; an open one (e.g. an abandoned
+        // authentication) can be retried on the same order and intent.
+        if (placed === 'failed') pendingStripeRef.current = null;
+        failPayment(t('checkout.paymentFailed'));
       } else {
         const order = await api<OrderResponse>('/orders', {
           method: 'POST', token: activeToken,
@@ -921,6 +1244,14 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         // shown as the "new" one and submit waits for the re-quote.
         setQuoteLoading(true);
         setRequoteTick((n) => n + 1);
+      } else if (code === 'PAYMENT_ROUTE_CHANGED_RETRY') {
+        await handlePaymentRouteChanged();
+      } else if (code && STRIPE_UNAVAILABLE_CODES.has(code)) {
+        // The store's own Stripe key stopped working: other methods stay,
+        // and the reloaded config hides the card option if it is off now.
+        setError(t('errors.OWN_KEY_NOT_ACTIVE'));
+        setErrorFocusTick((n) => n + 1);
+        void reloadPaymentConfig().catch(() => { /* keep the current options */ });
       } else if (code === 'ORDER_SHIPPING_METHOD_INVALID') {
         // The chosen method was removed/disabled meanwhile: show a friendly
         // message and re-quote so the list (and the selection) refresh.
@@ -937,7 +1268,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         // b2b app: the API rejected the company data (format / app off).
         setError(t(`errors.${code}`));
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
+        setError(apiError(err));
       }
     } finally {
       submittingRef.current = false;
@@ -981,7 +1312,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
       ) : null;
     }
     return rcNotConfirmed ? (
-      <div className={`rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 ${spacing}`}>
+      <div role="alert" tabIndex={-1} data-checkout-error=""
+        className={`rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 focus:outline-none ${spacing}`}>
         <p>{error}</p>
         {quote && !quoteLoading && (
           <p className="mt-1 font-semibold">
@@ -992,7 +1324,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
         )}
       </div>
     ) : (
-      <div className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 ${spacing}`}>
+      <div role="alert" tabIndex={-1} data-checkout-error=""
+        className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 focus:outline-none ${spacing}`}>
         {errorCartLink ? <p>{error}</p> : error}
         {errorCartLink && cartLink}
       </div>
@@ -1003,7 +1336,48 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
   // A store may override the card label per locale (M5.1, e.g. Namez's
   // "Betala med kort"); the translated key stays the fallback.
   const payButtonLabel = resolvePayButtonLabel(checkoutSettings, locale);
-  const submitLabel = paymentMethod === 'stripe' ? (payButtonLabel ?? t('checkout.payAndPlaceOrder')) : t('checkout.placeOrder');
+  // The card button names the amount that will be charged.
+  const payAmount = formatPrice(displayTotal, paymentCurrency);
+  const submitLabel = paymentMethod === 'stripe'
+    ? (payButtonLabel ? `${payButtonLabel} · ${payAmount}` : t('checkout.payAmount', { amount: payAmount }))
+    : t('checkout.placeOrder');
+  // Card submit waits for a settled quote (the amount on the button).
+  const stripeSubmitBlocked = paymentMethod === 'stripe' && (!stripeReady || quoteLoading || nothingToPay);
+
+  // Only one Payment Element may be mounted (one Elements provider per
+  // layout), so the active layout (desktop tabs / mobile accordion) renders
+  // it. A provider keyed by key / account / epoch remounts with a fresh
+  // Stripe.js after a payment-route change without touching the form.
+  const paymentElement = (layout: 'tabs' | 'accordion') => (
+    nothingToPay ? (
+      <p className="text-xs text-gray-600">{t('checkout.zeroTotalNoCard')}</p>
+    ) : (
+      <>
+        <Elements key={stripeElementsKey} stripe={stripePromise} options={stripeOptions}>
+          <StripePaymentBridge
+            layout={layout}
+            onBind={setStripeHandles}
+            onReady={() => setStripeReady(true)}
+            onLoadError={() => setStripeLoadFailed(true)}
+          />
+        </Elements>
+        {stripeLoadFailed && (
+          <p role="alert" className="text-xs text-amber-800">{t('checkout.stripeLoadFailed')}</p>
+        )}
+      </>
+    )
+  );
+  // Owner preview with a Stripe test key (the API only says so to the owner).
+  const testModeBanner = availability.testMode && stripeAvailable ? (
+    <div role="status" className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+      {t('checkout.testModeBanner')}
+    </div>
+  ) : null;
+  // Card is off for this store: no selectable option, just a short note
+  // when another method is offered.
+  const stripeUnavailableNote = !stripeAvailable && !noPaymentMethods ? (
+    <p className="text-xs text-gray-500">{t('checkout.stripeNotConfigured')}</p>
+  ) : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -1062,6 +1436,8 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
               <ChevronRight className="w-3 h-3" />
               <span>{t('checkout.paymentMethod')}</span>
             </nav>
+
+            {testModeBanner}
 
             {/* Coupon captured from a campaign link (M5.1) */}
             <CouponAutoApplyNotice className="mb-5" />
@@ -1438,28 +1814,17 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                         checked={paymentMethod === 'stripe'} onChange={() => setPaymentMethod('stripe')}
                         className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
                       <div>
-                        <p className="text-sm font-medium text-gray-800">{t('checkout.creditCard')}</p>
+                        <p className="text-sm font-medium text-gray-800">{t('checkout.stripeMethods')}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{t('checkout.stripeDescription')}</p>
                       </div>
                     </label>
                     {paymentMethod === 'stripe' && isDesktop && (
                       <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
-                        <CardElement
-                          options={{ style: { base: { fontSize: '14px', color: '#1a1a1a', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } } }}
-                          onChange={(e) => setStripeReady(e.complete && !e.error)}
-                        />
+                        {paymentElement('tabs')}
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed">
-                    <div className="mt-0.5 w-4 h-4 rounded-full border-2 border-gray-300 shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-400">{t('checkout.creditCard')}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{t('checkout.stripeNotConfigured')}</p>
-                    </div>
-                  </div>
-                )}
+                ) : stripeUnavailableNote}
 
                 {kustomAvailable && (
                   <Link
@@ -1478,7 +1843,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full mt-5 py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
@@ -1519,6 +1884,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                   </div>
                 </label>
               )}
+              {stripeUnavailableNote}
               {stripeAvailable && (
                 <div>
                   <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
@@ -1526,16 +1892,13 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
                       checked={paymentMethod === 'stripe'} onChange={() => setPaymentMethod('stripe')}
                       className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{t('checkout.creditCard')}</p>
+                      <p className="text-sm font-medium text-gray-800">{t('checkout.stripeMethods')}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{t('checkout.stripeDescription')}</p>
                     </div>
                   </label>
                   {paymentMethod === 'stripe' && !isDesktop && (
-                    <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
-                      <CardElement
-                        options={{ style: { base: { fontSize: '14px', color: '#1a1a1a', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } } }}
-                        onChange={(e) => setStripeReady(e.complete && !e.error)}
-                      />
+                    <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3">
+                      {paymentElement('accordion')}
                     </div>
                   )}
                 </div>
@@ -1552,7 +1915,7 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
             {errorBox('mb-4')}
             <button
               type="submit"
-              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || (paymentMethod === 'stripe' && !stripeReady) || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
               className="w-full py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
@@ -1573,23 +1936,6 @@ function CheckoutForm({ availability }: { availability: PaymentAvailability }) {
 
       </form>
     </>
-  );
-}
-
-// ── Stripe wrapper ─────────────────────────────────────────────────────────────
-function CheckoutWithStripe({ availability }: { availability: PaymentAvailability }) {
-  // The publishable key is admin-managed and served by the API, so Stripe.js is
-  // loaded with the key returned by /payments/config (not a build-time env).
-  // Independent stores charge directly on the owner's connected account, so
-  // Stripe.js must be initialised with that same `stripeAccount`.
-  const stripePromise = useMemo(
-    () => (availability.publishableKey ? getStripe(availability.publishableKey, availability.stripeAccount) : null),
-    [availability.publishableKey, availability.stripeAccount],
-  );
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm availability={availability} />
-    </Elements>
   );
 }
 
@@ -1620,14 +1966,14 @@ function CheckoutRouter() {
   // the preview always shows the classic form with its pay button disabled.
   const previewMode = useMarketPreview();
 
+  // Store flags of this visit; the payment config part is reloadable
+  // (the store's Stripe route can change while the page is open).
+  const storeFlagsRef = useRef<StorePaymentFlags | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      let storeId: string | undefined;
-      let storeCardEnabled = true;
-      // Cash on delivery is opt-in per store (off by default server-side).
-      let storeCodEnabled = false;
-      let storeKustomEnabled = true;
+      const flags: StorePaymentFlags = { storeId: undefined, cod: false, card: true, kustom: true };
       if (storeSlug) {
         try {
           const store = await storefront.getStore(storeSlug, routerMarket) as {
@@ -1636,37 +1982,37 @@ function CheckoutRouter() {
             cod_enabled?: boolean;
             kustom_enabled?: boolean;
           };
-          storeId = store.id;
-          // The creator must have completed Stripe Connect onboarding for this
+          flags.storeId = store.id;
+          // The creator must have completed Stripe onboarding for this
           // store to accept card payments.
-          storeCardEnabled = store.card_payments_enabled !== false;
-          // Strict check so COD stays hidden for stores that haven't enabled it.
-          storeCodEnabled = store.cod_enabled === true;
-          storeKustomEnabled = store.kustom_enabled !== false;
+          flags.card = store.card_payments_enabled !== false;
+          // Cash on delivery is opt-in per store (off by default server-side):
+          // strict check so COD stays hidden for stores that haven't enabled it.
+          flags.cod = store.cod_enabled === true;
+          flags.kustom = store.kustom_enabled !== false;
         } catch { /* ignore */ }
       }
       let config: PaymentConfig | null = null;
       try {
-        config = await api<PaymentConfig>(paymentConfigPath(storeSlug, routerMarket));
+        config = await api<PaymentConfig>(paymentConfigPath(storeSlug, routerMarket), paymentConfigFetchOptions(storeSlug));
       } catch {
         config = null;
       }
       if (cancelled) return;
-      setAvailability({
-        storeId,
-        cod: storeCodEnabled,
-        // Card is offered only when Stripe is configured platform-wide AND the
-        // store creator can accept charges.
-        stripe: Boolean(config?.stripeConfigured) && storeCardEnabled,
-        // Kustom is offered only when the payment config says so AND the store
-        // itself hasn't turned it off.
-        kustom: config?.kustomEnabled === true && storeKustomEnabled,
-        publishableKey: config?.publishableKey ?? null,
-        stripeAccount: config?.stripeAccount ?? null,
-      });
+      storeFlagsRef.current = flags;
+      setAvailability(buildAvailability(flags, config));
     }
     init();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `routerMarket` only changes with its key
+  }, [storeSlug, routerMarketKey]);
+
+  // Re-read only the payment config (no loading state: the form stays).
+  const reloadPaymentConfig = useCallback(async () => {
+    const flags = storeFlagsRef.current;
+    if (!flags) return;
+    const config = await api<PaymentConfig>(paymentConfigPath(storeSlug, routerMarket), paymentConfigFetchOptions(storeSlug));
+    setAvailability(buildAvailability(flags, config));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `routerMarket` only changes with its key
   }, [storeSlug, routerMarketKey]);
 
@@ -1679,7 +2025,7 @@ function CheckoutRouter() {
   if (mode === 'kustom') {
     return <KustomCheckout storeSlug={storeSlug} classicAvailable={classicPossible} />;
   }
-  return <CheckoutWithStripe availability={availability} />;
+  return <CheckoutForm availability={availability} reloadPaymentConfig={reloadPaymentConfig} />;
 }
 
 export default function StoreCheckoutPage() {

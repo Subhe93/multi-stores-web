@@ -415,7 +415,7 @@
     "creditCard": "Credit / Debit Card",
     "stripeDescription": "Secure payment via Stripe",
     "payAndPlaceOrder": "Pay & Place Order",
-    "stripeNotConfigured": "Card payments coming soon",
+    "stripeNotConfigured": "Card payment is unavailable right now",
     "noPaymentMethods": "No payment methods are currently available for this store. Please try again later.",
     "paymentFailed": "Payment failed. Please try again.",
     "storeNotReady": "Still loading store details. Please try again in a moment.",
@@ -499,7 +499,24 @@
       "unavailable": "One or more items in your cart are no longer available. Please update your cart and try again."
     },
     "personalizationInvalid": "The personalization of {products} needs to be updated before you can check out.",
-    "personalizationInvalidGeneric": "The personalization of an item in your cart needs to be updated before you can check out."
+    "personalizationInvalidGeneric": "The personalization of an item in your cart needs to be updated before you can check out.",
+    "stripeMethods": "Card, wallets and more",
+    "stripeNotLoaded": "The payment form is still loading. Please try again in a moment.",
+    "stripeLoadFailed": "The payment options could not be loaded. Please refresh the page or choose another payment method.",
+    "paymentProcessingTitle": "Your payment is being processed",
+    "paymentProcessingText": "Your order has been placed. We will email you as soon as the payment is confirmed.",
+    "paymentFailedTitle": "Payment not completed",
+    "paymentFailedText": "Your payment was declined or cancelled, and you have not been charged. Your cart is still saved.",
+    "retryPayment": "Try again",
+    "authFailed": "Authentication failed. Please try logging in.",
+    "payAmount": "Pay {amount}",
+    "paymentSettingsChanged": "Payment settings changed, please try again.",
+    "paymentUncertain": "We couldn't confirm your payment. Please check your connection and try again — your order is kept, so you won't be charged twice.",
+    "testModeBanner": "Test mode — no real money is charged (only you can see this)",
+    "zeroTotalNoCard": "There is nothing to pay for this order, so card payment is not needed. Please choose another payment method or contact the store.",
+    "bankPaymentDelay": "Bank payments can take a few working days. We'll email you when it's confirmed.",
+    "paymentConfirmingTitle": "We're confirming your payment",
+    "paymentConfirmingText": "You'll get an email as soon as the payment is confirmed. You can close this page."
   },
   "auth": {
     "passwordPlaceholder": "Enter your password",
@@ -980,7 +997,12 @@
     "CUSTOMER_STORE_MISMATCH": "This account belongs to another store.",
     "NOT_CUSTOMER_ACCOUNT": "This is a dashboard account, not a customer account.",
     "AUTH_CAPTCHA_FAILED": "The security check failed. Please try again.",
-    "AUTH_CAPTCHA_UNAVAILABLE": "The security check is temporarily unavailable. Please try again in a moment."
+    "AUTH_CAPTCHA_UNAVAILABLE": "The security check is temporarily unavailable. Please try again in a moment.",
+    "OWN_KEY_NOT_ACTIVE": "Card payments are temporarily unavailable for this store. Please choose another payment method or try again later.",
+    "PAYMENT_AMOUNT_TOO_SMALL": "The order total is below the minimum amount for card payment. Please add more items or choose another payment method.",
+    "PAYMENT_NOT_REQUIRED": "There is nothing to pay for this order, so no card payment is needed.",
+    "PAYMENT_ROUTE_CHANGED_RETRY": "Payment settings changed, please try again.",
+    "PAYMENT_PROVIDER_ERROR": "The payment provider could not process this payment right now. Please try again in a moment or choose another payment method."
   },
   "builderPreview": {
     "moveUp": "Move up",

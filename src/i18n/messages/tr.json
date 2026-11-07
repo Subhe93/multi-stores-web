@@ -415,7 +415,7 @@
     "creditCard": "Kredi / Banka Kartı",
     "stripeDescription": "Stripe ile güvenli ödeme",
     "payAndPlaceOrder": "Öde ve Sipariş Ver",
-    "stripeNotConfigured": "Kart ile ödeme yakında",
+    "stripeNotConfigured": "Kartla ödeme şu anda kullanılamıyor",
     "noPaymentMethods": "Bu mağaza için şu anda kullanılabilir ödeme yöntemi yok. Lütfen daha sonra tekrar deneyin.",
     "paymentFailed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
     "storeNotReady": "Mağaza bilgileri hâlâ yükleniyor. Lütfen birazdan tekrar deneyin.",
@@ -499,7 +499,24 @@
       "unavailable": "Sepetinizdeki bir veya daha fazla ürün artık mevcut değil. Lütfen sepetinizi güncelleyip tekrar deneyin."
     },
     "personalizationInvalid": "Ödemeye geçmeden önce {products} için kişiselleştirmenin güncellenmesi gerekiyor.",
-    "personalizationInvalidGeneric": "Ödemeye geçmeden önce sepetinizdeki bir ürünün kişiselleştirmesinin güncellenmesi gerekiyor."
+    "personalizationInvalidGeneric": "Ödemeye geçmeden önce sepetinizdeki bir ürünün kişiselleştirmesinin güncellenmesi gerekiyor.",
+    "stripeMethods": "Kart, dijital cüzdanlar ve daha fazlası",
+    "stripeNotLoaded": "Ödeme formu hâlâ yükleniyor. Lütfen birazdan tekrar deneyin.",
+    "stripeLoadFailed": "Ödeme seçenekleri yüklenemedi. Lütfen sayfayı yenileyin veya başka bir ödeme yöntemi seçin.",
+    "paymentProcessingTitle": "Ödemeniz işleniyor",
+    "paymentProcessingText": "Siparişiniz alındı. Ödeme onaylanır onaylanmaz size e-posta göndereceğiz.",
+    "paymentFailedTitle": "Ödeme tamamlanmadı",
+    "paymentFailedText": "Ödemeniz reddedildi veya iptal edildi ve sizden ücret alınmadı. Sepetiniz hâlâ kayıtlı.",
+    "retryPayment": "Tekrar dene",
+    "authFailed": "Kimlik doğrulama başarısız oldu. Lütfen giriş yapmayı deneyin.",
+    "payAmount": "{amount} öde",
+    "paymentSettingsChanged": "Ödeme ayarları değişti, lütfen tekrar deneyin.",
+    "paymentUncertain": "Ödemeniz doğrulanamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin — siparişiniz korunuyor, iki kez ücretlendirilmezsiniz.",
+    "testModeBanner": "Test modu — gerçek para çekilmez (bunu yalnızca siz görüyorsunuz)",
+    "zeroTotalNoCard": "Bu sipariş için ödenecek tutar yok, bu yüzden kartla ödeme gerekmiyor. Lütfen başka bir ödeme yöntemi seçin veya mağazayla iletişime geçin.",
+    "bankPaymentDelay": "Banka ödemeleri birkaç iş günü sürebilir. Onaylandığında size e-posta göndereceğiz.",
+    "paymentConfirmingTitle": "Ödemenizi doğruluyoruz",
+    "paymentConfirmingText": "Ödeme onaylanır onaylanmaz bir e-posta alacaksınız. Bu sayfayı kapatabilirsiniz."
   },
   "auth": {
     "passwordPlaceholder": "Şifrenizi girin",
@@ -980,7 +997,12 @@
     "CUSTOMER_STORE_MISMATCH": "Bu hesap başka bir mağazaya ait.",
     "NOT_CUSTOMER_ACCOUNT": "Bu bir panel hesabıdır, müşteri hesabı değildir.",
     "AUTH_CAPTCHA_FAILED": "Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
-    "AUTH_CAPTCHA_UNAVAILABLE": "Güvenlik doğrulaması geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin."
+    "AUTH_CAPTCHA_UNAVAILABLE": "Güvenlik doğrulaması geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
+    "OWN_KEY_NOT_ACTIVE": "Bu mağaza için kartla ödeme geçici olarak kullanılamıyor. Lütfen başka bir ödeme yöntemi seçin veya daha sonra tekrar deneyin.",
+    "PAYMENT_AMOUNT_TOO_SMALL": "Sipariş tutarı kartla ödeme için gereken minimum tutarın altında. Lütfen başka ürünler ekleyin veya başka bir ödeme yöntemi seçin.",
+    "PAYMENT_NOT_REQUIRED": "Bu sipariş için ödenecek tutar yok, bu yüzden kartla ödeme gerekmiyor.",
+    "PAYMENT_ROUTE_CHANGED_RETRY": "Ödeme ayarları değişti, lütfen tekrar deneyin.",
+    "PAYMENT_PROVIDER_ERROR": "Ödeme sağlayıcısı bu ödemeyi şu anda işleyemedi. Lütfen birazdan tekrar deneyin veya başka bir ödeme yöntemi seçin."
   },
   "builderPreview": {
     "moveUp": "Yukarı taşı",

@@ -66,3 +66,38 @@ export function readBrowserPreviewCookie(): string | null {
   }
   return null;
 }
+
+/**
+ * Bearer of the checkout's `GET /payments/config` in the browser: the
+ * owner preview token of this slug (cookie), else the stored edit-hint
+ * token, else the shopper's session token. The API resolves it optionally
+ * (an invalid or foreign token is just "anonymous"), and only the store
+ * owner / an admin gets the TEST key + `test_mode` back. Null on the server
+ * or when nothing is stored.
+ */
+export function checkoutViewerToken(
+  slug: string,
+  sources: { editHintToken: string | null; sessionToken: string | null },
+): string | null {
+  const preview = slug ? previewTokenFor(slug, readBrowserPreviewCookie()) : null;
+  if (preview) return preview;
+  if (isPlausibleToken(sources.editHintToken)) return sources.editHintToken;
+  return sources.sessionToken || null;
+}
+
+/** Header that carries the checkout viewer token to the payment endpoints. */
+export const STOREFRONT_VIEWER_HEADER = 'X-Storefront-Viewer';
+
+// Bearer token charset (JWT / opaque session tokens); anything else (spaces,
+// control characters) is never put in a header.
+const VIEWER_TOKEN_RE = /^[A-Za-z0-9._~+/=-]{1,4096}$/;
+
+/**
+ * Extra headers for `POST /payments/create-intent` and `/payments/confirm`:
+ * the same viewer token the checkout sends to `/payments/config`, so the API
+ * decides owner test mode the same way for the intent. Empty without a usable
+ * token. Only for requests to the platform API (never third parties).
+ */
+export function storefrontViewerHeaders(token: string | null | undefined): Record<string, string> {
+  return token && VIEWER_TOKEN_RE.test(token) ? { [STOREFRONT_VIEWER_HEADER]: `Bearer ${token}` } : {};
+}

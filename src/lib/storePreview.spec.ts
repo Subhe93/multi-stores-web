@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { encodePreviewCookie, previewTokenFor, resolveStorefrontFetchOptions } from './storePreview';
+import {
+  checkoutViewerToken, encodePreviewCookie, previewTokenFor, resolveStorefrontFetchOptions,
+  STOREFRONT_VIEWER_HEADER, storefrontViewerHeaders,
+} from './storePreview';
 
 const JWT = 'eyJhbGciOiJIUzI1NiJ9.eyJzdG9yZV9pZCI6InMifQ.c2lnbmF0dXJl';
 const fallback = { next: { tags: ['store:namez-se'], revalidate: 3600 } };
@@ -42,5 +45,23 @@ describe('storePreview', () => {
     expect(
       resolveStorefrontFetchOptions({ slug: 'namez-se', store: { coming_soon: true }, cookie: encodePreviewCookie('other', JWT), fallback }),
     ).toBe(fallback);
+  });
+
+  it('picks the checkout config bearer: edit-hint token, then the session', () => {
+    // No document here: the preview cookie is never read.
+    expect(checkoutViewerToken('namez-se', { editHintToken: JWT, sessionToken: 'session' })).toBe(JWT);
+    expect(checkoutViewerToken('namez-se', { editHintToken: 'not-a-jwt', sessionToken: 'session' })).toBe('session');
+    expect(checkoutViewerToken('namez-se', { editHintToken: null, sessionToken: null })).toBeNull();
+  });
+});
+
+describe('storefrontViewerHeaders', () => {
+  it('sends the viewer token as a Bearer header only when it is usable', () => {
+    expect(storefrontViewerHeaders(JWT)).toEqual({ [STOREFRONT_VIEWER_HEADER]: `Bearer ${JWT}` });
+    expect(STOREFRONT_VIEWER_HEADER).toBe('X-Storefront-Viewer');
+    expect(storefrontViewerHeaders(null)).toEqual({});
+    expect(storefrontViewerHeaders('')).toEqual({});
+    expect(storefrontViewerHeaders('bad token')).toEqual({});
+    expect(storefrontViewerHeaders('abc\r\nX-Evil: 1')).toEqual({});
   });
 });
