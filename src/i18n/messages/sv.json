@@ -380,7 +380,8 @@
     "couponAutoApplied": "Rabattkod {code} tillagd",
     "couponAutoInvalid": "Rabattkoden {code} är inte giltig",
     "couponAutoPending": "Rabattkoden {code} läggs till i din varukorg",
-    "couponNoticeDismiss": "Stäng"
+    "couponNoticeDismiss": "Stäng",
+    "unavailableRemoved": "{count, plural, one {En vara som inte längre finns har tagits bort från din varukorg} other {# varor som inte längre finns har tagits bort från din varukorg}}"
   },
   "checkout": {
     "passwordPlaceholder": "Minst 8 tecken",
@@ -516,7 +517,11 @@
     "zeroTotalNoCard": "Det finns inget att betala för den här beställningen, så kortbetalning behövs inte. Välj ett annat betalsätt eller kontakta butiken.",
     "bankPaymentDelay": "Bankbetalningar kan ta några arbetsdagar. Vi mejlar dig när betalningen är bekräftad.",
     "paymentConfirmingTitle": "Vi bekräftar din betalning",
-    "paymentConfirmingText": "Du får ett mejl så snart betalningen är bekräftad. Du kan stänga den här sidan."
+    "paymentConfirmingText": "Du får ett mejl så snart betalningen är bekräftad. Du kan stänga den här sidan.",
+    "paymentFormLoading": "Laddar det säkra betalformuläret…",
+    "paymentFormSlow": "Det här tar längre tid än vanligt",
+    "itemsUnavailable": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
+    "ownerPreviewNotice": "Förhandsvisning av butiken: butiken är inte live ännu, så här kan bara testbetalningar med kort göras."
   },
   "auth": {
     "passwordPlaceholder": "Ange ditt lösenord",
@@ -1002,7 +1007,9 @@
     "PAYMENT_AMOUNT_TOO_SMALL": "Beställningens totalbelopp är lägre än minimibeloppet för kortbetalning. Lägg till fler varor eller välj ett annat betalsätt.",
     "PAYMENT_NOT_REQUIRED": "Det finns inget att betala för den här beställningen, så ingen kortbetalning behövs.",
     "PAYMENT_ROUTE_CHANGED_RETRY": "Betalningsinställningarna har ändrats, försök igen.",
-    "PAYMENT_PROVIDER_ERROR": "Betalningsleverantören kunde inte hantera betalningen just nu. Försök igen om en stund eller välj ett annat betalsätt."
+    "PAYMENT_PROVIDER_ERROR": "Betalningsleverantören kunde inte hantera betalningen just nu. Försök igen om en stund eller välj ett annat betalsätt.",
+    "CART_ITEMS_UNAVAILABLE": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
+    "STORE_NOT_LIVE": "Den här butiken tar inte emot beställningar ännu."
   },
   "builderPreview": {
     "moveUp": "Flytta upp",

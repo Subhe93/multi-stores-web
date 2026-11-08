@@ -380,7 +380,8 @@
     "couponAutoApplied": "Code promo {code} ajouté",
     "couponAutoInvalid": "Le code promo {code} n’est pas valide",
     "couponAutoPending": "Le code promo {code} sera appliqué à votre panier",
-    "couponNoticeDismiss": "Fermer"
+    "couponNoticeDismiss": "Fermer",
+    "unavailableRemoved": "{count, plural, one {Un article qui n’est plus disponible a été retiré de votre panier} other {# articles qui ne sont plus disponibles ont été retirés de votre panier}}"
   },
   "checkout": {
     "passwordPlaceholder": "8 caractères minimum",
@@ -516,7 +517,11 @@
     "zeroTotalNoCard": "Il n'y a rien à payer pour cette commande, le paiement par carte n'est donc pas nécessaire. Veuillez choisir un autre moyen de paiement ou contacter la boutique.",
     "bankPaymentDelay": "Les paiements bancaires peuvent prendre quelques jours ouvrés. Nous vous enverrons un e-mail dès sa confirmation.",
     "paymentConfirmingTitle": "Nous confirmons votre paiement",
-    "paymentConfirmingText": "Vous recevrez un e-mail dès que le paiement sera confirmé. Vous pouvez fermer cette page."
+    "paymentConfirmingText": "Vous recevrez un e-mail dès que le paiement sera confirmé. Vous pouvez fermer cette page.",
+    "paymentFormLoading": "Chargement du formulaire de paiement sécurisé…",
+    "paymentFormSlow": "Cela prend plus de temps que d’habitude",
+    "itemsUnavailable": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
+    "ownerPreviewNotice": "Aperçu de la boutique : la boutique n’est pas encore en ligne, seuls des paiements par carte de test sont possibles ici."
   },
   "auth": {
     "passwordPlaceholder": "Saisissez votre mot de passe",
@@ -1002,7 +1007,9 @@
     "PAYMENT_AMOUNT_TOO_SMALL": "Le total de la commande est inférieur au montant minimum pour un paiement par carte. Ajoutez d'autres articles ou choisissez un autre moyen de paiement.",
     "PAYMENT_NOT_REQUIRED": "Il n'y a rien à payer pour cette commande, aucun paiement par carte n'est donc nécessaire.",
     "PAYMENT_ROUTE_CHANGED_RETRY": "Les paramètres de paiement ont changé, veuillez réessayer.",
-    "PAYMENT_PROVIDER_ERROR": "Le prestataire de paiement n'a pas pu traiter ce paiement pour le moment. Veuillez réessayer dans un instant ou choisir un autre moyen de paiement."
+    "PAYMENT_PROVIDER_ERROR": "Le prestataire de paiement n'a pas pu traiter ce paiement pour le moment. Veuillez réessayer dans un instant ou choisir un autre moyen de paiement.",
+    "CART_ITEMS_UNAVAILABLE": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
+    "STORE_NOT_LIVE": "Cette boutique n’accepte pas encore de commandes."
   },
   "builderPreview": {
     "moveUp": "Monter",

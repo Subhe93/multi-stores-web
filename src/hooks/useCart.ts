@@ -28,6 +28,17 @@ import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { captureCouponFromSearch, pendingCouponStorageKey, type CouponAutoApplyNotice } from '@/lib/checkoutSettings';
 import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
 import {
+  lineMatchesUnavailable,
+  readUnavailableError,
+  unavailableLines,
+  unavailableRefKey,
+  withoutUnavailable,
+  type UnavailableRef,
+} from '@/lib/cartUnavailable';
+import { checkoutViewerHeaders, previewViewerHeaders } from '@/lib/storePreview';
+import { readEditHintToken } from '@/components/edit-hint/editHintStorage';
+import { toKustomCartLines } from '@/hooks/useKustomCheckout';
+import {
   addGuestLine,
   guestLineToServerBody,
   mergeHandoffLines,
@@ -272,6 +283,22 @@ interface CartContextValue extends CartState {
   migrationDropError: unknown;
   /** True while any line is flagged `unavailableInMarket` — checkout is blocked. */
   hasUnavailableItems: boolean;
+  /**
+   * Drops the lines a `CART_ITEMS_UNAVAILABLE` error names (deleted /
+   * unpublished products) from the guest cart and the server cart, and shows
+   * the "removed" notice. `authToken` is the session the server cart belongs
+   * to (defaults to the provider's). Resolves true when every named line is
+   * gone (now or by an earlier call), false when one could not be matched.
+   */
+  removeUnavailableLines: (refs: UnavailableRef[], authToken?: string | null) => Promise<boolean>;
+  /**
+   * Asks the API (POST /orders/quote, no destination) whether every line can
+   * still be bought and drops the ones that cannot. Cart / checkout load.
+   */
+  checkCartAvailability: () => Promise<void>;
+  /** Lines removed because their product is no longer available (notice). */
+  unavailableRemoved: number;
+  dismissUnavailableRemoved: () => void;
   /** Hide the hand-off and login-migration notices. */
   dismissPricesNotice: () => void;
   /** Coupon auto-apply (M5.1): the code captured from the URL and what
@@ -548,6 +575,8 @@ interface CartProviderProps {
   /** Market-preview host: `preview=1` goes with `market=` so a DRAFT market
    *  prices the cart (display only; the checkout is disabled there). */
   marketPreview?: boolean;
+  /** Store slug (route param): the owner preview / viewer token is per slug. */
+  storeSlug?: string;
   /** b2b app (M2-DESIGN D1): `'company'` appends `buyer=company` to every
    *  /cart call so lines carry `tax_rate_bp` and the response a `b2b` net
    *  block. Undefined for persons and stores without the app. */
@@ -558,7 +587,7 @@ interface CartProviderProps {
   authReady?: boolean;
 }
 
-export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax, marketKey, marketPreview, buyer, authReady = true }: CartProviderProps) {
+export function CartProvider({ children, token, locale, storeId, storeCurrency, storeTax, marketKey, marketPreview, storeSlug, buyer, authReady = true }: CartProviderProps) {
   // Suffix appended to /cart endpoints so the API resolves product titles in
   // the storefront's active language rather than its default ordering (and,
   // for market stores, prices lines for the request market).
@@ -570,6 +599,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     if (buyer === 'company') params.push('buyer=company');
     return params.length ? `?${params.join('&')}` : '';
   })();
+  // Owner preview of a store that is not LIVE: every cart write carries the
+  // owner's preview token (cookie) as the viewer header, so the API lets the
+  // owner's pre-live test checkout through. Empty for public visitors.
+  // Read at call time (the cookie is set / dropped while the page is open).
+  const ownerHeaders = useCallback(() => previewViewerHeaders(storeSlug), [storeSlug]);
   const [items, setItems] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [serverTax, setServerTax] = useState<CartTax | null>(null);
@@ -611,7 +645,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const [moveGuestCart] = useState(() => createGuestCartMover({ load: loadLocalCart, save: saveLocalCart }));
   const migrateLocalCart = useCallback(async (authToken: string): Promise<GuestMigrationResult> => {
     const result = await moveGuestCart((body) =>
-      api('/cart/items', { method: 'POST', token: authToken, body: JSON.stringify(body) }),
+      // Owner preview of a store that is not LIVE: the viewer header lets the
+      // API accept the owner's pre-live test checkout (empty for visitors).
+      api('/cart/items', {
+        method: 'POST', token: authToken, headers: ownerHeaders(), body: JSON.stringify(body),
+      }),
     );
     if (result.moved.length + result.dropped.length + result.failed.length === 0) return result;
     if (loadLocalCart().length === 0) saveLocalCoupon(null);
@@ -620,7 +658,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setMigrationDropped(result.dropped.length);
     setMigrationDropError(result.dropped[0]?.error ?? null);
     return result;
-  }, [moveGuestCart]);
+  }, [moveGuestCart, ownerHeaders]);
 
   const isAuthenticated = Boolean(token);
 
@@ -840,6 +878,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           {
             method: 'POST',
             token,
+            headers: ownerHeaders(),
             body: JSON.stringify({
               product_id: isCustomProduct ? null : productId,
               custom_product_id: isCustomProduct ? productId : undefined,
@@ -880,7 +919,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
       }
     },
-    [isAuthenticated, token, localeQuery]
+    [isAuthenticated, token, localeQuery, ownerHeaders]
   );
 
   // ── Update quantity ────────────────────────────────
@@ -895,6 +934,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
             {
               method: 'PUT',
               token,
+              headers: ownerHeaders(),
               body: JSON.stringify({ quantity }),
             }
           );
@@ -914,7 +954,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
       }
     },
-    [isAuthenticated, token, localeQuery]
+    [isAuthenticated, token, localeQuery, ownerHeaders]
   );
 
   // ── Clear bundle on a line ─────────────────────────
@@ -927,6 +967,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           {
             method: 'PUT',
             token,
+            headers: ownerHeaders(),
             body: JSON.stringify({ bundle_offer_id: null }),
           }
         );
@@ -956,7 +997,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
       }
     },
-    [isAuthenticated, token, localeQuery]
+    [isAuthenticated, token, localeQuery, ownerHeaders]
   );
 
   // ── Remove item ────────────────────────────────────
@@ -966,7 +1007,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       if (isAuthenticated && token) {
         const data = await api<unknown>(
           `/cart/items/${itemId}${localeQuery}`,
-          { method: 'DELETE', token }
+          { method: 'DELETE', token, headers: ownerHeaders() }
         );
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
@@ -978,7 +1019,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
       }
     },
-    [isAuthenticated, token, localeQuery]
+    [isAuthenticated, token, localeQuery, ownerHeaders]
   );
 
   // ── Designer lines ─────────────────────────────────
@@ -1010,6 +1051,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         await api<unknown>(`/cart/items${localeQuery}`, {
           method: 'POST',
           token,
+          headers: ownerHeaders(),
           body: JSON.stringify(
             guestLineToServerBody({
               ...line,
@@ -1019,7 +1061,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
             }),
           ),
         });
-        const data = await api<unknown>(`/cart/items/${line.id}${localeQuery}`, { method: 'DELETE', token });
+        const data = await api<unknown>(`/cart/items/${line.id}${localeQuery}`, { method: 'DELETE', token, headers: ownerHeaders() });
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
         setCoupon(cart.coupon);
@@ -1030,7 +1072,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         return replaceGuestDesignLine(prev, oldDesignId, nextDesign);
       });
     },
-    [isAuthenticated, token, localeQuery, items]
+    [isAuthenticated, token, localeQuery, items, ownerHeaders]
   );
 
   // ── Clear cart ─────────────────────────────────────
@@ -1038,7 +1080,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const clearCart = useCallback(async () => {
     if (isAuthenticated && token) {
       try {
-        await api('/cart', { method: 'DELETE', token });
+        await api('/cart', { method: 'DELETE', token, headers: ownerHeaders() });
       } catch {
         // Clear local state even if API fails
       }
@@ -1053,7 +1095,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     // Also for logged-in customers (the guest effect does not run for them).
     saveLocalCart([]);
     saveLocalCoupon(null);
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, ownerHeaders]);
 
   // ── Coupon auto-apply: capture from the URL ─────────
   useEffect(() => {
@@ -1123,6 +1165,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           await api('/cart/apply-coupon', {
             method: 'POST',
             token,
+            headers: ownerHeaders(),
             body: JSON.stringify({ code }),
           });
         } catch {
@@ -1133,7 +1176,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       setCoupon(couponData);
       saveLocalCoupon(couponData);
     },
-    [isAuthenticated, token, items, storeId]
+    [isAuthenticated, token, items, storeId, ownerHeaders]
   );
 
   // ── Coupon auto-apply: apply once the cart has a line ──
@@ -1171,7 +1214,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       try {
         const data = await api<unknown>(
           `/cart/remove-coupon${localeQuery}`,
-          { method: 'DELETE', token }
+          { method: 'DELETE', token, headers: ownerHeaders() }
         );
         const cart = normalizeCartResponse(data);
         setItems(cart.items);
@@ -1187,7 +1230,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       setServerTax(null);
       saveLocalCoupon(null);
     }
-  }, [isAuthenticated, token, localeQuery]);
+  }, [isAuthenticated, token, localeQuery, ownerHeaders]);
 
   // ── Computed values ────────────────────────────────
 
@@ -1209,6 +1252,103 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     }
     return Math.max(0, subtotal - coupon.discount);
   }, [subtotal, coupon]);
+
+  // ── Unavailable (deleted / unpublished) lines ───────
+
+  const [unavailableRemoved, setUnavailableRemoved] = useState(0);
+  // Line ids removed (the notice counts each line once, even when the load
+  // probe and a checkout call report the same product) and the entries that
+  // were resolved by a removal.
+  const removedLineIdsRef = useRef<Set<string>>(new Set());
+  const resolvedRefsRef = useRef<Set<string>>(new Set());
+  const dismissUnavailableRemoved = useCallback(() => {
+    removedLineIdsRef.current = new Set();
+    setUnavailableRemoved(0);
+  }, []);
+
+  const removeUnavailableLines = useCallback(
+    async (refs: UnavailableRef[], authToken?: string | null): Promise<boolean> => {
+      const jwt = authToken ?? token ?? null;
+      const removedNow: CartItem[] = [];
+      // A named line is still in the cart (a DELETE failed / cart unreadable).
+      let remaining = false;
+      // Guest lines in storage (also lines a checkout sync left behind).
+      const stored = loadLocalCart();
+      const goneStored = unavailableLines(stored, refs);
+      if (goneStored.length > 0) {
+        saveLocalCart(withoutUnavailable(stored, refs));
+        removedNow.push(...goneStored);
+      }
+      if (jwt) {
+        try {
+          let cart = normalizeCartResponse(await api<unknown>(`/cart${localeQuery}`, { token: jwt }));
+          for (const line of unavailableLines(cart.items, refs)) {
+            try {
+              cart = normalizeCartResponse(
+                await api<unknown>(`/cart/items/${line.id}${localeQuery}`, { method: 'DELETE', token: jwt, headers: ownerHeaders() }),
+              );
+              removedNow.push(line);
+            } catch { /* the next quote / order call reports it again */ }
+          }
+          if (unavailableLines(cart.items, refs).length > 0) remaining = true;
+          if (isAuthenticated && jwt === token) {
+            setItems(cart.items);
+            setCoupon(cart.coupon);
+            setServerTax(cart.tax);
+          } else if (!isAuthenticated) {
+            // The session was created mid-checkout and the provider has not
+            // switched yet: keep the in-memory guest lines in step.
+            setItems((prev) => withoutUnavailable(prev, refs));
+          }
+        } catch {
+          // Cart unreadable: nothing more can be removed here.
+          remaining = true;
+        }
+      } else {
+        removedNow.push(...unavailableLines(items, refs));
+        setItems((prev) => withoutUnavailable(prev, refs));
+      }
+      for (const ref of refs) {
+        if (removedNow.some((line) => lineMatchesUnavailable(line, ref))) resolvedRefsRef.current.add(unavailableRefKey(ref));
+      }
+      if (removedNow.length > 0) {
+        for (const line of removedNow) removedLineIdsRef.current.add(line.id);
+        setUnavailableRemoved(removedLineIdsRef.current.size);
+      }
+      // Resolved when no named line is left and each was removed now or
+      // before (the load probe and a stale quote can report the same product).
+      return refs.length > 0 && !remaining && refs.every((ref) => resolvedRefsRef.current.has(unavailableRefKey(ref)));
+    },
+    [token, isAuthenticated, localeQuery, items, ownerHeaders],
+  );
+
+  const checkCartAvailability = useCallback(async () => {
+    // Lines hidden in the market are flagged by GET /cart already; the probe
+    // checks the others (a market rejection would hide a deleted product).
+    const probeLines = availableLines(items);
+    if (!storeId || probeLines.length === 0) return;
+    try {
+      await api('/orders/quote', {
+        method: 'POST',
+        token: token ?? undefined,
+        headers: storeSlug
+          ? checkoutViewerHeaders(storeSlug, { editHintToken: readEditHintToken(), sessionToken: token ?? null })
+          : {},
+        body: JSON.stringify({
+          store_id: storeId,
+          ...(marketKey ? { market_key: marketKey, ...(marketPreview ? { preview: true } : {}) } : {}),
+          // A logged-in quote prices the server cart; a guest sends its lines.
+          ...(token ? {} : { lines: toKustomCartLines(probeLines) }),
+          ...(locale ? { locale } : {}),
+        }),
+      });
+    } catch (err) {
+      const refs = readUnavailableError(err);
+      if (refs && refs.length > 0) await removeUnavailableLines(refs);
+      // Any other answer (no destination yet, market rules...) is the
+      // checkout's business; the probe only drops lines that are gone.
+    }
+  }, [storeId, items, token, storeSlug, marketKey, marketPreview, locale, removeUnavailableLines]);
 
   // ── Sync guest cart to server (for checkout) ────────
 
@@ -1293,6 +1433,10 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     migrationDropped,
     migrationDropError,
     hasUnavailableItems: hasUnavailableLines(items),
+    removeUnavailableLines,
+    checkCartAvailability,
+    unavailableRemoved,
+    dismissUnavailableRemoved,
     dismissPricesNotice,
     couponNotice,
     dismissCouponNotice,

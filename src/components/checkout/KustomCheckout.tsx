@@ -9,6 +9,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
+import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components/cart/UnavailableRemovedNotice';
 import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { useMarket } from '@/hooks/useMarket';
 import { useBuyerType } from '@/hooks/useBuyerType';
@@ -68,8 +69,10 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
     b2bNet: cartB2bNet, netItems,
     updateQuantity, removeItem, applyCoupon, removeCoupon,
-    hasUnavailableItems,
+    hasUnavailableItems, removeUnavailableLines,
   } = useCart();
+  // Lines of deleted / unpublished products are dropped on checkout load.
+  useCartAvailabilityCheck();
   // Personalization app: an invalid line personalization blocks the session
   // like an unavailable line, until it is fixed in the cart.
   const personalizationBlocked = hasInvalidPersonalization(items);
@@ -124,7 +127,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
 
-  const { html, loading, updating, failed, syncFailed, totals, totalsBuyer, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, retry } = useKustomCheckout({
     storeSlug,
     locale,
     marketKey: market?.key ?? null,
@@ -138,6 +141,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     couponCode: coupon?.code ?? null,
     notes: orderNotes,
     buyer: b2bEnabled ? (isCompany ? 'company' : 'person') : null,
+    // The session refused a deleted product: drop its lines (notice shown).
+    onUnavailable: (refs) => removeUnavailableLines(refs, token),
     company: companyPrefill,
   });
 
@@ -208,6 +213,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   if (!cartLoading && items.length === 0) {
     return (
       <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-20">
+        <UnavailableRemovedNotice className="mb-6 w-full max-w-md" />
         <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
@@ -233,6 +239,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         <ChevronRight className="w-3 h-3" />
         <span className="text-gray-900 font-medium text-sm">{t('checkout.title')}</span>
       </nav>
+      {/* Lines of deleted / unpublished products were dropped. */}
+      <UnavailableRemovedNotice className="mb-5" />
 
       {callbackMessage && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -363,8 +371,18 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
             <InvalidPersonalizationHint items={items} />
           ) : failed ? (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
-              <p>{t('checkout.kustomSessionFailed')}</p>
+              {/* A product of the cart is gone and could not be dropped
+                  automatically: the cart is where it can be fixed. */}
+              <p>{unavailableBlocked ? t('checkout.itemsUnavailable') : t('checkout.kustomSessionFailed')}</p>
               <div className="flex flex-wrap gap-4 mt-3">
+                {unavailableBlocked && (
+                  <Link
+                    href={lp('/cart')}
+                    className="font-medium text-red-700 underline underline-offset-2 hover:text-red-800"
+                  >
+                    {t('checkout.returnToCart')}
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={retry}

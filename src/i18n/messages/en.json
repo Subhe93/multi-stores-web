@@ -380,7 +380,8 @@
     "couponAutoApplied": "Discount code {code} added",
     "couponAutoInvalid": "Discount code {code} is not valid",
     "couponAutoPending": "Discount code {code} will be applied to your cart",
-    "couponNoticeDismiss": "Dismiss"
+    "couponNoticeDismiss": "Dismiss",
+    "unavailableRemoved": "{count, plural, one {An item that is no longer available was removed from your cart} other {# items that are no longer available were removed from your cart}}"
   },
   "checkout": {
     "passwordPlaceholder": "Min 8 characters",
@@ -516,7 +517,11 @@
     "zeroTotalNoCard": "There is nothing to pay for this order, so card payment is not needed. Please choose another payment method or contact the store.",
     "bankPaymentDelay": "Bank payments can take a few working days. We'll email you when it's confirmed.",
     "paymentConfirmingTitle": "We're confirming your payment",
-    "paymentConfirmingText": "You'll get an email as soon as the payment is confirmed. You can close this page."
+    "paymentConfirmingText": "You'll get an email as soon as the payment is confirmed. You can close this page.",
+    "paymentFormLoading": "Loading secure payment form…",
+    "paymentFormSlow": "This is taking longer than usual",
+    "itemsUnavailable": "Some items in your cart are no longer available. Please review your cart and try again.",
+    "ownerPreviewNotice": "Store preview: the store is not live yet, so only test card payments can be placed here."
   },
   "auth": {
     "passwordPlaceholder": "Enter your password",
@@ -1002,7 +1007,9 @@
     "PAYMENT_AMOUNT_TOO_SMALL": "The order total is below the minimum amount for card payment. Please add more items or choose another payment method.",
     "PAYMENT_NOT_REQUIRED": "There is nothing to pay for this order, so no card payment is needed.",
     "PAYMENT_ROUTE_CHANGED_RETRY": "Payment settings changed, please try again.",
-    "PAYMENT_PROVIDER_ERROR": "The payment provider could not process this payment right now. Please try again in a moment or choose another payment method."
+    "PAYMENT_PROVIDER_ERROR": "The payment provider could not process this payment right now. Please try again in a moment or choose another payment method.",
+    "CART_ITEMS_UNAVAILABLE": "Some items in your cart are no longer available. Please review your cart and try again.",
+    "STORE_NOT_LIVE": "This store is not open for orders yet."
   },
   "builderPreview": {
     "moveUp": "Move up",

@@ -23,6 +23,7 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
+import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components/cart/UnavailableRemovedNotice';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CartSkeleton() {
@@ -68,6 +69,8 @@ function CartEmpty() {
 
   return (
     <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-24">
+      {/* The last lines were dropped because their product is gone. */}
+      <UnavailableRemovedNotice className="mb-6 w-full max-w-md" />
       <div
         className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
         style={{ backgroundColor: 'color-mix(in srgb, var(--store-primary, #2563eb) 10%, white)' }}
@@ -308,6 +311,8 @@ export default function StoreCartPage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  // Lines of deleted / unpublished products are dropped on load.
+  useCartAvailabilityCheck();
 
   const discount = coupon
     ? coupon.type === 'percentage'
@@ -344,6 +349,7 @@ export default function StoreCartPage() {
 
         {/* Coupon captured from a campaign link (M5.1) */}
         <CouponAutoApplyNotice className="mb-6" />
+        <UnavailableRemovedNotice className="mb-6" />
 
         {/* Cross-market hand-off: lines re-priced / dropped for this market */}
         {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (

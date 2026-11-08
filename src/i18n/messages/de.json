@@ -380,7 +380,8 @@
     "couponAutoApplied": "Rabattcode {code} hinzugefügt",
     "couponAutoInvalid": "Der Rabattcode {code} ist ungültig",
     "couponAutoPending": "Der Rabattcode {code} wird auf Ihren Warenkorb angewendet",
-    "couponNoticeDismiss": "Schließen"
+    "couponNoticeDismiss": "Schließen",
+    "unavailableRemoved": "{count, plural, one {Ein nicht mehr verfügbarer Artikel wurde aus deinem Warenkorb entfernt} other {# nicht mehr verfügbare Artikel wurden aus deinem Warenkorb entfernt}}"
   },
   "checkout": {
     "passwordPlaceholder": "Mind. 8 Zeichen",
@@ -516,7 +517,11 @@
     "zeroTotalNoCard": "Für diese Bestellung ist nichts zu bezahlen, eine Kartenzahlung ist daher nicht nötig. Bitte wähle eine andere Zahlungsart oder kontaktiere den Shop.",
     "bankPaymentDelay": "Banküberweisungen können einige Werktage dauern. Wir schicken dir eine E-Mail, sobald sie bestätigt ist.",
     "paymentConfirmingTitle": "Wir bestätigen deine Zahlung",
-    "paymentConfirmingText": "Du erhältst eine E-Mail, sobald die Zahlung bestätigt ist. Du kannst diese Seite schließen."
+    "paymentConfirmingText": "Du erhältst eine E-Mail, sobald die Zahlung bestätigt ist. Du kannst diese Seite schließen.",
+    "paymentFormLoading": "Sicheres Zahlungsformular wird geladen…",
+    "paymentFormSlow": "Das dauert länger als gewöhnlich",
+    "itemsUnavailable": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
+    "ownerPreviewNotice": "Shop-Vorschau: Der Shop ist noch nicht live, daher sind hier nur Testzahlungen mit Karte möglich."
   },
   "auth": {
     "passwordPlaceholder": "Passwort eingeben",
@@ -1002,7 +1007,9 @@
     "PAYMENT_AMOUNT_TOO_SMALL": "Der Bestellwert liegt unter dem Mindestbetrag für Kartenzahlungen. Bitte füge weitere Artikel hinzu oder wähle eine andere Zahlungsart.",
     "PAYMENT_NOT_REQUIRED": "Für diese Bestellung ist nichts zu bezahlen, daher ist keine Kartenzahlung nötig.",
     "PAYMENT_ROUTE_CHANGED_RETRY": "Die Zahlungseinstellungen haben sich geändert, bitte versuche es erneut.",
-    "PAYMENT_PROVIDER_ERROR": "Der Zahlungsanbieter konnte diese Zahlung gerade nicht verarbeiten. Bitte versuche es gleich noch einmal oder wähle eine andere Zahlungsart."
+    "PAYMENT_PROVIDER_ERROR": "Der Zahlungsanbieter konnte diese Zahlung gerade nicht verarbeiten. Bitte versuche es gleich noch einmal oder wähle eine andere Zahlungsart.",
+    "CART_ITEMS_UNAVAILABLE": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
+    "STORE_NOT_LIVE": "Dieser Shop nimmt noch keine Bestellungen an."
   },
   "builderPreview": {
     "moveUp": "Nach oben",

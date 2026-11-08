@@ -334,3 +334,71 @@ export function pendingAfterRouteChange<T extends RouteChangePending>(pending: T
   if ((pending.routeChanges ?? 0) >= 1) return null;
   return { ...pending, clientSecret: null, routeChanges: 1 };
 }
+
+// ── Billing details from the checkout form ────────────────────────────────────
+
+/**
+ * Billing fields the Payment Element does NOT collect: the checkout form
+ * already has name, email, phone and the address, so the element never asks
+ * again for country / postal code (it defaulted to the United States).
+ * Wallet sheets (Apple Pay / Google Pay) are unaffected; Klarna and the other
+ * redirect methods get email + country from `confirmParams` instead.
+ */
+export const STRIPE_BILLING_FIELDS = {
+  billingDetails: { name: 'never', email: 'never', phone: 'never', address: 'never' },
+} as const;
+
+/** The checkout's billing details, as typed or from the saved address. */
+export interface CheckoutBillingInput {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}
+
+/** `confirmParams.payment_method_data.billing_details` of a confirmPayment. */
+export interface StripeBillingDetails {
+  name: string;
+  email: string;
+  phone: string;
+  address: {
+    line1: string;
+    line2: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  };
+}
+
+const clean = (value: string | null | undefined) => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * Billing details for confirmPayment. With `'never'` in the element's
+ * `fields`, Stripe rejects the confirm unless every omitted field is passed,
+ * so every key is always present ('' for an empty optional one such as
+ * line2 / state / phone). The country is the ISO alpha-2 code, upper case.
+ */
+export function buildStripeBillingDetails(input: CheckoutBillingInput): StripeBillingDetails {
+  return {
+    name: clean(input.name),
+    email: clean(input.email),
+    phone: clean(input.phone),
+    address: {
+      line1: clean(input.line1),
+      line2: clean(input.line2),
+      city: clean(input.city),
+      state: clean(input.state),
+      postal_code: clean(input.postal_code),
+      country: clean(input.country).toUpperCase(),
+    },
+  };
+}
+
+/** Delay before the checkout offers "Try again" for a Payment Element that is not ready. */
+export const STRIPE_READY_TIMEOUT_MS = 15_000;

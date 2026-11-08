@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { readUnavailableError, unavailableRefKey, type UnavailableRef } from '@/lib/cartUnavailable';
 import type { CartItem } from '@/hooks/useCart';
 import {
   normalizeB2bNetTotals,
@@ -297,6 +298,13 @@ export interface UseKustomCheckoutOptions {
    *  only for a company buyer. A change of either re-syncs the session. */
   buyer?: 'person' | 'company' | null;
   company?: KustomCompanyPrefill | null;
+  /**
+   * The session refused the cart because a product is gone
+   * (409 CART_ITEMS_UNAVAILABLE): the page drops those lines and resolves
+   * true when they are gone. A failed create is then retried; an update
+   * re-syncs on its own (the lines changed).
+   */
+  onUnavailable?: (refs: UnavailableRef[]) => Promise<boolean>;
 }
 
 export interface UseKustomCheckoutResult {
@@ -308,6 +316,9 @@ export interface UseKustomCheckoutResult {
   updating: boolean;
   /** The session could not be created or resumed. */
   failed: boolean;
+  /** The create failed on unavailable products that could not be dropped
+   *  (or the one automatic retry failed the same way): send to the cart. */
+  unavailableBlocked: boolean;
   /** A change could not be pushed (the iframe may show stale totals). */
   syncFailed: boolean;
   /** Totals of the last successful POST / PUT — what the iframe charges. */
@@ -331,6 +342,7 @@ export function useKustomCheckout({
   notes,
   buyer = null,
   company = null,
+  onUnavailable,
 }: UseKustomCheckoutOptions): UseKustomCheckoutResult {
   const [html, setHtml] = useState<string | null>(null);
   const [session, setSession] = useState<StoredKustomSession | null>(null);
@@ -357,10 +369,31 @@ export function useKustomCheckout({
   // re-creating the callbacks on every keystroke). Written in a layout
   // effect, not during render (M5 D11), so a discarded render never leaks
   // its inputs into the ref.
-  const latest = useRef({ lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company });
+  const latest = useRef({ lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company, onUnavailable });
   useLayoutEffect(() => {
-    latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company };
+    latest.current = { lines, couponCode, notes, authToken, refreshAuth, locale, changeKey, buyer, company, onUnavailable };
   });
+  // Hands a CART_ITEMS_UNAVAILABLE answer to the page. Resolves 'retry' when
+  // the named lines are gone and this set of entries has not been retried
+  // automatically yet, 'blocked' when it cannot be resolved (or was retried
+  // once already: no create loop), null for any other error.
+  const autoRetriedRef = useRef<Set<string>>(new Set());
+  const [unavailableBlocked, setUnavailableBlocked] = useState(false);
+  const handleUnavailable = useCallback(async (err: unknown): Promise<'retry' | 'blocked' | null> => {
+    const refs = readUnavailableError(err);
+    if (!refs) return null;
+    const handler = latest.current.onUnavailable;
+    let resolved = false;
+    if (handler) {
+      try { resolved = await handler(refs); } catch { resolved = false; }
+    }
+    const key = refs.map(unavailableRefKey).sort().join(',');
+    if (resolved && !autoRetriedRef.current.has(key)) {
+      autoRetriedRef.current.add(key);
+      return 'retry';
+    }
+    return 'blocked';
+  }, []);
   // True once a create / update of this session was sent as a company, so
   // the next person update re-syncs once (see b2bUpdateBody).
   const sentAsCompanyRef = useRef(false);
@@ -508,6 +541,7 @@ export function useKustomCheckout({
     }
     setLoading(true);
     setFailed(false);
+    setUnavailableBlocked(false);
     promise
       .then((res) => {
         if (cancelled) return;
@@ -516,14 +550,26 @@ export function useKustomCheckout({
         setTotalsBuyer(sentBuyerRef.current);
         setSyncFailed(false);
       })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFailed(true);
+        // A deleted product blocked the session: once its lines are gone,
+        // create the session again with the remaining cart.
+        void handleUnavailable(err).then((outcome) => {
+          if (cancelled) return;
+          if (outcome === 'retry') {
+            establishedRef.current = false;
+            setAttempt((n) => n + 1);
+          } else if (outcome === 'blocked') {
+            setUnavailableBlocked(true);
+          }
+        });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [enabled, storeSlug, hasLines, attempt, establish]);
+  }, [enabled, storeSlug, hasLines, attempt, establish, handleUnavailable]);
 
   // ── Push a change: suspend → PUT → resume ─────────────────────────────────
   const runSync = useCallback(async () => {
@@ -560,8 +606,10 @@ export function useKustomCheckout({
           // With the JS API the iframe reloads the order itself on resume; a
           // new session (or no API) needs the fresh snippet mounted instead.
           if (recreated || !checkoutApi) setHtml(res.html_snippet);
-        } catch {
+        } catch (err) {
           setSyncFailed(true);
+          // Dropping the lines changes `changeKey`, which re-syncs.
+          void handleUnavailable(err);
         } finally {
           if (checkoutApi) {
             try { checkoutApi.resume(); } catch { /* ignore */ }
@@ -589,5 +637,5 @@ export function useKustomCheckout({
     setAttempt((n) => n + 1);
   }, []);
 
-  return { html, loading, updating, failed, syncFailed, totals, totalsBuyer, session, retry };
+  return { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, session, retry };
 }

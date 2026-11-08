@@ -26,6 +26,12 @@ export function getStripe(publishableKey?: string, stripeAccount?: string | null
   if (!promise) {
     promise = account ? loadStripe(key, { stripeAccount: account }) : loadStripe(key);
     stripePromises.set(cacheKey, promise);
+    // A failed script load is not cached: "Try again" on the checkout
+    // remounts Elements and must get a fresh attempt.
+    const settled = promise;
+    settled.catch(() => {
+      if (stripePromises.get(cacheKey) === settled) stripePromises.delete(cacheKey);
+    });
   }
   return promise;
 }

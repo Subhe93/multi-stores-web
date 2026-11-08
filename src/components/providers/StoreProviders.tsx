@@ -24,8 +24,10 @@ function CartProviderWithAuth({
   storeTax,
   marketKey,
   marketPreview,
+  storeSlug,
 }: {
   children: ReactNode;
+  storeSlug?: string;
   locale?: string;
   storeId?: string;
   storeCurrency?: string;
@@ -48,6 +50,7 @@ function CartProviderWithAuth({
       storeTax={storeTax}
       marketKey={marketKey}
       marketPreview={marketPreview}
+      storeSlug={storeSlug}
       buyer={isCompany ? 'company' : undefined}
     >
       {children}
@@ -128,6 +131,7 @@ export function StoreProviders({
                   storeTax={storeTax}
                   marketKey={market?.key}
                   marketPreview={Boolean(market?.preview)}
+                  storeSlug={storeSlug}
                 >
                   <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
                 </CartProviderWithAuth>

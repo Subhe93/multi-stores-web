@@ -27,6 +27,8 @@ export type ApiError = Error & {
   line_index?: number;
   /** Personalization app: `PERSONALIZATION_INVALID` carries the evaluator errors (M4.1 §4.3). */
   errors?: unknown[];
+  /** `CART_ITEMS_UNAVAILABLE` (409): the cart lines whose product / variant is gone. */
+  unavailable?: unknown[];
 };
 
 interface FetchOptions extends RequestInit {
@@ -83,10 +85,13 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     if (typeof json.line_id === 'string') err.line_id = json.line_id;
     if (typeof json.line_index === 'number') err.line_index = json.line_index;
     if (Array.isArray(json.errors)) err.errors = json.errors;
+    if (Array.isArray(json.unavailable)) err.unavailable = json.unavailable;
     // Cart / checkout / order calls of a store that is not LIVE (409
     // STORE_NOT_LIVE): send the browser to the store home, which renders
     // the coming-soon page. The error is still thrown for the caller.
-    if (typeof window !== 'undefined' && isStoreNotLiveError(err)) {
+    // The owner previewing the store (preview cookie) stays on the page:
+    // the caller shows the error instead (only test payments are open).
+    if (typeof window !== 'undefined' && isStoreNotLiveError(err) && !readBrowserPreviewCookie()) {
       window.location.assign(storeHomeHref(window.location.pathname));
     }
     throw err;

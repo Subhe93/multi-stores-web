@@ -380,7 +380,8 @@
     "couponAutoApplied": "{code} indirim kodu eklendi",
     "couponAutoInvalid": "{code} indirim kodu geçerli değil",
     "couponAutoPending": "{code} indirim kodu sepetinize uygulanacak",
-    "couponNoticeDismiss": "Kapat"
+    "couponNoticeDismiss": "Kapat",
+    "unavailableRemoved": "{count, plural, one {Artık mevcut olmayan bir ürün sepetinizden çıkarıldı} other {Artık mevcut olmayan # ürün sepetinizden çıkarıldı}}"
   },
   "checkout": {
     "passwordPlaceholder": "En az 8 karakter",
@@ -516,7 +517,11 @@
     "zeroTotalNoCard": "Bu sipariş için ödenecek tutar yok, bu yüzden kartla ödeme gerekmiyor. Lütfen başka bir ödeme yöntemi seçin veya mağazayla iletişime geçin.",
     "bankPaymentDelay": "Banka ödemeleri birkaç iş günü sürebilir. Onaylandığında size e-posta göndereceğiz.",
     "paymentConfirmingTitle": "Ödemenizi doğruluyoruz",
-    "paymentConfirmingText": "Ödeme onaylanır onaylanmaz bir e-posta alacaksınız. Bu sayfayı kapatabilirsiniz."
+    "paymentConfirmingText": "Ödeme onaylanır onaylanmaz bir e-posta alacaksınız. Bu sayfayı kapatabilirsiniz.",
+    "paymentFormLoading": "Güvenli ödeme formu yükleniyor…",
+    "paymentFormSlow": "Bu işlem normalden uzun sürüyor",
+    "itemsUnavailable": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
+    "ownerPreviewNotice": "Mağaza önizlemesi: mağaza henüz yayında değil, bu yüzden burada yalnızca test kartı ödemeleri yapılabilir."
   },
   "auth": {
     "passwordPlaceholder": "Şifrenizi girin",
@@ -1002,7 +1007,9 @@
     "PAYMENT_AMOUNT_TOO_SMALL": "Sipariş tutarı kartla ödeme için gereken minimum tutarın altında. Lütfen başka ürünler ekleyin veya başka bir ödeme yöntemi seçin.",
     "PAYMENT_NOT_REQUIRED": "Bu sipariş için ödenecek tutar yok, bu yüzden kartla ödeme gerekmiyor.",
     "PAYMENT_ROUTE_CHANGED_RETRY": "Ödeme ayarları değişti, lütfen tekrar deneyin.",
-    "PAYMENT_PROVIDER_ERROR": "Ödeme sağlayıcısı bu ödemeyi şu anda işleyemedi. Lütfen birazdan tekrar deneyin veya başka bir ödeme yöntemi seçin."
+    "PAYMENT_PROVIDER_ERROR": "Ödeme sağlayıcısı bu ödemeyi şu anda işleyemedi. Lütfen birazdan tekrar deneyin veya başka bir ödeme yöntemi seçin.",
+    "CART_ITEMS_UNAVAILABLE": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
+    "STORE_NOT_LIVE": "Bu mağaza henüz sipariş kabul etmiyor."
   },
   "builderPreview": {
     "moveUp": "Yukarı taşı",

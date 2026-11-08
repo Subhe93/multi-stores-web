@@ -101,3 +101,26 @@ const VIEWER_TOKEN_RE = /^[A-Za-z0-9._~+/=-]{1,4096}$/;
 export function storefrontViewerHeaders(token: string | null | undefined): Record<string, string> {
   return token && VIEWER_TOKEN_RE.test(token) ? { [STOREFRONT_VIEWER_HEADER]: `Bearer ${token}` } : {};
 }
+
+/**
+ * Viewer header of the checkout's platform calls (quote, order creation,
+ * create-intent, confirm): the `checkoutViewerToken` of this slug. Lets the
+ * API recognise the owner (owner test mode, pre-live test orders). Browser
+ * only; empty without a usable token.
+ */
+export function checkoutViewerHeaders(
+  slug: string,
+  sources: { editHintToken: string | null; sessionToken: string | null },
+): Record<string, string> {
+  return storefrontViewerHeaders(checkoutViewerToken(slug, sources));
+}
+
+/**
+ * Viewer header carrying only the owner preview token of this slug (cookie),
+ * for cart calls that must not block the owner's pre-live test checkout.
+ * Empty for every public visitor (no preview cookie).
+ */
+export function previewViewerHeaders(slug: string | null | undefined): Record<string, string> {
+  if (!slug) return {};
+  return storefrontViewerHeaders(previewTokenFor(slug, readBrowserPreviewCookie()));
+}

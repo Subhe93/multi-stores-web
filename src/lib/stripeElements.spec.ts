@@ -193,3 +193,24 @@ describe('pendingAfterRouteChange', () => {
     expect(pendingAfterRouteChange(undefined)).toBeNull();
   });
 });
+
+describe('buildStripeBillingDetails', () => {
+  it('sends every field, empty strings for missing optional ones', async () => {
+    const { buildStripeBillingDetails } = await import('./stripeElements');
+    expect(buildStripeBillingDetails({
+      name: ' Ada Lovelace ', email: 'ada@example.com', line1: 'Main 1', city: 'Malmö',
+      postal_code: '211 20', country: 'se',
+    })).toEqual({
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      phone: '',
+      address: { line1: 'Main 1', line2: '', city: 'Malmö', state: '', postal_code: '211 20', country: 'SE' },
+    });
+  });
+  it('never yields undefined / null values', async () => {
+    const { buildStripeBillingDetails } = await import('./stripeElements');
+    const out = buildStripeBillingDetails({ name: null, state: undefined });
+    expect(Object.values(out.address).every((v) => v === '')).toBe(true);
+    expect([out.name, out.email, out.phone]).toEqual(['', '', '']);
+  });
+});
