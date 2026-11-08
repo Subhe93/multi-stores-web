@@ -113,8 +113,10 @@ function buildAvailability(flags: StorePaymentFlags, config: PaymentConfig | nul
     storeId: flags.storeId,
     cod: flags.cod,
     // Card is offered only when Stripe is configured (and active) for the
-    // store AND the store creator can accept charges.
-    stripe: Boolean(config?.stripeConfigured) && flags.card,
+    // store AND the store creator can accept charges. The public store read
+    // says "no card" while only a TEST key is connected; the viewer-aware
+    // config (`test_mode`, owner / admin only) overrides that for the owner.
+    stripe: Boolean(config?.stripeConfigured) && (flags.card || config?.test_mode === true),
     // Kustom is offered only when the payment config says so AND the store
     // itself hasn't turned it off.
     kustom: config?.kustomEnabled === true && flags.kustom,
