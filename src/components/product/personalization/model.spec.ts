@@ -8,6 +8,7 @@ import {
   cardMeta,
   cardOptionSettings,
   cardSavings,
+  cardUnitLabel,
   contrastRatio,
   contrastTextColor,
   parseCssColor,
@@ -570,10 +571,70 @@ describe('variation cards v2 (compare-at, savings, units, layout)', () => {
   });
 
   it('layout defaults: grid + savings off (opt-in)', () => {
-    expect(cardOptionSettings(null)).toEqual({ layout: 'grid', showSavings: false });
-    expect(cardOptionSettings({ name: 'A' })).toEqual({ layout: 'grid', showSavings: false });
-    expect(cardOptionSettings({ name: 'A', card_show_savings: true })).toEqual({ layout: 'grid', showSavings: true });
-    expect(cardOptionSettings({ name: 'A', card_layout: 'list', card_show_savings: false })).toEqual({ layout: 'list', showSavings: false });
-    expect(cardOptionSettings({ name: 'A', card_layout: 'carousel', card_show_savings: 'yes' })).toEqual({ layout: 'grid', showSavings: false });
+    expect(cardOptionSettings(null)).toEqual({ layout: 'grid', showSavings: false, showUnitPrice: true });
+    expect(cardOptionSettings({ name: 'A' })).toEqual({ layout: 'grid', showSavings: false, showUnitPrice: true });
+    expect(cardOptionSettings({ name: 'A', card_show_savings: true })).toEqual({ layout: 'grid', showSavings: true, showUnitPrice: true });
+    expect(cardOptionSettings({ name: 'A', card_layout: 'list', card_show_savings: false })).toEqual({ layout: 'list', showSavings: false, showUnitPrice: true });
+    expect(cardOptionSettings({ name: 'A', card_layout: 'carousel', card_show_savings: 'yes' })).toEqual({ layout: 'grid', showSavings: false, showUnitPrice: true });
+  });
+
+  it('per-unit switch: only an explicit false hides the line', () => {
+    expect(cardOptionSettings({ name: 'A', card_show_unit_price: false }).showUnitPrice).toBe(false);
+    expect(cardOptionSettings({ name: 'A', card_show_unit_price: true }).showUnitPrice).toBe(true);
+    expect(cardOptionSettings({ name: 'A', card_show_unit_price: 'false' }).showUnitPrice).toBe(true);
+    expect(cardOptionSettings({ name: 'A', card_show_unit_price: 0 }).showUnitPrice).toBe(true);
+    expect(cardOptionSettings({ name: 'A', card_show_unit_price: null }).showUnitPrice).toBe(true);
+  });
+
+  it('pieces fallback: count (integer >= 2) when units is absent, explicit units wins', () => {
+    const cfg = {
+      name: 'Antal',
+      valueMeta: {
+        '3 st': { count: 3 },
+        '2 st': { count: '2' },
+        '5 st': { count: 5, units: 4 },
+        '6 st': { count: 6, units: 1 },
+        '1 st': { count: 1 },
+        x: { count: 2.5 },
+        y: { count: 'abc' },
+        z: { count: 0 },
+      },
+    };
+    expect(cardMeta(cfg, '3 st', 'sv', 'sv').units).toBe(3);
+    expect(cardMeta(cfg, '2 st', 'sv', 'sv').units).toBe(2);
+    expect(cardMeta(cfg, '5 st', 'sv', 'sv').units).toBe(4);
+    // An out-of-range explicit units does not block the count fallback.
+    expect(cardMeta(cfg, '6 st', 'sv', 'sv').units).toBe(6);
+    expect(cardMeta(cfg, '1 st', 'sv', 'sv').units).toBeUndefined();
+    expect(cardMeta(cfg, 'x', 'sv', 'sv').units).toBeUndefined();
+    expect(cardMeta(cfg, 'y', 'sv', 'sv').units).toBeUndefined();
+    expect(cardMeta(cfg, 'z', 'sv', 'sv').units).toBeUndefined();
+    expect(cardMeta(cfg, 'missing', 'sv', 'sv').units).toBeUndefined();
+    expect(cardMeta({ name: 'Antal' }, '3 st', 'sv', 'sv').units).toBeUndefined();
+    // The per-unit price itself follows the fallback.
+    expect(unitPrice(300, cardMeta(cfg, '3 st', 'sv', 'sv').units)).toBe(100);
+  });
+
+  it('custom "each" wording: locale → primary → base, else undefined', () => {
+    const cfg = {
+      name: 'Antal',
+      card_unit_label: 'per piece',
+      card_unit_label_i18n: { sv: 'per styck', ar: 'للحبة', de: '  ' },
+    };
+    expect(cardUnitLabel(cfg, 'sv', 'en')).toBe('per styck');
+    expect(cardUnitLabel(cfg, 'ar', 'sv')).toBe('للحبة');
+    // Viewer locale missing → primary locale.
+    expect(cardUnitLabel(cfg, 'fr', 'sv')).toBe('per styck');
+    // Viewer and primary missing (or blank) → base label.
+    expect(cardUnitLabel(cfg, 'de', 'tr')).toBe('per piece');
+    expect(cardUnitLabel({ name: 'Antal', card_unit_label_i18n: { sv: 'per styck' } }, 'en', 'en')).toBeUndefined();
+    expect(cardUnitLabel({ name: 'Antal', card_unit_label: '' }, 'en', 'en')).toBeUndefined();
+    expect(cardUnitLabel({ name: 'Antal', card_unit_label: 42, card_unit_label_i18n: 'x' }, 'en', 'en')).toBeUndefined();
+    expect(cardUnitLabel({ name: 'Antal' }, 'en', 'en')).toBeUndefined();
+    expect(cardUnitLabel(null, 'en', 'en')).toBeUndefined();
+    // Plain text: no placeholder substitution; the card renders "{price} {label}" as-is.
+    expect(cardUnitLabel({ name: 'A', card_unit_label: 'each {price}' }, 'en', 'en')).toBe('each {price}');
+    const rtl = cardUnitLabel(cfg, 'ar', 'ar')!;
+    expect(`249,50 kr ${rtl}`).toBe('249,50 kr للحبة');
   });
 });

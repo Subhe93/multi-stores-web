@@ -9,6 +9,7 @@ import {
   cardMeta,
   cardOptionSettings,
   cardPrice,
+  cardUnitLabel,
   cardSavings,
   contrastRatio,
   contrastTextColor,
@@ -128,8 +129,10 @@ export function VariantCards({
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const tone = useThemeTone(groupRef);
   const { currency, locale } = settings;
-  const { layout, showSavings } = cardOptionSettings(config);
+  const { layout, showSavings, showUnitPrice } = cardOptionSettings(config);
   const list = layout === 'list';
+  // Custom "each" wording (plain text) wins over the translated `each` template.
+  const unitLabel = cardUnitLabel(config, locale, settings.primaryLocale);
   const fmt = (n: number) => formatPrice(n, currency, locale);
   const muted = tone.mutedOk ? MUTED : MUTED_STRONG;
 
@@ -143,7 +146,7 @@ export function VariantCards({
         ? display(priced.compareAt, settings.taxRateBp, currency).amount
         : null;
     const savings = amount !== null ? cardSavings(amount, compareAmount) : null;
-    const each = amount !== null ? unitPrice(amount, meta.units) : null;
+    const each = amount !== null && showUnitPrice ? unitPrice(amount, meta.units) : null;
     return {
       value,
       meta,
@@ -157,7 +160,7 @@ export function VariantCards({
           ? t('save', { percent: savings.percent, amount: fmt(savings.amount) })
           : t('saveAmount', { amount: fmt(savings.amount) })
         : null,
-      eachText: each !== null ? t('each', { price: fmt(each) }) : null,
+      eachText: each === null ? null : unitLabel ? `${fmt(each)} ${unitLabel}` : t('each', { price: fmt(each) }),
       freeShipping: priced !== null && freeShippingReached(priced.price, settings.freeShippingThreshold),
     };
   });

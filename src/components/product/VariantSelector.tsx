@@ -67,6 +67,10 @@ interface OptionConfig {
   // Cards v2 (style 'card'): grid | list layout and the savings toggle.
   card_layout?: 'grid' | 'list';
   card_show_savings?: boolean;
+  // Cards v2 batch 2: per-unit line switch (default true) and custom "each" wording.
+  card_show_unit_price?: boolean;
+  card_unit_label?: string;
+  card_unit_label_i18n?: Record<string, string>;
 }
 
 interface Variant {

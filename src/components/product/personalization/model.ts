@@ -577,6 +577,11 @@ export interface CardOptionConfig {
   card_layout?: unknown;
   /** Cards v2: opt-in savings (struck compare-at price + savings chip); absent/false = today's look. */
   card_show_savings?: unknown;
+  /** Cards v2 batch 2: per-unit line switch; absent/true = shown whenever the pieces are known. */
+  card_show_unit_price?: unknown;
+  /** Cards v2 batch 2: custom "each" wording (plain text, <= 30 chars) and its per-locale map. */
+  card_unit_label?: unknown;
+  card_unit_label_i18n?: unknown;
 }
 
 export type CardLayout = 'grid' | 'list';
@@ -584,14 +589,37 @@ export type CardLayout = 'grid' | 'list';
 export interface CardOptionSettings {
   layout: CardLayout;
   showSavings: boolean;
+  /** False only with an explicit `card_show_unit_price: false`. */
+  showUnitPrice: boolean;
 }
 
-/** Option-level card settings; anything malformed takes the defaults (grid, savings off). */
+/** Option-level card settings; anything malformed takes the defaults (grid, savings off, unit price on). */
 export function cardOptionSettings(config: CardOptionConfig | null | undefined): CardOptionSettings {
   return {
     layout: config?.card_layout === 'list' ? 'list' : 'grid',
     showSavings: config?.card_show_savings === true,
+    showUnitPrice: config?.card_show_unit_price !== false,
   };
+}
+
+/**
+ * Custom per-unit wording of an option: `card_unit_label_i18n[locale]` →
+ * `card_unit_label_i18n[primaryLocale]` → `card_unit_label`; undefined when
+ * none is set (the caller then uses the translated `personalization.each`).
+ * The label is plain text that the card renders as "{price} {label}".
+ */
+export function cardUnitLabel(
+  config: CardOptionConfig | null | undefined,
+  locale: string,
+  primaryLocale: string,
+): string | undefined {
+  const i18n = isPlainObject(config?.card_unit_label_i18n) ? (config!.card_unit_label_i18n as Record<string, unknown>) : {};
+  for (const key of [locale, primaryLocale]) {
+    const v = str(i18n[key]);
+    if (v) return v.trim();
+  }
+  const base = str(config?.card_unit_label);
+  return base ? base.trim() : undefined;
 }
 
 export interface CardMeta {
@@ -607,7 +635,7 @@ export interface CardMeta {
    */
   ribbonColor?: string;
   ribbonTextColor?: string;
-  /** Pieces in this value (integer 2..99) → per-unit price line. */
+  /** Pieces in this value (`units` 2..99, else the repeat `count` >= 2) → per-unit price line. */
   units?: number;
 }
 
@@ -661,6 +689,15 @@ function readUnits(raw: unknown): number | undefined {
   return typeof n === 'number' && Number.isInteger(n) && n >= 2 && n <= 99 ? n : undefined;
 }
 
+/**
+ * Pieces fallback (batch 2): without explicit `units`, the value's repeat
+ * `count` (an integer >= 2) counts as its pieces. Explicit `units` always wins.
+ */
+function readCountAsUnits(raw: unknown): number | undefined {
+  const n = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 2 && n <= 99 ? n : undefined;
+}
+
 /** Card texts of one option value: `valueMeta[v].i18n[locale]` → `valueMeta[v]` → the value. */
 export function cardMeta(
   config: CardOptionConfig | null | undefined,
@@ -698,7 +735,7 @@ export function cardMeta(
       out.ribbonTextColor = DEFAULT_RIBBON_TEXT_COLOR;
     }
   }
-  const units = readUnits(m.units);
+  const units = readUnits(m.units) ?? readCountAsUnits(m.count);
   if (units !== undefined) out.units = units;
   return out;
 }
