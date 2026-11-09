@@ -337,6 +337,11 @@
     "personalize": "Personalisieren",
     "freeShipping": "Kostenloser Versand",
     "fromPrice": "ab {price}",
+    "save": "Spare {percent}% · {amount}",
+    "saveAmount": "Spare {amount}",
+    "each": "{price} pro Stück",
+    "wasPrice": "Statt {price}",
+    "soldOut": "Ausverkauft",
     "required": "{label} ist erforderlich",
     "invalidLine": "Die Personalisierung dieses Artikels muss aktualisiert werden. Bitte entfernen Sie ihn und fügen Sie ihn erneut hinzu.",
     "priceInCart": "+ Personalisierung, Endpreis im Warenkorb"

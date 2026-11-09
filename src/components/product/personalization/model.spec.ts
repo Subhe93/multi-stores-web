@@ -6,6 +6,14 @@ import {
   activeOptionValues,
   cachedAllowedChars,
   cardMeta,
+  cardOptionSettings,
+  cardSavings,
+  contrastRatio,
+  contrastTextColor,
+  parseCssColor,
+  DEFAULT_RIBBON_COLOR,
+  DEFAULT_RIBBON_TEXT_COLOR,
+  unitPrice,
   cardPrice,
   DEFAULT_BADGE_COLOR,
   DEFAULT_PERSONALIZATION_SETTINGS,
@@ -466,5 +474,106 @@ describe('cachedAllowedChars (M5 D9)', () => {
   it('caches a rejected body as null', () => {
     expect(cachedAllowedChars('[')).toBeNull();
     expect(cachedAllowedChars('[')).toBeNull();
+  });
+});
+
+describe('variation cards v2 (compare-at, savings, units, layout)', () => {
+  const opt = ['Antal', 'Färg'];
+  const variants = [
+    { id: 'a', price: 100, compare_at_price: 160, options: { Antal: '2 st', Färg: 'Röd' } },
+    { id: 'b', price: 90, compare_at_price: '150', options: { Antal: '2 st', Färg: 'Blå' } },
+    { id: 'c', price: 120, compare_at_price: null, options: { Antal: '2 st', Färg: 'Grön' } },
+    { id: 'd', price: 50, compare_at_price: 0, options: { Antal: '1 st', Färg: 'Röd' } },
+    { id: 'e', price: 10, compare_at_price: 999, options: { Antal: '1 st', Färg: 'Blå' }, is_active: false },
+  ];
+
+  it('selection mode: compare-at of the matching variant', () => {
+    expect(cardPrice(variants, 'Antal', '2 st', { Färg: 'Röd' }, opt, 'selection')).toEqual({ price: 100, from: false, compareAt: 160 });
+    expect(cardPrice(variants, 'Antal', '2 st', { Färg: 'Grön' }, opt, 'selection')).toEqual({ price: 120, from: false });
+  });
+
+  it('selection mode with open picks and from mode: compare-at of the cheapest variant', () => {
+    expect(cardPrice(variants, 'Antal', '2 st', {}, opt, 'selection')).toEqual({ price: 90, from: true, compareAt: 150 });
+    expect(cardPrice(variants, 'Antal', '2 st', { Färg: 'Röd' }, opt, 'from')).toEqual({ price: 90, from: true, compareAt: 150 });
+  });
+
+  it('zero, null and inactive compare-at prices are ignored', () => {
+    expect(cardPrice(variants, 'Antal', '1 st', {}, opt, 'selection')).toEqual({ price: 50, from: false });
+  });
+
+  it('savings: floor percent, amount, > 0.5 % threshold', () => {
+    expect(cardSavings(100, 160)).toEqual({ percent: 37, amount: 60 });
+    expect(cardSavings(62, 100)).toEqual({ percent: 38, amount: 38 });
+    expect(cardSavings(129.9, 209.8)).toEqual({ percent: 38, amount: 79.9 });
+    expect(cardSavings(99.5, 100)).toBeNull();
+    expect(cardSavings(99.4, 100)).toEqual({ percent: 0, amount: 0.6 });
+    expect(cardSavings(100, 100)).toBeNull();
+    expect(cardSavings(120, 100)).toBeNull();
+    expect(cardSavings(100, undefined)).toBeNull();
+    expect(cardSavings(100, 0)).toBeNull();
+  });
+
+  it('per-unit price', () => {
+    expect(unitPrice(499, 2)).toBe(249.5);
+    expect(unitPrice(100, 3)).toBe(33.33);
+    expect(unitPrice(100, undefined)).toBeNull();
+    expect(unitPrice(100, 1)).toBeNull();
+    expect(unitPrice(100, 2.5)).toBeNull();
+  });
+
+  it('ribbon (i18n + colour) and units from valueMeta', () => {
+    const cfg = {
+      name: 'Antal',
+      valueMeta: {
+        '3 st': { ribbon: 'Bästsäljare', i18n: { en: { ribbon: 'Best seller' } }, units: 3 },
+        '2 st': { ribbon: 'Deal', ribbon_color: '#fde68a', units: '2' },
+        '1 st': { ribbon_color: '#ff0000', units: 100 },
+        '4 st': { ribbon: 'X', ribbon_color: 'red; x', units: 1 },
+      },
+    };
+    expect(cardMeta(cfg, '3 st', 'sv', 'sv')).toMatchObject({
+      ribbon: 'Bästsäljare',
+      ribbonColor: 'var(--theme-colors-text, #111827)',
+      ribbonTextColor: DEFAULT_RIBBON_TEXT_COLOR,
+      units: 3,
+    });
+    expect(cardMeta(cfg, '3 st', 'en', 'sv').ribbon).toBe('Best seller');
+    expect(cardMeta(cfg, '2 st', 'sv', 'sv')).toMatchObject({ ribbonColor: '#fde68a', ribbonTextColor: '#111827', units: 2 });
+    const none = cardMeta(cfg, '1 st', 'sv', 'sv');
+    expect(none.ribbon).toBeUndefined();
+    expect(none.ribbonColor).toBeUndefined();
+    expect(none.units).toBeUndefined();
+    expect(cardMeta(cfg, '4 st', 'sv', 'sv')).toMatchObject({ ribbonColor: DEFAULT_RIBBON_COLOR, ribbonTextColor: 'var(--theme-colors-background, #fff)' });
+    expect(cardMeta(cfg, '4 st', 'sv', 'sv').units).toBeUndefined();
+  });
+
+  it('contrast-aware ribbon text', () => {
+    expect(contrastTextColor('#111827')).toBe('#ffffff');
+    expect(contrastTextColor('#ffffff')).toBe('#111827');
+    expect(contrastTextColor('#fbde31')).toBe('#111827');
+    expect(contrastTextColor('#1d4ed8')).toBe('#ffffff');
+    expect(contrastTextColor('#fff')).toBe('#111827');
+    expect(contrastTextColor('not a colour')).toBe('#ffffff');
+  });
+
+  it('CSS colour parsing + contrast ratio (theme token checks)', () => {
+    expect(parseCssColor('#FFF')).toEqual([255, 255, 255]);
+    expect(parseCssColor('#11182780')).toEqual([17, 24, 39]);
+    expect(parseCssColor('rgb(250, 204, 21)')).toEqual([250, 204, 21]);
+    expect(parseCssColor('rgba(0 0 0 / 50%)')).toEqual([0, 0, 0]);
+    expect(parseCssColor('var(--x)')).toBeNull();
+    expect(contrastRatio('#000', '#fff')).toBeCloseTo(21, 5);
+    expect(contrastRatio('#6b7280', '#ffffff')!).toBeGreaterThan(4.5);
+    // namez yellow primary on white fails the 3:1 border check.
+    expect(contrastRatio('#facc15', '#ffffff')!).toBeLessThan(3);
+    expect(contrastRatio('oklch(0.5 0.1 200)', '#fff')).toBeNull();
+  });
+
+  it('layout defaults: grid + savings off (opt-in)', () => {
+    expect(cardOptionSettings(null)).toEqual({ layout: 'grid', showSavings: false });
+    expect(cardOptionSettings({ name: 'A' })).toEqual({ layout: 'grid', showSavings: false });
+    expect(cardOptionSettings({ name: 'A', card_show_savings: true })).toEqual({ layout: 'grid', showSavings: true });
+    expect(cardOptionSettings({ name: 'A', card_layout: 'list', card_show_savings: false })).toEqual({ layout: 'list', showSavings: false });
+    expect(cardOptionSettings({ name: 'A', card_layout: 'carousel', card_show_savings: 'yes' })).toEqual({ layout: 'grid', showSavings: false });
   });
 });

@@ -337,6 +337,11 @@
     "personalize": "Kişiselleştir",
     "freeShipping": "Ücretsiz kargo",
     "fromPrice": "{price}'den itibaren",
+    "save": "%{percent} tasarruf · {amount}",
+    "saveAmount": "{amount} tasarruf",
+    "each": "Tanesi {price}",
+    "wasPrice": "Önceki fiyat {price}",
+    "soldOut": "Tükendi",
     "required": "{label} gereklidir",
     "invalidLine": "Bu ürünün kişiselleştirmesinin güncellenmesi gerekiyor. Lütfen ürünü kaldırıp tekrar ekleyin.",
     "priceInCart": "+ kişiselleştirme, nihai fiyat sepette"

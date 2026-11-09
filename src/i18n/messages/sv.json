@@ -337,6 +337,11 @@
     "personalize": "Personalisera",
     "freeShipping": "Fri frakt",
     "fromPrice": "från {price}",
+    "save": "Spara {percent}% · {amount}",
+    "saveAmount": "Spara {amount}",
+    "each": "{price}/st",
+    "wasPrice": "Tidigare {price}",
+    "soldOut": "Slutsåld",
     "required": "{label} krävs",
     "invalidLine": "Personaliseringen av den här artikeln behöver uppdateras. Ta bort den och lägg till den igen.",
     "priceInCart": "+ personalisering, slutpris i varukorgen"

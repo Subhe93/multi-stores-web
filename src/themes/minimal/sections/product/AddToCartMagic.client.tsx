@@ -42,6 +42,8 @@ interface NormalisedVariant {
   id: string;
   price: number;
   compareAtPrice?: number;
+  /** Same value under the payload name, read by the variation cards (cards v2). */
+  compare_at_price?: number;
   stock?: number;
   is_active?: boolean | null;
   label: string;
@@ -82,6 +84,7 @@ function normaliseVariants(product: ProductContext): NormalisedVariant[] {
       id: v.id,
       price: v.price,
       compareAtPrice: v.compare_at_price,
+      compare_at_price: v.compare_at_price,
       stock: v.stock,
       is_active: v.is_active,
       label,

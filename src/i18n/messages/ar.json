@@ -337,6 +337,11 @@
     "personalize": "خصّص",
     "freeShipping": "شحن مجاني",
     "fromPrice": "من {price}",
+    "save": "وفّر {percent}% · {amount}",
+    "saveAmount": "وفّر {amount}",
+    "each": "{price} للقطعة",
+    "wasPrice": "السعر السابق {price}",
+    "soldOut": "نفد",
     "required": "{label} مطلوب",
     "invalidLine": "يجب تحديث تخصيص هذا المنتج. يرجى إزالته ثم إضافته مرة أخرى.",
     "priceInCart": "+ التخصيص، السعر النهائي في السلة"

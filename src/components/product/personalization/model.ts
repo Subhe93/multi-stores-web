@@ -566,9 +566,32 @@ export function splitDisplay<T extends PersonalizationDisplayLine>(
 export const DEFAULT_BADGE_COLOR = '#fbde31';
 const CSS_HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
+/** Theme-following default ribbon (no `ribbon_color`): theme text colour with the background as its text. */
+export const DEFAULT_RIBBON_COLOR = 'var(--theme-colors-text, #111827)';
+export const DEFAULT_RIBBON_TEXT_COLOR = 'var(--theme-colors-background, #fff)';
+
 export interface CardOptionConfig {
   name: string;
   valueMeta?: Record<string, unknown> | null;
+  /** Cards v2: 'grid' (default, today's look) or 'list' (one full-width row per value). */
+  card_layout?: unknown;
+  /** Cards v2: opt-in savings (struck compare-at price + savings chip); absent/false = today's look. */
+  card_show_savings?: unknown;
+}
+
+export type CardLayout = 'grid' | 'list';
+
+export interface CardOptionSettings {
+  layout: CardLayout;
+  showSavings: boolean;
+}
+
+/** Option-level card settings; anything malformed takes the defaults (grid, savings off). */
+export function cardOptionSettings(config: CardOptionConfig | null | undefined): CardOptionSettings {
+  return {
+    layout: config?.card_layout === 'list' ? 'list' : 'grid',
+    showSavings: config?.card_show_savings === true,
+  };
 }
 
 export interface CardMeta {
@@ -576,6 +599,66 @@ export interface CardMeta {
   sublabel?: string;
   badge?: string;
   badgeColor: string;
+  /** Tab on the top edge; absent = no ribbon. */
+  ribbon?: string;
+  /**
+   * Ribbon background + text colour (set only with `ribbon`): an explicit hex
+   * `ribbon_color` with a contrast-aware text, else the theme-following defaults.
+   */
+  ribbonColor?: string;
+  ribbonTextColor?: string;
+  /** Pieces in this value (integer 2..99) → per-unit price line. */
+  units?: number;
+}
+
+const RIBBON_DARK_TEXT = '#111827';
+
+/** `#rgb[a]`, `#rrggbb[aa]` or `rgb()/rgba()` → [r, g, b] (0..255); null for anything else. */
+export function parseCssColor(raw: string | null | undefined): [number, number, number] | null {
+  const v = (raw ?? '').trim().toLowerCase();
+  const hex = /^#([0-9a-f]{3,8})$/.exec(v);
+  if (hex) {
+    let c = hex[1];
+    if (c.length === 3 || c.length === 4) c = c.slice(0, 3).split('').map((x) => x + x).join('');
+    else if (c.length === 6 || c.length === 8) c = c.slice(0, 6);
+    else return null;
+    return [0, 2, 4].map((k) => parseInt(c.slice(k, k + 2), 16)) as [number, number, number];
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/.exec(v);
+  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])].map((n) => Math.min(255, n)) as [number, number, number];
+  return null;
+}
+
+function luminance([r, g, b]: [number, number, number]): number {
+  const ch = (x: number) => {
+    const v = x / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+}
+
+/** WCAG contrast ratio of two CSS colours; null when either cannot be parsed. */
+export function contrastRatio(a: string | null | undefined, b: string | null | undefined): number | null {
+  const ca = parseCssColor(a);
+  const cb = parseCssColor(b);
+  if (!ca || !cb) return null;
+  const la = luminance(ca);
+  const lb = luminance(cb);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** Text colour readable on `hex` (WCAG contrast): white on dark backgrounds, near-black on light ones. */
+export function contrastTextColor(hex: string): string {
+  const onWhite = contrastRatio(hex, '#ffffff');
+  const onDark = contrastRatio(hex, RIBBON_DARK_TEXT);
+  if (onWhite === null || onDark === null) return '#ffffff';
+  return onWhite >= onDark ? '#ffffff' : RIBBON_DARK_TEXT;
+}
+
+/** `valueMeta[v].units` as an integer 2..99, else undefined. */
+function readUnits(raw: unknown): number | undefined {
+  const n = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 2 && n <= 99 ? n : undefined;
 }
 
 /** Card texts of one option value: `valueMeta[v].i18n[locale]` → `valueMeta[v]` → the value. */
@@ -597,17 +680,34 @@ export function cardMeta(
     return str(m[key]);
   };
   const color = str(m.badge_color);
-  return {
+  const out: CardMeta = {
     label: pick('label') ?? value,
     sublabel: pick('sublabel'),
     badge: pick('badge'),
     badgeColor: color && CSS_HEX.test(color) ? color : DEFAULT_BADGE_COLOR,
   };
+  const ribbon = pick('ribbon');
+  if (ribbon) {
+    const rc = str(m.ribbon_color);
+    out.ribbon = ribbon;
+    if (rc && CSS_HEX.test(rc)) {
+      out.ribbonColor = rc;
+      out.ribbonTextColor = contrastTextColor(rc);
+    } else {
+      out.ribbonColor = DEFAULT_RIBBON_COLOR;
+      out.ribbonTextColor = DEFAULT_RIBBON_TEXT_COLOR;
+    }
+  }
+  const units = readUnits(m.units);
+  if (units !== undefined) out.units = units;
+  return out;
 }
 
 export interface CardVariant {
   id: string;
   price: number;
+  /** Cards v2: the variant's "compare at" price (a string in some payloads). */
+  compare_at_price?: number | string | null;
   stock?: number;
   options?: Record<string, string> | null;
   is_active?: boolean | null;
@@ -617,7 +717,8 @@ export interface CardVariant {
  * Card price of `value` for option `option`: the variant matching the other
  * current picks plus this value (`mode:'selection'`), else the minimum over
  * active variants with this value, flagged `from` when the prices differ or
- * mode is `'from'`. Null when no active variant carries the value.
+ * mode is `'from'`. Null when no active variant carries the value. The
+ * compare-at comes from the same variant that gives the price (cards v2).
  */
 export function cardPrice(
   variants: readonly CardVariant[],
@@ -626,21 +727,64 @@ export function cardPrice(
   selections: Record<string, string>,
   optionNames: readonly string[],
   mode: 'selection' | 'from',
-): { price: number; from: boolean } | null {
+): CardPrice | null {
   const candidates = variants.filter(
     (v) => v && v.is_active !== false && v.options?.[option] === value && Number.isFinite(Number(v.price)),
   );
   if (candidates.length === 0) return null;
   const prices = candidates.map((v) => Number(v.price));
   const min = Math.min(...prices);
+  const cheapest = candidates[prices.indexOf(min)];
   const allSame = prices.every((p) => p === min);
-  if (mode === 'from') return { price: min, from: true };
+  if (mode === 'from') return withCompareAt(min, true, cheapest);
   const others = optionNames.filter((n) => n !== option);
   if (others.every((n) => typeof selections[n] === 'string')) {
     const exact = candidates.find((v) => others.every((n) => v.options?.[n] === selections[n]));
-    if (exact) return { price: Number(exact.price), from: false };
+    if (exact) return withCompareAt(Number(exact.price), false, exact);
   }
-  return { price: min, from: !allSame };
+  return withCompareAt(min, !allSame, cheapest);
+}
+
+/** A card price; `compareAt` is present only when the priced variant has a positive compare-at. */
+export interface CardPrice {
+  price: number;
+  from: boolean;
+  compareAt?: number;
+}
+
+function withCompareAt(price: number, from: boolean, v: CardVariant): CardPrice {
+  const out: CardPrice = { price, from };
+  const raw = v.compare_at_price;
+  const c = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+  if (Number.isFinite(c) && c > 0) out.compareAt = c;
+  return out;
+}
+
+/**
+ * Savings of a card (cards v2): only when `compareAt` exceeds `price` by more
+ * than 0.5 %. Percent is rounded down to an integer; amount = compareAt −
+ * price (2 decimals). Pass the displayed (tax-adjusted) amounts of both.
+ */
+export function cardSavings(
+  price: number,
+  compareAt: number | null | undefined,
+): { percent: number; amount: number } | null {
+  if (typeof compareAt !== 'number' || !Number.isFinite(compareAt) || !Number.isFinite(price) || compareAt <= 0) {
+    return null;
+  }
+  const diff = compareAt - price;
+  if (diff <= 0 || diff / compareAt <= 0.005) return null;
+  return {
+    // The epsilon keeps an exact 38 % from reading as 37.999… and flooring to 37.
+    percent: Math.floor((diff / compareAt) * 100 + 1e-9),
+    amount: Math.round(diff * 100) / 100,
+  };
+}
+
+/** Per-unit price (price / units, 2 decimals); null without a valid unit count. */
+export function unitPrice(price: number, units: number | null | undefined): number | null {
+  if (!Number.isFinite(price) || typeof units !== 'number' || !Number.isInteger(units) || units < 2) return null;
+  return Math.round((price / units) * 100) / 100;
 }
 
 /** Free-shipping line of a card: `price ≥ threshold` (Q1). */

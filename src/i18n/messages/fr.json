@@ -337,6 +337,11 @@
     "personalize": "Personnaliser",
     "freeShipping": "Livraison gratuite",
     "fromPrice": "à partir de {price}",
+    "save": "Économisez {percent} % · {amount}",
+    "saveAmount": "Économisez {amount}",
+    "each": "{price} l’unité",
+    "wasPrice": "Au lieu de {price}",
+    "soldOut": "Épuisé",
     "required": "{label} est requis",
     "invalidLine": "La personnalisation de cet article doit être mise à jour. Retirez-le puis ajoutez-le à nouveau.",
     "priceInCart": "+ personnalisation, prix final dans le panier"

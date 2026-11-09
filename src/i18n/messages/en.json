@@ -337,6 +337,11 @@
     "personalize": "Personalize",
     "freeShipping": "Free shipping",
     "fromPrice": "from {price}",
+    "save": "Save {percent}% · {amount}",
+    "saveAmount": "Save {amount}",
+    "each": "{price} each",
+    "wasPrice": "Was {price}",
+    "soldOut": "Sold out",
     "required": "{label} is required",
     "invalidLine": "The personalization of this item needs to be updated. Please remove it and add it again.",
     "priceInCart": "+ personalization, final price in cart"

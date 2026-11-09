@@ -64,12 +64,17 @@ interface OptionConfig {
   // Personalization app (M4.1 D9): per-value card texts; read only when the
   // `personalization` prop is set (style 'card').
   valueMeta?: Record<string, unknown>;
+  // Cards v2 (style 'card'): grid | list layout and the savings toggle.
+  card_layout?: 'grid' | 'list';
+  card_show_savings?: boolean;
 }
 
 interface Variant {
   id: string;
   sku?: string;
   price: number;
+  /** Read by the variation cards (struck price + savings). */
+  compare_at_price?: number | string | null;
   /** Unknown stock (theme payloads) counts as in stock. */
   stock?: number;
   options: Record<string, string>;
