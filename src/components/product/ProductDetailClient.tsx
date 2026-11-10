@@ -12,7 +12,7 @@ import { CustomerUpload } from '@/components/product/CustomerUpload';
 import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
-import { visibleFieldsAt } from '@/components/product/personalization/model';
+import { pieceOneOptionKeys, pieceOneRepeater, visibleFieldsAt } from '@/components/product/personalization/model';
 import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
 import { useAddToCartLine } from '@/components/product/useAddToCartLine';
 import type { POptionConfig } from '@multi-stores/core/personalization/types';
@@ -303,6 +303,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
   // "added" confirmation with its timer cleared on unmount (D28).
   const { addLine, addDesignLine, justAdded: addedToCart, markAdded } = useAddToCartLine();
   const variants = useMemo(() => product.variants || [], [product.variants]);
+  const variantOptionKeys = useMemo(
+    () => Array.from(new Set(variants.flatMap((v) => Object.keys(v.options || {})))),
+    [variants],
+  );
 
   // Presentation toggles — default to "show everything" so the standalone
   // product page is unchanged; the builder section overrides per its settings.
@@ -349,6 +353,13 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     },
   });
   const { appSettings, market, storeSlug, advanced, cardsConfig } = app;
+  // Multi-piece products: the product option the repeater's colour palettes
+  // read from is piece 1's colour and renders inside the piece-1 box.
+  const pieceRepeater = advanced ? pieceOneRepeater(advanced.defs, advanced.result.visibleIds, advanced.ctx, 'after_variants') : null;
+  const pieceOptionKeys = useMemo(
+    () => (advanced && pieceRepeater ? pieceOneOptionKeys(advanced.defs, pieceRepeater) : []),
+    [advanced, pieceRepeater],
+  );
   const personalization = app.fields;
   const {
     fields: mappedCustomFields,
@@ -971,8 +982,11 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             />
           )}
 
-          {/* Variant Selector */}
-          {variants.length > 0 && (
+          {/* Variant Selector. On a multi-piece product (personalization repeater
+              standing for pieces 2..N) the option its colour palettes draw from
+              is piece 1's colour: it moves into the piece-1 box below so piece 1
+              looks like every other piece; the quantity cards stay here. */}
+          {variants.length > 0 && variantOptionKeys.some((k) => !pieceOptionKeys.includes(k)) && (
             <div>
               <VariantSelector
                 selections={optionSelections}
@@ -984,6 +998,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 inStockText={t('product.inStock')}
                 outOfStockText={t('product.outOfStock')}
                 optionConfigs={product.variant_option_config}
+                optionFilter={pieceOptionKeys.length > 0 ? (k) => !pieceOptionKeys.includes(k) : undefined}
               />
             </div>
           )}
@@ -1005,6 +1020,23 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 locale={locale}
                 primaryLocale={primaryLocale}
                 showSummary={appSettings.validation_summary}
+                pieceOne={
+                  pieceOptionKeys.length > 0 ? (
+                    <VariantSelector
+                      selections={optionSelections}
+                      personalization={cardsConfig}
+                      variants={variants}
+                      selectedVariantId={selectedVariantId}
+                      onSelect={setSelectedVariantId}
+                      onSelectionsChange={setOptionSelections}
+                      inStockText={t('product.inStock')}
+                      outOfStockText={t('product.outOfStock')}
+                      optionConfigs={product.variant_option_config}
+                      optionFilter={(k) => pieceOptionKeys.includes(k)}
+                      showStatus={false}
+                    />
+                  ) : undefined
+                }
               />
             </div>
           )}

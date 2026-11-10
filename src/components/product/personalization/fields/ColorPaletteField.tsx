@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { resolvePalette, type PContext, type PFieldDef } from '@multi-stores/core/personalization';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
@@ -31,13 +31,18 @@ function isLight(hex: string): boolean {
 }
 
 /**
- * COLOR_PALETTE (namez C1/C2): square swatches with the colour name under
- * each and a "Vald färg" line. The palette is the product's own colour
- * option (values on active variants) or the field's static list, so a
- * colour the product does not sell cannot be picked (the olivgrön fix).
+ * COLOR_PALETTE (namez C1/C2): the colour name under each swatch and a clear
+ * link. Swatches are drawn exactly like the product's own colour option
+ * (VariantSelector) — round, same size, ring and label — because on a
+ * multi-piece product piece 1 picks from the product option and pieces 2..N
+ * from this field, and the shopper must not see two designs for one choice.
+ * The palette is the product's own colour option (values on active
+ * variants) or the field's static list, so a colour the product does not
+ * sell cannot be picked (the olivgrön fix).
  */
 export function ColorPaletteField({ def, inputId, text, value, ctx, required, error, onChange }: ColorPaletteFieldProps) {
   const t = useTranslations('personalization');
+  const tCommon = useTranslations('common');
   const palette = resolvePalette(def, ctx);
   const selected = typeof value === 'string' ? value : '';
   const nameOf = (v: string) => text.optionLabels?.[v] ?? v;
@@ -53,7 +58,7 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
             const isSelected = selected === entry.value;
             const light = isLight(hex);
             return (
-              <div key={entry.value} className="flex w-14 flex-col items-center gap-1">
+              <div key={entry.value} className="flex flex-col items-center gap-1.5">
                 <button
                   id={i === 0 ? inputId : undefined}
                   type="button"
@@ -61,12 +66,13 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
                   aria-label={nameOf(entry.value)}
                   title={nameOf(entry.value)}
                   onClick={() => onChange(entry.value)}
-                  className={`relative size-11 rounded-md transition-all ${
-                    isSelected ? 'ring-2 ring-offset-2' : 'hover:ring-1 hover:ring-gray-300 hover:ring-offset-1'
+                  className={`relative size-11 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 ${
+                    isSelected ? 'ring-2 ring-offset-3' : 'hover:ring-1 hover:ring-offset-2 hover:ring-gray-300'
                   }`}
                   style={{
                     backgroundColor: hex,
-                    border: light ? '1px solid #e5e7eb' : '1px solid transparent',
+                    border: light ? '2px solid #e5e7eb' : '2px solid transparent',
+                    boxShadow: isSelected ? undefined : '0 1px 3px rgba(0,0,0,0.08)',
                     ...(isSelected ? ({ '--tw-ring-color': 'var(--store-primary, #2563eb)' } as React.CSSProperties) : {}),
                   }}
                 >
@@ -77,8 +83,8 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
                   )}
                 </button>
                 <span
-                  className={`max-w-14 truncate text-center text-[11px] leading-tight ${
-                    isSelected ? 'font-medium text-gray-900' : 'text-gray-500'
+                  className={`max-w-12 truncate text-center text-[10px] leading-tight ${
+                    isSelected ? 'font-medium text-gray-900' : 'text-gray-400'
                   }`}
                 >
                   {nameOf(entry.value)}
@@ -88,7 +94,16 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
           })}
         </div>
       )}
-      {selected && <p className="mt-2 text-xs text-gray-600">{t('selectedColor', { color: nameOf(selected) })}</p>}
+      {selected && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="mt-3 inline-flex items-center gap-1 min-h-11 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors w-fit"
+        >
+          <X className="w-3 h-3" />
+          {tCommon('clear')}
+        </button>
+      )}
     </FieldShell>
   );
 }

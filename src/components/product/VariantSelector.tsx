@@ -113,6 +113,13 @@ interface VariantSelectorProps {
   // every change is reported through `onSelectionsChange` / `onSelect`, so a
   // prefill or a second picker (designer review step) needs no remount.
   selections?: Record<string, string>;
+  // Renders only the options this returns true for. Lets the page split one
+  // product's options across two places (quantity cards above, piece-1
+  // colour inside the piece-1 box) while sharing one controlled selection.
+  optionFilter?: (key: string) => boolean;
+  // Stock pill under the picker (off for a secondary instance so it isn't
+  // shown twice).
+  showStatus?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -128,6 +135,8 @@ export function VariantSelector({
   personalization,
   initialSelections: initialSelectionsProp,
   selections: controlledSelections,
+  optionFilter,
+  showStatus = true,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
 
@@ -224,12 +233,18 @@ export function VariantSelector({
     onSelect(matched?.id);
   };
 
+  // Only the options this instance renders; "clear" touches just those so a
+  // split picker never wipes the other instance's picks.
+  const shownGroups = optionFilter ? optionGroups.filter(([key]) => optionFilter(key)) : optionGroups;
+  const shownKeys = shownGroups.map(([key]) => key);
   const handleClear = () => {
-    setSelections({});
-    onSelectionsChange?.({});
+    const next = { ...selections };
+    for (const key of shownKeys) delete next[key];
+    setSelections(next);
+    onSelectionsChange?.(next);
     onSelect(undefined);
   };
-  const hasSelections = Object.keys(selections).length > 0;
+  const hasSelections = shownKeys.some((key) => key in selections);
 
   const getStyle = (key: string): 'color' | 'image' | 'text' | 'card' => {
     const cfg = configByName[key];
@@ -253,7 +268,7 @@ export function VariantSelector({
 
   return (
     <div className="flex flex-col gap-6">
-      {optionGroups.map(([key, values]) => {
+      {shownGroups.map(([key, values]) => {
         const style = getStyle(key);
         const config = configByName[key];
         const selectedValue = selections[key];
@@ -474,7 +489,7 @@ export function VariantSelector({
       )}
 
       {/* Stock status */}
-      {matchingVariant && typeof matchingVariant.stock === 'number' && (
+      {showStatus && matchingVariant && typeof matchingVariant.stock === 'number' && (
         <span
           className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full w-fit ${
             matchingVariant.stock > 0

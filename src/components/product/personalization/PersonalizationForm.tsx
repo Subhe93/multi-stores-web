@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { readUi, splitFieldTree } from '@multi-stores/core/personalization';
 import type { PersonalizationAdvanced } from '@/components/product/usePersonalizationFields';
-import { visibleFieldsAt, type Placement } from './model';
+import { groupHeading, pieceOneIndex, pieceOneRepeater, visibleFieldsAt, type Placement } from './model';
 import { FieldRenderer } from './fields/FieldRenderer';
 import { RepeaterField } from './fields/RepeaterField';
+import { PieceGroup } from './fields/PieceGroup';
 
 interface PersonalizationFormProps {
   /** App-mode state from `usePersonalizationFields(...).advanced`. */
@@ -20,6 +21,12 @@ interface PersonalizationFormProps {
   showSummary?: boolean;
   /** Puts the `#personalize` anchor on this block (listing CTA target). */
   anchor?: boolean;
+  /**
+   * Piece 1's product-level pickers (its colour option). Rendered at the top
+   * of the piece-1 box when a repeater stands for pieces 2..N, so piece 1
+   * looks exactly like the pieces that follow it.
+   */
+  pieceOne?: ReactNode;
 }
 
 /**
@@ -36,6 +43,7 @@ export function PersonalizationForm({
   primaryLocale,
   showSummary = false,
   anchor = false,
+  pieceOne,
 }: PersonalizationFormProps) {
   const t = useTranslations('personalization');
   const { top, childrenOf } = useMemo(() => splitFieldTree(model.defs), [model.defs]);
@@ -47,33 +55,53 @@ export function PersonalizationForm({
 
   if (shown.length === 0 && summary.length === 0) return anchor ? <div id="personalize" /> : null;
 
+  // Pieces 2..N come from a repeater; piece 1 is the product's own option +
+  // the top-level fields. Box those too ("st 1") while the repeater has items,
+  // so every piece on the page shares one frame.
+  const pieceRep = pieceOneRepeater(model.defs, model.result.visibleIds, model.ctx, placement);
+  const plainFields = pieceRep ? shown.filter((d) => d.type !== 'REPEATER') : [];
+
+  const renderField = (def: (typeof shown)[number]) =>
+    def.type === 'REPEATER' ? (
+      <RepeaterField
+        key={def.id}
+        def={def}
+        childDefs={childrenOf.get(def.id) ?? []}
+        model={model}
+        showAllErrors={showAllErrors}
+        locale={locale}
+        primaryLocale={primaryLocale}
+      />
+    ) : (
+      <FieldRenderer
+        key={def.id}
+        def={def}
+        fieldKey={def.id}
+        siblings={top}
+        container={model.values}
+        model={model}
+        showAllErrors={showAllErrors}
+        locale={locale}
+        primaryLocale={primaryLocale}
+        onChange={(v) => model.setValue(def.id, v)}
+      />
+    );
+
   return (
     <div id={anchor ? 'personalize' : undefined} className="flex flex-col gap-5 scroll-mt-24">
-      {shown.map((def) =>
-        def.type === 'REPEATER' ? (
-          <RepeaterField
-            key={def.id}
-            def={def}
-            childDefs={childrenOf.get(def.id) ?? []}
-            model={model}
-            showAllErrors={showAllErrors}
-            locale={locale}
-            primaryLocale={primaryLocale}
-          />
-        ) : (
-          <FieldRenderer
-            key={def.id}
-            def={def}
-            fieldKey={def.id}
-            siblings={top}
-            container={model.values}
-            model={model}
-            showAllErrors={showAllErrors}
-            locale={locale}
-            primaryLocale={primaryLocale}
-            onChange={(v) => model.setValue(def.id, v)}
-          />
-        ),
+      {pieceRep ? (
+        <>
+          <PieceGroup heading={groupHeading(pieceRep, pieceOneIndex(pieceRep), locale, primaryLocale, (k, p) => t(k, p))}>
+            {pieceOne}
+            {plainFields.map(renderField)}
+          </PieceGroup>
+          {shown.filter((d) => d.type === 'REPEATER').map(renderField)}
+        </>
+      ) : (
+        <>
+          {pieceOne}
+          {shown.map(renderField)}
+        </>
       )}
       {summary.length > 0 && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4">

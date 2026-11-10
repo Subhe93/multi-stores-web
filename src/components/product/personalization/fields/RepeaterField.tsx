@@ -5,6 +5,7 @@ import { readRepeat, repeaterIndexes, type PFieldDef } from '@multi-stores/core/
 import type { PersonalizationAdvanced } from '@/components/product/usePersonalizationFields';
 import { fieldKey, groupHeading, repeaterItems } from '../model';
 import { FieldRenderer } from './FieldRenderer';
+import { PieceGroup } from './PieceGroup';
 
 interface RepeaterFieldProps {
   def: PFieldDef;
@@ -33,12 +34,8 @@ export function RepeaterField({ def, childDefs, model, showAllErrors, locale, pr
         const pos = index - start;
         const item = items[pos] ?? {};
         return (
-          <fieldset key={index} className="rounded-xl border border-gray-200 p-4">
-            <legend className="px-1 text-sm font-semibold text-gray-900">
-              {groupHeading(def, index, locale, primaryLocale, (k, p) => t(k, p))}
-            </legend>
-            <div className="flex flex-col gap-4">
-              {childDefs.map((child) => (
+          <PieceGroup key={index} heading={groupHeading(def, index, locale, primaryLocale, (k, p) => t(k, p))}>
+            {childDefs.map((child) => (
                 <FieldRenderer
                   key={child.id}
                   def={child}
@@ -51,10 +48,9 @@ export function RepeaterField({ def, childDefs, model, showAllErrors, locale, pr
                   primaryLocale={primaryLocale}
                   groupIndex={index}
                   onChange={(v) => model.setChildValue(def.id, pos, child.id, v)}
-                />
-              ))}
-            </div>
-          </fieldset>
+              />
+            ))}
+          </PieceGroup>
         );
       })}
     </div>

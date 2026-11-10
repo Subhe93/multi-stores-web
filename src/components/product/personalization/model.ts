@@ -17,6 +17,7 @@ import {
   normalizeText,
   pickFieldTranslation,
   readLinkedValidation,
+  readRepeat,
   readUi,
   readValidationRules,
   repeaterIndexes,
@@ -134,6 +135,46 @@ export function visibleFieldsAt(
 ): PFieldDef[] {
   const visible = new Set(visibleIds);
   return splitFieldTree(defs).top.filter((d) => visible.has(d.id) && placementOf(d) === placement);
+}
+
+/**
+ * The repeater whose items stand for pieces 2..N while piece 1 is the product
+ * itself (`start_index` > 1 — namez "st 2", "st 3", …). Returned only while it
+ * has items, so the form can box piece 1 the same way ("st 1") and the
+ * shopper sees one shape per piece instead of two different designs.
+ */
+export function pieceOneRepeater(
+  defs: readonly PFieldDef[],
+  visibleIds: readonly string[],
+  ctx: Pick<PContext, 'variantOptions' | 'optionConfig'>,
+  placement: Placement,
+): PFieldDef | null {
+  return (
+    visibleFieldsAt(defs, visibleIds, placement).find(
+      (d) => d.type === 'REPEATER' && (readRepeat(d.repeat)?.start ?? 1) > 1 && repeaterIndexes(d, ctx).length > 0,
+    ) ?? null
+  );
+}
+
+/** Heading index of the piece-1 box: one below the repeater's first item. */
+export function pieceOneIndex(rep: PFieldDef): number {
+  return (readRepeat(rep.repeat)?.start ?? 2) - 1;
+}
+
+/**
+ * Product option names the repeater's colour palettes draw from
+ * (`ui.palette_from_option`). Those product options ARE piece 1's colour, so
+ * the page renders them inside the piece-1 box next to its text fields.
+ */
+export function pieceOneOptionKeys(defs: readonly PFieldDef[], rep: PFieldDef): string[] {
+  const children = splitFieldTree(defs).childrenOf.get(rep.id) ?? [];
+  const keys: string[] = [];
+  for (const child of children) {
+    if (child.type !== 'COLOR_PALETTE') continue;
+    const option = readUi(child.ui).palette_from_option;
+    if (typeof option === 'string' && option !== '' && !keys.includes(option)) keys.push(option);
+  }
+  return keys;
 }
 
 // ---------------------------------------------------------------------------
