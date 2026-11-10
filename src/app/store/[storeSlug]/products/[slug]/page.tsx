@@ -9,6 +9,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
+import { ProductPreviewBanner } from '@/components/layout/ProductPreview';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -134,6 +135,9 @@ export async function generateMetadata({
       title: tr?.meta_title || tr?.title || 'Product',
       description: tr?.meta_desc || tr?.description?.replace(/<[^>]+>/g, '').slice(0, 200),
       alternates,
+      // Owner preview of a DRAFT product: served to the owner only, never
+      // indexable (the public answer is a 404).
+      ...(product.status === 'DRAFT' ? { robots: { index: false, follow: false } } : {}),
       openGraph: {
         title: tr?.meta_title || tr?.title || undefined,
         description: tr?.meta_desc || undefined,
@@ -181,6 +185,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   } catch {
     notFound();
   }
+
+  // Owner preview of a DRAFT product (served with the owner token of the
+  // preview cookie only; everyone else got the 404 above): a sticky banner
+  // on top, add-to-cart disabled by the client components via `status`.
+  const draftPreview = product.status === 'DRAFT';
 
   // Same product requested in another letter case or Unicode form: one
   // permanent hop to the stored slug (WordPress canonical redirect). The
@@ -254,6 +263,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     ]);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
         {/* Markets app: translated slugs for the country switcher / banner. */}
         {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
         <script
@@ -351,6 +361,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
 
   return (
     <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
       {/* Markets app: translated slugs for the country switcher / banner. */}
       {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
       <script
@@ -413,3 +424,6 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
 
 // Cached via store-tagged reads (see lib/api.ts); a newly published
 // PRODUCT_TEMPLATE or product edit refreshes on-demand through /api/revalidate.
+// The owner's DRAFT product preview is read with `cache: 'no-store'` (preview
+// cookie token, `productReadOpts`), so a draft render never enters the data
+// cache; the route itself is dynamic (cookies are read), never statically cached.

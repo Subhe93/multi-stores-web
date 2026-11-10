@@ -733,6 +733,7 @@
     "pausedTitle": "Temporarily closed",
     "pausedBody": "This store is temporarily closed. Please check back later.",
     "previewBar": "Preview — not live yet",
+    "productPreviewBar": "Preview — this product is not published; only you can see it",
     "previewBarExit": "Exit preview"
   },
   "market": {

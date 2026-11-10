@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { marketQuery, type MarketRef } from './market';
-import { isStoreNotLiveError, storeHomeHref } from './storeGate';
+import { isStoreNotLiveError, PRODUCT_PREVIEW_COOKIE, STORE_PREVIEW_COOKIE, storeHomeHref } from './storeGate';
 import { previewFetchOptions, previewTokenFor, readBrowserPreviewCookie, resolveStorefrontFetchOptions } from './storePreview';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -135,19 +135,19 @@ const cacheOpts = cache(async (slug: string): Promise<FetchOptions> => {
 // the `storefront.*` reads of the slug it was accepted for, only while the
 // public payload of that store is gated, and always with `cache: 'no-store'`.
 
-type PreviewCookieReader = () => Promise<string | null>;
+type PreviewCookieReader = (cookieName: string) => Promise<string | null>;
 let serverPreviewCookieReader: PreviewCookieReader | null = null;
 
-/** Server side: registers how the preview cookie of the current request is read. */
+/** Server side: registers how a preview cookie (by name) of the current request is read. */
 export function registerServerPreviewCookieReader(reader: PreviewCookieReader): void {
   serverPreviewCookieReader = reader;
 }
 
-async function readPreviewCookie(): Promise<string | null> {
-  if (typeof window !== 'undefined') return readBrowserPreviewCookie();
+async function readPreviewCookie(cookieName: string = STORE_PREVIEW_COOKIE): Promise<string | null> {
+  if (typeof window !== 'undefined') return readBrowserPreviewCookie(cookieName);
   if (!serverPreviewCookieReader) return null;
   try {
-    return await serverPreviewCookieReader();
+    return await serverPreviewCookieReader(cookieName);
   } catch {
     return null;
   }
@@ -191,6 +191,22 @@ export async function getStorePreviewToken(slug: string): Promise<string | null>
   const opts = await storefrontOpts(slug);
   return opts.token ?? null;
 }
+
+/**
+ * Fetch options of the SINGLE product read (`GET /storefront/:slug/products/:productSlug`):
+ * the store preview options when one is in force, else — on a LIVE store
+ * too — the owner token of the `ms_product_preview` cookie bound to this
+ * slug, with `cache: 'no-store'`, so the API may answer a DRAFT product to
+ * its owner and that answer never lands in the Next data cache or under
+ * the store tag. Every other storefront read keeps `storefrontOpts`
+ * (lists stay public and cached). Deduped per request on the server.
+ */
+const productReadOpts = cache(async (slug: string): Promise<FetchOptions> => {
+  const opts = await storefrontOpts(slug);
+  if (opts.token) return opts;
+  const token = previewTokenFor(slug, await readPreviewCookie(PRODUCT_PREVIEW_COOKIE));
+  return token ? previewFetchOptions(token) : opts;
+});
 
 // Market → `?market=` suffix (markets app, M1-DESIGN §4.2), `marketQuery`
 // of `src/lib/market.ts`. Appended to the URL so each market has its own
@@ -236,7 +252,7 @@ export const storefront = {
   // they are percent-encoded exactly once here.
   getProduct: async (slug: string, productSlug: string, locale?: string, market?: MarketRef) => {
     const query = locale ? `?locale=${locale}` : '';
-    return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await storefrontOpts(slug));
+    return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await productReadOpts(slug));
   },
 
   getCategories: async (slug: string) =>

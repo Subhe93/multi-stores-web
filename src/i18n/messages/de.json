@@ -733,6 +733,7 @@
     "pausedTitle": "Vorübergehend geschlossen",
     "pausedBody": "Dieser Shop ist vorübergehend geschlossen. Bitte schauen Sie später wieder vorbei.",
     "previewBar": "Vorschau — noch nicht veröffentlicht",
+    "productPreviewBar": "Vorschau — dieses Produkt ist nicht veröffentlicht; nur du kannst es sehen",
     "previewBarExit": "Vorschau beenden"
   },
   "market": {

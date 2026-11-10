@@ -175,6 +175,8 @@ export interface SectionInstance {
 // (Record<string, unknown> values) so storefront API tweaks don't break themes.
 export interface ProductContext {
   id: string;
+  /** Publication state; 'DRAFT' only in the owner's product preview (add to cart disabled). */
+  status?: string;
   base_price: number;
   compare_at_price?: number;
   /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */

@@ -43,6 +43,8 @@ import {
 
 export interface ProductData {
   id: string;
+  /** Publication state; 'DRAFT' only in the owner's product preview (add to cart disabled). */
+  status?: string;
   base_price: number;
   compare_at_price?: number;
   /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */
@@ -496,11 +498,15 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     return selectedVariant ? selectedVariant.stock : undefined;
   }, [selectedVariant]);
 
+  // Owner preview of a DRAFT product: nothing can be added (the API would
+  // refuse the quote / order anyway).
+  const isDraftPreview = product.status === 'DRAFT';
   const isAddDisabled = useMemo(() => {
+    if (isDraftPreview) return true;
     if (variants.length > 0 && !selectedVariantId) return true;
     if (selectedVariant && selectedVariant.stock <= 0) return true;
     return false;
-  }, [variants, selectedVariantId, selectedVariant]);
+  }, [isDraftPreview, variants, selectedVariantId, selectedVariant]);
 
   // ── Handlers ──────────────────────────────────────────
 

@@ -733,6 +733,7 @@
     "pausedTitle": "Geçici olarak kapalı",
     "pausedBody": "Bu mağaza geçici olarak kapalı. Lütfen daha sonra tekrar deneyin.",
     "previewBar": "Önizleme — henüz yayında değil",
+    "productPreviewBar": "Önizleme — bu ürün yayınlanmadı; yalnızca siz görebilirsiniz",
     "previewBarExit": "Önizlemeden çık"
   },
   "market": {

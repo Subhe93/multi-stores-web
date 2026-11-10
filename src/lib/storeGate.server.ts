@@ -2,7 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { api, getStorePreviewToken, registerServerPreviewCookieReader, storefront } from './api';
 import type { MarketRef } from './market';
-import { STORE_PREVIEW_COOKIE, storeGate, type StoreGate, type StoreGateFields } from './storeGate';
+import { storeGate, type StoreGate, type StoreGateFields } from './storeGate';
 
 export interface GatedStore<T> {
   store: T;
@@ -14,9 +14,9 @@ export interface GatedStore<T> {
 // Server-side reader of the preview cookie for `src/lib/api.ts` (registered
 // at module load; the store layout imports this module, so every route under
 // it — pages, templates, menus, search — reads through it).
-registerServerPreviewCookieReader(async () => {
+registerServerPreviewCookieReader(async (cookieName) => {
   try {
-    return (await cookies()).get(STORE_PREVIEW_COOKIE)?.value ?? null;
+    return (await cookies()).get(cookieName)?.value ?? null;
   } catch {
     return null;
   }

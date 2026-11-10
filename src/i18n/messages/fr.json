@@ -733,6 +733,7 @@
     "pausedTitle": "Temporairement fermée",
     "pausedBody": "Cette boutique est temporairement fermée. Merci de revenir plus tard.",
     "previewBar": "Aperçu — pas encore en ligne",
+    "productPreviewBar": "Aperçu — ce produit n’est pas publié ; vous seul pouvez le voir",
     "previewBarExit": "Quitter l’aperçu"
   },
   "market": {

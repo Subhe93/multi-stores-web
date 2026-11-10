@@ -12,7 +12,7 @@
 // Pure helpers only (shared by server and browser); no `next/headers`.
 
 import { isPlausibleToken } from '@/components/edit-hint/editHintStorage';
-import { STORE_PREVIEW_COOKIE, storeGate, type StoreGateFields } from './storeGate';
+import { PRODUCT_PREVIEW_COOKIE, STORE_PREVIEW_COOKIE, storeGate, type StoreGateFields } from './storeGate';
 
 /** Cookie value: `<slug>:<jwt>` (a slug never contains ':'; a JWT neither). */
 export function encodePreviewCookie(slug: string, token: string): string {
@@ -57,14 +57,19 @@ export function resolveStorefrontFetchOptions<T>(args: {
   return token ? previewFetchOptions(token) : args.fallback;
 }
 
-/** Raw `ms_store_preview` cookie value in the browser (null elsewhere / when absent). */
-export function readBrowserPreviewCookie(): string | null {
+/** Raw value of a preview cookie in the browser (null elsewhere / when absent). */
+export function readBrowserPreviewCookie(cookieName: string = STORE_PREVIEW_COOKIE): string | null {
   if (typeof document === 'undefined') return null;
   for (const part of document.cookie.split(';')) {
     const [name, ...rest] = part.trim().split('=');
-    if (name === STORE_PREVIEW_COOKIE) return rest.join('=') || null;
+    if (name === cookieName) return rest.join('=') || null;
   }
   return null;
+}
+
+/** Raw `ms_product_preview` cookie value in the browser (DRAFT product preview on a LIVE store). */
+export function readBrowserProductPreviewCookie(): string | null {
+  return readBrowserPreviewCookie(PRODUCT_PREVIEW_COOKIE);
 }
 
 /**

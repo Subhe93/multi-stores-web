@@ -17,7 +17,7 @@ function hasPreviewCookie(): boolean {
   return readBrowserPreviewCookie() !== null;
 }
 
-function cookieAttrs(): string {
+export function cookieAttrs(): string {
   const secure = window.location.protocol === 'https:' ? '; Secure' : '';
   return `; Path=/; SameSite=Lax${secure}`;
 }
@@ -27,7 +27,7 @@ export function clearPreviewCookie(): void {
 }
 
 /** Owner tokens this browser may hold, most specific first. */
-function candidateTokens(): string[] {
+export function candidateTokens(): string[] {
   const out: string[] = [];
   const hint = readEditHintToken();
   if (hint) out.push(hint);

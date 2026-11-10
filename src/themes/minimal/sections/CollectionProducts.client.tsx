@@ -156,7 +156,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className={heading ? 'text-sm mt-1' : 'text-sm'} style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
               {subheading}
             </Heading>
           )}

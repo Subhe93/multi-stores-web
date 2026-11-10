@@ -246,7 +246,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   };
 
   async function handleAdd() {
-    if (!product || busy || needsVariant) return;
+    if (!product || busy || needsVariant || draftPreview) return;
     setAddError('');
     // Same rules as the API; a missing required field blocks the add.
     const check = personalization.validateAll();
@@ -293,6 +293,8 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const oos = typeof stock === 'number' && stock <= 0;
   // A product with variants needs one resolved before it can be added.
   const needsVariant = variants.length > 0 && !selectedVariant;
+  // Owner preview of a DRAFT product: the button stays disabled.
+  const draftPreview = product?.status === 'DRAFT';
 
   // Option picker of the variants (page form; also the designer review
   // step): the page's selector, controlled by this section's picks (D19).
@@ -385,7 +387,9 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
       totalLabel={money((Number(displayPrice) + designerAddons) * qty)}
       formatMoney={money}
       quantitySelector={quantityPicker}
-      blockedReason={oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null}
+      blockedReason={
+        draftPreview ? t('store.productPreviewBar') : oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null
+      }
       addedContent={justAdded ? addedState : undefined}
       onAddToCart={handleDesignerAdd}
       onDone={handleDesignerDone}
@@ -414,7 +418,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     <button
       type="button"
       onClick={handleAdd}
-      disabled={busy || oos || needsVariant}
+      disabled={busy || oos || needsVariant || draftPreview}
       className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
         fullWidth ? 'w-full' : ''
       }`}

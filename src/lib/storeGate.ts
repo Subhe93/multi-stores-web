@@ -16,6 +16,15 @@ import { locales } from '@/i18n/config';
 /** Cookie carrying the owner token for the server-side preview fetch. */
 export const STORE_PREVIEW_COOKIE = 'ms_store_preview';
 
+/**
+ * Cookie carrying the owner token for the preview of ONE DRAFT product on
+ * a LIVE store (`<slug>:<token>`, same encoding). Read by the single
+ * product fetch only — lists, search and the sitemap never see it — so a
+ * LIVE store keeps its cached public reads while the owner previews a
+ * draft (see `src/components/layout/ProductPreview.tsx`).
+ */
+export const PRODUCT_PREVIEW_COOKIE = 'ms_product_preview';
+
 /** API error code of cart / checkout calls against a non-LIVE store. */
 export const STORE_NOT_LIVE_CODE = 'STORE_NOT_LIVE';
 

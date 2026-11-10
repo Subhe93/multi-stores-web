@@ -733,6 +733,7 @@
     "pausedTitle": "Tillfälligt stängd",
     "pausedBody": "Butiken är tillfälligt stängd. Välkommen tillbaka senare.",
     "previewBar": "Förhandsgranskning — inte publicerad än",
+    "productPreviewBar": "Förhandsgranskning — produkten är inte publicerad; bara du kan se den",
     "previewBarExit": "Avsluta förhandsgranskning"
   },
   "market": {
