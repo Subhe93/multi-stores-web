@@ -2,7 +2,7 @@
 // them into CSS custom properties that get injected into the storefront root.
 
 import type { CSSProperties } from 'react';
-import type { ColorTokens, ThemeCustomizations, ThemeTokens } from './types';
+import type { ColorTokens, ProductTokens, ThemeCustomizations, ThemeTokens } from './types';
 import { isUnreadable, readableTextOn } from '@/lib/readableText';
 
 type ContrastKey = 'primaryContrast' | 'secondaryContrast' | 'accentContrast';
@@ -13,6 +13,12 @@ const CONTRAST_PAIRS: [ContrastKey, 'primary' | 'secondary' | 'accent'][] = [
 ];
 
 const filled = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+
+/** Swatch shape: only the two known values; anything else = the theme's (round). */
+export function mergeProduct(base?: ProductTokens, custom?: Partial<ProductTokens>): ProductTokens {
+  const shape = custom?.swatchShape;
+  return { swatchShape: shape === 'square' || shape === 'circle' ? shape : base?.swatchShape ?? 'circle' };
+}
 
 /**
  * Merge colours and resolve the text-on-colour tokens. A contrast colour the
@@ -63,9 +69,10 @@ export function storePrimaryContrast(
  * unknown keys are ignored to keep the contract strict.
  */
 export function mergeTokens(base: ThemeTokens, customizations?: ThemeCustomizations): ThemeTokens {
-  if (!customizations) return { ...base, colors: mergeColors(base.colors) };
+  if (!customizations) return { ...base, colors: mergeColors(base.colors), product: mergeProduct(base.product) };
   return {
     colors: mergeColors(base.colors, customizations.colors),
+    product: mergeProduct(base.product, customizations.product),
     typography: {
       fontFamily: { ...base.typography.fontFamily, ...(customizations.typography?.fontFamily || {}) },
       scale: { ...base.typography.scale, ...(customizations.typography?.scale || {}) },
@@ -135,6 +142,9 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
     '--theme-shadow-md': tokens.spacing.shadow.md,
     '--theme-shadow-lg': tokens.spacing.shadow.lg,
     '--theme-container-max': tokens.spacing.containerMaxWidth,
+    // Colour swatches (variant options + personalization palettes): a store
+    // setting, so one choice restyles every swatch on the product page.
+    '--theme-swatch-radius': tokens.product?.swatchShape === 'square' ? '0.5rem' : '9999px',
   };
   // Price colour only when set: consumers fall back to their own primary
   // (`var(--theme-colors-price, var(--theme-colors-primary))`).

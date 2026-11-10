@@ -99,3 +99,14 @@ describe('sale badge and price highlight tokens', () => {
     expect(vars['--theme-price-bg']).toBeUndefined();
   });
 });
+
+describe('swatch shape token', () => {
+  it('defaults to round swatches and emits the radius variable', () => {
+    expect(mergeTokens(minimalTokens, undefined).product?.swatchShape).toBe('circle');
+    expect(vars(mergeTokens(minimalTokens, {}))['--theme-swatch-radius']).toBe('9999px');
+  });
+  it('square swatches come from the store customization; unknown values fall back', () => {
+    expect(vars(mergeTokens(minimalTokens, { product: { swatchShape: 'square' } }))['--theme-swatch-radius']).toBe('0.5rem');
+    expect(mergeTokens(minimalTokens, { product: { swatchShape: 'hex' as never } }).product?.swatchShape).toBe('circle');
+  });
+});

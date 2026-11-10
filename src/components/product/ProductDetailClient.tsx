@@ -672,7 +672,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     if (type === 'COLOR' && typeof val === 'string') {
       return (
         <span className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded-full border border-gray-200 inline-block" style={{ backgroundColor: val }} />
+          <span className="w-4 h-4 border border-gray-200 inline-block" style={{ backgroundColor: val, borderRadius: 'var(--theme-swatch-radius, 9999px)' }} />
           {val}
         </span>
       );

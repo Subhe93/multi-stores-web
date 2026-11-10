@@ -302,10 +302,12 @@ export function VariantSelector({
                           disabled={!available}
                           onClick={() => handleSelect(key, value)}
                           title={value}
-                          className={`relative size-11 rounded-full transition-all duration-200 ${
+                          className={`relative size-11 transition-all duration-200 ${
                             !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                           } ${isSelected ? 'ring-2 ring-offset-3' : 'hover:ring-1 hover:ring-offset-2 hover:ring-gray-300'}`}
                           style={{
+                            // Store setting (theme customizer): round or square swatches.
+                            borderRadius: 'var(--theme-swatch-radius, 9999px)',
                             ...(dualHex
                               ? { background: `linear-gradient(135deg, ${dualHex[0]} 50%, ${dualHex[1]} 50%)` }
                               : { backgroundColor: cssColor! }),
@@ -323,7 +325,7 @@ export function VariantSelector({
                           )}
                           {!available && (
                             <span className="absolute inset-0 flex items-center justify-center">
-                              <span className="block w-11 h-0.5 rotate-45 bg-gray-400/60" />
+                              <span className="block w-[150%] h-0.5 rotate-45 bg-gray-400/60" />
                             </span>
                           )}
                         </button>

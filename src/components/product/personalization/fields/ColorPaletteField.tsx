@@ -66,10 +66,12 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
                   aria-label={nameOf(entry.value)}
                   title={nameOf(entry.value)}
                   onClick={() => onChange(entry.value)}
-                  className={`relative size-11 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 ${
+                  className={`relative size-11 transition-all duration-200 cursor-pointer hover:scale-110 ${
                     isSelected ? 'ring-2 ring-offset-3' : 'hover:ring-1 hover:ring-offset-2 hover:ring-gray-300'
                   }`}
                   style={{
+                    // Same store setting as VariantSelector: round or square swatches.
+                    borderRadius: 'var(--theme-swatch-radius, 9999px)',
                     backgroundColor: hex,
                     border: light ? '2px solid #e5e7eb' : '2px solid transparent',
                     boxShadow: isSelected ? undefined : '0 1px 3px rgba(0,0,0,0.08)',

@@ -81,10 +81,18 @@ export interface SpacingTokens {
   containerMaxWidth: string;
 }
 
+/** Product-page controls a store can restyle without touching the theme. */
+export interface ProductTokens {
+  /** Colour swatches of variant options and personalization palettes. */
+  swatchShape: 'circle' | 'square';
+}
+
 export interface ThemeTokens {
   colors: ColorTokens;
   typography: TypographyTokens;
   spacing: SpacingTokens;
+  /** Optional: themes without it render round swatches. */
+  product?: ProductTokens;
 }
 
 // Deep-partial of tokens; what creators store as `theme_customizations`.
@@ -101,6 +109,7 @@ export type ThemeCustomizations = {
     shadow?: Partial<SpacingTokens['shadow']>;
     containerMaxWidth?: string;
   };
+  product?: Partial<ProductTokens>;
 };
 
 // ── Section schema ─────────────────────────────────────────────
