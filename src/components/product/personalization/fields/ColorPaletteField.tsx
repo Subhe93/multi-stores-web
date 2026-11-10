@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { Check, X } from 'lucide-react';
 import { resolvePalette, type PContext, type PFieldDef } from '@multi-stores/core/personalization';
+import { resolveMediaUrl } from '@/lib/api';
+import { responsiveImgProps } from '@/lib/storeMedia';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 
@@ -38,12 +40,15 @@ function isLight(hex: string): boolean {
  * from this field, and the shopper must not see two designs for one choice.
  * The palette is the product's own colour option (values on active
  * variants) or the field's static list, so a colour the product does not
- * sell cannot be picked (the olivgrön fix).
+ * sell cannot be picked (the olivgrön fix). An image-style option (namez
+ * "Djur": one picture per animal) renders its swatch pictures, exactly like
+ * VariantSelector's image tiles, instead of grey discs.
  */
 export function ColorPaletteField({ def, inputId, text, value, ctx, required, error, onChange }: ColorPaletteFieldProps) {
   const t = useTranslations('personalization');
   const tCommon = useTranslations('common');
   const palette = resolvePalette(def, ctx);
+  const tiles = palette.some((e) => e.image);
   const selected = typeof value === 'string' ? value : '';
   const nameOf = (v: string) => text.optionLabels?.[v] ?? v;
 
@@ -54,8 +59,59 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
       ) : (
         <div className="flex flex-wrap gap-3">
           {palette.map((entry, i) => {
-            const hex = entry.hex || FALLBACK_HEX;
             const isSelected = selected === entry.value;
+            // One shape per palette: once any value has a picture, the ones
+            // without one get a labelled tile (VariantSelector's placeholder),
+            // never a 44px disc beside 80px tiles.
+            if (tiles) {
+              return (
+                <div key={entry.value} className="flex flex-col items-center gap-1.5">
+                  <button
+                    id={i === 0 ? inputId : undefined}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={nameOf(entry.value)}
+                    title={nameOf(entry.value)}
+                    onClick={() => onChange(entry.value)}
+                    className={`relative w-20 h-20 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer ${
+                      isSelected ? 'ring-2 ring-offset-2 shadow-md' : 'border-2 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    }`}
+                    style={isSelected ? ({ '--tw-ring-color': 'var(--store-primary, #2563eb)' } as React.CSSProperties) : undefined}
+                  >
+                    {entry.image ? (
+                      <img
+                        {...responsiveImgProps(resolveMediaUrl(entry.image), '80px')}
+                        alt=""
+                        width={80}
+                        height={80}
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="w-full h-full bg-gray-50 flex items-center justify-center text-xs text-gray-400 font-medium p-1 text-center">
+                        {nameOf(entry.value)}
+                      </span>
+                    )}
+                    {isSelected && (
+                      <span
+                        className="absolute top-1 inset-e-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+                      >
+                        <Check className="w-3 h-3" strokeWidth={3} style={{ color: 'var(--store-primary-contrast, #fff)' }} />
+                      </span>
+                    )}
+                  </button>
+                  <span
+                    className={`max-w-20 truncate text-center text-[10px] leading-tight ${
+                      isSelected ? 'font-medium text-gray-900' : 'text-gray-400'
+                    }`}
+                  >
+                    {nameOf(entry.value)}
+                  </span>
+                </div>
+              );
+            }
+            const hex = entry.hex || FALLBACK_HEX;
             const light = isLight(hex);
             return (
               <div key={entry.value} className="flex flex-col items-center gap-1.5">
