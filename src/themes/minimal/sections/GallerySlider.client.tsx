@@ -1,12 +1,13 @@
 'use client';
 
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { useTranslations } from 'next-intl';
 
 interface GalleryItem {
@@ -61,13 +62,16 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
     const alt = item.alt?.trim() || caption;
     const inner = (
       <div className="group relative overflow-hidden h-full" style={radiusStyle}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          {...responsiveImgProps(resolveMediaUrl(item.url || ''), imgSizes)}
-          alt={alt}
-          loading="lazy"
-          className={`w-full ${ASPECT_CLASS[aspect]} object-cover transition-transform duration-500 group-hover:scale-105`}
-        />
+        <div className={`relative w-full ${ASPECT_CLASS[aspect]}`}>
+          <StoreImage
+            src={resolveMediaUrl(item.url || '')}
+            alt={alt}
+            fill
+            sizes={imgSizes}
+            unoptimized={isSvgSrc(resolveMediaUrl(item.url || ''))}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
         {showCaption && item.caption && (
           <div
             className="absolute inset-x-0 bottom-0 p-3 text-white text-xs translate-y-full group-hover:translate-y-0 transition-transform duration-300"

@@ -17,6 +17,8 @@ import { DesignerCanvas } from './DesignerCanvas';
 import { PhotoSlotControl } from './PhotoSlotControl';
 import { TextFieldControl } from './TextFieldControl';
 import { useDesignerSession } from './DesignerSession';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { DesignerSession } from './DesignerInline';
 
 /** Element id of a back field in the error maps (`back:<id>`). */
@@ -168,10 +170,18 @@ export function DesignerBackBlock({ session: s, locale, maxUploadMb, minDpi }: B
                       style={selected ? { borderColor: 'var(--store-primary, #2563eb)' } : undefined}
                       data-back-template={tpl.template_id}
                     >
-                      <span className="block aspect-[5/7] w-full overflow-hidden rounded-md bg-gray-100">
+                      <span className="relative block aspect-[5/7] w-full overflow-hidden rounded-md bg-gray-100">
                         {tpl.thumbnail_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- public template thumbnail
-                          <img src={tpl.thumbnail_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          // Public template thumbnail; the gallery sits in the
+                          // product form column (3-4 tiles across half the page).
+                          <StoreImage
+                            src={tpl.thumbnail_url}
+                            alt=""
+                            fill
+                            sizes="(min-width: 768px) 13vw, 33vw"
+                            unoptimized={isSvgSrc(tpl.thumbnail_url)}
+                            className="object-cover"
+                          />
                         ) : null}
                       </span>
                       <span className="line-clamp-2 text-xs text-gray-800" dir="auto">

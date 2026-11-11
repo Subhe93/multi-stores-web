@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 import { Check, X } from 'lucide-react';
 import { resolvePalette, type PContext, type PFieldDef } from '@multi-stores/core/personalization';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 
@@ -79,12 +80,13 @@ export function ColorPaletteField({ def, inputId, text, value, ctx, required, er
                     style={isSelected ? ({ '--tw-ring-color': 'var(--store-primary, #2563eb)' } as React.CSSProperties) : undefined}
                   >
                     {entry.image ? (
-                      <img
-                        {...responsiveImgProps(resolveMediaUrl(entry.image), '80px')}
+                      <StoreImage
+                        src={resolveMediaUrl(entry.image)}
                         alt=""
                         width={80}
                         height={80}
-                        decoding="async"
+                        sizes="80px"
+                        unoptimized={isSvgSrc(resolveMediaUrl(entry.image))}
                         className="w-full h-full object-cover"
                       />
                     ) : (

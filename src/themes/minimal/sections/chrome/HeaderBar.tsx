@@ -12,7 +12,8 @@ import Link from 'next/link';
 // floods the origin with dynamic RSC renders on each page view.
 import { Search, User, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
@@ -185,18 +186,29 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
           <Link prefetch={false} href={homeUrl} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
             {showLogo && logoUrl && (
               // Optimized at its displayed width (a 600px logo was sent to a
-              // ~100px box); SVG logos pass through unchanged.
-              <img
-                {...responsiveImgProps(resolveMediaUrl(logoUrl), `${logoSize}px`)}
+              // ~100px box); SVG logos pass through unchanged. Eager: the
+              // header is always above the fold.
+              <StoreImage
+                src={resolveMediaUrl(logoUrl)}
                 alt={storeName}
+                width={logoSize}
+                height={logoSize}
+                sizes={`${logoSize}px`}
+                loading="eager"
+                unoptimized={isSvgSrc(resolveMediaUrl(logoUrl))}
                 style={{ width: logoSize, height: logoSize }}
                 className={`object-contain shrink-0 ${logoUrlMobile ? 'hidden md:block' : ''}`}
               />
             )}
             {showLogo && logoUrlMobile && (
-              <img
-                {...responsiveImgProps(resolveMediaUrl(logoUrlMobile), `${logoSize}px`)}
+              <StoreImage
+                src={resolveMediaUrl(logoUrlMobile)}
                 alt={storeName}
+                width={logoSize}
+                height={logoSize}
+                sizes={`${logoSize}px`}
+                loading="eager"
+                unoptimized={isSvgSrc(resolveMediaUrl(logoUrlMobile))}
                 style={{ width: logoSize, height: logoSize }}
                 className="object-contain shrink-0 md:hidden"
               />

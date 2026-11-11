@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { UnavailableInMarketNotice } from './UnavailableInMarket';
 // Direct module imports (not the barrel) keep the evaluator out of the cart chunk (M5 D24).
@@ -71,8 +72,7 @@ export function CartFieldValue({ value, display }: { value: unknown; display?: s
   return (
     <span className="inline-flex items-center gap-1 align-middle">
       {files.map((url, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img key={`${url}-${i}`} src={resolveMediaUrl(url)} alt="" width={24} height={24} loading="lazy" decoding="async" className="w-6 h-6 rounded object-cover border border-gray-200" />
+        <StoreImage key={`${url}-${i}`} src={resolveMediaUrl(url)} alt="" width={24} height={24} sizes="24px" unoptimized={isSvgSrc(url)} className="w-6 h-6 rounded object-cover border border-gray-200" />
       ))}
     </span>
   );
@@ -117,16 +117,30 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
       <div className="relative w-16 h-16 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
           {img ? (
-            // Design proofs stay raw (onError fallback); catalog images get a srcset.
-            <img
-              {...(proofImg ? { src: img } : responsiveImgProps(img, '64px'))}
-              alt={item.title}
-              width={64}
-              height={64}
-              decoding="async"
-              className={`w-full h-full ${proofImg ? 'object-contain bg-white' : 'object-cover'}`}
-              onError={proofImg ? () => setProofFailed(true) : undefined}
-            />
+            proofImg ? (
+              // Design proofs stay a raw <img>: the file may not exist yet and
+              // the onError fallback swaps back to the catalog image.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img}
+                alt={item.title}
+                width={64}
+                height={64}
+                decoding="async"
+                className="w-full h-full object-contain bg-white"
+                onError={() => setProofFailed(true)}
+              />
+            ) : (
+              <StoreImage
+                src={img}
+                alt={item.title}
+                width={64}
+                height={64}
+                sizes="64px"
+                unoptimized={isSvgSrc(img)}
+                className="w-full h-full object-cover"
+              />
+            )
           ) : (
             <div className="w-full h-full bg-gray-100" />
           )}
@@ -141,6 +155,8 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             data-cart-back-proof
           >
             {backImg ? (
+              // Back proof: raw <img> for the same onError fallback as the front proof.
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={backImg} alt={t('designer.backSide')} decoding="async" className="w-full h-full object-contain bg-white" onError={() => setBackFailed(true)} />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[9px] text-gray-400">{t('designer.backSide')}</div>

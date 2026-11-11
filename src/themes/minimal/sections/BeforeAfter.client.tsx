@@ -7,7 +7,8 @@ import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
@@ -147,24 +148,24 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
           onPointerCancel={endDrag}
         >
           {/* Before image — full frame underneath. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            {...responsiveImgProps(resolveMediaUrl(imageBefore), '(min-width: 896px) 896px, 100vw')}
-            decoding="async"
+          <StoreImage
+            src={resolveMediaUrl(imageBefore)}
             alt={labelBefore || ''}
-            loading="lazy"
+            fill
+            sizes="(min-width: 896px) 896px, 100vw"
+            unoptimized={isSvgSrc(resolveMediaUrl(imageBefore))}
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="object-cover"
           />
           {/* After image — clipped so only the part right of the divider shows. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            {...responsiveImgProps(resolveMediaUrl(imageAfter), '(min-width: 896px) 896px, 100vw')}
-            decoding="async"
+          <StoreImage
+            src={resolveMediaUrl(imageAfter)}
             alt={labelAfter || ''}
-            loading="lazy"
+            fill
+            sizes="(min-width: 896px) 896px, 100vw"
+            unoptimized={isSvgSrc(resolveMediaUrl(imageAfter))}
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="object-cover"
             style={{
               clipPath: `inset(0 0 0 ${position}%)`,
               transition: dragging ? 'none' : 'clip-path 200ms ease-out',

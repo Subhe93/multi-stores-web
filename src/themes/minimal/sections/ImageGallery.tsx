@@ -1,9 +1,10 @@
 import { useId } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 
 interface GalleryItem {
   url?: string;
@@ -56,15 +57,31 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
   // Each image is a tile — wrapped in <a> only when a link is supplied. Keeps
   // the same hover/transition treatment regardless of click behaviour.
   function Tile({ item }: { item: GalleryItem }) {
+    const src = resolveMediaUrl(item.url || '');
     const inner = (
       <div className="group relative overflow-hidden" style={radiusStyle}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          {...responsiveImgProps(resolveMediaUrl(item.url || ''), imgSizes)}
-          alt={item.alt || ''}
-          loading="lazy"
-          className={`w-full ${ASPECT_CLASS[aspect]} object-cover transition-transform duration-500 group-hover:scale-105`}
-        />
+        {aspect === 'auto' ? (
+          // Natural ratio: next/image cannot size it without known dimensions,
+          // so it stays a plain <img> with an optimized srcset.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            {...responsiveImgProps(src, imgSizes)}
+            alt={item.alt || ''}
+            loading="lazy"
+            className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className={`relative w-full ${ASPECT_CLASS[aspect]}`}>
+            <StoreImage
+              src={src}
+              alt={item.alt || ''}
+              fill
+              sizes={imgSizes}
+              unoptimized={isSvgSrc(src)}
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+        )}
         {showCaption && item.caption && (
           <div
             className="absolute inset-x-0 bottom-0 p-3 text-white text-xs translate-y-full group-hover:translate-y-0 transition-transform duration-300"

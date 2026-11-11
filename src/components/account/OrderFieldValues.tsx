@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { resolveMediaUrl } from '@/lib/api';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { buildPersonalizationGroups, hasPersonalizationGroups } from '@multi-stores/core/personalization';
 import {
   snapshotLabel,
@@ -99,16 +101,15 @@ export function OrderFieldValues({ rows, locale, primaryLocale, className }: Ord
               }
               const src = row.upload?.preview_url || row.file_url;
               return src && IMAGE_PATH.test(src) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <StoreImage
                   key={k}
                   src={resolveMediaUrl(src)}
                   alt={row.upload?.original_name || g.label}
                   title={row.upload?.original_name || undefined}
                   width={40}
                   height={40}
-                  loading="lazy"
-                  decoding="async"
+                  sizes="40px"
+                  unoptimized={isSvgSrc(src)}
                   className="w-10 h-10 rounded-md object-cover border border-gray-200"
                 />
               ) : (

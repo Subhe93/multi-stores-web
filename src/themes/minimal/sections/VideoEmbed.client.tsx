@@ -6,7 +6,8 @@
 import { useState } from 'react';
 import { Play } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -101,7 +102,7 @@ export function VideoEmbed({ settings, content, locale }: SectionRenderProps) {
             className="absolute inset-0 w-full h-full group"
             aria-label={locale === 'ar' ? 'تشغيل الفيديو' : 'Play video'}
           >
-            <img {...responsiveImgProps(resolveMediaUrl(poster!), '(min-width: 900px) 900px, 100vw')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+            <StoreImage src={resolveMediaUrl(poster!)} alt="" fill sizes="(min-width: 900px) 900px, 100vw" unoptimized={isSvgSrc(resolveMediaUrl(poster!))} className="object-cover" />
             <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/30">
               <span
                 className="size-16 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-110"

@@ -3,7 +3,8 @@
 
 import { ArrowUpRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
@@ -87,14 +88,13 @@ function TeamGrid({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {m.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  {...responsiveImgProps(resolveMediaUrl(m.photo), '112px')}
+                <StoreImage
+                  src={resolveMediaUrl(m.photo)}
                   alt={m.name || ''}
                   width={112}
                   height={112}
-                  decoding="async"
-                  loading="lazy"
+                  sizes="112px"
+                  unoptimized={isSvgSrc(resolveMediaUrl(m.photo))}
                   className="size-28 rounded-full object-cover"
                   style={{ boxShadow: 'var(--theme-shadow-sm)' }}
                 />

@@ -5,7 +5,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { formatPrice } from '@/lib/format';
 import { deriveNetTotals, taxLinesFromLegacy, type TaxPricingMode } from '@/lib/tax';
 import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
@@ -147,13 +148,13 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
               return (
                 <div key={item.id} className="flex items-center gap-3 py-3">
                   {imgUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      {...responsiveImgProps(resolveMediaUrl(imgUrl), '48px')}
+                    <StoreImage
+                      src={resolveMediaUrl(imgUrl)}
                       alt={title}
                       width={48}
                       height={48}
-                      decoding="async"
+                      sizes="48px"
+                      unoptimized={isSvgSrc(resolveMediaUrl(imgUrl))}
                       className="w-12 h-12 rounded-lg object-cover border border-gray-100"
                     />
                   ) : (

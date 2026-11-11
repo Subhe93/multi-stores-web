@@ -8,7 +8,8 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Quote, Star } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { SectionHeading } from './_shared/SectionHeading';
@@ -153,14 +154,13 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
                 )}
                 <figcaption className="flex flex-col items-center gap-3 mt-2">
                   {t.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      {...responsiveImgProps(resolveMediaUrl(t.avatar), '56px')}
+                    <StoreImage
+                      src={resolveMediaUrl(t.avatar)}
                       alt={t.author || ''}
                       width={56}
                       height={56}
-                      decoding="async"
-                      loading="lazy"
+                      sizes="56px"
+                      unoptimized={isSvgSrc(resolveMediaUrl(t.avatar))}
                       className="size-14 rounded-full object-cover"
                       style={{ boxShadow: 'var(--theme-shadow-sm)' }}
                     />

@@ -10,7 +10,8 @@
 import { useId } from 'react';
 import Link from 'next/link';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
 
@@ -128,16 +129,34 @@ function BlockView({ block }: { block: Block }) {
     case 'image': {
       if (!block.image) return null;
       const aspect = block.aspect || 'auto';
+      const src = resolveMediaUrl(block.image);
+      const radius = block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
+      // 'auto' keeps the natural ratio, which next/image cannot size without
+      // known dimensions, so it stays a plain <img> with an optimized srcset.
+      if (aspect === 'auto') {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            {...responsiveImgProps(src, '(min-width: 768px) 50vw, 100vw')}
+            alt={block.alt || ''}
+            decoding="async"
+            loading="lazy"
+            className="w-full object-cover"
+            style={radius}
+          />
+        );
+      }
       return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          {...responsiveImgProps(resolveMediaUrl(block.image), '(min-width: 768px) 50vw, 100vw')}
-          alt={block.alt || ''}
-          decoding="async"
-          loading="lazy"
-          className={`w-full object-cover ${ASPECT_CLASS[aspect]} ${block.rounded ? '' : ''}`}
-          style={block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined}
-        />
+        <div className={`relative w-full overflow-hidden ${ASPECT_CLASS[aspect]}`} style={radius}>
+          <StoreImage
+            src={src}
+            alt={block.alt || ''}
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            unoptimized={isSvgSrc(src)}
+            className="object-cover"
+          />
+        </div>
       );
     }
     case 'button': {

@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { X, Check } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { VariantCards, type VariantCardsConfig } from '@/components/product/personalization/VariantCards';
 
 // ── Color utilities ────────────────────────────────────
@@ -391,12 +392,13 @@ export function VariantSelector({
                         }
                       >
                         {imgUrl ? (
-                          <img
-                            {...responsiveImgProps(resolveMediaUrl(imgUrl), '80px')}
+                          <StoreImage
+                            src={resolveMediaUrl(imgUrl)}
                             alt={value}
                             width={80}
                             height={80}
-                            decoding="async"
+                            sizes="80px"
+                            unoptimized={isSvgSrc(resolveMediaUrl(imgUrl))}
                             className="w-full h-full object-cover"
                           />
                         ) : (

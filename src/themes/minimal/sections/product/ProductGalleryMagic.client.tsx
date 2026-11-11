@@ -140,21 +140,31 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   if (layout === 'grid') {
     return (
       <section className="grid grid-cols-2 gap-3">
-        {images.map((img, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 25vw, 50vw')}
-            alt={img.alt_text || ''}
-            fetchPriority={i === 0 ? 'high' : undefined}
-            loading={i < 2 ? undefined : 'lazy'}
-            className={`w-full ${ASPECT[aspect]} object-cover`}
-            style={{
-              borderRadius: 'var(--theme-radius-md)',
-              border: '1px solid var(--theme-colors-border)',
-            }}
-          />
-        ))}
+        {images.map((img, i) => {
+          const src = resolveMediaUrl(img.url);
+          return (
+            <div
+              key={i}
+              className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
+              style={{
+                borderRadius: 'var(--theme-radius-md)',
+                border: '1px solid var(--theme-colors-border)',
+              }}
+            >
+              <StoreImage
+                src={src}
+                alt={img.alt_text || ''}
+                fill
+                sizes="(min-width: 768px) 25vw, 50vw"
+                preload={i === 0}
+                fetchPriority={i === 0 ? 'high' : undefined}
+                loading={i < 2 ? 'eager' : undefined}
+                unoptimized={isSvgSrc(src)}
+                className="object-cover"
+              />
+            </div>
+          );
+        })}
       </section>
     );
   }
@@ -162,21 +172,31 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   if (layout === 'stacked') {
     return (
       <section className="space-y-3">
-        {images.map((img, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 50vw, 100vw')}
-            alt={img.alt_text || ''}
-            fetchPriority={i === 0 ? 'high' : undefined}
-            loading={i < 1 ? undefined : 'lazy'}
-            className={`w-full ${ASPECT[aspect]} object-cover`}
-            style={{
-              borderRadius: 'var(--theme-radius-md)',
-              border: '1px solid var(--theme-colors-border)',
-            }}
-          />
-        ))}
+        {images.map((img, i) => {
+          const src = resolveMediaUrl(img.url);
+          return (
+            <div
+              key={i}
+              className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
+              style={{
+                borderRadius: 'var(--theme-radius-md)',
+                border: '1px solid var(--theme-colors-border)',
+              }}
+            >
+              <StoreImage
+                src={src}
+                alt={img.alt_text || ''}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                preload={i === 0}
+                fetchPriority={i === 0 ? 'high' : undefined}
+                loading={i < 1 ? 'eager' : undefined}
+                unoptimized={isSvgSrc(src)}
+                className="object-cover"
+              />
+            </div>
+          );
+        })}
       </section>
     );
   }
@@ -234,7 +254,7 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
               key={i}
               type="button"
               onClick={() => setActive(i)}
-              className="block w-full aspect-square overflow-hidden transition-all"
+              className="relative block w-full aspect-square overflow-hidden transition-all"
               style={{
                 borderRadius: 'var(--theme-radius-sm)',
                 outline:
@@ -244,12 +264,13 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
                 outlineOffset: i === active ? '1px' : '0',
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                {...responsiveImgProps(resolveMediaUrl(img.url), '(min-width: 768px) 10vw, 20vw')}
+              <StoreImage
+                src={resolveMediaUrl(img.url)}
                 alt={img.alt_text || ''}
-                loading="lazy"
-                className="w-full h-full object-cover"
+                fill
+                sizes="(min-width: 768px) 10vw, 20vw"
+                unoptimized={isSvgSrc(resolveMediaUrl(img.url))}
+                className="object-cover"
               />
             </button>
           ))}

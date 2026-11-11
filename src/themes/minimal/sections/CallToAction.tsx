@@ -1,5 +1,6 @@
 import { resolveMediaUrl } from '@/lib/api';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { StoreImage } from '@/components/StoreImage';
+import { isSvgSrc } from '@/lib/storeMedia';
 import { storeHref } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
@@ -95,7 +96,7 @@ function CallToAction({ settings, content }: SectionRenderProps) {
         style={{ borderRadius: 'var(--theme-radius-lg)' }}
       >
         {resolvedImage && (
-          <img {...responsiveImgProps(resolvedImage, '100vw')} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+          <StoreImage src={resolvedImage} alt="" fill sizes="100vw" unoptimized={isSvgSrc(resolvedImage)} className="object-cover" />
         )}
         <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} />
         <div className="relative">
@@ -124,8 +125,8 @@ function CallToAction({ settings, content }: SectionRenderProps) {
           {button}
         </div>
         {resolvedImage && (
-          <div className="h-64 md:h-full min-h-70">
-            <img {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+          <div className="relative h-64 md:h-full min-h-70">
+            <StoreImage src={resolvedImage} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" unoptimized={isSvgSrc(resolvedImage)} className="object-cover" />
           </div>
         )}
       </section>
