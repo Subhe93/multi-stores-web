@@ -23,7 +23,15 @@ interface AnnouncementMessage {
   text?: string;
   link_label?: string;
   link_url?: string;
+  /** Payment badge shown right after the text ("Betala med [Klarna]"). */
+  badge?: string;
 }
+
+// Built-in payment badges: official artwork served from /public (no
+// third-party request), drawn at text height. Keyed by the `badge` value.
+const BADGES: Record<string, { src: string; alt: string; width: number; height: number }> = {
+  klarna: { src: '/payment-badges/klarna.svg', alt: 'Klarna', width: 43, height: 18 },
+};
 
 type Layout = 'simple' | 'marquee' | 'rotating';
 
@@ -90,6 +98,17 @@ export function AnnouncementBar({ settings, content }: SectionRenderProps) {
   const renderMessage = (msg: AnnouncementMessage, key?: number) => (
     <span key={key} className="inline-flex items-center gap-2 whitespace-nowrap">
       <span>{msg.text}</span>
+      {msg.badge && BADGES[msg.badge] && (
+        // Plain <img>: a tiny static SVG from /public, nothing to optimize.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={BADGES[msg.badge].src}
+          alt={BADGES[msg.badge].alt}
+          width={BADGES[msg.badge].width}
+          height={BADGES[msg.badge].height}
+          className="h-[18px] w-auto shrink-0"
+        />
+      )}
       {msg.link_label && msg.link_url && (
         <a
           href={storeHref(msg.link_url)}
