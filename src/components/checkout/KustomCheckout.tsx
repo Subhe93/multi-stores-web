@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -20,6 +20,8 @@ import { VatNumberField } from '@/components/checkout/VatNumberField';
 import { normalizeVatNumber } from '@/lib/b2bValidators';
 import { vatCheckMessageKey, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { exemptLinePrices } from '@/lib/taxExemption';
+import { rememberPurchaseSnapshot } from '@/lib/trackEvents';
+import { availableLines } from '@/lib/cartAvailability';
 
 // ── Kustom-first checkout ─────────────────────────────────────────────────────
 // Address, shipping and payment all happen inside Kustom's iframe; this page
@@ -127,7 +129,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
     : 0;
 
-  const { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, session, retry } = useKustomCheckout({
     storeSlug,
     locale,
     marketKey: market?.key ?? null,
@@ -180,6 +182,24 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   // The session is priced in the store's charge currency, which is the one to
   // format its figures in; fall back to the cart currency on older API builds.
   const summaryCurrency = totals?.currency || currency;
+
+  // Purchase event of a guest: the confirmation page cannot load the order
+  // without a login, so what the session charges is kept (per session, in
+  // sessionStorage) for it. Rewritten whenever the session totals change.
+  const sessionId = session?.session_id;
+  useEffect(() => {
+    if (!sessionId || !totals) return;
+    rememberPurchaseSnapshot(sessionId, {
+      value: totals.total,
+      currency: summaryCurrency,
+      items: availableLines(items).map((item) => ({
+        productId: item.customProductId || item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        ...(item.title || item.name ? { name: item.title || item.name } : {}),
+      })),
+    });
+  }, [sessionId, totals, summaryCurrency, items]);
 
   // Kustom's callbacks send the customer back here with an error code when
   // shipping is impossible or the order could not be created.

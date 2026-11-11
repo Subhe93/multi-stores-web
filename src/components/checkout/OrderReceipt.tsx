@@ -23,6 +23,9 @@ interface Translation { locale: string; title: string }
 
 export interface OrderReceiptItem {
   id: string;
+  /** Catalog product of the line (custom products: `custom_product_id`). */
+  product_id?: string | null;
+  custom_product_id?: string | null;
   quantity: number;
   unit_price: number | string;
   total_price?: number | string;
@@ -45,6 +48,9 @@ export interface OrderReceiptItem {
 export interface OrderReceiptOrder {
   id: string;
   order_number: string;
+  /** "paid" once the payment is confirmed; COD orders are placed unpaid. */
+  payment_status?: string | null;
+  payment_method?: string | null;
   subtotal: number | string;
   shipping_cost: number | string;
   /** Display name of the shipping method chosen at checkout (phase C). */

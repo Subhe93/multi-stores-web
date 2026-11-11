@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/format';
-import { taxLineLabel, type TaxLine } from '@/lib/tax';
+import { lowerFirstLabel, taxLineLabel, type TaxLine } from '@/lib/tax';
 
 /**
  * Row label of a tax line: the API's "Moms 25 %" form, or — for the 0 % row
@@ -25,7 +25,9 @@ export function useTaxLineLabel(): (line: TaxLine) => string {
 // ── Itemized tax rows ─────────────────────────────────────────────────────────
 // One row per (label, rate) group, e.g. "Moms 25 %   55 kr". The label comes
 // from the API already localized. Shared by the cart, checkout and receipts:
-//   - INCLUSIVE stores render them muted under the total ("included");
+//   - INCLUSIVE stores render them muted under the total, worded as
+//     "Incl. VAT 25 %" so the amount is not read as an extra charge
+//     (exempt 0 % rows keep their own label);
 //   - EXCLUSIVE stores render them as regular rows that add to the total.
 
 interface TaxLineRowsProps {
@@ -40,7 +42,14 @@ interface TaxLineRowsProps {
 
 export function TaxLineRows({ lines, currency, locale = 'en', variant = 'row', format }: TaxLineRowsProps) {
   const label = useTaxLineLabel();
+  const tCart = useTranslations('cart');
   if (lines.length === 0) return null;
+  // Muted = the tax is already part of the total above: say so in the row.
+  const rowLabel = (line: TaxLine) => {
+    const text = label(line);
+    if (variant !== 'muted' || line.exempt_reason) return text;
+    return tCart('taxIncludedRow', { label: text, labelLower: lowerFirstLabel(text) });
+  };
   const fmt = format ?? ((amount: number) => formatPrice(amount, currency, locale));
   const rowCls = variant === 'muted'
     ? 'flex justify-between text-xs text-gray-500'
@@ -51,7 +60,7 @@ export function TaxLineRows({ lines, currency, locale = 'en', variant = 'row', f
     <>
       {lines.map((line, i) => (
         <div key={`${line.label}-${line.rate_bp}-${i}`} className={rowCls}>
-          <span className={labelCls}>{label(line)}</span>
+          <span className={labelCls}>{rowLabel(line)}</span>
           <span className={amountCls}>{fmt(line.tax_amount)}</span>
         </div>
       ))}

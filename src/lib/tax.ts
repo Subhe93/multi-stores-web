@@ -47,6 +47,19 @@ export function taxLineLabel(line: Pick<TaxLine, 'label' | 'rate_bp'>): string {
   return `${line.label} ${formatTaxRate(line.rate_bp)}`;
 }
 
+/**
+ * Mid-sentence form of a tax label: "Moms 25 %" → "moms 25 %". Only a plain
+ * capitalised first word is lower-cased; acronyms and mixed-case
+ * abbreviations ("VAT", "TVA", "MwSt.") stay as they are.
+ */
+export function lowerFirstLabel(label: string): string {
+  const first = label.split(/\s/, 1)[0] ?? '';
+  if (!first) return label;
+  const rest = first.slice(1);
+  if (first[0] === first[0].toLowerCase() || rest !== rest.toLowerCase()) return label;
+  return first[0].toLowerCase() + label.slice(1);
+}
+
 function toNumber(value: unknown): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;

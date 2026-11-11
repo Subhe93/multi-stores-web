@@ -375,6 +375,7 @@
     "taxEstimatedNote": "Momsen är uppskattad; det slutliga beloppet beräknas i kassan.",
     "taxAtCheckout": "Moms beräknas i kassan",
     "totalInclTax": "Totalt (inkl. moms)",
+    "taxIncludedRow": "Inkl. {labelLower}",
     "pricesUpdatedForMarket": "Priserna har uppdaterats för den här marknaden.",
     "linesDroppedForMarket": "{count, plural, one {# vara kunde inte flyttas till den här marknaden.} other {# varor kunde inte flyttas till den här marknaden.}}",
     "linesNotMoved": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom dess personalisering inte längre är giltig.} other {# varor kunde inte flyttas till ditt konto eftersom deras personalisering inte längre är giltig.}}",

@@ -375,6 +375,7 @@
     "taxEstimatedNote": "Die Steuer ist geschätzt; der endgültige Betrag wird an der Kasse berechnet.",
     "taxAtCheckout": "Steuer wird an der Kasse berechnet",
     "totalInclTax": "Gesamt (inkl. Steuer)",
+    "taxIncludedRow": "Inkl. {label}",
     "pricesUpdatedForMarket": "Die Preise wurden für diesen Markt aktualisiert.",
     "linesDroppedForMarket": "{count, plural, one {# Artikel konnte nicht in diesen Markt übernommen werden.} other {# Artikel konnten nicht in diesen Markt übernommen werden.}}",
     "linesNotMoved": "{count, plural, one {# Artikel konnte nicht in Ihr Konto übernommen werden, weil seine Personalisierung nicht mehr gültig ist.} other {# Artikel konnten nicht in Ihr Konto übernommen werden, weil ihre Personalisierung nicht mehr gültig ist.}}",

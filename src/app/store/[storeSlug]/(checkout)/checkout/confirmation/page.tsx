@@ -14,6 +14,7 @@ import { readStripeReturn, type StripeReturnState } from '@/lib/stripeElements';
 import { CheckCircle2, Clock, UserRound, XCircle } from 'lucide-react';
 import { guestAccountNoteKey } from '@/lib/checkoutAccount';
 import { OrderReceipt, type OrderReceiptOrder } from '@/components/checkout/OrderReceipt';
+import { purchaseFromOrder, trackPurchase } from '@/lib/trackEvents';
 
 const noopSubscribe = () => () => {};
 
@@ -105,6 +106,21 @@ export default function OrderConfirmationPage() {
     cartClearedRef.current = true;
     void clearCart();
   }, [paymentState, clearCart, authLoading]);
+
+  // Purchase for the vendor tags, once the order is loaded and known to be
+  // placed: COD / an inline card payment that already succeeded (no Stripe
+  // return state), or a Stripe return that ended `succeeded`. Never for a
+  // failed, still-processing or unverifiable payment. `order` is set after
+  // the server reconcile above, so the payment state is final by then;
+  // `trackPurchase` itself fires at most once per order per browser.
+  const purchaseConfirmed = !unverifiedReturn && (paymentState === null || paymentState === 'succeeded');
+  useEffect(() => {
+    if (!order || !purchaseConfirmed || order.id !== orderId) return;
+    // The URL alone proves nothing (the link of an unpaid or failed order can
+    // be opened by hand): the order itself must be paid, or cash on delivery.
+    if (order.payment_status !== 'paid' && order.payment_method !== 'COD') return;
+    trackPurchase(purchaseFromOrder(order));
+  }, [order, purchaseConfirmed, orderId]);
 
   if (unverifiedReturn) {
     return (

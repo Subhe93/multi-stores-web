@@ -375,6 +375,7 @@
     "taxEstimatedNote": "Vergi tahminidir; nihai tutar ödeme sırasında hesaplanır.",
     "taxAtCheckout": "Vergi ödeme sırasında hesaplanır",
     "totalInclTax": "Toplam (vergi dahil)",
+    "taxIncludedRow": "{label} dahil",
     "pricesUpdatedForMarket": "Fiyatlar bu pazar için güncellendi.",
     "linesDroppedForMarket": "{count, plural, one {# ürün bu pazara aktarılamadı.} other {# ürün bu pazara aktarılamadı.}}",
     "linesNotMoved": "{count, plural, one {# ürün, kişiselleştirmesi artık geçerli olmadığı için hesabınıza aktarılamadı.} other {# ürün, kişiselleştirmeleri artık geçerli olmadığı için hesabınıza aktarılamadı.}}",

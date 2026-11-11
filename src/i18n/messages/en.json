@@ -375,6 +375,7 @@
     "taxEstimatedNote": "Tax is estimated; the final amount is calculated at checkout.",
     "taxAtCheckout": "Tax calculated at checkout",
     "totalInclTax": "Total (incl. tax)",
+    "taxIncludedRow": "Incl. {labelLower}",
     "pricesUpdatedForMarket": "Prices were updated for this market.",
     "linesDroppedForMarket": "{count, plural, one {# item could not be carried over to this market.} other {# items could not be carried over to this market.}}",
     "linesNotMoved": "{count, plural, one {# item could not be moved to your account because its personalization is no longer valid.} other {# items could not be moved to your account because their personalization is no longer valid.}}",

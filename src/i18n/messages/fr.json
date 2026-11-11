@@ -375,6 +375,7 @@
     "taxEstimatedNote": "La taxe est estimée ; le montant final sera calculé lors du paiement.",
     "taxAtCheckout": "Taxe calculée lors du paiement",
     "totalInclTax": "Total (taxes incluses)",
+    "taxIncludedRow": "dont {labelLower}",
     "pricesUpdatedForMarket": "Les prix ont été mis à jour pour ce marché.",
     "linesDroppedForMarket": "{count, plural, one {# article n'a pas pu être transféré vers ce marché.} other {# articles n'ont pas pu être transférés vers ce marché.}}",
     "linesNotMoved": "{count, plural, one {# article n'a pas pu être transféré vers votre compte car sa personnalisation n'est plus valide.} other {# articles n'ont pas pu être transférés vers votre compte car leur personnalisation n'est plus valide.}}",

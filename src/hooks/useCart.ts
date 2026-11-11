@@ -61,6 +61,7 @@ import {
   validatePath,
   type GuestPersonalizationCheck,
 } from '@/components/product/personalization/validateApi';
+import { trackAddToCart } from '@/lib/trackEvents';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -872,6 +873,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       const bundleOfferId = metadata?.bundleOfferId || undefined;
       // Designer app (M4.2): a design replaces the field values on the line.
       const design = metadata?.design?.id ? metadata.design : undefined;
+      let trackedMeta = metadata;
       if (isAuthenticated && token) {
         const data = await api<unknown>(
           `/cart/items${localeQuery}`,
@@ -917,9 +919,22 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           // Merges only into a line with the same personalization (line key).
           return addGuestLine(prev, productId, variantId, quantity, fields, meta);
         });
+        // Guests: the validated metadata carries the server-priced unit price.
+        trackedMeta = meta;
       }
+      // The add is confirmed (server answered / guest line stored): report it
+      // to the vendor tags. Every add path goes through here exactly once;
+      // quantity changes and design edits of a cart line never do.
+      const unitPrice = Number(trackedMeta?.price) || 0;
+      trackAddToCart({
+        productId,
+        name: trackedMeta?.title,
+        value: unitPrice * quantity,
+        currency: storeCurrency || trackedMeta?.currency || 'EUR',
+        quantity,
+      });
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders]
+    [isAuthenticated, token, localeQuery, ownerHeaders, storeCurrency]
   );
 
   // ── Update quantity ────────────────────────────────

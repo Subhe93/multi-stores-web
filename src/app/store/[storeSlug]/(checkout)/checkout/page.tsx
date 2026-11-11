@@ -62,6 +62,7 @@ import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components
 import { readUnavailableError } from '@/lib/cartUnavailable';
 import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { availableLines } from '@/lib/cartAvailability';
+import { trackInitiateCheckout, trackingBody } from '@/lib/trackEvents';
 import { checkoutCountryOptions } from '@/lib/checkoutCountries';
 import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
 
@@ -1179,6 +1180,7 @@ function CheckoutForm({
               ...shippingMethodBody,
               ...(coupon?.code ? { coupon_code: coupon.code } : {}),
               ...(orderNotes ? { notes: orderNotes } : {}),
+              ...trackingBody(),
             }),
           });
           pending = { signature: stripeSignature, token: activeToken, orderId: order.id, clientSecret: null };
@@ -1316,6 +1318,7 @@ function CheckoutForm({
             ...shippingMethodBody,
             ...(coupon?.code ? { coupon_code: coupon.code } : {}),
             ...(orderNotes ? { notes: orderNotes } : {}),
+            ...trackingBody(),
           }),
         });
         await clearCart();
@@ -2104,6 +2107,30 @@ function CheckoutRouter() {
   // Market preview: a Kustom session is LIVE-only (the API refuses it), so
   // the preview always shows the classic form with its pay button disabled.
   const previewMode = useMarketPreview();
+
+  // InitiateCheckout for the vendor tags: once per visit of this page, as
+  // soon as the cart has loaded with something to buy. Lives in the router so
+  // the Kustom checkout and the classic form (and a switch between them)
+  // share the one guard.
+  const { items: cartItems, loading: cartLoading, total: cartTotal, totalWithTax: cartTotalWithTax, currency: cartCurrency } = useCart();
+  const initiateTrackedRef = useRef(false);
+  useEffect(() => {
+    if (initiateTrackedRef.current || cartLoading) return;
+    const lines = availableLines(cartItems);
+    if (lines.length === 0) return;
+    initiateTrackedRef.current = true;
+    trackInitiateCheckout({
+      // What the cart shows as payable for the goods (incl. tax when known).
+      value: cartTotalWithTax ?? cartTotal,
+      currency: cartCurrency,
+      items: lines.map((item) => ({
+        productId: item.customProductId || item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        name: item.title || item.name,
+      })),
+    });
+  }, [cartLoading, cartItems, cartTotal, cartTotalWithTax, cartCurrency]);
 
   // Store flags of this visit; the payment config part is reloadable
   // (the store's Stripe route can change while the page is open).

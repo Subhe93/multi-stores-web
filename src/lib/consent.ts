@@ -102,5 +102,41 @@ export function hasTrackingIds(tracking: StoreTracking | null | undefined): bool
   return Boolean(tracking.ga4_measurement_id || tracking.meta_pixel_id || tracking.tiktok_pixel_id);
 }
 
+// Whether the Meta pixel is mounted right now: the store has a pixel id AND
+// tracking is allowed (consent granted, or not required). <TrackingScripts>
+// owns the flag (set on mount, cleared on unmount, e.g. consent withdrawn);
+// checkout reads it before sending the Meta browser ids to the API.
+export interface ActiveTrackers {
+  ga4: boolean;
+  meta: boolean;
+  tiktok: boolean;
+}
+
+const NO_TRACKERS: ActiveTrackers = { ga4: false, meta: false, tiktok: false };
+let activeTrackers: ActiveTrackers = NO_TRACKERS;
+
+/**
+ * Which vendor tags are mounted right now for THIS store (set by
+ * TrackingScripts on mount, cleared on unmount). The vendor globals
+ * (`fbq`, `gtag`, `ttq`) outlive the component — after consent is withdrawn,
+ * or after a client navigation to another store — so event code must check
+ * this state, not the globals alone.
+ */
+export function setActiveTrackers(next: Partial<ActiveTrackers> | null): void {
+  activeTrackers = next ? { ...NO_TRACKERS, ...next } : NO_TRACKERS;
+}
+
+export function getActiveTrackers(): ActiveTrackers {
+  return activeTrackers;
+}
+
+export function setMetaPixelActive(active: boolean): void {
+  activeTrackers = { ...activeTrackers, meta: active };
+}
+
+export function isMetaPixelActive(): boolean {
+  return activeTrackers.meta;
+}
+
 /** Cookie-policy page slugs the banner links to when the store publishes one. */
 export const COOKIE_POLICY_SLUGS = ['om-cookies', 'cookies', 'cookie-policy', 'cookiepolicy'];

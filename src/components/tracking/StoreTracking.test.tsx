@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/i18n/messages/en.json';
-import { CONSENT_MAX_AGE_S, clearConsent, consentCookieName, consentStorageKey } from '@/lib/consent';
+import { CONSENT_MAX_AGE_S, clearConsent, consentCookieName, consentStorageKey, isMetaPixelActive } from '@/lib/consent';
 import { StoreTracking } from './StoreTracking';
 
 // Cookie consent (3.9): the banner shows only for stores with a tracking id,
@@ -123,5 +123,24 @@ describe('StoreTracking', () => {
     renderTracking({ tracking: { ...tracking, consent_required: false } });
     await waitFor(() => expect(screen.getAllByTestId('tracker')).toHaveLength(2));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('flags the Meta pixel as active only while its tag is mounted', async () => {
+    const withMeta = { ...tracking, meta_pixel_id: '1234567890' };
+    renderTracking({ tracking: withMeta });
+    await screen.findByRole('dialog');
+    expect(isMetaPixelActive()).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+    await waitFor(() => expect(isMetaPixelActive()).toBe(true));
+    // Consent withdrawn: the tags unmount and the flag clears.
+    clearConsent(SLUG);
+    await screen.findByRole('dialog');
+    expect(isMetaPixelActive()).toBe(false);
+  });
+
+  it('does not flag the Meta pixel for a store without a pixel id', async () => {
+    renderTracking({ tracking: { ...tracking, consent_required: false } });
+    await waitFor(() => expect(screen.getAllByTestId('tracker')).toHaveLength(2));
+    expect(isMetaPixelActive()).toBe(false);
   });
 });

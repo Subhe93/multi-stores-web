@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
-import type { StoreTracking } from '@/lib/consent';
+import { setActiveTrackers, type StoreTracking } from '@/lib/consent';
 
 // Vendor tags (GA4, Meta Pixel, TikTok Pixel) — Namez go-live 3.9. Rendered
 // only once consent is granted (or the store does not require it), so a
@@ -18,7 +18,7 @@ declare global {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
     fbq?: (...args: unknown[]) => void;
-    ttq?: { page?: () => void };
+    ttq?: { page?: () => void; track?: (event: string, params?: Record<string, unknown>) => void };
   }
 }
 
@@ -53,6 +53,14 @@ export function TrackingScripts({ tracking }: TrackingScriptsProps) {
       window.ttq.page();
     }
   }, [pathname, meta, tiktok]);
+
+  // This component is mounted exactly while tracking is allowed, so it owns
+  // the "Meta pixel active" flag checkout reads before sending `_fbp` /
+  // `_fbc` to the API (cleared again when consent is withdrawn).
+  useEffect(() => {
+    setActiveTrackers({ ga4: Boolean(ga4), meta: Boolean(meta), tiktok: Boolean(tiktok) });
+    return () => setActiveTrackers(null);
+  }, [ga4, meta, tiktok]);
 
   if (!ga4 && !meta && !tiktok) return null;
 

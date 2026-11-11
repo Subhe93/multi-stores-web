@@ -12,6 +12,7 @@ import { clearKustomCheckoutSession } from '@/hooks/useKustomCheckout';
 import { api } from '@/lib/api';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
 import { OrderReceipt, type OrderReceiptOrder } from '@/components/checkout/OrderReceipt';
+import { purchaseFromOrder, readPurchaseSnapshot, trackPurchase } from '@/lib/trackEvents';
 
 // Response of GET /payments/kustom/confirmation (legacy, order-first flow) and
 // GET /payments/kustom/checkout/confirmation (session flow) — see
@@ -146,6 +147,23 @@ function KustomConfirmationContent() {
     })();
     return () => { cancelled = true; };
   }, [sessionMode, sessionId, sessionToken, legacyOrderId, authToken, authLoading, clearCart, storeSlug]);
+
+  // Purchase for the vendor tags: only once Kustom's payment is confirmed
+  // for this order (`paid` — never for "confirming" or a mismatch) and the
+  // page finished loading. Figures come from the full order (logged-in
+  // customers) or, for guests, from what the checkout session charged
+  // (remembered by the checkout page). `trackPurchase` fires at most once
+  // per order per browser.
+  const paidOrderId = confirmation?.payment_status === 'paid' ? confirmation.order_id || legacyOrderId : null;
+  useEffect(() => {
+    if (loading || !paidOrderId) return;
+    if (order && order.id === paidOrderId) {
+      trackPurchase(purchaseFromOrder(order));
+      return;
+    }
+    const snapshot = readPurchaseSnapshot(sessionId);
+    if (snapshot) trackPurchase({ orderId: paidOrderId, ...snapshot });
+  }, [loading, paidOrderId, order, sessionId]);
 
   if (!sessionMode && !legacyOrderId) {
     return (

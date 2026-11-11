@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { trackingBody } from '@/lib/trackEvents';
 import { readUnavailableError, unavailableRefKey, type UnavailableRef } from '@/lib/cartUnavailable';
 import type { CartItem } from '@/hooks/useCart';
 import {
@@ -462,6 +463,9 @@ export function useKustomCheckout({
           ...(code ? { coupon_code: code } : {}),
           ...(text ? { notes: text } : {}),
           ...b2bCreateBody(b, c),
+          // Meta browser ids for the server-side purchase event; the key is
+          // omitted without consent / without a Meta pixel.
+          ...trackingBody(),
         }),
       }),
     );
