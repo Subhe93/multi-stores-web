@@ -725,6 +725,7 @@ export default async function StoreLayout({
                     primaryLocale={primaryLocale}
                     storeContext={storeCtx}
                     chrome
+                    collapseWrappers={false}
                   />
                 </footer>
               ) : (

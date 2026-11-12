@@ -44,6 +44,11 @@ interface SectionRendererProps {
   // header would scroll away. Removing the box lets the sticky header's
   // containing block fall through to the tall page layout.
   chrome?: boolean;
+  // Overrides the wrapper collapse that `chrome` implies. The FOOTER passes
+  // false: it has no sticky element, and boxed wrappers let the per-section
+  // style overrides (`_style`: padding, width, background) apply there as
+  // they do in the builder preview.
+  collapseWrappers?: boolean;
 }
 
 /**
@@ -64,10 +69,11 @@ export function SectionRenderer({
   storeContext,
   preloaded,
   chrome,
+  collapseWrappers,
 }: SectionRendererProps) {
   // In chrome mode the wrapper boxes are collapsed so a sticky header can
   // anchor to the page layout rather than its own tight wrapper.
-  const wrapperStyle = chrome ? ({ display: 'contents' } as const) : undefined;
+  const wrapperStyle = (collapseWrappers ?? chrome) ? ({ display: 'contents' } as const) : undefined;
   const ordered = sections
     .filter((s) => !s.is_hidden)
     .sort((a, b) => a.sort_order - b.sort_order);
