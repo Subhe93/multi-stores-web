@@ -221,8 +221,12 @@ function BlockView({ block }: { block: Block }) {
         <div
           // Muted text (e.g. footer columns): links follow the text colour
           // instead of the editor's blue/underline link class.
+          // Default tone: links underlined in the text colour (rich text
+          // carries no link styling of its own).
           className={`max-w-prose ${alignClass} prose-sm ${
-            block.tone === 'muted' ? '[&_a]:text-inherit! [&_a]:no-underline! [&_a:hover]:opacity-70' : ''
+            block.tone === 'muted'
+              ? '[&_a]:text-inherit! [&_a]:no-underline! [&_a:hover]:opacity-70'
+              : '[&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:opacity-80'
           }`}
           style={{
             color: colorOr(block.color, toneColor(block.tone)),
