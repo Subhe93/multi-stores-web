@@ -1150,6 +1150,8 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         valid: boolean;
         type: string;
         value: number;
+        /** 'percentage' | 'fixed'; absent from older APIs (type decides). */
+        discount_kind?: 'percentage' | 'fixed' | null;
         discount_amount: number;
         free_shipping: boolean;
       }>('/promotions/validate-coupon', {
@@ -1160,17 +1162,19 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           subtotal: sumLineTotals(items),
           item_count: availableLines(items).reduce((sum, i) => sum + i.quantity, 0),
           product_ids: availableLines(items).map((i) => i.customProductId || i.productId).filter(Boolean),
+          // Market stores: the subtotal is in the market currency; the API
+          // converts so a fixed coupon is charged in that currency too.
+          ...(marketKey ? { market: marketKey, ...(marketPreview ? { preview: true } : {}) } : {}),
         }),
       });
 
+      const isPercentage = validation.discount_kind
+        ? validation.discount_kind === 'percentage'
+        : validation.type === 'PERCENTAGE' || validation.type === 'COUPON';
       const couponData: Coupon = {
         code,
-        discount: validation.type === 'PERCENTAGE' || validation.type === 'COUPON'
-          ? validation.value
-          : validation.discount_amount,
-        type: (validation.type === 'PERCENTAGE' || validation.type === 'COUPON')
-          ? 'percentage'
-          : 'fixed',
+        discount: isPercentage ? validation.value : validation.discount_amount,
+        type: isPercentage ? 'percentage' : 'fixed',
         freeShipping: validation.free_shipping,
       };
 
@@ -1191,7 +1195,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       setCoupon(couponData);
       saveLocalCoupon(couponData);
     },
-    [isAuthenticated, token, items, storeId, ownerHeaders]
+    [isAuthenticated, token, items, storeId, ownerHeaders, marketKey, marketPreview]
   );
 
   // ── Coupon auto-apply: apply once the cart has a line ──
