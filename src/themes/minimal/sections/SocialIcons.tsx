@@ -52,7 +52,7 @@ function HEADING_FROM(content: Record<string, unknown>) {
   };
 }
 
-function SocialIcons({ settings, content, locale, storeContext }: SectionRenderProps) {
+function SocialIcons({ settings, content, locale, storeContext, chrome }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const { heading, subheading } = HEADING_FROM(content);
@@ -179,7 +179,9 @@ function SocialIcons({ settings, content, locale, storeContext }: SectionRenderP
 
   if (items.length === 0) {
     // Empty-state placeholder — the builder needs SOMETHING to click to open
-    // the inspector when adding a brand-new SocialIcons section.
+    // the inspector when adding a brand-new SocialIcons section. The live
+    // header / footer (`chrome`) shows customers nothing instead.
+    if (chrome) return null;
     return (
       <section
         className="text-center py-10 px-4"

@@ -3,7 +3,8 @@
 // just picks which to enable and which URLs they point to; a sixth
 // "custom" slot lets them add an extra icon link.
 //
-// Server-only — pure links with CSS for the fixed positioning, no JS.
+// Server-rendered — pure links with CSS for the fixed positioning; small
+// client islands for the active state, the cart badge and the "menu" item.
 
 import {
   Heart,
@@ -15,11 +16,13 @@ import {
   User,
   type LucideIcon,
 } from 'lucide-react';
-import { storeHref } from '@/lib/storeUrl';
+import { useTranslations } from 'next-intl';
+import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
 import { ActiveLink } from './ActiveLink.client';
 import { BottomNavCartBadge } from './BottomNavCartBadge.client';
+import { BottomNavMenuButton } from './BottomNavMenuButton.client';
 
 type ItemKey = 'home' | 'search' | 'cart' | 'account' | 'wishlist' | 'categories' | 'menu' | 'custom';
 
@@ -41,22 +44,21 @@ const ICON: Record<Exclude<ItemKey, 'custom' | 'menu'>, LucideIcon> = {
   categories: Tag,
 };
 
-function defaultLabel(type: ItemKey, locale: string): string {
-  const ar = locale === 'ar';
-  switch (type) {
-    case 'home': return ar ? 'الرئيسية' : 'Home';
-    case 'search': return ar ? 'البحث' : 'Search';
-    case 'cart': return ar ? 'السلة' : 'Cart';
-    case 'account': return ar ? 'الحساب' : 'Account';
-    case 'wishlist': return ar ? 'المفضّلة' : 'Wishlist';
-    case 'categories': return ar ? 'الفئات' : 'Categories';
-    case 'menu': return ar ? 'القائمة' : 'Menu';
-    default: return '';
-  }
-}
+// Message key of each built-in label (`common.*` is shared with the rest
+// of the storefront).
+const LABEL_KEY: Record<Exclude<ItemKey, 'custom'>, string> = {
+  home: 'common.home',
+  search: 'common.search',
+  cart: 'common.cart',
+  account: 'common.account',
+  wishlist: 'nav.wishlist',
+  categories: 'common.categories',
+  menu: 'nav.menu',
+};
 
 // `lp` is the locale prefix for the canonical storefront scheme: '' for the
-// primary locale, '/ar' (etc.) for secondary locales.
+// primary locale, '/ar' (etc.) for secondary locales. Search and Categories
+// point at different pages so they never light up together.
 function defaultUrl(type: ItemKey, lp: string): string {
   switch (type) {
     case 'home': return lp || '/';
@@ -66,25 +68,19 @@ function defaultUrl(type: ItemKey, lp: string): string {
     // There is no wishlist page; a wishlist item without a custom URL is
     // not rendered (see the filter in MobileBottomNav).
     case 'wishlist': return '';
-    case 'categories': return `${lp}/products`;
-    case 'menu': return '#menu';
+    case 'categories': return `${lp}/collections`;
     default: return '#';
   }
 }
 
-// Prefix an internal nav target with the active locale; leave external links
-// and anchors untouched, and never double-prefix an already-localized path.
-function localizeUrl(rawUrl: string, lp: string, locale: string): string {
-  // An absolute platform URL becomes a same-host path first (see storeHref).
-  const url = storeHref(rawUrl);
-  if (!url.startsWith('/') || url.startsWith('//')) return url;
-  if (!lp) return url;
-  if (url === `/${locale}` || url.startsWith(`/${locale}/`)) return url;
-  return `${lp}${url}`;
-}
+// Nav content height (labels on / off) used by the page-end spacer below.
+// Slightly above the rendered bar so the last line of the page always
+// clears it.
+const NAV_HEIGHT_PX = { labels: 58, icons: 40 };
 
 function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRenderProps) {
-  const lp = locale !== primaryLocale ? `/${locale}` : '';
+  const t = useTranslations();
+  const lp = storeLocalePrefix(locale, primaryLocale);
   // Legacy 'wishlist' items only render when the creator gave them a URL:
   // the storefront has no wishlist page to fall back to.
   const items = ((content.items as BottomNavItem[]) || []).filter(
@@ -98,51 +94,81 @@ function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRe
 
   if (items.length === 0) return null;
 
+  const itemClass =
+    'relative flex w-full flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition';
+  const spacerHeight = showLabels ? NAV_HEIGHT_PX.labels : NAV_HEIGHT_PX.icons;
+
   return (
-    <nav
-      aria-label={locale === 'ar' ? 'تنقل الجوال' : 'Mobile navigation'}
-      className="md:hidden fixed bottom-0 inset-x-0 z-30"
-      style={{
-        backgroundColor: bg,
-        color: fg,
-        borderTop: `1px solid ${borderColor}`,
-        // iOS home indicator inset — keeps icons clear of the swipe area.
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
-    >
-      <ul className="flex items-stretch justify-around" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item, i) => {
-          const type = item.type as ItemKey;
-          // 'menu' opens a drawer in a future iteration; for now treat as
-          // a regular link to the destination the creator typed.
-          const url = item.url?.trim()
-            ? localizeUrl(item.url.trim(), lp, locale)
-            : defaultUrl(type, lp);
-          const label = item.label?.trim() || defaultLabel(type, locale);
-          const Icon = type === 'custom' || type === 'menu' ? Menu : ICON[type];
-          return (
-            <li key={i} className="flex-1">
-              {/* ActiveLink highlights the tab matching the current path. The
-                  cart/account etc. base paths use prefix matching so deeper
-                  routes (e.g. /account/orders) keep "Account" active. */}
-              <ActiveLink
-                href={url}
-                exact={type === 'home'}
-                className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition"
-                style={{ color: fg }}
-                activeStyle={{ color: activeFg }}
-              >
+    <>
+      <nav
+        aria-label={t('nav.mobileNavigation')}
+        className="md:hidden fixed bottom-0 inset-x-0 z-30"
+        style={{
+          backgroundColor: bg,
+          color: fg,
+          borderTop: `1px solid ${borderColor}`,
+          // iOS home indicator inset — keeps icons clear of the swipe area.
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <ul className="flex items-stretch justify-around" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {items.map((item, i) => {
+            const type = item.type as ItemKey;
+            const customUrl = item.url?.trim();
+            const url = customUrl ? localizeStoreUrl(customUrl, lp, locale) : defaultUrl(type, lp);
+            const label = item.label?.trim() || (type === 'custom' ? '' : t(LABEL_KEY[type]));
+            const Icon = type === 'custom' || type === 'menu' ? Menu : ICON[type];
+            const inner = (
+              <>
                 <Icon className="size-5" style={{ color: 'currentColor' }} />
                 {/* Only the cart tab carries a live count; the badge is a
                     client island so the rest of the nav stays server-rendered. */}
                 {type === 'cart' && <BottomNavCartBadge accent={activeFg} />}
                 {showLabels && <span style={{ color: 'currentColor' }}>{label}</span>}
-              </ActiveLink>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+              </>
+            );
+            return (
+              <li key={i} className="flex-1 flex">
+                {type === 'menu' ? (
+                  // Opens the header's mobile drawer; a typed URL is the
+                  // fallback for headers without one.
+                  <BottomNavMenuButton
+                    fallbackHref={customUrl ? url : undefined}
+                    className={itemClass}
+                    style={{ color: fg }}
+                  >
+                    {inner}
+                  </BottomNavMenuButton>
+                ) : (
+                  // ActiveLink highlights the tab matching the current path.
+                  // The cart/account etc. base paths use prefix matching so
+                  // deeper routes (e.g. /account/orders) keep "Account" active.
+                  <ActiveLink
+                    href={url}
+                    exact={type === 'home'}
+                    className={itemClass}
+                    style={{ color: fg }}
+                    activeStyle={{ color: activeFg }}
+                  >
+                    {inner}
+                  </ActiveLink>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      {/* The bar is fixed, so it would cover the end of the page. This adds
+          an in-flow spacer of the bar's height at the very end of the store
+          page (after the footer slot), on phones only, and only while the
+          bar renders — wherever the creator placed the section. Hidden
+          along with the footer on checkout pages. */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `@media (max-width: 767.98px) { #store-nav-footer::after { content: ""; display: block; height: calc(${spacerHeight}px + env(safe-area-inset-bottom)); } }`,
+        }}
+      />
+    </>
   );
 }
 
@@ -152,7 +178,7 @@ const ITEM_OPTIONS = [
   { value: 'categories', label: { en: 'Categories', ar: 'الفئات' } },
   { value: 'cart', label: { en: 'Cart', ar: 'السلة' } },
   { value: 'account', label: { en: 'Account', ar: 'الحساب' } },
-  { value: 'menu', label: { en: 'Menu', ar: 'القائمة' } },
+  { value: 'menu', label: { en: 'Menu (opens the header menu)', ar: 'القائمة (تفتح قائمة الهيدر)' } },
   { value: 'custom', label: { en: 'Custom link', ar: 'رابط مخصّص' } },
 ];
 

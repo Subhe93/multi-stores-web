@@ -3,13 +3,20 @@
 // Mobile menu split out of HeaderBar — the hamburger button + the slide-in
 // drawer. Lives separately so HeaderBar.tsx stays a server component (most
 // of the bar is static markup); only this interactive bit ships as JS.
+//
+// The drawer is a modal dialog: named, focus moves into it on open, Tab
+// stays inside, Escape closes, and focus returns to whatever opened it (the
+// hamburger, or the bottom nav's "menu" item via OPEN_MOBILE_MENU_EVENT).
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 // Chrome links use prefetch={false}: viewport-prefetching every menu link
 // floods the origin with dynamic RSC renders on each page view.
 import { ChevronDown, Menu, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { OPEN_MOBILE_MENU_EVENT } from './mobileMenuEvent';
 
 export interface MobileMenuItem {
   label: string;
@@ -17,6 +24,12 @@ export interface MobileMenuItem {
   open_in_new_tab?: boolean;
   children?: MobileMenuItem[];
 }
+
+// Same breakpoint as Tailwind's `md`: the drawer only exists below it.
+const DESKTOP_QUERY = '(min-width: 768px)';
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function HeaderBarMobileMenu({
   items,
@@ -29,21 +42,47 @@ export function HeaderBarMobileMenu({
   bg: string;
   ariaLabel: string;
 }) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  // Element focused when the drawer opened; focus goes back there on close.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   // Theme color variables (--theme-colors-*) are scoped to the `.store-root`
   // wrapper, not :root. The drawer reads `bg`/`fg` from those variables, so it
   // must be portaled INTO that scope — portaling to document.body would lose
   // the variables and render a transparent panel. `.store-root` also sits
   // above the backdrop-blurred header, so it still escapes the header's
-  // backdrop-filter containing block (the reason we portal at all).
-  const portalTarget =
-    typeof document === 'undefined'
-      ? null
-      : triggerRef.current?.closest('.store-root') ?? document.body;
+  // backdrop-filter containing block (the reason we portal at all). Resolved
+  // when the drawer opens (the DOM is only known after mount).
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
 
-  // Lock body scroll while the drawer is open + close on Escape. Restores
+  const openMenu = useCallback(() => {
+    const active = document.activeElement;
+    returnFocusRef.current = active instanceof HTMLElement && active !== document.body ? active : triggerRef.current;
+    setPortalTarget(triggerRef.current?.closest('.store-root') ?? document.body);
+    setOpen(true);
+  }, []);
+
+  // The bottom nav's "menu" item asks for the drawer through a window event;
+  // cancelling it tells the sender the request was handled.
+  useEffect(() => {
+    function onRequest(e: Event) {
+      // One drawer per request: a second header-bar on the page leaves it to
+      // the first one (two drawers would also fight over the body scroll lock).
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      openMenu();
+    }
+    window.addEventListener(OPEN_MOBILE_MENU_EVENT, onRequest);
+    return () => window.removeEventListener(OPEN_MOBILE_MENU_EVENT, onRequest);
+  }, [openMenu]);
+
+  // While open: lock body scroll, close on Escape, and close when the
+  // viewport grows to desktop width (the drawer is md:hidden there, so the
+  // scroll lock would otherwise stay on an invisible dialog). Focus moves
+  // into the dialog on open and back to the opener on close. Restores
   // overflow on unmount so a route change leaves the page scrollable again.
   useEffect(() => {
     if (!open) return;
@@ -53,19 +92,47 @@ export function HeaderBarMobileMenu({
       if (e.key === 'Escape') setOpen(false);
     }
     window.addEventListener('keydown', onKey);
+    const desktop = window.matchMedia?.(DESKTOP_QUERY);
+    function onViewport() {
+      if (desktop?.matches) setOpen(false);
+    }
+    desktop?.addEventListener?.('change', onViewport);
+    closeRef.current?.focus();
+    const returnTo = returnFocusRef;
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
+      desktop?.removeEventListener?.('change', onViewport);
+      const target = returnTo.current;
+      if (target && target.isConnected) target.focus();
     };
   }, [open]);
+
+  // Keep Tab / Shift+Tab inside the dialog.
+  function trapTab(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (e.key !== 'Tab' || !dialogRef.current) return;
+    const nodes = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+    if (nodes.length === 0) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !dialogRef.current.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (active === last || !dialogRef.current.contains(active))) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <>
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openMenu}
         aria-label={ariaLabel}
+        aria-haspopup="dialog"
         aria-expanded={open}
         className="md:hidden size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
         style={{ color: fg }}
@@ -81,25 +148,34 @@ export function HeaderBarMobileMenu({
           variables in scope. */}
       {open && portalTarget && createPortal(
         <>
-          {/* Backdrop — click anywhere outside the panel to close. */}
+          {/* Backdrop — click anywhere outside the panel to close. Not a tab
+              stop: the dialog has its own close button. */}
           <button
             type="button"
-            aria-label="Close menu"
+            tabIndex={-1}
+            aria-label={t('nav.closeMenu')}
             onClick={() => setOpen(false)}
-            className="md:hidden fixed inset-0 z-40 bg-black/40 animate-in fade-in duration-200"
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
           />
-          {/* Drawer — slides in from the start edge (LTR: left, RTL: right). */}
+          {/* Drawer — anchored to the start edge (LTR: left, RTL: right). */}
           <div
-            className="md:hidden fixed top-0 bottom-0 inset-s-0 z-50 w-80 max-w-[85vw] flex flex-col shadow-2xl animate-in slide-in-from-left duration-200 rtl:slide-in-from-right"
+            ref={dialogRef}
+            className="md:hidden fixed top-0 bottom-0 inset-s-0 z-50 w-80 max-w-[85vw] flex flex-col shadow-2xl"
             style={{ backgroundColor: bg, color: fg }}
             role="dialog"
             aria-modal="true"
+            aria-label={t('nav.menu')}
+            onKeyDown={trapTab}
           >
-            <div className="flex items-center justify-end p-3 border-b" style={{ borderColor: 'currentColor', borderOpacity: 0.1 } as React.CSSProperties}>
+            <div
+              className="flex items-center justify-end p-3 border-b"
+              style={{ borderColor: 'color-mix(in srgb, currentColor 10%, transparent)' }}
+            >
               <button
+                ref={closeRef}
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={t('common.close')}
                 className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
               >
                 <X className="size-5" />
@@ -133,6 +209,7 @@ function MobileRow({
   depth?: number;
   onNavigate: () => void;
 }) {
+  const t = useTranslations('nav');
   const [expanded, setExpanded] = useState(false);
   const children = depth < MOBILE_MAX_DEPTH ? item.children ?? [] : [];
   const external = item.open_in_new_tab
@@ -189,7 +266,7 @@ function MobileRow({
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse' : 'Expand'}
+          aria-label={t(expanded ? 'collapse' : 'expand', { label: item.label })}
           className="px-4 inline-flex items-center justify-center hover:bg-black/5 transition"
         >
           <ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />

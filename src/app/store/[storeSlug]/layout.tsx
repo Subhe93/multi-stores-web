@@ -714,7 +714,9 @@ export default async function StoreLayout({
 
             const footerSlot =
               footerSections && footerSections.length > 0 ? (
-                <div id="store-nav-footer">
+                // The page's footer landmark. The legacy branch below stays a
+                // div: StoreFooter renders its own <footer>.
+                <footer id="store-nav-footer">
                   <SectionRenderer
                     theme={activeTheme}
                     sections={footerSections}
@@ -724,7 +726,7 @@ export default async function StoreLayout({
                     storeContext={storeCtx}
                     chrome
                   />
-                </div>
+                </footer>
               ) : (
                 <div id="store-nav-footer">
                   <StoreFooter

@@ -2,8 +2,9 @@
 // that reveal a full-width panel with column groups + optional feature
 // thumbnails on hover.
 //
-// Server-only — the panel is shown via :hover and :focus-within so it
-// needs no JS. Touch users get a fallback: tapping the trigger follows
+// Server-rendered — the panel is shown via :hover and :focus-within so it
+// needs no JS (a tiny client helper only drops the focus after a link
+// click, see BlurOnNavigate). Touch users get a fallback: tapping the trigger follows
 // its own URL (a section page) instead of toggling a JS dropdown.
 //
 // Designed to sit ABOVE or BELOW the HeaderBar in the HEADER chrome page.
@@ -17,9 +18,10 @@ import { ChevronDown } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
-import { storeHref } from '@/lib/storeUrl';
+import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
+import { BlurOnNavigate } from './BlurOnNavigate.client';
 
 interface MegaMenuLink {
   label?: string;
@@ -41,10 +43,31 @@ interface MegaMenuTrigger {
   label?: string;
   url?: string;
   columns?: MegaMenuColumn[];
-  feature?: MegaMenuFeature;
+  // A repeater in the schema ("single — uses first row"); older content may
+  // hold a plain object.
+  feature?: MegaMenuFeature[] | MegaMenuFeature;
 }
 
-function MegaMenu({ settings, content, locale }: SectionRenderProps) {
+function firstFeature(f: MegaMenuTrigger['feature']): MegaMenuFeature | undefined {
+  return Array.isArray(f) ? f[0] : f;
+}
+
+// Panel show / hide rules. Opening is immediate; closing waits a beat so a
+// cursor that briefly leaves the trigger column does not drop the panel.
+// The disclosure-marker rules are scoped to this section's mobile accordion
+// so they never touch other <details> elements on the page.
+const MEGA_MENU_CSS = `
+.mega-menu-panel { opacity: 0; visibility: hidden; transition: opacity 150ms ease 120ms, visibility 0s linear 270ms; }
+.mega-menu-group:hover > .mega-menu-panel,
+.mega-menu-group:focus-within > .mega-menu-panel { opacity: 1; visibility: visible; transition-delay: 0s, 0s; }
+.mega-menu-group:hover .mega-menu-chevron,
+.mega-menu-group:focus-within .mega-menu-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .mega-menu-panel { transition: none; } }
+.mega-menu-mobile details > summary::-webkit-details-marker { display: none; }
+.mega-menu-mobile details > summary { list-style: none; }
+`;
+
+function MegaMenu({ settings, content, locale, primaryLocale }: SectionRenderProps) {
   const triggers = ((content.triggers as MegaMenuTrigger[]) || []).filter((t) => t.label);
   const alignment = (settings.alignment as 'start' | 'center' | 'end') || 'center';
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
@@ -53,6 +76,9 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
   const panelFg = colorOr(settings.panel_text_color, 'var(--theme-colors-text)');
   const accentColor = colorOr(settings.accent_color, 'var(--theme-colors-primary)');
   const borderColor = colorOr(settings.border_color, 'var(--theme-colors-border)');
+  // Secondary-locale visitors keep their locale prefix (same rule as HeaderBar).
+  const lp = storeLocalePrefix(locale, primaryLocale);
+  const href = (url: string | undefined) => localizeStoreUrl(url, lp, locale);
 
   const justify =
     alignment === 'start' ? 'justify-start' : alignment === 'end' ? 'justify-end' : 'justify-center';
@@ -68,31 +94,36 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
         borderBottom: `1px solid ${borderColor}`,
       }}
     >
-      {/* Desktop bar — triggers in a row, panel appears on group hover/focus. */}
+      {/* Desktop bar — triggers in a row, panel appears on group hover/focus.
+          Each group spans the full bar height and the panel starts right at
+          the bar's bottom edge, so the cursor never crosses a dead zone. */}
       <div
-        className={`hidden md:flex items-center gap-1 ${justify} px-4 sm:px-6 lg:px-8 h-12 mx-auto w-full`}
+        className={`hidden md:flex items-stretch gap-1 ${justify} px-4 sm:px-6 lg:px-8 h-12 mx-auto w-full`}
         style={{ maxWidth: 'var(--theme-container-max)' }}
       >
+        {/* Drops the focus that keeps a panel open after a link click. */}
+        <BlurOnNavigate />
         {triggers.map((trigger, i) => {
-          const hasPanel = (trigger.columns?.length ?? 0) > 0 || !!trigger.feature?.image;
+          const feature = firstFeature(trigger.feature);
+          const hasPanel = (trigger.columns?.length ?? 0) > 0 || !!feature?.image;
           return (
-            <div key={i} className="group static">
+            <div key={i} className="mega-menu-group static flex items-center">
               <Link
                 prefetch={false}
-                href={storeHref(trigger.url || '#')}
+                href={href(trigger.url)}
                 className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md hover:bg-black/5 transition"
               >
                 {trigger.label}
                 {hasPanel && (
-                  <ChevronDown
-                    className="size-3.5 opacity-60 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
-                  />
+                  <ChevronDown className="mega-menu-chevron size-3.5 opacity-60 transition-transform" />
                 )}
               </Link>
 
               {hasPanel && (
+                // z-45: above a sticky HeaderBar (z-40) whichever section comes
+                // first, below the mobile drawer and the cart drawer (z-50).
                 <div
-                  className="absolute inset-x-0 top-full mt-px shadow-xl border-t opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-opacity duration-150 z-20"
+                  className="mega-menu-panel absolute inset-x-0 top-full shadow-xl border-t z-45"
                   style={{
                     backgroundColor: panelBg,
                     color: panelFg,
@@ -121,7 +152,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                                 <li key={li}>
                                   <Link
                                     prefetch={false}
-                                    href={storeHref(link.url || '#')}
+                                    href={href(link.url)}
                                     className="text-sm hover:opacity-70 transition-opacity"
                                   >
                                     {link.label}
@@ -134,27 +165,27 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                     ))}
 
                     {/* Optional feature card — a single promo image with caption. */}
-                    {trigger.feature?.image && (
+                    {feature?.image && (
                       <Link
                         prefetch={false}
-                        href={storeHref(trigger.feature.url || '#')}
+                        href={href(feature.url)}
                         className="block group/feat relative overflow-hidden aspect-4/3"
                         style={{ borderRadius: 'var(--theme-radius-md)' }}
                       >
                         <StoreImage
-                          src={resolveMediaUrl(trigger.feature.image)}
-                          alt={trigger.feature.caption || ''}
+                          src={resolveMediaUrl(feature.image)}
+                          alt={feature.caption || ''}
                           fill
                           sizes="320px"
-                          unoptimized={isSvgSrc(resolveMediaUrl(trigger.feature.image))}
+                          unoptimized={isSvgSrc(resolveMediaUrl(feature.image))}
                           className="object-cover transition-transform duration-500 group-hover/feat:scale-105"
                         />
-                        {trigger.feature.caption && (
+                        {feature.caption && (
                           <div
                             className="absolute inset-x-0 bottom-0 p-3 text-white text-sm font-semibold"
                             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}
                           >
-                            {trigger.feature.caption}
+                            {feature.caption}
                           </div>
                         )}
                       </Link>
@@ -169,7 +200,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
 
       {/* Mobile — pure-CSS accordion via <details>. Each trigger becomes a
           collapsible section; tapping the summary expands its links. */}
-      <div className="md:hidden">
+      <div className="mega-menu-mobile md:hidden">
         {triggers.map((trigger, i) => {
           const hasPanel = (trigger.columns?.length ?? 0) > 0;
           if (!hasPanel) {
@@ -177,7 +208,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
               <Link
                 prefetch={false}
                 key={i}
-                href={storeHref(trigger.url || '#')}
+                href={href(trigger.url)}
                 className="block px-4 py-3 text-sm font-medium border-b"
                 style={{ borderColor: borderColor }}
               >
@@ -208,7 +239,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
                         <Link
                           prefetch={false}
                           key={li}
-                          href={storeHref(link.url || '#')}
+                          href={href(link.url)}
                           className="block py-1.5 text-sm hover:opacity-70"
                         >
                           {link.label}
@@ -222,18 +253,7 @@ function MegaMenu({ settings, content, locale }: SectionRenderProps) {
         })}
       </div>
 
-      {/* RTL safety: ensure the hidden panel is hidden in RTL too (Tailwind's
-          `invisible` already does this; this rule is here to keep the
-          accordion summary's default disclosure marker hidden across browsers). */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `details > summary::-webkit-details-marker { display: none; }
-                   details > summary { list-style: none; }`,
-        }}
-      />
-      {/* `locale` referenced once so eslint stops nagging; could later drive
-          accent inversion in RTL but no UX delta today. */}
-      <span hidden>{locale}</span>
+      <style dangerouslySetInnerHTML={{ __html: MEGA_MENU_CSS }} />
     </div>
   );
 }
@@ -309,30 +329,32 @@ export const megaMenuSection: SectionDefinition = {
   Component: MegaMenu,
   defaultSettings: { alignment: 'center' },
   defaultContent: {
+    // Links valid on every store; keep identical to the dashboard copy
+    // (multi-stores-dashboard src/lib/section-schemas.ts).
     triggers: [
       {
         label: 'Shop',
         url: '/products',
         columns: [
           {
-            heading: 'Categories',
+            heading: 'Browse',
             links: [
+              { label: 'All products', url: '/products' },
               { label: 'New arrivals', url: '/products?sort=newest' },
-              { label: 'Best sellers', url: '/products?sort=popular' },
-              { label: 'On sale', url: '/products?sale=true' },
+              { label: 'Collections', url: '/collections' },
             ],
           },
           {
-            heading: 'Collections',
+            heading: 'Help',
             links: [
-              { label: 'Spring 2026', url: '/collections/spring-2026' },
-              { label: 'Essentials', url: '/collections/essentials' },
+              { label: 'Shipping', url: '/legal/shipping' },
+              { label: 'Returns', url: '/legal/refund' },
+              { label: 'Track my order', url: '/account/orders' },
             ],
           },
         ],
       },
-      { label: 'About', url: '/pages/about' },
-      { label: 'Contact', url: '/pages/contact' },
+      { label: 'Collections', url: '/collections' },
     ],
   },
 };

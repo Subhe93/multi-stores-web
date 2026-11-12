@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "Verkauft von {company} auf {brand}",
     "companyDetailsOrgNr": "Org.-Nr.",
     "companyDetailsVat": "USt-IdNr."
+  },
+  "nav": {
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen",
+    "menu": "Menü",
+    "expand": "{label} aufklappen",
+    "collapse": "{label} zuklappen",
+    "dismissAnnouncement": "Hinweis schließen",
+    "mainNavigation": "Hauptnavigation",
+    "mobileNavigation": "Mobile Navigation",
+    "wishlist": "Wunschliste"
   }
 }

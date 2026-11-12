@@ -10,10 +10,10 @@
 // page view. Desktop nav prefetches on hover instead (usePrefetchOnIntent).
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import type { CSSProperties, FocusEventHandler, PointerEventHandler, ReactNode, Ref } from 'react';
-import { decodeRouteParam } from '@/lib/slugRoute';
+import { isActiveHref } from './activeHref';
 
 export function ActiveLink({
   href,
@@ -64,17 +64,14 @@ export function ActiveLink({
   );
 }
 
-/** Whether `href` points at the current page (prefix match unless `exact`). */
+/**
+ * Whether `href` points at the current page (prefix match unless `exact`).
+ * Query-aware only for links that carry a query string — see `isActiveHref`.
+ */
 export function useIsActiveHref(href: string | undefined, exact?: boolean): boolean {
-  // Both sides percent-decoded: menu hrefs carry raw slugs (`/collections/kläder`,
-  // Arabic) while the pathname may be encoded.
-  const pathname = decodeRouteParam(usePathname() || '');
-  // Compare on pathname only — strip query/hash from the href before matching.
-  const hrefPath = decodeRouteParam((href || '').split('?')[0].split('#')[0]);
-  if (!hrefPath || hrefPath === '#') return false;
-  return exact
-    ? pathname === hrefPath
-    : pathname === hrefPath || pathname.startsWith(hrefPath + '/');
+  const pathname = usePathname() || '';
+  const query = useSearchParams();
+  return isActiveHref(href, pathname, query, exact);
 }
 
 // Hrefs already prefetched in this tab; router.prefetch runs once per href.

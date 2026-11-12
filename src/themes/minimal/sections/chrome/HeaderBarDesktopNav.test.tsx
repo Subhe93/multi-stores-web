@@ -7,7 +7,11 @@ import { HeaderBarDesktopNav, needsMegaPanel, type DesktopNavItem } from './Head
 // simple dropdown; the chevron toggles and Escape closes.
 
 const prefetch = vi.hoisted(() => vi.fn());
-vi.mock('next/navigation', () => ({ usePathname: () => '/', useRouter: () => ({ prefetch }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ prefetch }),
+}));
 
 const gifts: DesktopNavItem = {
   label: 'Presenter till vem',

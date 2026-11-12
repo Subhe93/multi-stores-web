@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "{brand} üzerinde {company} tarafından satılır",
     "companyDetailsOrgNr": "Sicil no.",
     "companyDetailsVat": "KDV no."
+  },
+  "nav": {
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat",
+    "menu": "Menü",
+    "expand": "{label} öğesini genişlet",
+    "collapse": "{label} öğesini daralt",
+    "dismissAnnouncement": "Duyuruyu kapat",
+    "mainNavigation": "Ana gezinme",
+    "mobileNavigation": "Mobil gezinme",
+    "wishlist": "İstek listesi"
   }
 }

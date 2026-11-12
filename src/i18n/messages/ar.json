@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "البائع: {company} عبر {brand}",
     "companyDetailsOrgNr": "رقم التسجيل",
     "companyDetailsVat": "الرقم الضريبي"
+  },
+  "nav": {
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "menu": "القائمة",
+    "expand": "توسيع {label}",
+    "collapse": "طي {label}",
+    "dismissAnnouncement": "إخفاء الإعلان",
+    "mainNavigation": "التنقل الرئيسي",
+    "mobileNavigation": "تنقل الجوال",
+    "wishlist": "المفضّلة"
   }
 }

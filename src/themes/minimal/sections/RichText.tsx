@@ -8,13 +8,15 @@ function RichText({ settings, content }: SectionRenderProps) {
   const html = (content.html as string) || '';
   const heading = (content.heading as string) || '';
   const eyebrow = (content.eyebrow as string) || '';
-  const width = (settings.width as 'narrow' | 'normal' | 'wide') || 'normal';
+  const width = (settings.width as 'narrow' | 'normal' | 'wide' | 'full') || 'normal';
   const alignment = (settings.alignment as 'left' | 'center') || 'left';
   const padding = (settings.padding as 'none' | 'small' | 'medium' | 'large') || 'medium';
   const surface = settings.surface === true;
 
+  // 'full' drops the cap: the text spans the page container like other
+  // sections (the container supplies the side padding).
   const widthClass =
-    width === 'narrow' ? 'max-w-2xl' : width === 'wide' ? 'max-w-5xl' : 'max-w-3xl';
+    width === 'narrow' ? 'max-w-2xl' : width === 'wide' ? 'max-w-5xl' : width === 'full' ? 'max-w-none' : 'max-w-3xl';
   const padClass =
     padding === 'none' ? '' : padding === 'small' ? 'py-6' : padding === 'large' ? 'py-20' : 'py-12';
 
@@ -92,6 +94,7 @@ export const richTextSection: SectionDefinition = {
           { value: 'narrow', label: { en: 'Narrow', ar: 'ضيّق' } },
           { value: 'normal', label: { en: 'Normal', ar: 'عادي' } },
           { value: 'wide', label: { en: 'Wide', ar: 'واسع' } },
+          { value: 'full', label: { en: 'Full width', ar: 'كامل العرض' } },
         ],
       },
       {

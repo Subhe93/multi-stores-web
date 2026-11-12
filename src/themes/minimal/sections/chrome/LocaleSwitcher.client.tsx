@@ -36,11 +36,19 @@ export function LocaleSwitcher({
   primary,
   others,
   accent,
+  bg,
+  fg,
+  borderColor,
 }: {
   current: string;
   primary: string;
   others: string[];
   accent: string;
+  /** Panel colours: the header's own background / text / border, so the
+   *  list stays readable on dark headers (items inherit the header text). */
+  bg: string;
+  fg: string;
+  borderColor: string;
 }) {
   const all = Array.from(new Set([primary, ...others].filter(Boolean)));
   const [open, setOpen] = useState(false);
@@ -107,8 +115,8 @@ export function LocaleSwitcher({
       {open && (
         <div
           role="menu"
-          className="absolute inset-e-0 top-full mt-1.5 min-w-44 rounded-lg border bg-white shadow-lg py-1 z-50"
-          style={{ borderColor: 'var(--theme-colors-border)' }}
+          className="absolute inset-e-0 top-full mt-1.5 min-w-44 rounded-lg border shadow-lg py-1 z-50"
+          style={{ backgroundColor: bg, color: fg, borderColor }}
         >
           {all.map((l) => {
             const meta = resolveLocaleMeta(l);
@@ -119,7 +127,7 @@ export function LocaleSwitcher({
                 type="button"
                 role="menuitem"
                 onClick={() => switchTo(l)}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium hover:bg-zinc-50 transition"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium hover:bg-black/5 transition"
                 style={{ color: active ? accent : 'inherit' }}
               >
                 <Flag url={meta.flagUrl} label={meta.label} />

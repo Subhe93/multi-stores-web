@@ -11,10 +11,11 @@ import Link from 'next/link';
 // Chrome links use prefetch={false}: viewport-prefetching every menu link
 // floods the origin with dynamic RSC renders on each page view.
 import { Search, User, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
-import { localizeStoreUrl } from '@/lib/storeUrl';
+import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
@@ -24,6 +25,7 @@ import { ActiveLink } from './ActiveLink.client';
 import { navActiveLook, parseNavActiveStyle } from './navActiveLook';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
+import { BlurOnNavigate } from './BlurOnNavigate.client';
 
 interface NavItem {
   label?: string;
@@ -77,12 +79,15 @@ type StickyMode = 'always' | 'desktop' | 'mobile' | 'none';
 // can't be toggled per-breakpoint with a single class, so we compose
 // responsive variants. Wherever the header is not sticky it is `relative`
 // so the full-width mega panel (submenu_style 'mega') anchors to the header
-// on every breakpoint; `relative` has no visual effect otherwise.
+// on every breakpoint; `relative` has no visual effect otherwise. Every mode
+// carries z-40: backdrop-blur makes the header a stacking context, so its
+// dropdown panels can only rise above later positioned content through the
+// header's own z-index.
 const STICKY_CLASS: Record<StickyMode, string> = {
   always: 'sticky top-0 z-40',
   desktop: 'relative md:sticky md:top-0 z-40', // static on mobile, sticky ≥ md
   mobile: 'sticky top-0 md:relative z-40', // sticky on mobile, static ≥ md
-  none: 'relative',
+  none: 'relative z-40',
 };
 
 // How a top-level item's sub-items open on desktop (`submenu_style`):
@@ -93,6 +98,9 @@ type SubmenuStyle = 'dropdown' | 'mega';
 
 function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: SectionRenderProps) {
   const ctx = storeContext;
+  // Shared (non-async) component: next-intl's hook works both in the RSC
+  // storefront and in the client-rendered builder preview.
+  const t = useTranslations();
   // Store name + logo come from storeContext, but the creator can override
   // via the section's own `logo_url` and `store_name_override` settings —
   // useful for chrome that differs from the store's display name.
@@ -132,7 +140,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   //   2. Inline custom items entered on this section.
   //   3. Auto-generated from the store's published static pages.
   // Locale prefix for the canonical storefront URL scheme (see localizeUrl).
-  const lp = locale !== primaryLocale ? `/${locale}` : '';
+  const lp = storeLocalePrefix(locale, primaryLocale);
 
   const menuKey = (settings.menu_key as string) || '';
   // Build a 1-level nav tree from the selected menu: top-level entries plus
@@ -177,7 +185,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               items={navItems as MobileMenuItem[]}
               fg={fg}
               bg={bg}
-              ariaLabel={locale === 'ar' ? 'فتح القائمة' : 'Open menu'}
+              ariaLabel={t('nav.openMenu')}
             />
           )}
 
@@ -236,7 +244,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
             />
           )}
           {navItems.length > 0 && submenuStyle === 'dropdown' && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav aria-label={t('nav.mainNavigation')} className="hidden md:flex items-center gap-1">
               {navItems.map((item, i) => {
                 const children = item.children ?? [];
                 if (children.length === 0) {
@@ -267,6 +275,8 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                       {item.label}
                       <ChevronDown className="size-3.5 opacity-60 transition-transform group-hover:rotate-180" />
                     </ActiveLink>
+                    {/* Drops the focus that keeps this panel open after a click. */}
+                    <BlurOnNavigate />
                     <div className="absolute inset-s-0 top-full hidden pt-1 group-hover:block group-focus-within:block z-50 min-w-48">
                       <div
                         className="rounded-md border py-1 shadow-lg"
@@ -314,7 +324,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               <Link
                 prefetch={false}
                 href={searchUrl}
-                aria-label={locale === 'ar' ? 'البحث' : 'Search'}
+                aria-label={t('common.search')}
                 className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
               >
                 <Search className="size-4" />
@@ -324,7 +334,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               <Link
                 prefetch={false}
                 href={accountUrl}
-                aria-label={locale === 'ar' ? 'الحساب' : 'Account'}
+                aria-label={t('common.account')}
                 className="size-9 inline-flex items-center justify-center rounded-md hover:bg-black/5 transition"
               >
                 <User className="size-4" />
@@ -336,13 +346,16 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                 primary={ctx.primaryLocale}
                 others={effectiveSecondaryLocales}
                 accent={accent}
+                bg={bg}
+                fg={fg}
+                borderColor={borderColor}
               />
             )}
             {showCart && (
               <HeaderCartButton
                 mode={(settings.cart_action as 'page' | 'popup') || 'page'}
                 href={cartUrl}
-                ariaLabel={locale === 'ar' ? 'السلة' : 'Cart'}
+                ariaLabel={t('common.cart')}
                 accent={accent}
               />
             )}

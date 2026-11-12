@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "Vendu par {company} sur {brand}",
     "companyDetailsOrgNr": "N° d’organisation",
     "companyDetailsVat": "N° TVA"
+  },
+  "nav": {
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "menu": "Menu",
+    "expand": "Développer {label}",
+    "collapse": "Réduire {label}",
+    "dismissAnnouncement": "Masquer l'annonce",
+    "mainNavigation": "Navigation principale",
+    "mobileNavigation": "Navigation mobile",
+    "wishlist": "Liste de souhaits"
   }
 }

@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "Säljs av {company} på {brand}",
     "companyDetailsOrgNr": "Org.nr",
     "companyDetailsVat": "Momsreg.nr"
+  },
+  "nav": {
+    "openMenu": "Öppna menyn",
+    "closeMenu": "Stäng menyn",
+    "menu": "Meny",
+    "expand": "Visa undermeny för {label}",
+    "collapse": "Dölj undermeny för {label}",
+    "dismissAnnouncement": "Stäng meddelandet",
+    "mainNavigation": "Huvudnavigering",
+    "mobileNavigation": "Mobilnavigering",
+    "wishlist": "Önskelista"
   }
 }

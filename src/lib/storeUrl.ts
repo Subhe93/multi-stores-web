@@ -119,7 +119,9 @@ export function storeHref(raw: string): string {
  * `lp` is that prefix ('' for the primary locale, '/ar' etc. otherwise).
  * Internal paths get the prefix; external links (http/mailto/tel),
  * protocol-relative URLs and in-page anchors are left untouched, and a path
- * the creator already localized is not prefixed twice.
+ * the creator already localized is not prefixed twice. The home link becomes
+ * the bare prefix (`/ar`, not `/ar/`): the trailing-slash form is a redirect
+ * hop and never matches the current path.
  */
 export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale: string): string {
   if (!rawUrl) return '#';
@@ -127,8 +129,17 @@ export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale:
   const url = storeHref(rawUrl);
   if (!url.startsWith('/') || url.startsWith('//')) return url;
   if (!lp) return url;
-  if (url === `/${locale}` || url.startsWith(`/${locale}/`)) return url;
+  // Already localized: `/ar`, `/ar/…`, `/ar?…`, `/ar#…`.
+  const own = `/${locale}`;
+  if (url === own || (url.startsWith(own) && ['/', '?', '#'].includes(url.charAt(own.length)))) return url;
+  // Root, optionally followed by a query or hash: `/`, `/?utm=x`, `/#top`.
+  if (url === '/' || url.startsWith('/?') || url.startsWith('/#')) return `${lp}${url.slice(1)}`;
   return `${lp}${url}`;
+}
+
+/** Locale prefix of the canonical storefront scheme: '' for the primary locale. */
+export function storeLocalePrefix(locale: string, primaryLocale: string): string {
+  return locale !== primaryLocale ? `/${locale}` : '';
 }
 
 /**

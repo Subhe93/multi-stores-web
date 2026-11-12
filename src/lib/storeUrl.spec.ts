@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, marketPublicHostname, storeHref, storeLocalePath, type MarketUrlInput } from './storeUrl';
+import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket, isServableMarket, marketPublicHostname, localizeStoreUrl, storeHref, storeLocalePath, storeLocalePrefix, type MarketUrlInput } from './storeUrl';
 
 // hreflang matrix for the markets app (M1-DESIGN §8): 2 markets × locales,
 // collision handling, x-default, translated slugs, and — above all — that a
@@ -342,5 +342,43 @@ describe('storeHref', () => {
     vi.stubEnv('NEXT_PUBLIC_WEB_URL', '');
     vi.stubEnv('NEXT_PUBLIC_PLATFORM_HOSTS', 'iwings-digital.com');
     expect(storeHref('https://muba.iwings-digital.com/cart')).toBe('/cart');
+  });
+});
+
+describe('localizeStoreUrl', () => {
+  it('leaves every path untouched on the primary locale', () => {
+    expect(localizeStoreUrl('/', '', 'sv')).toBe('/');
+    expect(localizeStoreUrl('/products?sort=newest', '', 'sv')).toBe('/products?sort=newest');
+  });
+
+  it('prefixes internal paths on a secondary locale, once', () => {
+    expect(localizeStoreUrl('/products', '/ar', 'ar')).toBe('/ar/products');
+    expect(localizeStoreUrl('/ar/products', '/ar', 'ar')).toBe('/ar/products');
+    expect(localizeStoreUrl('/ar', '/ar', 'ar')).toBe('/ar');
+    expect(localizeStoreUrl('/ar?utm=x', '/ar', 'ar')).toBe('/ar?utm=x');
+    expect(localizeStoreUrl('/ar#top', '/ar', 'ar')).toBe('/ar#top');
+    // A path that merely starts with the locale letters is not localized.
+    expect(localizeStoreUrl('/area', '/ar', 'ar')).toBe('/ar/area');
+  });
+
+  it('maps the home link to the bare prefix (no trailing slash hop)', () => {
+    expect(localizeStoreUrl('/', '/ar', 'ar')).toBe('/ar');
+    expect(localizeStoreUrl('/?utm=x', '/ar', 'ar')).toBe('/ar?utm=x');
+    expect(localizeStoreUrl('/#top', '/ar', 'ar')).toBe('/ar#top');
+  });
+
+  it('never touches external links, anchors or an empty value', () => {
+    expect(localizeStoreUrl('https://example.com/x', '/ar', 'ar')).toBe('https://example.com/x');
+    expect(localizeStoreUrl('//cdn.example.com/x', '/ar', 'ar')).toBe('//cdn.example.com/x');
+    expect(localizeStoreUrl('mailto:a@b.se', '/ar', 'ar')).toBe('mailto:a@b.se');
+    expect(localizeStoreUrl('#menu', '/ar', 'ar')).toBe('#menu');
+    expect(localizeStoreUrl(undefined, '/ar', 'ar')).toBe('#');
+  });
+});
+
+describe('storeLocalePrefix', () => {
+  it('is empty for the primary locale and /<locale> otherwise', () => {
+    expect(storeLocalePrefix('sv', 'sv')).toBe('');
+    expect(storeLocalePrefix('ar', 'sv')).toBe('/ar');
   });
 });

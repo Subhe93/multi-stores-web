@@ -5,7 +5,7 @@
 import Link from 'next/link';
 // Chrome links use prefetch={false}: viewport-prefetching every menu link
 // floods the origin with dynamic RSC renders on each page view.
-import { localizeStoreUrl } from '@/lib/storeUrl';
+import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr } from '../../../elementStyles';
@@ -25,10 +25,10 @@ interface FooterColumn {
   links?: FooterLink[];
 }
 
-function FooterColumns({ settings, content, locale, primaryLocale, storeContext }: SectionRenderProps) {
+function FooterColumns({ settings, content, locale, primaryLocale, storeContext, chrome }: SectionRenderProps) {
   const rawColumns = ((content.columns as FooterColumn[]) || []);
   // Locale prefix for the canonical storefront URL scheme (same rule as HeaderBar).
-  const lp = locale !== primaryLocale ? `/${locale}` : '';
+  const lp = storeLocalePrefix(locale, primaryLocale);
   // Resolve each column's links: a selected menu wins over inline links.
   const columns = rawColumns
     .map((c) => {
@@ -53,6 +53,9 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext 
   ) : null;
 
   if (columns.length === 0 && !companyDetails) {
+    // The placeholder is a builder affordance (something to click to open
+    // the inspector); the live footer (`chrome`) renders nothing.
+    if (chrome) return null;
     return (
       <div
         className="text-center py-10 px-4"
@@ -159,29 +162,31 @@ export const footerColumnsSection: SectionDefinition = {
   },
   Component: FooterColumns,
   defaultSettings: {},
+  // Links valid on every store (same set the API's apply-chrome writes);
+  // keep identical to the dashboard copy (multi-stores-dashboard
+  // src/lib/section-schemas.ts).
   defaultContent: {
     columns: [
       {
         heading: 'Shop',
         links: [
           { label: 'All products', url: '/products' },
-          { label: 'New arrivals', url: '/products?sort=newest' },
+          { label: 'Collections', url: '/collections' },
         ],
       },
       {
         heading: 'Help',
         links: [
-          { label: 'Contact', url: '/pages/contact' },
-          { label: 'Shipping', url: '/pages/shipping' },
-          { label: 'Returns', url: '/pages/returns' },
+          { label: 'Shipping', url: '/legal/shipping' },
+          { label: 'Returns', url: '/legal/refund' },
+          { label: 'Track my order', url: '/account/orders' },
         ],
       },
       {
-        heading: 'Company',
+        heading: 'Store',
         links: [
-          { label: 'About', url: '/pages/about' },
-          { label: 'Terms', url: '/pages/terms' },
-          { label: 'Privacy', url: '/pages/privacy' },
+          { label: 'Terms', url: '/legal/terms' },
+          { label: 'Privacy', url: '/legal/privacy' },
         ],
       },
     ],

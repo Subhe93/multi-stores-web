@@ -1151,5 +1151,16 @@
     "companyDetailsSoldBy": "Sold by {company} on {brand}",
     "companyDetailsOrgNr": "Org. nr",
     "companyDetailsVat": "VAT no."
+  },
+  "nav": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu",
+    "expand": "Expand {label}",
+    "collapse": "Collapse {label}",
+    "dismissAnnouncement": "Dismiss announcement",
+    "mainNavigation": "Main navigation",
+    "mobileNavigation": "Mobile navigation",
+    "wishlist": "Wishlist"
   }
 }
