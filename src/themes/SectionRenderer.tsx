@@ -132,6 +132,7 @@ export function SectionRenderer({
               listing={listing}
               currency={currency}
               storeContext={def.needsStoreContext ? storeContext : undefined}
+              chrome={chrome || undefined}
               preloaded={preloaded?.[section.id]}
             />
           </div>

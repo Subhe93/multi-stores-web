@@ -9,6 +9,7 @@ import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { dashboardOrigins } from '@/lib/platformHosts';
+import { sanitizeCustomCss } from '@/lib/customCss';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
 // Only the builder that embedded this preview may drive it, and messages go
@@ -297,6 +298,13 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
     [theme, state.customizations],
   );
   const cssVars = useMemo(() => tokensToCssVars(tokens), [tokens]);
+  // Store-wide custom CSS, sanitized exactly like the live store layout. It
+  // follows the customizations pushed by the dashboard, so it updates while
+  // the owner types in the theme customizer.
+  const customCss = useMemo(
+    () => sanitizeCustomCss(state.customizations?.customCss),
+    [state.customizations],
+  );
 
   // Load the theme's Google Fonts inside the preview. The live storefront gets
   // its font <link> from the server layout, which this iframe never renders —
@@ -363,6 +371,9 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       )}
       {safeSelectedId && (
         <SectionToolbar sectionId={safeSelectedId} sections={state.sections} />
+      )}
+      {customCss && (
+        <style data-store-custom-css="" dangerouslySetInnerHTML={{ __html: customCss }} />
       )}
       {/* Render through theme.Layout so creators see exactly the page chrome
           their theme provides (decorative strips, spacing, padding). No

@@ -39,6 +39,8 @@ import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
 import { COOKIE_POLICY_SLUGS, hasTrackingIds, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
+import { sanitizeCustomCss } from '@/lib/customCss';
+import { StoreCustomCss } from '@/components/StoreCustomCss';
 
 // ---------- Type definitions ----------
 
@@ -450,6 +452,10 @@ export default async function StoreLayout({
     preload(href, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
   }
 
+  // Owner's store-wide custom CSS (theme customizer). Sanitized so it cannot
+  // close the <style> element; the raw value is never rendered.
+  const customCss = sanitizeCustomCss(store.theme_customizations?.customCss);
+
   // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
   const currentLang = urlLocale || primaryLocale;
 
@@ -597,6 +603,12 @@ export default async function StoreLayout({
           {typographyCss && (
             <style dangerouslySetInnerHTML={{ __html: typographyCss }} />
           )}
+          {/* Store-wide custom CSS: after the global stylesheet, the theme
+              variables and the typography rules above, so it can override
+              them. Only rendered inside this store's layout tree; its
+              selectors are global for the document. Left out on checkout,
+              sign-in and account pages (ownerCodeGate). */}
+          {customCss && <StoreCustomCss css={customCss} />}
           {/* Market preview strip (nothing for other hosts). */}
           <MarketPreviewBanner />
           {/* Cookie consent + vendor tags: nothing in the tree for stores

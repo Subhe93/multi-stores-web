@@ -110,6 +110,12 @@ export type ThemeCustomizations = {
     containerMaxWidth?: string;
   };
   product?: Partial<ProductTokens>;
+  /**
+   * Store-wide custom CSS written by the owner (theme customizer). Owner
+   * content, not a design token: mergeTokens ignores it and the store layout
+   * renders it through sanitizeCustomCss (lib/customCss.ts).
+   */
+  customCss?: string;
 };
 
 // ── Section schema ─────────────────────────────────────────────
@@ -165,6 +171,10 @@ export interface SectionSchema {
   pageTypes?: Array<
     'HOME' | 'STATIC' | 'LANDING' | 'PRODUCT_TEMPLATE' | 'HEADER' | 'FOOTER' | 'CATALOG_TEMPLATE' | 'COLLECTION_TEMPLATE'
   >;
+  // Also allowed in the HEADER and FOOTER builders, on top of the page types
+  // above (or of the default when `pageTypes` is omitted). For sections that
+  // make sense both in page content and in the store chrome (embed-code).
+  chrome?: boolean;
 }
 
 export interface SectionInstance {
@@ -369,6 +379,11 @@ export interface SectionRenderProps {
   // Populated by StoreLayout when rendering HEADER / FOOTER chrome. Undefined
   // for page sections — they shouldn't depend on global store data.
   storeContext?: StoreContext;
+  // True when the section is rendered inside the published HEADER / FOOTER
+  // of the storefront (SectionRenderer chrome mode). Sections that add their
+  // own spacing can drop it there (embed-code). Undefined on content pages
+  // and in the builder preview.
+  chrome?: boolean;
   // Data a route fetched server-side for this section instance (M6.4, see
   // lib/preloadSections.ts). Shape is section-specific; a section that gets
   // it renders from it on the server and skips its mount fetch. Undefined in

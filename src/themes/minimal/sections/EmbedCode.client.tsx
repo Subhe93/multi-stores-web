@@ -9,20 +9,34 @@
 //     third-party widgets/embeds; CSS/JS can't leak into the storefront.
 //   • inline — injects the HTML/CSS into the page and executes scripts in the
 //     page context. Use when the snippet must interact with the storefront.
+//
+// The section can also live in the store HEADER / FOOTER (`chrome` prop). There
+// it renders "bare": no default vertical padding, no placeholder, and an
+// isolated frame starts at 0 height, so a script- or style-only snippet adds
+// no visible box to the header. Content pages keep their spacing.
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useOwnerCodeAllowed } from '@/lib/ownerCodeGate';
 import { Code2 } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
 import { numberOr } from '../../elementStyles';
 
-export function EmbedCode({ settings, locale }: SectionRenderProps) {
+export function EmbedCode({ settings, locale, chrome }: SectionRenderProps) {
+  const bare = !!chrome;
+  // Header / footer embeds run on every page except checkout, sign-in and
+  // the customer account (ownerCodeGate). Content-page embeds are unaffected.
+  const ownerCodeAllowed = useOwnerCodeAllowed();
   const html = (settings.html as string) || '';
   const css = (settings.css as string) || '';
   const js = (settings.js as string) || '';
   const mode = (settings.mode as 'isolated' | 'inline') || 'isolated';
   const minHeight = Math.max(0, numberOr(settings.min_height, 0));
 
+  if (bare && !ownerCodeAllowed) return null;
+
   if (!html.trim() && !css.trim() && !js.trim()) {
+    // An empty embed in the live header / footer shows nothing to visitors.
+    if (bare) return null;
     return (
       <section className="py-10">
         <div
@@ -45,9 +59,9 @@ export function EmbedCode({ settings, locale }: SectionRenderProps) {
   }
 
   return mode === 'inline' ? (
-    <InlineEmbed html={html} css={css} js={js} minHeight={minHeight} />
+    <InlineEmbed html={html} css={css} js={js} minHeight={minHeight} bare={bare} />
   ) : (
-    <IsolatedEmbed html={html} css={css} js={js} minHeight={minHeight} />
+    <IsolatedEmbed html={html} css={css} js={js} minHeight={minHeight} bare={bare} />
   );
 }
 
@@ -66,13 +80,27 @@ function buildSrcDoc(html: string, css: string, js: string, channel: string): st
 <body>${html}<script>${reporter}</script><script>${js}</script></body></html>`;
 }
 
-function IsolatedEmbed({ html, css, js, minHeight }: { html: string; css: string; js: string; minHeight: number }) {
+interface EmbedProps {
+  html: string;
+  css: string;
+  js: string;
+  minHeight: number;
+  /** Header / footer: no default padding and no initial placeholder height. */
+  bare: boolean;
+}
+
+function IsolatedEmbed({ html, css, js, minHeight, bare }: EmbedProps) {
   const channel = `embed-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  const [height, setHeight] = useState(minHeight || 280);
+  // Bare frames start collapsed and only grow to the height their content
+  // reports, so a script-only embed stays invisible.
+  const [height, setHeight] = useState(minHeight || (bare ? 0 : 280));
   const srcDoc = useMemo(() => buildSrcDoc(html, css, js, channel), [html, css, js, channel]);
+  const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
+      // Only this frame may resize itself.
+      if (!frameRef.current || e.source !== frameRef.current.contentWindow) return;
       const data = e.data;
       if (data && data.__embed === channel && typeof data.height === 'number') {
         setHeight(Math.max(minHeight, Math.ceil(data.height)));
@@ -83,8 +111,9 @@ function IsolatedEmbed({ html, css, js, minHeight }: { html: string; css: string
   }, [channel, minHeight]);
 
   return (
-    <section className="py-6">
+    <section className={bare ? undefined : 'py-6'}>
       <iframe
+        ref={frameRef}
         title="Embedded content"
         srcDoc={srcDoc}
         // No allow-same-origin: a srcdoc frame would otherwise share the
@@ -92,7 +121,8 @@ function IsolatedEmbed({ html, css, js, minHeight }: { html: string; css: string
         // its own sandbox. The frame runs on an opaque origin; the height
         // reporter only needs postMessage.
         sandbox="allow-scripts allow-popups allow-forms allow-presentation"
-        loading="lazy"
+        // A collapsed frame in the header must still load and run its script.
+        loading={bare ? 'eager' : 'lazy'}
         className="w-full block"
         style={{ height, border: 0, borderRadius: 'var(--theme-radius-md)' }}
       />
@@ -102,7 +132,7 @@ function IsolatedEmbed({ html, css, js, minHeight }: { html: string; css: string
 
 // ── Inline (in-page) ─────────────────────────────────────────
 
-function InlineEmbed({ html, css, js, minHeight }: { html: string; css: string; js: string; minHeight: number }) {
+function InlineEmbed({ html, css, js, minHeight, bare }: EmbedProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,7 +154,7 @@ function InlineEmbed({ html, css, js, minHeight }: { html: string; css: string; 
   }, [html, js]);
 
   return (
-    <section className="py-6" style={{ minHeight: minHeight || undefined }}>
+    <section className={bare ? undefined : 'py-6'} style={{ minHeight: minHeight || undefined }}>
       {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
       <div ref={ref} dangerouslySetInnerHTML={{ __html: html }} />
     </section>
