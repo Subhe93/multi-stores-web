@@ -333,7 +333,23 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         {/* ── Kustom checkout ── */}
         <section className="flex-1 min-w-0 w-full">
           <div className="flex items-center justify-between gap-3 mb-4 min-h-[1.75rem]">
-            <h2 className="text-base font-semibold text-gray-900">{t('checkout.payWithKustom')}</h2>
+            {/* Customers know the Klarna brand, not Kustom (the company that
+                operates the checkout): the heading shows the Klarna badge. */}
+            <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
+              {t.rich('checkout.payWithKustom', {
+                badge: () => (
+                  // Tiny static SVG from /public, nothing to optimize.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src="/payment-badges/klarna.svg"
+                    alt="Klarna"
+                    width={52}
+                    height={22}
+                    className="h-[22px] w-auto shrink-0"
+                  />
+                ),
+              })}
+            </h2>
             {updating && (
               <span className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
