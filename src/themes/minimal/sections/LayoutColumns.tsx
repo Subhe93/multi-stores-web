@@ -14,26 +14,69 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
+import { storeHref } from '@/lib/storeUrl';
+import {
+  PLATFORMS,
+  PLATFORM_ORDER,
+  SocialIconSvg,
+  brandColor,
+  resolveSocialHref,
+  type SocialPlatform,
+} from './_shared/socialIcons';
 
 type Mode = 'grid' | 'flex';
 type Align = 'start' | 'center' | 'end' | 'stretch';
 type Justify = 'start' | 'center' | 'end' | 'between' | 'around';
 type FlexDir = 'row' | 'column';
 
-type BlockType = 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'html';
+type BlockType =
+  | 'heading'
+  | 'text'
+  | 'image'
+  | 'images'
+  | 'social'
+  | 'button'
+  | 'divider'
+  | 'spacer'
+  | 'html';
+
+interface RowImage {
+  image?: string;
+  alt?: string;
+  link?: string;
+}
+
+interface SocialLink {
+  platform?: SocialPlatform;
+  url?: string;
+}
 
 interface Block {
   type?: BlockType;
   // heading
   text?: string;
-  level?: 'h2' | 'h3' | 'h4';
+  level?: 'h1' | 'h2' | 'h3' | 'h4';
+  // 'label' = small uppercase column title (the theme footer's style).
+  heading_style?: 'default' | 'label';
+  // heading / image: optional link
+  link?: string;
   // text
   html?: string;
+  // heading / text / social: theme text colour or the softer muted one
+  tone?: 'default' | 'muted';
   // image
   image?: string;
   alt?: string;
   aspect?: 'auto' | 'square' | 'landscape' | 'portrait' | 'wide';
   rounded?: boolean;
+  width_px?: number;
+  // images (a row of small images, e.g. payment or partner logos)
+  images?: RowImage[];
+  item_height_px?: number;
+  // social
+  socials?: SocialLink[];
+  icon_size_px?: number;
+  icon_color?: 'theme' | 'brand';
   // button
   button_label?: string;
   button_url?: string;
@@ -87,39 +130,102 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Logical alignment of a block; accepts the builder's left/right too. */
+function blockAlign(raw: string | undefined): 'start' | 'center' | 'end' {
+  if (raw === 'left') return 'start';
+  if (raw === 'right') return 'end';
+  return raw === 'center' || raw === 'end' ? raw : 'start';
+}
+
+/** Theme colour for a block's tone (text by default, muted on request). */
+function toneColor(tone: Block['tone']): string {
+  return tone === 'muted' ? 'var(--theme-colors-muted)' : 'var(--theme-colors-text)';
+}
+
+/** A block's link: external URLs open in a new tab, store URLs stay in place. */
+function BlockLink({
+  href,
+  className,
+  style,
+  children,
+}: {
+  href: string;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const target = storeHref(href);
+  const external = /^https?:\/\//i.test(target);
+  return (
+    <a
+      href={target}
+      className={className}
+      style={style}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
+      {children}
+    </a>
+  );
+}
+
 // ── Block renderer ──────────────────────────────────────────────
 
 function BlockView({ block }: { block: Block }) {
   const type = block.type || 'text';
-  const align = block.align || 'start';
+  // The builder's shared alignment select stores left/right; blocks use
+  // logical start/end.
+  const align = blockAlign(block.align as string | undefined);
   const alignClass = TEXT_ALIGN[align];
 
   switch (type) {
     case 'heading': {
       const Tag = block.level || 'h2';
+      const isLabel = block.heading_style === 'label';
       const sizeVar =
-        Tag === 'h2' ? 'var(--theme-scale-h2)' : Tag === 'h3' ? 'var(--theme-scale-h3)' : 'var(--theme-scale-h4)';
+        Tag === 'h1'
+          ? 'var(--theme-scale-h1)'
+          : Tag === 'h2'
+            ? 'var(--theme-scale-h2)'
+            : Tag === 'h3'
+              ? 'var(--theme-scale-h3)'
+              : 'var(--theme-scale-h4)';
+      const label = block.text || '';
       return (
         <Tag
-          className={alignClass}
-          style={{
-            fontFamily: 'var(--theme-font-heading)',
-            fontSize: sizeVar,
-            fontWeight: 'var(--theme-weight-heading)',
-            lineHeight: 'var(--theme-line-heading)',
-            color: colorOr(block.color, 'var(--theme-colors-text)'),
-          }}
+          // 'label': the small uppercase column title of the theme footer.
+          className={`${alignClass} ${isLabel ? 'text-sm font-semibold uppercase tracking-wider' : ''}`}
+          style={
+            isLabel
+              ? { color: colorOr(block.color, toneColor(block.tone)) }
+              : {
+                  fontFamily: 'var(--theme-font-heading)',
+                  fontSize: sizeVar,
+                  fontWeight: 'var(--theme-weight-heading)',
+                  lineHeight: 'var(--theme-line-heading)',
+                  color: colorOr(block.color, toneColor(block.tone)),
+                }
+          }
         >
-          {block.text || ''}
+          {block.link ? (
+            <BlockLink href={block.link} className="hover:opacity-70 transition-opacity" style={{ color: 'inherit' }}>
+              {label}
+            </BlockLink>
+          ) : (
+            label
+          )}
         </Tag>
       );
     }
     case 'text':
       return (
         <div
-          className={`max-w-prose ${alignClass} prose-sm`}
+          // Muted text (e.g. footer columns): links follow the text colour
+          // instead of the editor's blue/underline link class.
+          className={`max-w-prose ${alignClass} prose-sm ${
+            block.tone === 'muted' ? '[&_a]:text-inherit! [&_a]:no-underline! [&_a:hover]:opacity-70' : ''
+          }`}
           style={{
-            color: colorOr(block.color, 'var(--theme-colors-text)'),
+            color: colorOr(block.color, toneColor(block.tone)),
             lineHeight: 'var(--theme-line-body)',
           }}
           // Rich text is creator-authored via the dashboard editor.
@@ -131,31 +237,110 @@ function BlockView({ block }: { block: Block }) {
       const aspect = block.aspect || 'auto';
       const src = resolveMediaUrl(block.image);
       const radius = block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
+      // Optional fixed width (e.g. a logo); otherwise the column width.
+      const widthPx = typeof block.width_px === 'number' && block.width_px > 0 ? block.width_px : null;
+      const box: React.CSSProperties | undefined = widthPx ? { width: widthPx, maxWidth: '100%' } : undefined;
       // 'auto' keeps the natural ratio, which next/image cannot size without
       // known dimensions, so it stays a plain <img> with an optimized srcset.
-      if (aspect === 'auto') {
-        return (
+      const img =
+        aspect === 'auto' ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            {...responsiveImgProps(src, '(min-width: 768px) 50vw, 100vw')}
+            {...responsiveImgProps(src, widthPx ? `${widthPx}px` : '(min-width: 768px) 50vw, 100vw')}
             alt={block.alt || ''}
             decoding="async"
             loading="lazy"
-            className="w-full object-cover"
-            style={radius}
+            className={widthPx ? 'block h-auto object-cover' : 'w-full object-cover'}
+            style={{ ...radius, ...box }}
           />
+        ) : (
+          <div className={`relative w-full overflow-hidden ${ASPECT_CLASS[aspect]}`} style={{ ...radius, ...box }}>
+            <StoreImage
+              src={src}
+              alt={block.alt || ''}
+              fill
+              sizes={widthPx ? `${widthPx}px` : '(min-width: 768px) 50vw, 100vw'}
+              unoptimized={isSvgSrc(src)}
+              className="object-cover"
+            />
+          </div>
         );
-      }
+      return block.link ? (
+        <BlockLink href={block.link} className={widthPx ? 'block' : 'block w-full'} style={box}>
+          {img}
+        </BlockLink>
+      ) : (
+        img
+      );
+    }
+    case 'images': {
+      const items = (block.images || []).filter((i) => i?.image);
+      if (items.length === 0) return null;
+      const h = Math.max(16, Math.min(200, numberOr(block.item_height_px, 40)));
+      const justifyClass =
+        align === 'center' ? 'justify-center' : align === 'end' ? 'justify-end' : 'justify-start';
       return (
-        <div className={`relative w-full overflow-hidden ${ASPECT_CLASS[aspect]}`} style={radius}>
-          <StoreImage
-            src={src}
-            alt={block.alt || ''}
-            fill
-            sizes="(min-width: 768px) 50vw, 100vw"
-            unoptimized={isSvgSrc(src)}
-            className="object-cover"
-          />
+        <div className={`flex flex-wrap items-center gap-2 ${justifyClass}`}>
+          {items.map((item, i) => {
+            const src = resolveMediaUrl(item.image || '');
+            const img = (
+              // Natural width at a fixed height: logos keep their proportions.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt={item.alt || ''}
+                height={h}
+                decoding="async"
+                loading="lazy"
+                className="block w-auto object-contain"
+                style={{ height: h }}
+              />
+            );
+            return item.link ? (
+              <BlockLink key={i} href={item.link} className="inline-block hover:opacity-80 transition-opacity">
+                {img}
+              </BlockLink>
+            ) : (
+              <span key={i} className="inline-block">
+                {img}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+    case 'social': {
+      const links = (block.socials || [])
+        .filter((s): s is SocialLink & { platform: SocialPlatform } => !!s?.platform && Object.hasOwn(PLATFORMS, s.platform))
+        .map((s) => ({ platform: s.platform, href: resolveSocialHref(s.platform, s.url || '') }))
+        .filter((s) => s.href !== '#');
+      if (links.length === 0) return null;
+      const size = Math.max(12, Math.min(48, numberOr(block.icon_size_px, 20)));
+      const justifyClass =
+        align === 'center' ? 'justify-center' : align === 'end' ? 'justify-end' : 'justify-start';
+      return (
+        <div className={`flex flex-wrap items-center gap-3.5 ${justifyClass}`}>
+          {links.map((s, i) => {
+            const label = PLATFORMS[s.platform].label.en;
+            const external = /^https?:/i.test(s.href);
+            return (
+              <a
+                key={i}
+                href={s.href}
+                aria-label={label}
+                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className="inline-flex hover:opacity-70 transition-opacity"
+                style={{
+                  color:
+                    block.icon_color === 'brand'
+                      ? brandColor(s.platform)
+                      : colorOr(block.color, toneColor(block.tone)),
+                }}
+              >
+                <SocialIconSvg platform={s.platform} width={size} height={size} />
+              </a>
+            );
+          })}
         </div>
       );
     }
@@ -312,6 +497,8 @@ const BLOCK_FIELDS = [
       { value: 'heading', label: { en: 'Heading', ar: 'عنوان' } },
       { value: 'text', label: { en: 'Text', ar: 'نص' } },
       { value: 'image', label: { en: 'Image', ar: 'صورة' } },
+      { value: 'images', label: { en: 'Image row (logos)', ar: 'صف صور (شعارات)' } },
+      { value: 'social', label: { en: 'Social icons', ar: 'أيقونات التواصل' } },
       { value: 'button', label: { en: 'Button', ar: 'زر' } },
       { value: 'divider', label: { en: 'Divider', ar: 'فاصل' } },
       { value: 'spacer', label: { en: 'Spacer', ar: 'مسافة' } },
@@ -326,17 +513,73 @@ const BLOCK_FIELDS = [
     label: { en: 'Heading level', ar: 'مستوى العنوان' },
     defaultValue: 'h2',
     options: [
+      { value: 'h1', label: { en: 'H1 (page title)', ar: 'H1 (عنوان الصفحة)' } },
       { value: 'h2', label: { en: 'H2', ar: 'H2' } },
       { value: 'h3', label: { en: 'H3', ar: 'H3' } },
       { value: 'h4', label: { en: 'H4', ar: 'H4' } },
     ],
     showIf: { key: 'type', in: ['heading'] },
   },
+  {
+    key: 'heading_style',
+    type: 'select' as const,
+    label: { en: 'Heading style', ar: 'شكل العنوان' },
+    defaultValue: 'default',
+    options: [
+      { value: 'default', label: { en: 'Theme heading', ar: 'عنوان الثيم' } },
+      { value: 'label', label: { en: 'Small uppercase label (footer column title)', ar: 'تسمية صغيرة بأحرف كبيرة (عنوان عمود الفوتر)' } },
+    ],
+    showIf: { key: 'type', in: ['heading'] },
+  },
+  { key: 'link', type: 'url' as const, label: { en: 'Link (optional)', ar: 'رابط (اختياري)' }, showIf: { key: 'type', in: ['heading', 'image'] } },
   // text
   { key: 'html', type: 'richtext' as const, label: { en: 'Text', ar: 'النص' }, showIf: { key: 'type', in: ['text'] } },
   // image
   { key: 'image', type: 'image' as const, label: { en: 'Image', ar: 'الصورة' }, showIf: { key: 'type', in: ['image'] } },
   { key: 'alt', type: 'text' as const, label: { en: 'Alt text', ar: 'نص بديل' }, showIf: { key: 'type', in: ['image'] } },
+  { key: 'width_px', type: 'number' as const, label: { en: 'Width (px, empty = full column)', ar: 'العرض (px، فارغ = عرض العمود)' }, min: 16, max: 1200, showIf: { key: 'type', in: ['image'] } },
+  // images (row of logos)
+  {
+    key: 'images',
+    type: 'repeater' as const,
+    label: { en: 'Images', ar: 'الصور' },
+    fields: [
+      { key: 'image', type: 'image' as const, label: { en: 'Image', ar: 'الصورة' } },
+      { key: 'alt', type: 'text' as const, label: { en: 'Alt text', ar: 'نص بديل' } },
+      { key: 'link', type: 'url' as const, label: { en: 'Link (optional)', ar: 'رابط (اختياري)' } },
+    ],
+    showIf: { key: 'type', in: ['images'] },
+  },
+  { key: 'item_height_px', type: 'number' as const, label: { en: 'Image height (px)', ar: 'ارتفاع الصورة (px)' }, min: 16, max: 200, defaultValue: 40, showIf: { key: 'type', in: ['images'] } },
+  // social
+  {
+    key: 'socials',
+    type: 'repeater' as const,
+    label: { en: 'Social links', ar: 'روابط التواصل' },
+    fields: [
+      {
+        key: 'platform',
+        type: 'select' as const,
+        label: { en: 'Platform', ar: 'المنصّة' },
+        defaultValue: 'instagram',
+        options: PLATFORM_ORDER.map((p) => ({ value: p, label: PLATFORMS[p].label })),
+      },
+      { key: 'url', type: 'text' as const, label: { en: 'URL or handle', ar: 'الرابط أو المُعرّف' } },
+    ],
+    showIf: { key: 'type', in: ['social'] },
+  },
+  { key: 'icon_size_px', type: 'number' as const, label: { en: 'Icon size (px)', ar: 'حجم الأيقونة (px)' }, min: 12, max: 48, defaultValue: 20, showIf: { key: 'type', in: ['social'] } },
+  {
+    key: 'icon_color',
+    type: 'select' as const,
+    label: { en: 'Icon colour', ar: 'لون الأيقونات' },
+    defaultValue: 'theme',
+    options: [
+      { value: 'theme', label: { en: 'Theme (tone / colour below)', ar: 'الثيم (النبرة / اللون أدناه)' } },
+      { value: 'brand', label: { en: 'Brand colours', ar: 'ألوان المنصّات' } },
+    ],
+    showIf: { key: 'type', in: ['social'] },
+  },
   {
     key: 'aspect',
     type: 'select' as const,
@@ -371,8 +614,19 @@ const BLOCK_FIELDS = [
   // html
   { key: 'raw_html', type: 'textarea' as const, label: { en: 'HTML', ar: 'HTML' }, showIf: { key: 'type', in: ['html'] } },
   // shared
-  { key: 'align', type: 'select' as const, label: { en: 'Align', ar: 'المحاذاة' }, defaultValue: 'start', options: ALIGN_OPTIONS, showIf: { key: 'type', in: ['heading', 'text', 'button', 'html'] } },
-  { key: 'color', type: 'color' as const, label: { en: 'Color', ar: 'اللون' }, showIf: { key: 'type', in: ['heading', 'text', 'divider'] } },
+  { key: 'align', type: 'select' as const, label: { en: 'Align', ar: 'المحاذاة' }, defaultValue: 'start', options: ALIGN_OPTIONS, showIf: { key: 'type', in: ['heading', 'text', 'button', 'html', 'images', 'social'] } },
+  {
+    key: 'tone',
+    type: 'select' as const,
+    label: { en: 'Text tone', ar: 'درجة النص' },
+    defaultValue: 'default',
+    options: [
+      { value: 'default', label: { en: 'Theme text', ar: 'نص الثيم' } },
+      { value: 'muted', label: { en: 'Muted (softer)', ar: 'خافت (أهدأ)' } },
+    ],
+    showIf: { key: 'type', in: ['heading', 'text', 'social'] },
+  },
+  { key: 'color', type: 'color' as const, label: { en: 'Color', ar: 'اللون' }, showIf: { key: 'type', in: ['heading', 'text', 'divider', 'social'] } },
 ];
 
 export const layoutColumnsSection: SectionDefinition = {
