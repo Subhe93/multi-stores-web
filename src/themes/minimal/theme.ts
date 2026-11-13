@@ -56,6 +56,9 @@ import { productDetailsMagicSection } from './sections/product/ProductDetailsMag
 import { productTabsMagicSection } from './sections/product/ProductTabsMagic';
 import { addToCartMagicSection } from './sections/product/AddToCartMagic';
 import { productListingMagicSection } from './sections/listing/ProductListingMagic';
+import { layoutRowSection } from './sections/layout/LayoutRow';
+import { layoutColumnSection } from './sections/layout/LayoutColumn';
+import { layoutGridSection } from './sections/layout/LayoutGrid';
 
 export const minimalTheme: Theme = {
   key: 'minimal',
@@ -120,6 +123,10 @@ export const minimalTheme: Theme = {
     'product-details': productDetailsMagicSection,
     'product-tabs': productTabsMagicSection,
     'add-to-cart': addToCartMagicSection,
+    // Layout containers — hold child sections (parent_id), PRODUCT_TEMPLATE only.
+    'layout-row': layoutRowSection,
+    'layout-column': layoutColumnSection,
+    'layout-grid': layoutGridSection,
     // Listing magic section — reads from the listing context injected by the
     // /products and /collections/[handle] routes. Only useful on
     // CATALOG_TEMPLATE / COLLECTION_TEMPLATE (scoped via schema.pageTypes).

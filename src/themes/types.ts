@@ -6,6 +6,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { HeroPageConfig } from '@/lib/hero';
 import type { StorefrontApps } from '@/lib/storeApps';
 import type { MarketRoute } from '@/lib/market';
+import type { ChildLayout } from './sectionTree';
 
 export type LocalizedString = Record<string, string>;
 
@@ -181,8 +182,12 @@ export interface SectionInstance {
   id: string;
   section_key: string;
   settings: Record<string, unknown>;
+  // Ordered among siblings (sections that share the same `parent_id`).
   sort_order: number;
   is_hidden?: boolean;
+  // Parent layout container (layout-row / layout-column / layout-grid).
+  // Absent or null = root section. See themes/sectionTree.ts.
+  parent_id?: string | null;
   // Per-locale content rows. Array form matches what the API serialises and
   // what's stored in version snapshots, so we don't have to convert at every
   // boundary. The renderer picks one row per request.
@@ -390,6 +395,25 @@ export interface SectionRenderProps {
   // the builder preview and whenever the preload failed — the section then
   // fetches client-side as before.
   preloaded?: unknown;
+  // ── Layout containers only (layout-row / layout-column / layout-grid) ──
+  // The renderer passes these three props to container sections only, so the
+  // props of every other section stay exactly as before.
+  /** Id of the container section itself (scopes its CSS). */
+  sectionId?: string;
+  /** Already rendered child sections, in sibling order. */
+  layoutChildren?: LayoutChildNode[];
+  /** True inside the dashboard builder preview (empty-container placeholder). */
+  builderPreview?: boolean;
+}
+
+/** One rendered child handed to a layout container. */
+export interface LayoutChildNode {
+  id: string;
+  sectionKey: string;
+  /** Sanitised `settings._layout` of the child. */
+  layout: ChildLayout;
+  /** The child's full wrapper (scope class `s-<id>`), ready to place. */
+  node: ReactNode;
 }
 
 export interface SectionDefinition {

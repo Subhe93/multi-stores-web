@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
@@ -8,6 +8,8 @@ import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
+import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
+import type { ProductData } from '@/components/product/ProductDetailClient';
 import { dashboardOrigins } from '@/lib/platformHosts';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
@@ -394,17 +396,24 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           // Designer app (M5.5): the sample product's design session, shared by
           // the gallery (canvas) and add-to-cart (form) sections.
           <DesignerSessionProvider designer={state.product?.designer} productId={state.product?.id ?? ''} locale={state.locale}>
-            <SectionRenderer
-              theme={theme}
-              sections={state.sections}
+            <PreviewProductState
+              product={state.product}
               locale={state.locale}
               primaryLocale={state.primaryLocale}
-              storeSlug={storeSlug}
-              product={state.product}
-              listing={state.listing}
               currency={state.currency}
-              storeContext={state.storeContext}
-            />
+            >
+              <SectionRenderer
+                theme={theme}
+                sections={state.sections}
+                locale={state.locale}
+                primaryLocale={state.primaryLocale}
+                storeSlug={storeSlug}
+                product={state.product}
+                listing={state.listing}
+                currency={state.currency}
+                storeContext={state.storeContext}
+              />
+            </PreviewProductState>
           </DesignerSessionProvider>
         )}
       </theme.Layout>
@@ -525,5 +534,37 @@ function SectionToolbar({
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * Shared product page state for a PRODUCT_TEMPLATE preview: every product
+ * block of the template (and the product-page section, which reuses it)
+ * follows the sample product's one selection. Other templates have no
+ * product and render unchanged.
+ */
+function PreviewProductState({
+  product,
+  locale,
+  primaryLocale,
+  currency,
+  children,
+}: {
+  product?: ProductContext;
+  locale: string;
+  primaryLocale: string;
+  currency?: string;
+  children: ReactNode;
+}) {
+  if (!product?.id) return <>{children}</>;
+  return (
+    <ProductPageStateProvider
+      product={product as unknown as ProductData}
+      locale={locale}
+      primaryLocale={primaryLocale}
+      currency={currency}
+    >
+      {children}
+    </ProductPageStateProvider>
   );
 }

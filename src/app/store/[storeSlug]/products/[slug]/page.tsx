@@ -11,6 +11,7 @@ import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { ProductPreviewBanner } from '@/components/layout/ProductPreview';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
+import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
@@ -283,17 +284,27 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         {/* Designer app (M5.5): one design session for the whole template, so a
             theme that splits gallery (canvas) and add-to-cart (form) into
             separate sections still edits one draft. */}
+        {/* Shared product page state: one selection, price chain and cart
+            action for every product block of the template; the product-page
+            section's ProductDetailClient reuses it for the same product. */}
         <DesignerSessionProvider designer={product.designer} productId={product.id} locale={locale}>
-          <SectionRenderer
-            theme={theme}
-            sections={templateSections}
+          <ProductPageStateProvider
+            product={clientProduct as unknown as ProductData}
             locale={locale}
             primaryLocale={primaryLocale}
-            storeSlug={storeSlug}
-            product={clientProduct as ProductContext}
             currency={storeCurrency}
-            preloaded={preloaded}
-          />
+          >
+            <SectionRenderer
+              theme={theme}
+              sections={templateSections}
+              locale={locale}
+              primaryLocale={primaryLocale}
+              storeSlug={storeSlug}
+              product={clientProduct as ProductContext}
+              currency={storeCurrency}
+              preloaded={preloaded}
+            />
+          </ProductPageStateProvider>
         </DesignerSessionProvider>
       </div>
     );
