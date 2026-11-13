@@ -103,6 +103,12 @@ export default async function CheckoutLayout({
           lang={currentLang}
           className="min-h-screen flex flex-col store-page"
           style={{
+            // The theme layout wraps <main> in a max-width container. Break out
+            // of it (full-bleed) so the checkout header, footer and background
+            // span the whole viewport; the content keeps its own max-w-5xl.
+            // The theme root clips overflow-x, so 100vw adds no scrollbar.
+            width: '100vw',
+            marginInline: 'calc(50% - 50vw)',
             '--store-primary': primaryColor,
             '--store-primary-contrast': storePrimaryContrast(primaryColor, resolvedTokens, store.theme_customizations),
             '--store-secondary': secondaryColor,
