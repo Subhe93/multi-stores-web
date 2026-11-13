@@ -85,6 +85,30 @@ interface RenderContext {
   firstId: string | undefined;
 }
 
+// Older product composites (category 'product' too) keep their behaviour.
+const LEGACY_PRODUCT_COMPOSITES = new Set(['add-to-cart', 'product-details']);
+
+/** A separate product block (category 'product', B1/B2), not a legacy composite. */
+function isProductBlock(sectionKey: string, def: SectionDefinition): boolean {
+  return def.schema?.category === 'product' && !LEGACY_PRODUCT_COMPOSITES.has(sectionKey);
+}
+
+/**
+ * Whether a section never gets the scroll-in reveal on its own account: the
+ * LCP-type keys, and every product block. The product blocks replace the
+ * monolith 'product-page' (NO_REVEAL), which never animated: its gallery,
+ * title, price and buy button paint at once, and its tabs do not fade in
+ * either.
+ */
+function isNoRevealNode(node: RenderableNode): boolean {
+  return NO_REVEAL_KEYS.has(node.section.section_key) || isProductBlock(node.section.section_key, node.def);
+}
+
+/** Whether the node or any descendant is a no-reveal section (see isNoRevealNode). */
+function subtreeHasNoReveal(node: RenderableNode): boolean {
+  return isNoRevealNode(node) || node.children.some(subtreeHasNoReveal);
+}
+
 /** A tree node whose section definition exists in the active theme. */
 interface RenderableNode {
   section: SectionInstance;
@@ -183,7 +207,14 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
   const sectionStyle = nested ? withoutFullWidth(rawStyle) : rawStyle;
   const wrapperScope = scopeClassFor(section.id);
   const innerScope = `${wrapperScope}-i`;
-  const { css } = resolveSectionStyle(sectionStyle, wrapperScope);
+  const { css: styleCss } = resolveSectionStyle(sectionStyle, wrapperScope);
+  // A root product block that rendered nothing (e.g. tabs of a product
+  // without description, specifications or FAQs) takes no room, so its
+  // padding does not add space the monolith never had. Inside a column the
+  // column's own rule does the same.
+  const isProductLeaf = !nested && isProductBlock(section.section_key, def);
+  const css =
+    styleCss + (isProductLeaf ? `.${wrapperScope}:has(>.${innerScope}:empty){display:none}` : '');
   const animClass = animationClass(sectionStyle?.animate);
   const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
   const isContainer = isContainerKey(section.section_key);
@@ -233,14 +264,15 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
     </div>
   );
   // Reveal rules: never in chrome, never inside a container (no nested
-  // reveal), never on the container that holds the first leaf (LCP), and
-  // for root leaves the usual first/LCP-type check.
+  // reveal), never on the container that holds the first leaf (LCP) or a
+  // no-reveal section (the product gallery and blocks), and for root leaves
+  // the usual first/LCP-type check plus the product blocks.
   const plain =
     ctx.chrome ||
     nested ||
     (isContainer
-      ? subtreeContains(node, ctx.firstId) || !shouldReveal(section.section_key, false)
-      : !shouldReveal(section.section_key, section.id === ctx.firstId));
+      ? subtreeContains(node, ctx.firstId) || subtreeHasNoReveal(node) || !shouldReveal(section.section_key, false)
+      : isNoRevealNode(node) || !shouldReveal(section.section_key, section.id === ctx.firstId));
   return (
     <Fragment key={section.id}>
       {css && <style dangerouslySetInnerHTML={{ __html: css }} />}

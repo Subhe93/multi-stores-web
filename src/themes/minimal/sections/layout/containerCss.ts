@@ -11,14 +11,16 @@
 //           .s-<child>-i      child inner     <- sticky
 //
 // Breakpoints match sectionStyle.ts: desktop is the base, tablet is
-// (max-width: 1023px) and mobile is (max-width: 767px). Sticky only applies
-// on desktop (min-width: 1024px), where the columns sit side by side.
+// (max-width: 1023px) and mobile is (max-width: 767px). Sticky applies on
+// desktop (min-width: 1024px), where the columns sit side by side; a column
+// can opt in from tablet (min-width: 768px) for rows that stack on mobile only.
 
 import { scopeClassFor, type ChildLayout, type LayoutBreakpoint } from '../../../sectionTree';
 
 export const TABLET_DOWN_MQ = '(max-width: 1023px)';
 export const MOBILE_DOWN_MQ = '(max-width: 767px)';
 export const DESKTOP_ONLY_MQ = '(min-width: 1024px)';
+export const TABLET_UP_MQ = '(min-width: 768px)';
 
 const BPS: LayoutBreakpoint[] = ['desktop', 'tablet', 'mobile'];
 
@@ -41,6 +43,13 @@ export function intSetting(value: unknown, fallback: number, min: number, max: n
   const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
   if (typeof n !== 'number' || !Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+/** Like intSetting, but an empty / missing value stays null ("inherit"). */
+export function optionalIntSetting(value: unknown, min: number, max: number): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const n = intSetting(value, Number.NaN, min, max);
+  return Number.isNaN(n) ? null : n;
 }
 
 function pickOption<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -114,6 +123,10 @@ export type StackOn = 'tablet' | 'mobile' | 'never';
 
 export interface RowSettings {
   gap: number;
+  /** Gap below 1024px; null = same as desktop. */
+  gapTablet: number | null;
+  /** Gap below 768px; null = same as tablet. */
+  gapMobile: number | null;
   align: AlignValue;
   justify: JustifyValue;
   wrap: boolean;
@@ -125,6 +138,8 @@ export interface RowSettings {
 export function readRowSettings(settings: Record<string, unknown>): RowSettings {
   return {
     gap: intSetting(settings.gap_px, 32, 0, 200),
+    gapTablet: optionalIntSetting(settings.gap_tablet_px, 0, 200),
+    gapMobile: optionalIntSetting(settings.gap_mobile_px, 0, 200),
     align: pickOption(settings.align, ALIGN_VALUES, 'stretch'),
     justify: pickOption(settings.justify, JUSTIFY_VALUES, 'start'),
     wrap: settings.wrap === true,
@@ -165,6 +180,13 @@ export function buildRowCss(sectionId: string, settings: Record<string, unknown>
       : ['flex:0 1 auto', 'min-width:0'],
   );
 
+  // Optional smaller-screen gaps (cascade: mobile inherits tablet, tablet
+  // inherits desktop). The gap is the column gap while side by side and the
+  // vertical gap once stacked.
+  const tabletGap = s.gapTablet ?? s.gap;
+  if (tabletGap !== s.gap) out.rule('tablet', sel, [`gap:${tabletGap}px`]);
+  if (s.gapMobile !== null && s.gapMobile !== tabletGap) out.rule('mobile', sel, [`gap:${s.gapMobile}px`]);
+
   // Stacking: the row turns into a column and every child takes the full width.
   for (const bp of ['tablet', 'mobile'] as const) {
     const stacked = isStackedAt(s.stackOn, bp);
@@ -194,11 +216,15 @@ export function buildRowCss(sectionId: string, settings: Record<string, unknown>
 
 // ── Column ──────────────────────────────────────────────────────────────
 
+/** Smallest screen a sticky column sticks on: desktop (>= 1024px) or tablet (>= 768px). */
+export type StickyFrom = 'desktop' | 'tablet';
+
 export interface ColumnSettings {
   gap: number;
   align: AlignValue;
   stickyDesktop: boolean;
   stickyTop: number;
+  stickyFrom: StickyFrom;
 }
 
 export function readColumnSettings(settings: Record<string, unknown>): ColumnSettings {
@@ -207,6 +233,7 @@ export function readColumnSettings(settings: Record<string, unknown>): ColumnSet
     align: pickOption(settings.align, ALIGN_VALUES, 'stretch'),
     stickyDesktop: settings.sticky_desktop === true,
     stickyTop: intSetting(settings.sticky_top_px, DEFAULT_STICKY_TOP_PX, 0, 400),
+    stickyFrom: pickOption(settings.sticky_from, ['desktop', 'tablet'] as const, 'desktop'),
   };
 }
 
@@ -222,8 +249,10 @@ export function buildColumnCss(sectionId: string, settings: Record<string, unkno
   for (const child of children) appendCommonChildRules(out, sel, child);
   if (s.stickyDesktop) {
     // The column's own inner div sticks inside its wrapper, which a parent
-    // row / grid stretches to the full row height.
-    out.media(DESKTOP_ONLY_MQ, `.${scopeClassFor(sectionId)}-i`, ['position:sticky', `top:${s.stickyTop}px`]);
+    // row / grid stretches to the full row height. "From tablet" suits a row
+    // that only stacks on mobile (side by side from 768px).
+    const mq = s.stickyFrom === 'tablet' ? TABLET_UP_MQ : DESKTOP_ONLY_MQ;
+    out.media(mq, `.${scopeClassFor(sectionId)}-i`, ['position:sticky', `top:${s.stickyTop}px`]);
   }
   return out.toString();
 }

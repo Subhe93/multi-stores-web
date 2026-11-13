@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  adoptPreviewApps,
+  adoptPreviewCurrency,
+  adoptPreviewTax,
   adoptPreviewProduct,
   findEditablePath,
   findParentId,
@@ -109,5 +112,54 @@ describe('adoptPreviewProduct', () => {
     expect(adoptPreviewProduct({ id: 7 }, sample)).toBe(sample);
     expect(adoptPreviewProduct([{ id: 'x' }], sample)).toBe(sample);
     expect(adoptPreviewProduct('p1', undefined)).toBeUndefined();
+  });
+});
+
+describe('adoptPreviewCurrency', () => {
+  it('adopts a posted ISO-4217 code (the owner-read currency of a draft store)', () => {
+    expect(adoptPreviewCurrency('SEK', 'EUR')).toBe('SEK');
+    expect(adoptPreviewCurrency(' sek ', 'EUR')).toBe('SEK');
+    expect(adoptPreviewCurrency('SEK', undefined)).toBe('SEK');
+  });
+
+  it('keeps the current currency when nothing usable is posted', () => {
+    expect(adoptPreviewCurrency(undefined, 'SEK')).toBe('SEK');
+    for (const v of [null, '', 'kr', 'SEKK', 'S1K', 752, {}, ['SEK']]) {
+      expect(adoptPreviewCurrency(v, 'EUR')).toBe('EUR');
+    }
+    expect(adoptPreviewCurrency('kr', undefined)).toBeUndefined();
+  });
+});
+
+describe('adoptPreviewApps', () => {
+  it('adopts the posted apps of the owner read, normalized', () => {
+    const posted = { personalization: { enabled: true, settings: { a: 1 } }, b2b: { enabled: false }, nope: { enabled: true } };
+    expect(adoptPreviewApps(posted, {})).toEqual({ personalization: { enabled: true, settings: { a: 1 } } });
+    // An empty object is a real answer (no apps enabled).
+    expect(adoptPreviewApps({}, { personalization: { enabled: true } })).toEqual({});
+  });
+
+  it('keeps the current apps when nothing is posted, and keeps identity when unchanged', () => {
+    const current = { personalization: { enabled: true as const } };
+    expect(adoptPreviewApps(undefined, current)).toBe(current);
+    expect(adoptPreviewApps(null, current)).toBe(current);
+    expect(adoptPreviewApps([], current)).toBe(current);
+    expect(adoptPreviewApps({ personalization: { enabled: true } }, current)).toBe(current);
+  });
+});
+
+describe('adoptPreviewTax', () => {
+  it('adopts the posted tax settings, null included', () => {
+    expect(adoptPreviewTax({ pricing_mode: 'EXCLUSIVE', display_prices_incl_tax: false }, null)).toMatchObject({
+      pricing_mode: 'EXCLUSIVE',
+      display_prices_incl_tax: false,
+    });
+    expect(adoptPreviewTax(null, { pricing_mode: 'INCLUSIVE', display_prices_incl_tax: true, country: null, registrant: 'STORE' })).toBeNull();
+  });
+
+  it('keeps the current settings when nothing is posted, and keeps identity when unchanged', () => {
+    const current = adoptPreviewTax({ pricing_mode: 'INCLUSIVE' }, null);
+    expect(adoptPreviewTax(undefined, current)).toBe(current);
+    expect(adoptPreviewTax({ pricing_mode: 'INCLUSIVE' }, current)).toBe(current);
   });
 });

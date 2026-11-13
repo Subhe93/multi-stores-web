@@ -7,6 +7,7 @@ import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
 import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
+import { normalizeStoreApps } from '@/lib/storeApps';
 import { locales, defaultLocale } from '@/i18n/config';
 import type { StoreHero } from '@/lib/hero';
 import type {
@@ -32,6 +33,8 @@ interface StoreLite {
     primary_locale?: string;
     secondary_locales?: string[];
   } | null;
+  /** Enabled store apps (raw `apps` block, normalized below). */
+  apps?: unknown;
 }
 
 interface BuilderPreviewProps {
@@ -143,8 +146,19 @@ export default async function BuilderPreviewPage({
   );
   const messages = (await import(`@/i18n/messages/${activeLocale}.json`)).default;
 
+  // Enabled store apps and tax settings, as the live store layout provides
+  // them. The product sections gate on the apps: without the personalization
+  // app the product form fell back to the legacy custom fields, so fields
+  // placed before the variants (namez A) rendered after the picker and the
+  // Classic 'before_variants' personalization block showed its empty
+  // placeholder. A store that is not LIVE answers this anonymous read with
+  // its "coming soon" shell (no apps, no tax, no currency): the dashboard
+  // posts the owner's read of all three, adopted by BuilderPreviewClient.
+  const storeApps = normalizeStoreApps(store.apps);
+  const storeTax = normalizeStoreTax(store.tax);
+
   return (
-    <StoreProviders locale={activeLocale} storeSlug={storeSlug} storeCurrency={currency} storeTax={normalizeStoreTax(store.tax)}>
+    <StoreProviders locale={activeLocale} storeSlug={storeSlug} storeCurrency={currency} storeTax={storeTax} storeApps={storeApps}>
       <NextIntlClientProvider locale={activeLocale} messages={messages}>
         <BuilderPreviewClient
           storeSlug={storeSlug}
@@ -158,6 +172,8 @@ export default async function BuilderPreviewPage({
             listing,
             currency,
             storeContext,
+            apps: storeApps,
+            tax: storeTax,
           }}
         />
       </NextIntlClientProvider>

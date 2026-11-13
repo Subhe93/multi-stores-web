@@ -298,6 +298,58 @@ describe('SectionRenderer reveal and LCP', () => {
     expect(revealed(container)).toEqual(['grid']);
   });
 
+  it('never reveals a container holding a product block, nor a root product block (monolith parity)', () => {
+    const block = (id: string): SectionDefinition => ({
+      schema: { id, label: { en: id }, category: 'product', translatable: [], schema: [] },
+      Component: Probe,
+    });
+    const productTheme: Theme = {
+      ...theme,
+      sections: {
+        ...theme.sections,
+        'product-breadcrumb': block('product-breadcrumb'),
+        'product-title': block('product-title'),
+        'product-tabs': block('product-tabs'),
+        'add-to-cart': block('add-to-cart'),
+      },
+    };
+    // The breadcrumb root is the first leaf; the row holds the gallery and
+    // the title but not the first leaf, the tabs are a later root.
+    const sections = [
+      sec('crumb', 'product-breadcrumb', 0),
+      sec('row', 'layout-row', 1),
+      sec('left', 'layout-column', 0, { parent_id: 'row' }),
+      sec('right', 'layout-column', 1, { parent_id: 'row' }),
+      sec('gallery', 'product-gallery', 0, { parent_id: 'left' }),
+      sec('title', 'product-title', 0, { parent_id: 'right' }),
+      sec('tabs', 'product-tabs', 2),
+      sec('legacy', 'add-to-cart', 3),
+      sec('faq', 'faq-list', 4),
+      sec('row2', 'layout-row', 5),
+      sec('t2', 'rich-text', 0, { parent_id: 'row2' }),
+    ];
+    const { container } = render(<SectionRenderer {...base} theme={productTheme} sections={sections} />);
+    // Legacy composites and content keep revealing as before.
+    expect(revealed(container)).toEqual(['legacy', 'faq', 'row2']);
+  });
+
+  it('hides a root product block that rendered nothing, with its padding', () => {
+    const empty: SectionDefinition = {
+      schema: { id: 'product-tabs', label: { en: 'Tabs' }, category: 'product', translatable: [], schema: [] },
+      Component: () => null,
+    };
+    const productTheme: Theme = { ...theme, sections: { ...theme.sections, 'product-tabs': empty } };
+    const sections = [
+      sec('t', 'rich-text', 0),
+      sec('tabs', 'product-tabs', 1, { settings: { _style: { padding: { desktop: { top: 24, bottom: 40 } } } } }),
+    ];
+    const html = renderToStaticMarkup(<SectionRenderer {...base} theme={productTheme} sections={sections} />);
+    expect(html).toContain('.s-tabs{padding-top:24px;padding-bottom:40px}.s-tabs:has(>.s-tabs-i:empty){display:none}');
+    expect(html).toContain('<div class="s-tabs-i"></div>');
+    // Content sections get no such rule.
+    expect(html).not.toContain('.s-t:has(');
+  });
+
   it('keeps chrome mode free of reveals with containers too', () => {
     const sections = [sec('t', 'rich-text', 0), sec('row', 'layout-row', 1), sec('c', 'rich-text', 0, { parent_id: 'row' })];
     const { container } = render(<SectionRenderer {...base} chrome sections={sections} />);

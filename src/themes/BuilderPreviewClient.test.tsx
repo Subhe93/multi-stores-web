@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 
@@ -52,6 +52,30 @@ vi.mock('@/components/designer/DesignerSession', () => ({
   DesignerFormSlot: () => null,
 }));
 
+// Records what the preview hands the sections through context.
+const providedApps: unknown[] = [];
+const providedTax: unknown[] = [];
+vi.mock('@/hooks/useStoreApps', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/useStoreApps')>();
+  return {
+    ...actual,
+    StoreAppsProvider: (props: { value?: unknown; children: ReactNode }) => {
+      providedApps.push(props.value);
+      return <actual.StoreAppsProvider value={props.value as never}>{props.children}</actual.StoreAppsProvider>;
+    },
+  };
+});
+vi.mock('@/hooks/useStoreTax', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/useStoreTax')>();
+  return {
+    ...actual,
+    StoreTaxProvider: (props: { value: unknown; children: ReactNode }) => {
+      providedTax.push(props.value);
+      return <actual.StoreTaxProvider value={props.value as never}>{props.children}</actual.StoreTaxProvider>;
+    },
+  };
+});
+
 import { BuilderPreviewClient } from './BuilderPreviewClient';
 import type { ProductContext, SectionInstance } from './types';
 
@@ -78,7 +102,7 @@ function post(data: Record<string, unknown>) {
   });
 }
 
-function renderPreview(initialProduct?: ProductContext) {
+function renderPreview(initialProduct?: ProductContext, currency = 'SEK') {
   return render(
     <BuilderPreviewClient
       storeSlug="demo"
@@ -89,7 +113,7 @@ function renderPreview(initialProduct?: ProductContext) {
         locale: 'en',
         primaryLocale: 'en',
         product: initialProduct,
-        currency: 'SEK',
+        currency,
       }}
     />,
   );
@@ -158,5 +182,58 @@ describe('BuilderPreviewClient product blocks', () => {
     renderPreview(product);
     post({ type: 'UPDATE_SECTIONS', sections, product: { title: 'no id' } });
     expect(await screen.findAllByRole('heading', { name: 'Sample Mug' })).toHaveLength(2);
+  });
+
+  it('prices in the posted store currency (draft store: the route fell back to EUR)', async () => {
+    const price: SectionInstance[] = [
+      { id: 'price', section_key: 'product-price', settings: {}, sort_order: 0, translations: [], parent_id: null },
+    ] as SectionInstance[];
+    const sek = new Intl.NumberFormat('en', { style: 'currency', currency: 'SEK' }).format(100);
+    const eur = new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR' }).format(100);
+    const priceText = () => document.querySelector('[data-section-id="price"]')?.textContent ?? '';
+    renderPreview(undefined, 'EUR');
+    post({ type: 'UPDATE_SECTIONS', sections: price, product });
+    await waitFor(() => expect(priceText()).toContain(eur));
+    post({ type: 'UPDATE_SECTIONS', sections: price, product, currency: 'SEK' });
+    await waitFor(() => expect(priceText()).toContain(sek));
+    // A later update without a currency (or an invalid one) keeps SEK.
+    post({ type: 'UPDATE_SECTIONS', sections: price, currency: 'kr' });
+    await waitFor(() => expect(priceText()).toContain(sek));
+    expect(priceText()).not.toContain(eur);
+  });
+
+  it('provides the posted store apps and tax settings (draft store: the route read the closed shell)', async () => {
+    const price: SectionInstance[] = [
+      { id: 'price', section_key: 'product-price', settings: {}, sort_order: 0, translations: [], parent_id: null },
+    ] as SectionInstance[];
+    providedApps.length = 0;
+    providedTax.length = 0;
+    renderPreview(undefined, 'EUR');
+    post({ type: 'UPDATE_SECTIONS', sections: price, product });
+    await waitFor(() => expect(document.querySelector('[data-section-id="price"]')).not.toBeNull());
+    // Nothing posted, nothing from the route: the route's providers apply.
+    expect(providedApps).toEqual([]);
+    expect(providedTax).toEqual([]);
+    post({
+      type: 'UPDATE_SECTIONS',
+      sections: price,
+      product,
+      currency: 'SEK',
+      apps: { personalization: { enabled: true, settings: { x: 1 } }, b2b: { enabled: false } },
+      tax: { pricing_mode: 'INCLUSIVE', display_prices_incl_tax: true, country: 'se' },
+    });
+    await waitFor(() =>
+      expect(providedApps.at(-1)).toEqual({ personalization: { enabled: true, settings: { x: 1 } } }),
+    );
+    expect(providedTax.at(-1)).toEqual({
+      pricing_mode: 'INCLUSIVE',
+      display_prices_incl_tax: true,
+      country: 'SE',
+      registrant: 'STORE',
+    });
+    // A later update without them keeps both.
+    post({ type: 'UPDATE_SECTIONS', sections: price });
+    await waitFor(() => expect(providedApps.at(-1)).toEqual({ personalization: { enabled: true, settings: { x: 1 } } }));
+    expect(providedTax.at(-1)).toMatchObject({ country: 'SE' });
   });
 });

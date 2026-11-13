@@ -25,6 +25,48 @@ type Aspect = 'square' | 'portrait' | 'landscape';
 
 const LAYOUTS: Layout[] = ['classic', 'main-thumbnails', 'grid', 'stacked', 'carousel'];
 
+/**
+ * A layout row whose column holds this gallery in designer mode: the Classic
+ * tree Row > Column > gallery. Matches the DOM SectionRenderer + the layout
+ * containers build (wrapper [data-section-id] > inner div > container
+ * [data-layout]).
+ */
+export const DESIGNER_ROW_SELECTOR =
+  '[data-layout="row"]:has(>[data-section-id]>div>[data-layout="column"]>[data-section-id]>div>[data-designer-gallery])';
+
+/**
+ * Designer app, below 768px: the monolith (ProductDetailClient) collapses its
+ * two columns (`contents`) and orders the items featured image -> title /
+ * price -> canvas -> the rest (form, CTA...), 20px apart (gap-5). The same
+ * here: the row's column wrappers and the gallery block collapse, so the
+ * thumbnail, the canvas and the info blocks become items of the stacked row,
+ * with the monolith's order values. From 768px nothing changes (two columns,
+ * thumbnail above the canvas). Rows without a designer gallery never match.
+ */
+export const DESIGNER_MOBILE_CSS = (() => {
+  const r = DESIGNER_ROW_SELECTOR;
+  const collapse = [
+    `${r}>[data-section-id]`,
+    `${r}>[data-section-id]>div`,
+    `${r}>[data-section-id]>div>[data-layout="column"]`,
+    `${r} [data-section-id]:has(>div>[data-designer-gallery])`,
+    `${r} [data-section-id]>div:has(>[data-designer-gallery])`,
+    `${r} [data-designer-gallery]`,
+  ];
+  const summaryTop = ['product-title', 'product-price'].map(
+    (key) => `${r} [data-layout="column"]>[data-section-key="${key}"]`,
+  );
+  return (
+    '@media (max-width: 767px){' +
+    `${r}{gap:20px}` +
+    `${collapse.join(',')}{display:contents}` +
+    `${r} [data-designer-thumb]{order:-3}` +
+    `${summaryTop.join(',')}{order:-2}` +
+    `${r} .designer-canvas-slot{order:-1}` +
+    '}'
+  );
+})();
+
 const ASPECT: Record<Aspect, string> = {
   square: 'aspect-square',
   portrait: 'aspect-[3/4]',
@@ -55,18 +97,22 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
 
   if (designer) {
     const featured = images[0];
+    // Thumbnail spacing as the monolith (md:mb-4): none once the mobile
+    // rules (DESIGNER_MOBILE_CSS) make both items of the stacked row.
     return (
-      <section className="min-w-0 space-y-4">
+      <section className="min-w-0" data-designer-gallery="">
+        <style dangerouslySetInnerHTML={{ __html: DESIGNER_MOBILE_CSS }} />
         {featured && (
           // eslint-disable-next-line @next/next/no-img-element -- natural-ratio thumbnail; optimized srcset
           <img
             {...responsiveImgProps(featured.url, '270px')}
             alt={featured.alt}
             fetchPriority="high"
-            className="mx-auto block h-auto w-full max-w-67.5 rounded-xl shadow-sm"
+            data-designer-thumb=""
+            className="mx-auto block h-auto w-full max-w-67.5 rounded-xl shadow-sm md:mb-4"
           />
         )}
-        <DesignerCanvasSlot className="min-w-0" />
+        <DesignerCanvasSlot className="min-w-0 designer-canvas-slot" />
       </section>
     );
   }

@@ -100,17 +100,17 @@ const FIXTURES: Record<string, ProductData> = {
 
 // ── Renders ──────────────────────────────────────────────
 
-function StoreShell({ children }: { children: ReactNode }) {
+function StoreShell({ children, apps = APPS }: { children: ReactNode; apps?: StorefrontApps }) {
   return (
-    <StoreAppsProvider value={APPS}>
+    <StoreAppsProvider value={apps}>
       <StoreTaxProvider value={TAX}>{children}</StoreTaxProvider>
     </StoreAppsProvider>
   );
 }
 
-function renderMonolith(product: ProductData) {
+function renderMonolith(product: ProductData, apps: StorefrontApps = APPS) {
   return render(
-    <StoreShell>
+    <StoreShell apps={apps}>
       <ProductDetailClient
         product={product}
         locale={LOCALE}
@@ -123,7 +123,7 @@ function renderMonolith(product: ProductData) {
 }
 
 /** The Classic preset: Row[ Column(gallery) | Column(summary blocks) ], tabs below. */
-function renderClassicBlocks(product: ProductData) {
+function renderClassicBlocks(product: ProductData, apps: StorefrontApps = APPS) {
   const p = (settings: Record<string, unknown> = {}): SectionRenderProps => ({
     settings,
     content: {},
@@ -135,7 +135,7 @@ function renderClassicBlocks(product: ProductData) {
     builderPreview: false,
   });
   return render(
-    <StoreShell>
+    <StoreShell apps={apps}>
       <DesignerSessionProvider designer={product.designer} productId={product.id} locale={LOCALE}>
         <ProductPageStateProvider product={product} locale={LOCALE} primaryLocale={LOCALE} currency={CURRENCY}>
           <div className="grid grid-cols-1 md:grid-cols-2">
@@ -437,6 +437,43 @@ describe('product page parity: monolith vs Classic block composition', () => {
       });
     });
   }
+
+  // Personalization fields vs variant pickers (namez A: "Första texten" ...
+  // above "Välj storlek" / "Färg"). Per field `ui.placement` and the app gate
+  // decide it in both renders; the Classic split must put every field on the
+  // same side of every picker, with the app on (live store) and off.
+  describe('personalization vs variant picker DOM order', () => {
+    const NO_APPS: StorefrontApps = {};
+    for (const [name, product] of Object.entries(FIXTURES)) {
+      it(`${name}: same order as the monolith (app on and off)`, async () => {
+        for (const apps of [APPS, NO_APPS]) {
+          const [combo] = combosFor(product);
+          const monolith = await run((p) => renderMonolith(p, apps), product, combo);
+          const blocks = await run((p) => renderClassicBlocks(p, apps), product, combo);
+          expect(blocks.map((s) => s.formOrder)).toEqual(monolith.map((s) => s.formOrder));
+        }
+      });
+    }
+
+    it('fields placed before the variants render above the size and colour pickers', async () => {
+      const product = FIXTURES['before-variants-fields-cards'];
+      const before = (product.custom_fields ?? []).filter(
+        (f) => (f as { ui?: { placement?: string } }).ui?.placement === 'before_variants',
+      ).length;
+      expect(before).toBeGreaterThan(0);
+      for (const renderer of [renderMonolith, renderClassicBlocks]) {
+        const { container } = renderer(product);
+        await settle();
+        const order = formOrder(container);
+        const firstOption = order.findIndex((t) => t.startsWith('O:'));
+        expect(firstOption).toBeGreaterThanOrEqual(before);
+        expect(order.slice(0, before).every((t) => t === 'F')).toBe(true);
+        // The Classic 'before_variants' block holds them: no empty placeholder.
+        expect(container.textContent).not.toContain('No fields placed before the variants');
+        cleanup();
+      }
+    });
+  });
 
   it('drives real picks and real cart lines (the parity above is not vacuous)', async () => {
     // Bottle: picking an animal surfaces its imageMap / variant image as the lead

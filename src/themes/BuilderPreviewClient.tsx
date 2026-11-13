@@ -13,9 +13,18 @@ import type { ProductData } from '@/components/product/ProductDetailClient';
 import { dashboardOrigins } from '@/lib/platformHosts';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { projectProductForClient } from '@/lib/productPayload';
+import { StoreAppsProvider } from '@/hooks/useStoreApps';
+import { StoreTaxProvider } from '@/hooks/useStoreTax';
+import { BuyerTypeProvider } from '@/hooks/useBuyerType';
+import { normalizeB2bSettings } from '@/lib/b2bSettings';
+import type { StorefrontApps } from '@/lib/storeApps';
+import type { StoreTaxConfig } from '@/lib/tax';
 import {
   HOVER_CSS,
+  adoptPreviewApps,
+  adoptPreviewCurrency,
   adoptPreviewProduct,
+  adoptPreviewTax,
   findEditablePath,
   findParentId,
   resolveSectionContent,
@@ -63,6 +72,12 @@ interface InitialPreviewState {
   // Store-wide context so chrome sections (Header/Footer) resolve menus,
   // logo, store name and locales in the preview just like the live store.
   storeContext?: StoreContext;
+  // Enabled store apps and tax settings the sections read through context.
+  // The route's anonymous read of a store that is not LIVE has neither (the
+  // "coming soon" shell); the dashboard posts the owner's read. Undefined =
+  // the providers of the route (StoreProviders) apply unchanged.
+  apps?: StorefrontApps;
+  tax?: StoreTaxConfig | null;
 }
 
 interface BuilderPreviewClientProps {
@@ -84,6 +99,14 @@ interface UpdateMessage {
   // only). The route's own anonymous read finds nothing for a store that is
   // not LIVE; absent, the server-side sample stays.
   product?: ProductContext;
+  // The store's currency read by the builder with the owner's token. The
+  // route's anonymous read of a store that is not LIVE carries none (EUR
+  // fallback); absent or invalid, the route's currency stays.
+  currency?: string;
+  // The store's apps and tax settings from the same owner read (raw blocks
+  // of the store payload); absent, the route's values stay.
+  apps?: unknown;
+  tax?: unknown;
 }
 
 interface ScrollMessage {
@@ -139,7 +162,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
             // fold in fresh menus and the owner-read sample product when provided.
             product: posted ? projectProductForClient(posted, nextLocale, nextPrimary) : prev.product,
             listing: prev.listing,
-            currency: prev.currency,
+            currency: adoptPreviewCurrency(data.currency, prev.currency),
             storeContext: data.menus
               ? {
                   ...(prev.storeContext ?? {
@@ -151,6 +174,8 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
                   menus: data.menus,
                 }
               : prev.storeContext,
+            apps: adoptPreviewApps(data.apps, prev.apps),
+            tax: adoptPreviewTax(data.tax, prev.tax),
           };
         });
       } else if (data.type === 'SCROLL_TO_SECTION') {
@@ -390,6 +415,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
         ) : (
           // Designer app (M5.5): the sample product's design session, shared by
           // the gallery (canvas) and add-to-cart (form) sections.
+          <PreviewStoreSettings apps={state.apps} tax={state.tax}>
           <DesignerSessionProvider designer={state.product?.designer} productId={state.product?.id ?? ''} locale={state.locale}>
             <PreviewProductState
               product={state.product}
@@ -411,6 +437,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
               />
             </PreviewProductState>
           </DesignerSessionProvider>
+          </PreviewStoreSettings>
         )}
       </theme.Layout>
     </div>
@@ -571,4 +598,41 @@ function PreviewProductState({
       {children}
     </ProductPageStateProvider>
   );
+}
+
+/**
+ * Store apps, tax settings and the b2b buyer type for the previewed sections,
+ * over the route's StoreProviders. A store that is not LIVE reaches the route
+ * as its "coming soon" shell (no apps, no tax); the dashboard posts the
+ * owner's read, so the product blocks gate on the same apps as the live
+ * store (personalization fields before the variants, for one). With the b2b
+ * app the buyer type starts at the app's default, like the live layout
+ * without a cookie. Undefined values leave the route's providers in charge.
+ */
+function PreviewStoreSettings({
+  apps,
+  tax,
+  children,
+}: {
+  apps?: StorefrontApps;
+  tax?: StoreTaxConfig | null;
+  children: ReactNode;
+}) {
+  const b2bApp = apps?.b2b;
+  const b2bSettings = useMemo(() => (b2bApp ? normalizeB2bSettings(b2bApp.settings) : null), [b2bApp]);
+  let out = children;
+  if (b2bApp) {
+    out = (
+      <BuyerTypeProvider
+        enabled
+        initial={b2bSettings?.default_buyer_type === 'COMPANY' ? 'company' : 'person'}
+        settings={b2bSettings}
+      >
+        {out}
+      </BuyerTypeProvider>
+    );
+  }
+  if (apps !== undefined) out = <StoreAppsProvider value={apps}>{out}</StoreAppsProvider>;
+  if (tax !== undefined) out = <StoreTaxProvider value={tax}>{out}</StoreTaxProvider>;
+  return <>{out}</>;
 }

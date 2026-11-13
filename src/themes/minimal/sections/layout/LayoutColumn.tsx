@@ -39,8 +39,22 @@ export const layoutColumnSection: SectionDefinition = {
         defaultValue: false,
       },
       { key: 'sticky_top_px', type: 'number', label: { en: 'Sticky top offset (px)', ar: 'المسافة من الأعلى عند التثبيت (px)' }, min: 0, max: 400, defaultValue: 24 },
+      {
+        key: 'sticky_from',
+        type: 'select',
+        label: { en: 'Sticky from', ar: 'التثبيت ابتداءً من' },
+        description: {
+          en: 'Use "Tablet and desktop" when the row stacks on mobile only.',
+          ar: 'اختر "الجهاز اللوحي والكمبيوتر" عندما يتكدّس الصف على الجوال فقط.',
+        },
+        defaultValue: 'desktop',
+        options: [
+          { value: 'desktop', label: { en: 'Desktop', ar: 'الكمبيوتر' } },
+          { value: 'tablet', label: { en: 'Tablet and desktop', ar: 'الجهاز اللوحي والكمبيوتر' } },
+        ],
+      },
     ],
   },
   Component: LayoutColumn,
-  defaultSettings: { gap_px: 16, align: 'stretch', sticky_desktop: false, sticky_top_px: 24 },
+  defaultSettings: { gap_px: 16, align: 'stretch', sticky_desktop: false, sticky_top_px: 24, sticky_from: 'desktop' },
 };

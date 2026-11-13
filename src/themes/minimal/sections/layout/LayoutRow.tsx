@@ -21,6 +21,23 @@ export const layoutRowSection: SectionDefinition = {
     translatable: [],
     schema: [
       { key: 'gap_px', type: 'number', label: { en: 'Gap (px)', ar: 'المسافة بين الأعمدة (px)' }, min: 0, max: 200, defaultValue: 32 },
+      // Optional: empty = same gap as the wider screen.
+      {
+        key: 'gap_tablet_px',
+        type: 'number',
+        label: { en: 'Gap on tablet (px)', ar: 'المسافة على الجهاز اللوحي (px)' },
+        description: { en: 'Empty = same as desktop.', ar: 'فارغ = مثل الكمبيوتر.' },
+        min: 0,
+        max: 200,
+      },
+      {
+        key: 'gap_mobile_px',
+        type: 'number',
+        label: { en: 'Gap on mobile (px)', ar: 'المسافة على الجوال (px)' },
+        description: { en: 'Empty = same as tablet.', ar: 'فارغ = مثل الجهاز اللوحي.' },
+        min: 0,
+        max: 200,
+      },
       {
         key: 'align',
         type: 'select',

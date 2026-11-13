@@ -5,6 +5,8 @@
 // sections up in that flat list so selection, the toolbar and inline editing
 // work the same at any nesting depth.
 
+import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import type { ProductContext, SectionInstance } from './types';
 
 /** Strip everything that is not safe inside a CSS attribute selector. */
@@ -137,4 +139,47 @@ export function adoptPreviewProduct(
     return posted as ProductContext;
   }
   return current;
+}
+
+/**
+ * The currency the preview prices in after an UPDATE_SECTIONS message. The
+ * route reads the store anonymously, and a store that is not LIVE answers
+ * with its "coming soon" shell (no currency), so the route fell back to EUR.
+ * The dashboard posts the store's real currency read with the owner's token;
+ * only a three-letter ISO-4217 code is adopted (upper-cased), anything else
+ * keeps the current one. For a LIVE store both are the same code.
+ */
+export function adoptPreviewCurrency(posted: unknown, current: string | undefined): string | undefined {
+  if (typeof posted !== 'string') return current;
+  const code = posted.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : current;
+}
+
+/**
+ * The store apps the preview gates on after an UPDATE_SECTIONS message. Like
+ * the currency, the route's anonymous read of a store that is not LIVE gets
+ * the "coming soon" shell (`apps: {}`), so the personalization app stayed off
+ * in the editor; the dashboard posts the owner's read. Absent (not an
+ * object) keeps the current apps. The current object is kept when the posted
+ * apps normalize to the same value, so providers do not re-render on every
+ * message.
+ */
+export function adoptPreviewApps(posted: unknown, current: StorefrontApps | undefined): StorefrontApps | undefined {
+  if (!posted || typeof posted !== 'object' || Array.isArray(posted)) return current;
+  const next = normalizeStoreApps(posted);
+  return current && JSON.stringify(current) === JSON.stringify(next) ? current : next;
+}
+
+/**
+ * The store tax settings after an UPDATE_SECTIONS message (owner read; a
+ * store that is not LIVE has none in the route's read). `undefined` = not
+ * posted, keep the current; `null` = the store sent none.
+ */
+export function adoptPreviewTax(
+  posted: unknown,
+  current: StoreTaxConfig | null | undefined,
+): StoreTaxConfig | null | undefined {
+  if (posted === undefined) return current;
+  const next = normalizeStoreTax(posted);
+  return JSON.stringify(current ?? null) === JSON.stringify(next) ? current : next;
 }

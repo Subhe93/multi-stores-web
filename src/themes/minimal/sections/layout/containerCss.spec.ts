@@ -63,6 +63,39 @@ describe('buildRowCss', () => {
   it('clamps out-of-range settings', () => {
     expect(buildRowCss('r', { gap_px: 9999, align: 'weird' }, [])).toContain('gap:200px;align-items:stretch');
   });
+
+  it('applies optional tablet / mobile gaps that cascade down', () => {
+    // Tablet only: mobile inherits it.
+    const t = buildRowCss('r', { gap_px: 56, gap_tablet_px: 32 }, []);
+    expect(t).toContain('.lc-r{display:flex;flex-direction:row;flex-wrap:nowrap;gap:56px;');
+    expect(t).toContain(`${T}{.lc-r{gap:32px}`);
+    expect(t).not.toMatch(/max-width: 767px\)\{[^}]*gap:/);
+    // Mobile only: tablet keeps the desktop gap.
+    const m = buildRowCss('r', { gap_px: 40, gap_mobile_px: 12, stack_on: 'never' }, []);
+    expect(m).toContain(`${M}{.lc-r{gap:12px}}`);
+    expect(m).not.toContain(T);
+    // Empty / equal values emit nothing; out of range is clamped.
+    expect(buildRowCss('r', { gap_px: 32, gap_tablet_px: '', gap_mobile_px: 32 }, [])).not.toContain('gap:32px}');
+    expect(buildRowCss('r', { gap_tablet_px: 999 }, [])).toContain(`${T}{.lc-r{gap:200px}`);
+  });
+
+  // The Classic product preset (dashboard productBlocksPreset.ts / API convert)
+  // must match the monolith's `grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14`.
+  it('reproduces the monolith product grid with stack_on mobile', () => {
+    const css = buildRowCss('r', { gap_px: 56, gap_tablet_px: 32, stack_on: 'mobile' }, [
+      { id: 'g', layout: { span: { desktop: 1 } } },
+      { id: 'i', layout: { span: { desktop: 1 } } },
+    ]);
+    // >= 1024px: two equal columns, 56px apart.
+    expect(css).toContain('.lc-r{display:flex;flex-direction:row;flex-wrap:nowrap;gap:56px;');
+    expect(css).toContain('.lc-r>[data-section-id]{flex:1 1 0%;min-width:0}');
+    expect(css).toContain('.lc-r>.s-g{flex-grow:1}');
+    expect(css).toContain('.lc-r>.s-i{flex-grow:1}');
+    // 768–1023px: still side by side (no stacking in the tablet block), 32px apart.
+    expect(css).toContain(`${T}{.lc-r{gap:32px}}`);
+    // < 768px: stacked, the 32px gap carries over as the vertical gap.
+    expect(css).toContain(`${M}{.lc-r{flex-direction:column;flex-wrap:nowrap}.lc-r>[data-section-id]{flex:0 0 auto;width:100%}}`);
+  });
 });
 
 describe('buildColumnCss', () => {
@@ -80,6 +113,15 @@ describe('buildColumnCss', () => {
   it('makes its own inner sticky on desktop', () => {
     const css = buildColumnCss('c', { sticky_desktop: true, sticky_top_px: 96 }, []);
     expect(css).toContain(`${D}{.s-c-i{position:sticky;top:96px}}`);
+  });
+
+  it('can stick from tablet (md:sticky) for rows that stack on mobile only', () => {
+    const css = buildColumnCss('c', { sticky_desktop: true, sticky_top_px: 96, sticky_from: 'tablet' }, []);
+    expect(css).toContain('@media (min-width: 768px){.s-c-i{position:sticky;top:96px}}');
+    expect(css).not.toContain(D);
+    // Unknown value falls back to desktop; no sticky without sticky_desktop.
+    expect(buildColumnCss('c', { sticky_desktop: true, sticky_from: 'x' }, [])).toContain(`${D}{.s-c-i{position:sticky`);
+    expect(buildColumnCss('c', { sticky_from: 'tablet' }, [])).not.toContain('sticky');
   });
 
   it('applies child order per breakpoint', () => {
