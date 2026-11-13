@@ -69,6 +69,7 @@ import { ProductGalleryMagic } from '@/themes/minimal/sections/product/ProductGa
 import { ProductTrustBlock } from '@/themes/minimal/sections/product/blocks/ProductTrustBlock.client';
 import { ProductShippingBlock } from '@/themes/minimal/sections/product/blocks/ProductShippingBlock.client';
 import { ProductTabsBlock } from '@/themes/minimal/sections/product/blocks/ProductTabsBlock.client';
+import { spacerSection } from '@/themes/minimal/sections/Spacer';
 
 import storeContext from '@/test/fixtures/products/namez-store-context.json';
 import simpleDalahast from '@/test/fixtures/products/simple-dalahast.json';
@@ -122,6 +123,14 @@ function renderMonolith(product: ProductData, apps: StorefrontApps = APPS) {
   );
 }
 
+/**
+ * The Classic divider: a 'spacer' section 1px tall with a gray-100 rule, the
+ * monolith's `border-t border-gray-100`. Same settings as the API's convert
+ * and the dashboard's preset (CLASSIC_DIVIDER_SETTINGS there).
+ */
+const CLASSIC_DIVIDER = { height_px: 1, show_divider: true, divider_style: 'solid', divider_color: '#f3f4f6' };
+const Spacer = spacerSection.Component;
+
 /** The Classic preset: Row[ Column(gallery) | Column(summary blocks) ], tabs below. */
 function renderClassicBlocks(product: ProductData, apps: StorefrontApps = APPS) {
   const p = (settings: Record<string, unknown> = {}): SectionRenderProps => ({
@@ -149,9 +158,11 @@ function renderClassicBlocks(product: ProductData, apps: StorefrontApps = APPS) 
               <ProductShortDescriptionBlock {...p()} />
               <ProductPromotionsBlock {...p()} />
               <ProductBundlesBlock {...p()} />
+              <Spacer {...p(CLASSIC_DIVIDER)} />
               <ProductPersonalizationBlock {...p({ placement: 'before_variants' })} />
               <ProductVariantsBlock {...p()} />
               <ProductPersonalizationBlock {...p({ placement: 'after_variants' })} />
+              <Spacer {...p(CLASSIC_DIVIDER)} />
               <ProductBuyBlock {...p()} />
               <ProductTrustBlock {...p()} />
               <ProductShippingBlock {...p()} />
@@ -205,6 +216,49 @@ function formOrder(root: HTMLElement): string[] {
     .forEach((el) => {
       if (el.tagName === 'P') out.push(`O:${el.firstChild?.textContent ?? ''}`);
       else if (!(el as HTMLInputElement).disabled && !(el as HTMLInputElement).readOnly) out.push('F');
+    });
+  return out;
+}
+
+/** Tailwind v4 gray-100 (#f3f4f6) as jsdom serialises the spacer's inline rule. */
+const GRAY_100 = 'rgb(243, 244, 246)';
+
+/**
+ * Whether `el` is an info-column divider: the monolith's empty
+ * `border-t border-gray-100` div, or the Classic spacer's 1px box holding one
+ * solid 1px gray-100 rule (same room, same line, same spot).
+ */
+function isDivider(el: Element): boolean {
+  if (el.tagName === 'DIV') return el.matches('.border-t.border-gray-100:empty');
+  if (el.tagName !== 'HR') return false;
+  const box = el.parentElement as HTMLElement | null;
+  return (
+    !!box &&
+    box.childElementCount === 1 &&
+    box.style.height === '1px' &&
+    (el as HTMLElement).style.borderTop === `1px solid ${GRAY_100}`
+  );
+}
+
+/**
+ * Landmarks of the info column in document order: price (P), bundle offers
+ * (B), option groups (O:key), text fields (F), dividers (—) and the add to
+ * cart button (ADD). Places both thin dividers between their neighbours.
+ */
+function dividerLayout(root: HTMLElement): string[] {
+  const out: string[] = [];
+  root
+    .querySelectorAll<HTMLElement>(
+      `span.text-3xl.font-extrabold, ${BUNDLE_OFFER}, p.text-sm.font-semibold.text-gray-900.mb-3, input[type="text"], input:not([type]), textarea, div.border-t.border-gray-100, hr, button`,
+    )
+    .forEach((el) => {
+      if (isDivider(el)) out.push('—');
+      else if (el.matches('span.text-3xl.font-extrabold')) out.push('P');
+      else if (el.matches(BUNDLE_OFFER)) out.push('B');
+      else if (el.tagName === 'P') out.push(`O:${el.firstChild?.textContent ?? ''}`);
+      else if (el.tagName === 'BUTTON') {
+        if (el === addButton(root)) out.push('ADD');
+      } else if (!(el as HTMLInputElement).disabled && !(el as HTMLInputElement).readOnly) out.push('F');
     });
   return out;
 }
@@ -473,6 +527,39 @@ describe('product page parity: monolith vs Classic block composition', () => {
         cleanup();
       }
     });
+  });
+
+  // The monolith's two always-shown thin dividers (`border-t border-gray-100`
+  // in the gap-5 info column): one after promotions / bundles and above the
+  // before-variants fields and pickers, one right above quantity + add to
+  // cart. The Classic composition draws them with two 1px 'spacer' sections
+  // at the same places, for every product (with or without short
+  // description, promotions, bundles, personalization), app on and off.
+  describe('info-column dividers', () => {
+    const NO_APPS: StorefrontApps = {};
+    for (const [name, product] of Object.entries(FIXTURES)) {
+      it(`${name}: same two dividers at the same places as the monolith`, async () => {
+        for (const apps of [APPS, NO_APPS]) {
+          const layouts: string[][] = [];
+          for (const renderer of [renderMonolith, renderClassicBlocks]) {
+            const { container } = renderer(product, apps);
+            await settle();
+            layouts.push(dividerLayout(container));
+            cleanup();
+          }
+          const [monolith, blocks] = layouts;
+          expect(monolith.filter((m) => m === '—')).toHaveLength(2);
+          expect(blocks).toEqual(monolith);
+          // Divider 1 follows the price and bundle offers and precedes every
+          // option group / field; divider 2 sits right above the add button.
+          const first = monolith.indexOf('—');
+          const second = monolith.lastIndexOf('—');
+          expect(monolith.slice(0, first).every((m) => m === 'P' || m === 'B')).toBe(true);
+          expect(monolith.slice(first + 1, second).every((m) => m === 'F' || m.startsWith('O:'))).toBe(true);
+          expect(monolith[second + 1]).toBe('ADD');
+        }
+      });
+    }
   });
 
   it('drives real picks and real cart lines (the parity above is not vacuous)', async () => {
