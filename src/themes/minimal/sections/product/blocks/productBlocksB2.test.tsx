@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { ProductData } from '@/components/product/ProductDetailClient';
@@ -329,6 +329,42 @@ describe('product-personalization', () => {
     // Only the piece-1 option renders inside the piece-1 box.
     expect(screen.getByTestId('piece-one-variants').textContent).toBe('Color');
     expect(screen.queryByTestId('custom-fields')).toBeNull();
+  });
+
+  it("placement 'before_variants' shows only the app's before-variants fields", () => {
+    app.advanced = { defs: [], result: { visibleIds: [] }, ctx: {} };
+    app.legacyFields = [{ id: 'f1' }];
+    pieceKeys = ['Color'];
+    withState(
+      makeProduct({ allow_customer_upload: true }),
+      <ProductPersonalizationBlock {...live({ settings: { placement: 'before_variants' } })} />,
+    );
+    expect(screen.getByTestId('pform-before_variants').getAttribute('data-anchor')).toBe('1');
+    expect(screen.queryByTestId('pform-after_variants')).toBeNull();
+    expect(screen.queryByTestId('piece-one-variants')).toBeNull();
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByText('product.fileUploads')).toBeNull();
+  });
+
+  it("placement 'after_variants' leaves the before-variants fields out", () => {
+    app.advanced = { defs: [], result: { visibleIds: [] }, ctx: {} };
+    pieceKeys = ['Color'];
+    withState(makeProduct({ allow_customer_upload: true }), <ProductPersonalizationBlock {...live({ settings: { placement: 'after_variants' } })} />);
+    expect(screen.queryByTestId('pform-before_variants')).toBeNull();
+    expect(screen.getByTestId('pform-after_variants')).toBeInTheDocument();
+    expect(screen.getByTestId('piece-one-variants').textContent).toBe('Color');
+    expect(screen.getByText('product.fileUploads')).toBeInTheDocument();
+  });
+
+  it("placement 'before_variants' renders nothing without the personalization app or with the designer", () => {
+    app.legacyFields = [{ id: 'f1' }];
+    const { container } = withState(makeProduct(), <ProductPersonalizationBlock {...live({ settings: { placement: 'before_variants' } })} />);
+    expect(container.innerHTML).toBe('');
+    cleanup();
+    designerOn = true;
+    app.advanced = { defs: [], result: { visibleIds: [] }, ctx: {} };
+    const second = withState(makeProduct(), <ProductPersonalizationBlock {...live({ settings: { placement: 'before_variants' } })} />);
+    expect(second.container.innerHTML).toBe('');
   });
 
   it('the designer form replaces the forms and shows the line total', () => {

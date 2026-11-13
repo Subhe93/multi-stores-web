@@ -72,6 +72,11 @@ describe('buildColumnCss', () => {
     expect(css).not.toContain('sticky');
   });
 
+  it('collapses children that rendered nothing so they take no gap', () => {
+    const css = buildColumnCss('c', {}, []);
+    expect(css).toContain('.lc-c>[data-section-id]:has(>div:only-child:empty){display:none}');
+  });
+
   it('makes its own inner sticky on desktop', () => {
     const css = buildColumnCss('c', { sticky_desktop: true, sticky_top_px: 96 }, []);
     expect(css).toContain(`${D}{.s-c-i{position:sticky;top:96px}}`);

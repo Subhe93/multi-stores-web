@@ -12,6 +12,15 @@
 //   live total and the quantity picker) replaces all of the above.
 // All values live in the shared product state, so the buy block validates
 // and adds exactly what is shown here.
+//
+// `placement` splits the block around the `product-variants` block, like the
+// monolith (before-variants fields above the picker, the rest below):
+// - 'all' (default): everything above, in one block;
+// - 'before_variants': only the personalization app's before-variants fields;
+// - 'after_variants': everything except those fields.
+// The 'after_variants' (or 'all') block is the one that must be on the page:
+// it holds the piece-one option, the custom fields, the upload and the
+// designer form.
 
 import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
@@ -26,6 +35,13 @@ import { DesignerFormSlot, useDesignerAddonsTotal, useDesignerSession } from '@/
 import { formatPrice } from '@/lib/format';
 import type { SectionRenderProps } from '../../../../types';
 import { blockLabel, ProductBlockPlaceholder, ProductBlockScope } from './b2Shared';
+
+type PersonalizationPlacement = 'all' | 'before_variants' | 'after_variants';
+
+/** The block's `placement` setting; anything unknown reads as 'all'. */
+function readPersonalizationPlacement(value: unknown): PersonalizationPlacement {
+  return value === 'before_variants' || value === 'after_variants' ? value : 'all';
+}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -84,6 +100,30 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
   const lang = state.locale;
   const showHeading = settings.show_heading !== false;
   const buttonStyle = settings.button_style === 'outline' ? 'outline' : 'solid';
+  const placement = readPersonalizationPlacement(settings.placement);
+  const showBefore = placement !== 'after_variants';
+
+  // Before-variants part only: the app's fields placed above the picker.
+  // Nothing else (no designer form, no custom fields, no upload).
+  if (placement === 'before_variants') {
+    if (designer || !advanced || visibleFieldsAt(advanced.defs, advanced.result.visibleIds, 'before_variants').length === 0) {
+      return placeholder(
+        blockLabel(locale, 'No fields placed before the variants on this product.', 'لا توجد حقول قبل الخيارات لهذا المنتج.'),
+      );
+    }
+    return (
+      <ProductBlockScope className="flex flex-col gap-5">
+        <PersonalizationForm
+          model={advanced}
+          placement="before_variants"
+          showAllErrors={personalization.showAllErrors}
+          locale={lang}
+          primaryLocale={state.primaryLocale}
+          anchor
+        />
+      </ProductBlockScope>
+    );
+  }
 
   // Designer app (M5.5): the inline designer form replaces the
   // personalization form, the custom fields and the customer upload.
@@ -125,8 +165,9 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
 
   return (
     <ProductBlockScope className="flex flex-col gap-5">
-      {/* Personalization app: fields placed before the variants (namez A) */}
-      {advanced && (
+      {/* Personalization app: fields placed before the variants (namez A);
+          a separate 'before_variants' block shows them in 'after_variants' mode */}
+      {advanced && showBefore && (
         <PersonalizationForm
           model={advanced}
           placement="before_variants"

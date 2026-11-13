@@ -1,0 +1,1099 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/3d-bokstav-med-namn?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "6f83dbd3-d536-4529-a39f-e1cb9431398d",
+  "status": "PUBLISHED",
+  "base_price": 299,
+  "compare_at_price": 350,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "PRINT_3D",
+  "variant_option_config": [
+    {
+      "name": "Välj antal",
+      "style": "card",
+      "values": [
+        "1 produkt",
+        "2 produkter",
+        "3 produkter",
+        "4 produkter",
+        "5 produkter"
+      ],
+      "valueMeta": {
+        "1 produkt": {
+          "count": 1,
+          "label": "1 st"
+        },
+        "2 produkter": {
+          "count": 2,
+          "label": "2 st"
+        },
+        "3 produkter": {
+          "count": 3,
+          "label": "3 st",
+          "ribbon": "Mest Populärt ⭐",
+          "badge_color": "#FFD84D",
+          "ribbon_color": "#FFD84D"
+        },
+        "4 produkter": {
+          "count": 4,
+          "label": "4 st"
+        },
+        "5 produkter": {
+          "count": 5,
+          "label": "5 st",
+          "ribbon": "Bästa priset 🔥",
+          "badge_color": "#bd0013"
+        }
+      },
+      "card_layout": "list",
+      "card_show_savings": true
+    },
+    {
+      "name": "Färg",
+      "style": "color",
+      "values": [
+        "Vit",
+        "Svart",
+        "Röd",
+        "Gul",
+        "Silver",
+        "Rosa",
+        "Ljusblå"
+      ],
+      "colorMap": {
+        "Gul": "#eeee22",
+        "Vit": "#ffffff",
+        "Rosa": "#ea4682",
+        "Röd": "#dd3333",
+        "Svart": "#000000",
+        "Silver": "#d8d8d8",
+        "Ljusblå": "#2596be"
+      }
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "3D Nameplate with Capital Letter",
+      "slug": "3d-nameplate-with-capital-letter",
+      "short_description": null,
+      "description": "Give the nursery a personal touch that really stands out 💕 A freestanding letter with the child's name – a nice and personal gift for newborns, christening, baby showers or as a decorative decor in the nursery. Each letter is carefully designed in Sweden and manufactured in PLA bioplastic from renewable raw materials such as corn starch and sugarcane. ✨ Details: • Customizable with any name or letter • Can be decorated with little feet, stars or hearts • Do you have special requests? Feel free to send a message before ordering • Can stand nicely on a shelf or be attached to a wall or door wit"
+    },
+    {
+      "locale": "sv",
+      "title": "3D Namnskylt med Stor Bokstav",
+      "slug": "3d-bokstav-med-namn",
+      "short_description": "<p>En personlig fristående bokstav med namn – perfekt som present till nyfödda, dop och barnrumsinredning.</p><p>Tillverkad i Sverige</p><p><strong>Material:</strong> <em>PLA</em> – miljövänligt och hållbart val</p><p><strong>Längd</strong>: 15–20 cm beroende på antal bokstäver <strong>Höjd</strong>: 15–20 cm</p>",
+      "description": "<p><strong>Ge barnrummet en personlig detalj som verkligen sticker ut 💕</strong></p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "c268444d-4a46-4dbc-9c65-258b4df49843",
+      "url": "/uploads/products/34c26fb4-9cc9-4481-904c-3917b2ccdfed.webp",
+      "alt_text": null,
+      "sort_order": 0
+    },
+    {
+      "id": "2d4ce1c4-c77d-4799-8681-f32e137715f9",
+      "url": "/uploads/products/40562028-aece-4c8d-848f-695797b77b31.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "18198909-ae76-45b1-9768-460ccbe153a9",
+      "url": "/uploads/products/f2668b7f-ec5b-4ca6-a4f4-601cdb1807d2.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "9eff1202-a9d0-47cc-99a6-e00210404267",
+      "url": "/uploads/products/a09be7e2-f260-49a0-9ab7-5c6094b3c987.webp",
+      "alt_text": null,
+      "sort_order": 3
+    },
+    {
+      "id": "ccdf03ab-307d-45a2-966f-8c397e59f3d2",
+      "url": "/uploads/products/11134a4b-452f-4eeb-9408-4f2683696fa4.webp",
+      "alt_text": null,
+      "sort_order": 4
+    },
+    {
+      "id": "899e2ce0-ce25-4cfc-8efd-d9a10df66d07",
+      "url": "/uploads/imports/bd9476ac-3553-461d-ad52-655aee36e708.webp",
+      "alt_text": null,
+      "sort_order": 5
+    },
+    {
+      "id": "fe104805-4eae-4887-8b50-9259a3c22c5c",
+      "url": "/uploads/imports/4bbe9e09-7fa5-48b5-8f8c-77de33828edb.webp",
+      "alt_text": null,
+      "sort_order": 6
+    },
+    {
+      "id": "8a12e18c-6721-4e12-8894-e7e763e5ecf9",
+      "url": "/uploads/imports/3258543e-de1f-468e-ae17-35e9574f920c.webp",
+      "alt_text": null,
+      "sort_order": 7
+    },
+    {
+      "id": "a72af47c-5071-479f-8134-a437b4de9010",
+      "url": "/uploads/imports/d3047b44-66d0-40e2-94ec-5cf5e149f801.webp",
+      "alt_text": null,
+      "sort_order": 8
+    },
+    {
+      "id": "d2289396-571d-4e13-8706-d2dff243eb30",
+      "url": "/uploads/products/42e41189-2339-4007-953d-aae64b0789e1.webp",
+      "alt_text": null,
+      "sort_order": 9
+    }
+  ],
+  "variants": [
+    {
+      "id": "304ad4b4-0aa3-42b5-a7e0-0cbf1330632d",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "11da2a4d-38cb-448b-8cbb-1673bbff038c",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "34b335f9-15a5-4a5a-9b3f-c707ba37a1f9",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "800be1fb-526e-46c9-80bf-4898abfd67ee",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "01f8ab80-611d-4782-bd9d-0d86b39337b4",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "cd9bf139-1085-424c-afde-8137ebbf2ab0",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "74d5b182-4f8f-4695-8ef9-72c516288c72",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "828cd2b3-18d8-4376-827b-0f29c17ed53a",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "cd6e1c10-0b33-47c9-8118-d5776d353175",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "60402208-fce1-4812-b41f-93d4992beb70",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "68ce55fb-b25a-41cd-a8f0-96129cfff764",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "812bc42b-d58b-4f52-8002-cdd351d0ad9e",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "1fea345e-03a6-4173-96b1-29d7cce5020e",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4ea8ce65-4ffd-40ba-90ca-37248221a078",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "e401266b-5eaa-4d1b-9e1f-a28786ef2229",
+      "sku": null,
+      "price": 899,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj antal": "4 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "580a088c-f076-4901-9a5a-29989b4f6eab",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "64d02f1e-241c-43ad-8f4e-4ae82c2da521",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f540881a-2a38-4677-8675-3e0f5e38a9ed",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "c2b85426-26fc-444c-b2db-47c6956a8dfd",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "3f17f21a-c5b2-44c3-9f89-056594b7eeee",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f82f1a8a-b649-44d3-b4ef-1d91f59b2755",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "656abc15-0cf3-4416-9b65-7ab5facc3a3a",
+      "sku": null,
+      "price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå",
+        "Välj antal": "1 produkt"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "a95a5021-3b94-4290-8587-f4edbfed6016",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4e7cc333-6ecd-4d15-b43b-11f85124416b",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d7336503-4bd9-4f9f-9b9e-6312279a8ffe",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "6eb0f086-0390-49ea-a3f9-cf0b97e6e6a9",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d38acada-42c1-4832-8574-5b099fb81d94",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d8f21ce8-1c2e-456f-b926-7800c1398b36",
+      "sku": null,
+      "price": 999,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå",
+        "Välj antal": "5 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "baa97731-4918-46f4-9205-941002d06d19",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "422db21f-f048-4fd6-80fd-81a7c47026b4",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4aae9b2a-79b4-4807-8853-648eae56e2a7",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "6f6515f1-b1e5-4fea-b135-a5b895fee500",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "52ad4d8f-a7ed-42dd-8a16-021f411838e8",
+      "sku": null,
+      "price": 499,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå",
+        "Välj antal": "2 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5f9eaccc-c1f8-4d47-9036-aac8dedabc95",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "e9643f06-1e88-469c-b1c2-586da399ab3c",
+      "sku": null,
+      "price": 699,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj antal": "3 produkter"
+      },
+      "is_active": true,
+      "images": []
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "363e965e-b09c-4cae-9541-fc03e5942698",
+      "name": "custom_name_v3",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "pattern": "^[A-Za-zÅÄÖåäö0-9]{1,12}$",
+        "max_length": 12,
+        "allowed_chars": "A-Za-zÅÄÖåäö0-9"
+      },
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Write the name here:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters.",
+            "required": "Please enter a name.",
+            "allowed_chars": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Skriv namn här:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Namn",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken.",
+            "required": "Vänligen skriv ett namn.",
+            "allowed_chars": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "اكتب الاسم هنا:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "الاسم",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا.",
+            "required": "يرجى كتابة اسم.",
+            "allowed_chars": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Name hier eingeben:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen.",
+            "required": "Bitte gib einen Namen ein.",
+            "allowed_chars": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Écrivez le nom ici :",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Nom",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max.",
+            "required": "Veuillez saisir un nom.",
+            "allowed_chars": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Adı buraya yazın:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Ad",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter.",
+            "required": "Lütfen bir ad yazın.",
+            "allowed_chars": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "d0b79d20-04fd-4e73-bbd1-7cc687643da5",
+      "name": "dnc_items",
+      "type": "REPEATER",
+      "is_required": false,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": null,
+      "linked_validation": null,
+      "sort_order": 1,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": {
+        "max": 5,
+        "lead": {
+          "fields": [
+            "custom_name_v3"
+          ],
+          "options": [
+            "Färg"
+          ]
+        },
+        "count": {
+          "map": {
+            "1 produkt": 1,
+            "2 produkter": 2,
+            "3 produkter": 3,
+            "4 produkter": 4,
+            "5 produkter": 5
+          },
+          "option": "Välj antal"
+        },
+        "start_index": 2
+      },
+      "ui": {
+        "placement": "after_variants",
+        "validation_summary": true
+      },
+      "translations": [
+        {
+          "locale": "sv",
+          "label": "Artikel {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        },
+        {
+          "locale": "en",
+          "label": "Item {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        },
+        {
+          "locale": "ar",
+          "label": "القطعة {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        },
+        {
+          "locale": "de",
+          "label": "Artikel {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        },
+        {
+          "locale": "fr",
+          "label": "Article {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        },
+        {
+          "locale": "tr",
+          "label": "Ürün {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        }
+      ],
+      "children": [
+        {
+          "id": "195e3362-45c3-49af-8b73-b71fb7ee22ca",
+          "name": "color",
+          "type": "COLOR_PALETTE",
+          "is_required": true,
+          "placeholder": null,
+          "options": null,
+          "validation_rules": null,
+          "linked_validation": null,
+          "sort_order": 0,
+          "parent_id": "d0b79d20-04fd-4e73-bbd1-7cc687643da5",
+          "conditions": null,
+          "pricing": null,
+          "repeat": null,
+          "ui": {
+            "palette_from_option": "Färg"
+          },
+          "translations": [
+            {
+              "locale": "de",
+              "label": "Farbe",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "Artikel {i}: Farbe muss ausgewählt werden"
+              }
+            },
+            {
+              "locale": "fr",
+              "label": "Couleur",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "Article {i} : la couleur doit être choisie"
+              }
+            },
+            {
+              "locale": "en",
+              "label": "Color",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "Item {i}: Color must be selected"
+              }
+            },
+            {
+              "locale": "sv",
+              "label": "Färg",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "Artikel {i}: Färg måste väljas"
+              }
+            },
+            {
+              "locale": "ar",
+              "label": "اللون",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "القطعة {i}: يجب اختيار اللون"
+              }
+            },
+            {
+              "locale": "tr",
+              "label": "Renk",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "required": "Ürün {i}: Renk seçilmelidir"
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "aed9cfd7-9825-4ae4-8d0a-fa146c348c2a",
+          "name": "name",
+          "type": "TEXT",
+          "is_required": true,
+          "placeholder": null,
+          "options": null,
+          "validation_rules": {
+            "pattern": "^[A-Za-zÅÄÖåäö0-9]{1,12}$",
+            "max_length": 12,
+            "allowed_chars": "A-Za-zÅÄÖåäö0-9"
+          },
+          "linked_validation": null,
+          "sort_order": 1,
+          "parent_id": "d0b79d20-04fd-4e73-bbd1-7cc687643da5",
+          "conditions": null,
+          "pricing": null,
+          "repeat": null,
+          "ui": null,
+          "translations": [
+            {
+              "locale": "en",
+              "label": "Write the name here:",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "Name",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters.",
+                "required": "Item {i}: Name must be filled in"
+              }
+            },
+            {
+              "locale": "sv",
+              "label": "Skriv namn här:",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "Namn",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken.",
+                "required": "Artikel {i}: Namn måste fyllas i"
+              }
+            },
+            {
+              "locale": "ar",
+              "label": "اكتب الاسم هنا:",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "الاسم",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا.",
+                "required": "القطعة {i}: يجب إدخال الاسم"
+              }
+            },
+            {
+              "locale": "de",
+              "label": "Name hier eingeben:",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "Name",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen.",
+                "required": "Artikel {i}: Name muss ausgefüllt werden"
+              }
+            },
+            {
+              "locale": "fr",
+              "label": "Écrivez le nom ici :",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "Nom",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max.",
+                "required": "Article {i} : le nom doit être renseigné"
+              }
+            },
+            {
+              "locale": "tr",
+              "label": "Adı buraya yazın:",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": "Ad",
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": {
+                "pattern": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter.",
+                "required": "Ürün {i}: Ad doldurulmalıdır"
+              }
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  ],
+  "faqs": [],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+      "slug": "3d-namnskyltar",
+      "path": [
+        "namnskyltar",
+        "3d-namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Namnskyltar"
+        }
+      ]
+    },
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    },
+    {
+      "id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+      "slug": "3d-namnskyltar",
+      "path": [
+        "namnskyltar",
+        "3d-namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Namnskyltar"
+        }
+      ]
+    }
+  ]
+}

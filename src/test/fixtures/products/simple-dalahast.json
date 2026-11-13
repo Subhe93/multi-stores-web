@@ -1,0 +1,123 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/dalahast-svenska-presenter-sverige?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "9b3f928d-a3e9-443d-b8dc-508e3c5a7287",
+  "status": "PUBLISHED",
+  "base_price": 275,
+  "tax_rate_bp": 2500,
+  "product_type": "TRADITIONAL",
+  "customization_type": null,
+  "variant_option_config": null,
+  "primary_creator_category_id": "a52127c0-0bf6-4adc-a5d2-20379547f4e3",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "Modern Dalahorse in silver – An exclusive gift from Sweden",
+      "slug": "modern-dalahorse-in-silver-an-exclusive-gift-from-sweden",
+      "short_description": null,
+      "description": "Looking for a stylish and unique gift from Sweden to abroad? This modern silver horse is an elegant interior detail inspired by Nordic design. With its minimalist shape and exclusive metal finish, it fits perfectly in both modern and classic homes. The sculpture is manufactured with high precision through 3D technology and carefully finished to provide a smooth surface and a sophisticated feel. The result is a decorative figure that combines simplicity, quality and modern aesthetics. It works great as: • a gift from Sweden • a Swedish gift abroad • a stylish interior detail • a unique gift for"
+    },
+    {
+      "locale": "sv",
+      "title": "Modern Dalahäst i silver – En exklusiv present från Sverige",
+      "slug": "dalahast-svenska-presenter-sverige",
+      "short_description": "Stilren, modern och exklusiv.<br />En unik present från Sverige som verkligen sticker ut.\r\n<p><strong>Material:</strong> Resin</p>",
+      "description": "<p>Letar du efter en stilren och unik present från Sverige till utlandet?</p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "9d3a6b6e-8101-4ea8-b3c7-0a180b183568",
+      "url": "/uploads/imports/59d90190-4c6c-4f2e-9683-f7b6b5c70015.webp",
+      "alt_text": "present från sverige",
+      "sort_order": 0
+    }
+  ],
+  "custom_fields": [],
+  "faqs": [
+    {
+      "id": "811fc37e-b17a-493b-9cde-940195ffce47",
+      "sort_order": 0,
+      "translations": [
+        {
+          "locale": "sv",
+          "question": "Skötselråd",
+          "answer": "<ul>\r\n \t<li>Modern och minimalistisk design</li>\r\n \t<li>Elegant silverfärgad finish</li>\r\n \t<li>Inspirerad av svensk och nordisk stil</li>\r\n \t<li>Lätt att placera i olika miljöer</li>\r\n \t<li>Passar som present eller dekoration</li>\r\n</ul>"
+        }
+      ]
+    }
+  ],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "a52127c0-0bf6-4adc-a5d2-20379547f4e3",
+      "slug": "dalahastar",
+      "path": [
+        "dekoration-inredning",
+        "dalahastar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dalahästar"
+        }
+      ]
+    },
+    {
+      "id": "aad7a1fc-46d2-42dc-8d79-455db6a8b564",
+      "slug": "skulpturer",
+      "path": [
+        "skulpturer"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Skulpturer"
+        }
+      ]
+    },
+    {
+      "id": "a45e0eb9-9981-4749-abab-3651502be416",
+      "slug": "dekoration-inredning",
+      "path": [
+        "dekoration-inredning"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dekoration & inredning"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "a45e0eb9-9981-4749-abab-3651502be416",
+      "slug": "dekoration-inredning",
+      "path": [
+        "dekoration-inredning"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dekoration & inredning"
+        }
+      ]
+    },
+    {
+      "id": "a52127c0-0bf6-4adc-a5d2-20379547f4e3",
+      "slug": "dalahastar",
+      "path": [
+        "dekoration-inredning",
+        "dalahastar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dalahästar"
+        }
+      ]
+    }
+  ]
+}

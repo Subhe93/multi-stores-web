@@ -1,0 +1,901 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/personlig-3d-namnpresent?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "0da9da41-ceec-4fd8-a240-92c6f87d0c17",
+  "status": "PUBLISHED",
+  "base_price": 550,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "PRINT_3D",
+  "variant_option_config": [
+    {
+      "name": "Välj storlek",
+      "style": "card",
+      "values": [
+        "Liten (13–16 cm)",
+        "Mellan (17–21 cm)",
+        "Stor (22–30 cm)"
+      ],
+      "valueMeta": {
+        "Stor (22–30 cm)": {
+          "badge": "Störst intryck",
+          "label": "Stor",
+          "sublabel": "(22–30 cm)",
+          "badge_color": "#fbde31"
+        },
+        "Liten (13–16 cm)": {
+          "label": "Liten",
+          "sublabel": "(13–16 cm)"
+        },
+        "Mellan (17–21 cm)": {
+          "badge": "Mest populär",
+          "label": "Mellan",
+          "sublabel": "(17–21 cm)",
+          "badge_color": "#f56cff"
+        }
+      }
+    },
+    {
+      "name": "Färg",
+      "style": "color",
+      "values": [
+        "Vit",
+        "Svart",
+        "Röd",
+        "Silver",
+        "Blå",
+        "Ljusrosa",
+        "Rosa",
+        "Guld",
+        "Rost"
+      ],
+      "colorMap": {
+        "Vit": "#ffffff",
+        "Blå": "#1e73be",
+        "Guld": "#b49840",
+        "Rosa": "#ea4682",
+        "Rost": "#793a24",
+        "Röd": "#dd3333",
+        "Svart": "#000000",
+        "Silver": "#d8d8d8",
+        "Ljusrosa": "#f7e0ea"
+      }
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "dfd8157b-f146-4fc4-b5b9-d47545c55146",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "Personalized 3D Naming Gift",
+      "slug": "personalized-3d-naming-gift",
+      "short_description": null,
+      "description": "✨ See the joy in every moment – that's how it feels to give a personal gift ✨ When grandma gets her very own gift – pure happiness! A gift filled with love: the children's name always close to the heart The surprise from him – a gift to remember forever What our customers say Key features • Unique design – two names are combined in a creative and artistic way. • Swedish craftsmanship – made locally in Sweden 🇸🇪 with high quality. • Available in multiple sizes – choose from small, medium or large to suit your needs. • Fully customizable – choose name, date, colors and details. • Elegant décor"
+    },
+    {
+      "locale": "sv",
+      "title": "Personlig 3D Namnpresent",
+      "slug": "personlig-3d-namnpresent",
+      "short_description": "<p>Personliga 3D-namnpresenter från  namez<br />Skapa unika och personligt anpassade 3D-modeller för alla tillfällen. Välj dina egna ord, färger och detaljer, och vi förvandlar dem till en minnesvärd present som verkligen sticker ut. Perfekt för födelsedagar, bröllop, eller bara för att visa uppskattning.</p>",
+      "description": "<p><strong>Unik design</strong> – två namn kombineras på ett kreativt och konstnärligt sätt.</p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "ffcb7416-3e3a-49d7-84ca-92b35c1f48ca",
+      "url": "/uploads/imports/adb9cbed-38ee-42e6-b256-64e1a01e4f87.webp",
+      "alt_text": null,
+      "sort_order": 0
+    },
+    {
+      "id": "08a5372c-22d4-4f9f-a338-ff7c23e1d994",
+      "url": "/uploads/imports/0e150220-1c34-4c66-a5b9-c23d3a730b97.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "bd9b02b6-d368-4bfc-b980-5abd7fb23cea",
+      "url": "/uploads/imports/ef252723-199b-4605-9d1f-dde1d88318c5.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "05ff03a1-b69b-432c-9440-5d8edbb3eb1d",
+      "url": "/uploads/imports/bcd260c7-09b7-4295-9e1b-acaeb5af8a75.webp",
+      "alt_text": null,
+      "sort_order": 3
+    },
+    {
+      "id": "12ea791c-c07d-461b-b4cd-e1c774ea733f",
+      "url": "/uploads/imports/3fb1ef89-21eb-411b-8e8a-147837cee975.webp",
+      "alt_text": null,
+      "sort_order": 4
+    },
+    {
+      "id": "35b69584-4d17-4460-bfbc-d38049532266",
+      "url": "/uploads/imports/e2f34ce7-db26-4fb7-87c7-dcefd8ea8bd0.webp",
+      "alt_text": null,
+      "sort_order": 5
+    },
+    {
+      "id": "1b5f7c90-2e43-4ce8-8c13-b970f77fae2f",
+      "url": "/uploads/imports/f392e2d8-f18e-4dbe-804a-6655e7c1db51.webp",
+      "alt_text": null,
+      "sort_order": 6
+    },
+    {
+      "id": "6ac5171d-5030-4500-a285-8cd3b19d0aea",
+      "url": "/uploads/imports/0dde5e67-0285-4278-95af-84708f900338.webp",
+      "alt_text": null,
+      "sort_order": 7
+    }
+  ],
+  "variants": [
+    {
+      "id": "fd584f89-6bd8-47eb-9181-5a192632d462",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b8004276-43fe-4034-b9b7-5c5e3a41fb6b",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "dc3c8cd2-c974-4151-8629-b12665eb3f8d",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "aa02e4a3-7fd4-4952-82c5-68a830f4d904",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "324b2e4c-0710-4dd9-9b2e-704a4906e2da",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "489c84cd-43b2-40bb-9d3e-847647fcf1aa",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f6a2715d-2d2c-4e9f-b0ba-46c2f29d5e67",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "bdfd008a-2a98-42d1-98c0-ae9751b46ff6",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Blå",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "09e28300-e46c-4a13-8a11-aa33e680df7e",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusrosa",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "7c647042-f820-462d-a1a9-ea2b7609bd88",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "a3013f48-9ae2-416e-989b-33982423a1ce",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Guld",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "ab6ec081-dd6d-429c-bbb7-0b376c3ad7e2",
+      "sku": null,
+      "price": 550,
+      "stock": 999,
+      "options": {
+        "Färg": "Rost",
+        "Välj storlek": "Liten (13–16 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "fe64f995-2ca2-40d2-ab8e-e3f84ec1d816",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "36d30325-1691-4df2-a5fb-c0a7a2182a0a",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4476895c-f84c-40b9-a16c-6158f8182635",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "e9509617-90a6-40ed-b1b3-8cadf7859673",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Blå",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "2bb3e8bd-0b11-4799-afad-d36ef0bdb52f",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusrosa",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "94a4e24f-91c2-46a4-86f1-c2b36c120505",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f38951ea-b6c1-41f7-9448-76b3daa8af01",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Guld",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "0f5400ce-d5db-455b-a1ca-16e3f745f909",
+      "sku": null,
+      "price": 700,
+      "stock": 999,
+      "options": {
+        "Färg": "Rost",
+        "Välj storlek": "Mellan (17–21 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4c0a6a6c-6280-4904-b200-5f834fc7297f",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "930694a3-c6ae-4ad8-a29b-41fca90c119b",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f00858c4-be7b-45fb-8ecc-6b452597fcd8",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Blå",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b82f1aae-2838-4868-8c56-56a779ca7d81",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusrosa",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5dcfee59-a213-4089-8f25-7dfc983460b6",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f7f961e2-8366-47a6-9f51-6b7a1d48f788",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Guld",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "dff7e03a-8ad8-4a79-8417-bdf17d3752e8",
+      "sku": null,
+      "price": 900,
+      "stock": 999,
+      "options": {
+        "Färg": "Rost",
+        "Välj storlek": "Stor (22–30 cm)"
+      },
+      "is_active": true,
+      "images": []
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "dd4b9a05-9306-4bd8-a4f5-4a056cbe2ce8",
+      "name": "name_1",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 11,
+        "allowed_chars": "A-Za-z❤"
+      },
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "counter": true,
+        "placement": "before_variants",
+        "transform": "uppercase"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "First text",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Use the text with the most letters here",
+          "note": null,
+          "help_text": "Example:\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "Enter a value for the first text.",
+            "allowed_chars": "Only English letters are allowed (A-Z)."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Första texten",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Använd texten med flest bokstäver här",
+          "note": null,
+          "help_text": "Exempel:\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "Ange ett värde för Första texten.",
+            "allowed_chars": "Endast engelska bokstäver tillåtna (A-Z)."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "النص الأول",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "استخدم هنا النص الذي يحتوي على أكبر عدد من الأحرف",
+          "note": null,
+          "help_text": "مثال:\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "أدخل قيمة للنص الأول.",
+            "allowed_chars": "يُسمح بالأحرف الإنجليزية فقط (A-Z)."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Erster Text",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Verwende hier den Text mit den meisten Buchstaben",
+          "note": null,
+          "help_text": "Beispiel:\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "Gib einen Wert für den ersten Text ein.",
+            "allowed_chars": "Nur englische Buchstaben erlaubt (A-Z)."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Premier texte",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Utilisez ici le texte qui a le plus de lettres",
+          "note": null,
+          "help_text": "Exemple :\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "Saisissez une valeur pour le premier texte.",
+            "allowed_chars": "Seules les lettres anglaises sont autorisées (A-Z)."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Birinci metin",
+          "placeholder": "KRISTOFER",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "En çok harf içeren metni buraya yazın",
+          "note": null,
+          "help_text": "Örnek:\nPATRIK\nMARKUS\nPAPPA\nCHEFEN",
+          "help_image_url": "/uploads/imports/5c373b22-0466-49a4-ba5d-400b34418907.webp",
+          "messages": {
+            "required": "Birinci metin için bir değer girin.",
+            "allowed_chars": "Yalnızca İngilizce harflere izin verilir (A-Z)."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "56e96754-1efb-45d4-a1d2-901867ddb379",
+      "name": "name_2",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 11,
+        "allowed_chars": "A-Za-z❤"
+      },
+      "linked_validation": {
+        "type": "equal_length",
+        "target": "name_1",
+        "fill_char": "❤"
+      },
+      "sort_order": 1,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "counter": "linked",
+        "placement": "before_variants",
+        "transform": "uppercase",
+        "insert_char": "❤",
+        "limit_to_target": true
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Second text",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Use the text with fewer letters here",
+          "note": "The number of letters in the first and second text must match, or add ❤ to make them equal.",
+          "help_text": "Example:\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "Enter a value for the second text.",
+            "equal_length": "The lengths do not match!",
+            "allowed_chars": "Only English letters are allowed (A-Z)."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Andra texten",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Använd texten med färre bokstäver här",
+          "note": "Antalet bokstäver i första och andra text måste matcha, eller lägg till ❤ för att göra lika.",
+          "help_text": "Exempel:\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "Ange ett värde för Andra texten.",
+            "equal_length": "Längderna stämmer inte överens!",
+            "allowed_chars": "Endast engelska bokstäver tillåtna (A-Z)."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "النص الثاني",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "استخدم هنا النص الذي يحتوي على عدد أقل من الأحرف",
+          "note": "يجب أن يتطابق عدد الأحرف في النصين الأول والثاني، أو أضف ❤ لجعلهما متساويين.",
+          "help_text": "مثال:\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "أدخل قيمة للنص الثاني.",
+            "equal_length": "الأطوال غير متطابقة!",
+            "allowed_chars": "يُسمح بالأحرف الإنجليزية فقط (A-Z)."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Zweiter Text",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Verwende hier den Text mit weniger Buchstaben",
+          "note": "Die Anzahl der Buchstaben im ersten und zweiten Text muss übereinstimmen, oder füge ❤ hinzu, um sie anzugleichen.",
+          "help_text": "Beispiel:\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "Gib einen Wert für den zweiten Text ein.",
+            "equal_length": "Die Längen stimmen nicht überein!",
+            "allowed_chars": "Nur englische Buchstaben erlaubt (A-Z)."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Deuxième texte",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Utilisez ici le texte qui a le moins de lettres",
+          "note": "Le nombre de lettres du premier et du deuxième texte doit être identique, ou ajoutez ❤ pour les égaliser.",
+          "help_text": "Exemple :\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "Saisissez une valeur pour le deuxième texte.",
+            "equal_length": "Les longueurs ne correspondent pas !",
+            "allowed_chars": "Seules les lettres anglaises sont autorisées (A-Z)."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "İkinci metin",
+          "placeholder": "❤❤KARIN❤❤",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Daha az harf içeren metni buraya yazın",
+          "note": "Birinci ve ikinci metindeki harf sayısı eşit olmalı ya da eşitlemek için ❤ ekleyin.",
+          "help_text": "Örnek:\nEmma\n❤SARA❤\n❤Jan❤\n❤❤Axel\nEmil❤❤\n❤Joel❤\nOlle❤\nLina❤\nElsa❤",
+          "help_image_url": "/uploads/imports/ca2b6d78-2181-4710-970f-edd046577175.webp",
+          "messages": {
+            "required": "İkinci metin için bir değer girin.",
+            "equal_length": "Uzunluklar eşleşmiyor!",
+            "allowed_chars": "Yalnızca İngilizce harflere izin verilir (A-Z)."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "ce55fdfa-a0d7-4312-a66d-760be1e53ebd",
+      "name": "model_text",
+      "type": "TEXT",
+      "is_required": false,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 25
+      },
+      "linked_validation": null,
+      "sort_order": 2,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "counter": true,
+        "placement": "before_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Text on the front of the model",
+          "placeholder": "Forever together",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "Example:\nForever together\n❤ Forever together ❤\n❤ Forever together ❤ 18/9/2022 ❤\nHappy birthday\n❤ Happy birthday ❤\n❤ 10th wedding anniversary ❤\n❤ 10th wedding anniversary ❤ 18/9/2014 ❤\n❤ World's best ❤ DAD ❤",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        },
+        {
+          "locale": "sv",
+          "label": "Texten på framsidan av modellen",
+          "placeholder": "För alltid tillsammans",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "Exempel:\nFör alltid tillsammans\n❤ För alltid tillsammans ❤\n❤ För alltid tillsammans ❤ 18/9/2022 ❤\nGrattis på födelsedagen\n❤ Grattis på födelsedagen ❤\n❤ 10 årig bröllopsdag ❤\n❤ 10 årig bröllopsdag ❤ 18/9/2014 ❤\n❤ Världens bästa ❤ PAPPA ❤",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        },
+        {
+          "locale": "ar",
+          "label": "النص على واجهة المجسّم",
+          "placeholder": "معًا إلى الأبد",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "مثال:\nمعًا إلى الأبد\n❤ معًا إلى الأبد ❤\n❤ معًا إلى الأبد ❤ 18/9/2022 ❤\nعيد ميلاد سعيد\n❤ عيد ميلاد سعيد ❤\n❤ الذكرى العاشرة للزواج ❤\n❤ الذكرى العاشرة للزواج ❤ 18/9/2014 ❤\n❤ أفضل ❤ أب ❤ في العالم",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        },
+        {
+          "locale": "de",
+          "label": "Text auf der Vorderseite des Modells",
+          "placeholder": "Für immer zusammen",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "Beispiel:\nFür immer zusammen\n❤ Für immer zusammen ❤\n❤ Für immer zusammen ❤ 18/9/2022 ❤\nAlles Gute zum Geburtstag\n❤ Alles Gute zum Geburtstag ❤\n❤ 10. Hochzeitstag ❤\n❤ 10. Hochzeitstag ❤ 18/9/2014 ❤\n❤ Weltbester ❤ PAPA ❤",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        },
+        {
+          "locale": "fr",
+          "label": "Texte sur le devant du modèle",
+          "placeholder": "Ensemble pour toujours",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "Exemple :\nEnsemble pour toujours\n❤ Ensemble pour toujours ❤\n❤ Ensemble pour toujours ❤ 18/9/2022 ❤\nJoyeux anniversaire\n❤ Joyeux anniversaire ❤\n❤ 10 ans de mariage ❤\n❤ 10 ans de mariage ❤ 18/9/2014 ❤\n❤ Meilleur ❤ PAPA ❤ du monde",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        },
+        {
+          "locale": "tr",
+          "label": "Modelin ön yüzündeki metin",
+          "placeholder": "Sonsuza dek birlikte",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": "Örnek:\nSonsuza dek birlikte\n❤ Sonsuza dek birlikte ❤\n❤ Sonsuza dek birlikte ❤ 18/9/2022 ❤\nDoğum günün kutlu olsun\n❤ Doğum günün kutlu olsun ❤\n❤ 10. evlilik yıl dönümü ❤\n❤ 10. evlilik yıl dönümü ❤ 18/9/2014 ❤\n❤ Dünyanın en iyi ❤ BABASI ❤",
+          "help_image_url": "/uploads/imports/bc9091dd-b6ca-45b4-b9f4-b457a858c7bd.webp",
+          "messages": null
+        }
+      ],
+      "children": []
+    }
+  ],
+  "faqs": [
+    {
+      "id": "120278cf-1427-492a-907c-985e56c7daff",
+      "sort_order": 0,
+      "translations": [
+        {
+          "locale": "sv",
+          "question": "Storlek & passform",
+          "answer": "<h2>Storlekar &amp; pris</h2>\r\n<ul>\r\n \t<li>\r\n<p><strong>Liten (13–16 cm)</strong> – 350 kr – perfekt som liten personlig gåva 🎁</p>\r\n</li>\r\n \t<li>\r\n<p><strong>Mellan (17–21 cm)</strong> – 550 kr – mest populär, balans mellan pris och storlek ✨</p>\r\n</li>\r\n \t<li>\r\n<p><strong>Stor (22–30 cm)</strong> – 950 kr – imponerande storlek, perfekt som minnesgåva 🏆</p>\r\n</li>\r\n</ul>"
+        }
+      ]
+    },
+    {
+      "id": "1246824b-511e-4e84-b6b5-cfd9f4b1a504",
+      "sort_order": 1,
+      "translations": [
+        {
+          "locale": "sv",
+          "question": "Leverans",
+          "answer": "<h4>Snabb leverans</h4>\r\n<div>Leverans inom 3–5 arbetsdagar i Sverige</div>"
+        }
+      ]
+    }
+  ],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "dfd8157b-f146-4fc4-b5b9-d47545c55146",
+      "slug": "presenter-till-vem",
+      "path": [
+        "presenter-till-vem"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Presenter till vem"
+        }
+      ]
+    },
+    {
+      "id": "250510aa-65ce-4923-853e-9c94ef844364",
+      "slug": "3d_presenter",
+      "path": [
+        "3d_presenter"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Presenter"
+        }
+      ]
+    },
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    },
+    {
+      "id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+      "slug": "3d-namnskyltar",
+      "path": [
+        "namnskyltar",
+        "3d-namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Namnskyltar"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "dfd8157b-f146-4fc4-b5b9-d47545c55146",
+      "slug": "presenter-till-vem",
+      "path": [
+        "presenter-till-vem"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Presenter till vem"
+        }
+      ]
+    }
+  ]
+}

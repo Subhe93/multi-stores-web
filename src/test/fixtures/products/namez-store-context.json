@@ -1,0 +1,23 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se (fetched 2026-11-13): apps.personalization, currency and tax only",
+  "currency": "SEK",
+  "primaryLocale": "sv",
+  "tax": {
+    "pricing_mode": "INCLUSIVE",
+    "display_prices_incl_tax": true,
+    "country": "SE",
+    "registrant": "STORE"
+  },
+  "apps": {
+    "personalization": {
+      "enabled": true,
+      "settings": {
+        "free_shipping_badge": true,
+        "card_price_mode": "selection",
+        "validation_summary": true,
+        "url_prefill": {},
+        "listing_cta": "personalize"
+      }
+    }
+  }
+}

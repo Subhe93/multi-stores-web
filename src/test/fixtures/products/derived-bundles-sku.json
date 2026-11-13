@@ -1,0 +1,520 @@
+{
+  "_source": "DERIVED from variant-compare-at.json (live namez-se product) with synthetic SKUs, bundle offers and one promotion: namez-se has no live bundles or SKUs on 2026-11-13",
+  "id": "derived-576e7d6c-dda3-4818-9882-8ad2de4002fb",
+  "status": "PUBLISHED",
+  "base_price": 199,
+  "compare_at_price": 299,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "PRINT_3D",
+  "variant_option_config": [
+    {
+      "name": "Färg",
+      "style": "color",
+      "values": [
+        "Vit",
+        "Svart",
+        "Röd",
+        "Gul",
+        "Silver",
+        "Blå",
+        "Orange",
+        "Ljusrosa",
+        "Rosa",
+        "Guld",
+        "Blank Guld",
+        "Matt Svart",
+        "Blank Silver",
+        "Rost"
+      ],
+      "colorMap": {
+        "Gul": "#eeee22",
+        "Vit": "#ffffff",
+        "Blå": "#1e73be",
+        "Guld": "#b49840",
+        "Rosa": "#ea4682",
+        "Rost": "#793a24",
+        "Röd": "#dd3333",
+        "Svart": "#000000",
+        "Orange": "#f48d27",
+        "Silver": "#d8d8d8",
+        "Ljusrosa": "#f7e0ea",
+        "Blank Guld": "#b49840",
+        "Matt Svart": "#000000",
+        "Blank Silver": "#d8d8d8"
+      }
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+  "promotions": [
+    {
+      "id": "promo-1",
+      "type": "PERCENTAGE",
+      "value": 15,
+      "translations": [
+        {
+          "locale": "sv",
+          "title": "Höstrea"
+        }
+      ]
+    }
+  ],
+  "bundles": [
+    {
+      "id": "bundle-1",
+      "status": "ACTIVE",
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Paketpris"
+        }
+      ],
+      "offers": [
+        {
+          "id": "offer-2",
+          "quantity": 2,
+          "discount_type": "PERCENTAGE",
+          "discount_value": 10,
+          "sort_order": 0,
+          "translations": [
+            {
+              "locale": "sv",
+              "title": "Köp 2",
+              "label": "Spara 10%",
+              "sticker_text": null
+            }
+          ]
+        },
+        {
+          "id": "offer-3",
+          "quantity": 3,
+          "discount_type": "FIXED",
+          "discount_value": "50",
+          "sort_order": 1,
+          "translations": [
+            {
+              "locale": "sv",
+              "title": "Köp 3",
+              "label": null,
+              "sticker_text": "Populär"
+            }
+          ]
+        },
+        {
+          "id": "offer-4",
+          "quantity": 3,
+          "discount_type": "ITEM",
+          "discount_value": 1,
+          "sort_order": 2,
+          "translations": []
+        }
+      ]
+    }
+  ],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "3D Letter with Name – Personalized Decoration",
+      "slug": "3d-letter-with-name-personalized-decoration",
+      "short_description": null,
+      "description": "Give the children's room a personal and charming detail 💕 A freestanding letter with the child's name – perfect as a gift for newborns, christening, baby showers or as a decor in the child's room. Each letter is carefully designed in Sweden and made from environmentally friendly bioplastic (PLA) from renewable sources such as corn starch and sugarcane. ✨ Details: • Customizable with any name or letter • Can be decorated with small feet, stars or hearts (send message for requests) • Can be placed on shelf or attached to wall/door with double-sided tape • Made in Sweden 🇸🇪 • Environmentally f"
+    },
+    {
+      "locale": "sv",
+      "title": "3D Bokstav med Namn – Personlig Dekoration",
+      "slug": "3d-bokstav-med-namn2",
+      "short_description": "<p>Elegant och personlig fristående bokstav med valfritt namn.<br />Perfekt som present eller som en unik detalj i hemmet, kontoret eller barnrummet.<br />Varje bokstav designas med precision och tillverkas i Sverige av hållbart bioplastmaterial.</p>\r\n<p>📏 <strong>Storlek:</strong> bredd 20–30 cm | höjd 15–20 cm<br />🇸🇪 <strong>Tillverkad i Sverige</strong></p>",
+      "description": "<p>Ge barnrummet en personlig och charmig detalj 💕<br />En fristående bokstav med barnets namn – perfekt som present till nyfödda, dop, babyshower eller som inredning i barnets rum.<br />Varje bokstav designas med omsorg i Sverige och tillverkas av miljövänligt bioplast (PLA) från förnybara källor som majsstärkelse och sockerrör.</p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "24c02e86-97d2-4393-8646-e5c5c817b7b1",
+      "url": "/uploads/imports/97fb1355-241e-4e0c-9676-3b4de72fa91b.webp",
+      "alt_text": null,
+      "sort_order": 0
+    },
+    {
+      "id": "da1fb132-5f4c-4333-a0cc-15110cdfec59",
+      "url": "/uploads/imports/9ca891a4-ceac-4130-9252-3454322afda0.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "17471bae-3e6e-45b6-8bb8-f2d66b485351",
+      "url": "/uploads/imports/cf674d97-cbb3-4b67-b478-56afcbc4eb88.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "b3138257-cbdb-4f12-a2da-782088c62ee9",
+      "url": "/uploads/imports/695419fb-99bb-4f62-a716-89c08c367a99.webp",
+      "alt_text": null,
+      "sort_order": 3
+    },
+    {
+      "id": "ad97e6bf-5cf7-4bbd-b77e-8ade69297da2",
+      "url": "/uploads/imports/9a6c0aae-20c3-4856-a77b-e90ed327ba86.webp",
+      "alt_text": null,
+      "sort_order": 4
+    },
+    {
+      "id": "ba0f9e92-facf-4468-84db-6e63d37f9e89",
+      "url": "/uploads/imports/5fca5810-3c6a-4e3e-8697-35fc6cba9966.webp",
+      "alt_text": null,
+      "sort_order": 5
+    },
+    {
+      "id": "e8912870-692d-4b3b-88cf-495c3fd4c649",
+      "url": "/uploads/imports/60281a3f-165e-4ae5-9a26-70434e9e8dad.webp",
+      "alt_text": null,
+      "sort_order": 6
+    },
+    {
+      "id": "dffc9c72-24a8-4198-ba70-84f6436c95c1",
+      "url": "/uploads/imports/5e2e9f87-857b-442b-b9c9-be9e8b63b9b8.webp",
+      "alt_text": null,
+      "sort_order": 7
+    }
+  ],
+  "variants": [
+    {
+      "id": "d-8d089421-0b20-43b1-8f31-8fac5ea0bc41",
+      "sku": "NAMN-3D-01",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Blå"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-7ef4a319-a2d1-4366-ac30-1d6a89a82f2f",
+      "sku": "NAMN-3D-02",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-20cbe1d2-371a-4d72-be47-ff38d821f97a",
+      "sku": "NAMN-3D-03",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusrosa"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-fdad8696-6e16-485c-8fa8-cca3f86efd57",
+      "sku": "NAMN-3D-04",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Orange"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-d2c59b73-e322-432b-92bb-c4ecd8e69c52",
+      "sku": "NAMN-3D-05",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-2318136a-2dc9-4b9d-9002-90c04a0359cd",
+      "sku": "NAMN-3D-06",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Rosa"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-67f95bcf-496f-4d86-84cd-a10cfdbb2eb2",
+      "sku": "NAMN-3D-07",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Rost"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-e189c362-baee-404c-ae94-160d4cf9677e",
+      "sku": "NAMN-3D-08",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Silver"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-0ca03209-3956-4960-bc35-ddd2e1021f41",
+      "sku": "NAMN-3D-09",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-d1fe7034-575d-49bd-9014-b6d2db443be4",
+      "sku": "NAMN-3D-10",
+      "price": 199,
+      "compare_at_price": 299,
+      "stock": 999,
+      "options": {
+        "Färg": "Vit"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-a276c51a-0788-4a29-b972-0041ea936b49",
+      "sku": "NAMN-3D-11",
+      "price": 199,
+      "stock": 999,
+      "options": {
+        "Färg": "Guld"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-642217ef-3633-4ff9-8fb3-0e5c86ebe520",
+      "sku": "NAMN-3D-12",
+      "price": 199,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-4c524e1c-2ed9-42b0-9063-473f77304a25",
+      "sku": "NAMN-3D-13",
+      "price": 199,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d-1518b4c4-1135-4317-b165-70df395ecac8",
+      "sku": "NAMN-3D-14",
+      "price": 199,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver"
+      },
+      "is_active": true,
+      "images": []
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "f844485a-6fb5-43cd-b0aa-d4541379fa13",
+      "name": "custom_name_v3",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "pattern": "^[A-Za-zÅÄÖåäö0-9]{1,12}$",
+        "max_length": 12,
+        "allowed_chars": "A-Za-zÅÄÖåäö0-9"
+      },
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Write the name here:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters.",
+            "required": "Please enter a name.",
+            "allowed_chars": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Skriv namn här:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Namn",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken.",
+            "required": "Vänligen skriv ett namn.",
+            "allowed_chars": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "اكتب الاسم هنا:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "الاسم",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا.",
+            "required": "يرجى كتابة اسم.",
+            "allowed_chars": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Name hier eingeben:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen.",
+            "required": "Bitte gib einen Namen ein.",
+            "allowed_chars": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Écrivez le nom ici :",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Nom",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max.",
+            "required": "Veuillez saisir un nom.",
+            "allowed_chars": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Adı buraya yazın:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Ad",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter.",
+            "required": "Lütfen bir ad yazın.",
+            "allowed_chars": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter."
+          }
+        }
+      ],
+      "children": []
+    }
+  ],
+  "faqs": [],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    },
+    {
+      "id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+      "slug": "3d-namnskyltar",
+      "path": [
+        "namnskyltar",
+        "3d-namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Namnskyltar"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    }
+  ]
+}

@@ -216,6 +216,9 @@ export function buildColumnCss(sectionId: string, settings: Record<string, unkno
   const out = new CssBuilder();
   out.rule('desktop', sel, ['display:flex', 'flex-direction:column', `gap:${s.gap}px`, `align-items:${s.align}`]);
   out.rule('desktop', `${sel}>[data-section-id]`, ['min-width:0']);
+  // A child that rendered nothing (e.g. a product block with no data for this
+  // product) takes no gap, like the monolith's conditional blocks.
+  out.rule('desktop', `${sel}>[data-section-id]:has(>div:only-child:empty)`, ['display:none']);
   for (const child of children) appendCommonChildRules(out, sel, child);
   if (s.stickyDesktop) {
     // The column's own inner div sticks inside its wrapper, which a parent

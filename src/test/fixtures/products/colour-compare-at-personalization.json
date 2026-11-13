@@ -1,0 +1,396 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/personlig-studentpresent-till-kille-eller-tjej?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "6cf2a483-e3f2-404a-8335-54e0b63eeeaa",
+  "status": "PUBLISHED",
+  "base_price": 275,
+  "compare_at_price": 490,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "PRINT_3D",
+  "variant_option_config": [
+    {
+      "name": "Färg",
+      "style": "color",
+      "values": [
+        "Svart",
+        "Röd",
+        "Gul",
+        "Blå",
+        "Ljusrosa",
+        "Ljusblå",
+        "Grön"
+      ],
+      "colorMap": {
+        "Gul": "#eeee22",
+        "Blå": "#1e73be",
+        "Röd": "#dd3333",
+        "Grön": "#07af0f",
+        "Svart": "#000000",
+        "Ljusblå": "#2596be",
+        "Ljusrosa": "#f7e0ea"
+      }
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "Personlig studentpresent till kille eller tjej 2026 – 3D-namnskylt med namn",
+      "slug": "personlig-studentpresent-till-kille-eller-tjej-2026-3d-namnskylt-med-namn",
+      "short_description": null,
+      "description": "Gör studenten extra minnesvärd med en personlig studentpresent som är skapad med namn och stor bokstav. Denna fristående namnskylt passar perfekt som present till studenten, eleven eller någon som precis avslutat en viktig skolperiod. Produkten kan placeras på skrivbordet, hyllan, i rummet eller användas som en personlig dekoration vid studentfirandet. Varje design anpassas efter namnet du anger och skapas med omsorg i Sverige. Du kan välja färg och skriva namnet som du vill att det ska synas på produkten. 🎥 Detaljer som gör skillnad – se videon I videon ser du hur namnskylten ser ut i verkli"
+    },
+    {
+      "locale": "sv",
+      "title": "Personlig studentpresent till kille eller tjej 2026 – 3D-namnskylt med namn",
+      "slug": "personlig-studentpresent-till-kille-eller-tjej",
+      "short_description": "<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<p><strong>En personlig studentpresent som verkligen sticker ut.</strong><br />En fristående 3D-namnskylt med studentens namn och första bokstav – perfekt som minne från studenten, present till en elev eller som en fin personlig detalj på skrivbordet, hyllan eller i rummet.</p>\r\n\r\n<div>\r\n<div>\r\n<p>🇸🇪  Tillverkad i Sverige</p>\r\n<p><strong>Material:</strong> <em>PLA</em> – miljövänligt och hållbart val (<a href=\"https://namez.se/material-pla-miljovanligt-och-hallbart-val/\">Läs mer om PLA här</a>)</p>\r\n<p><strong>Mått:</strong> Den stora bokstaven är ca 15–20 cm hög. Bredden varierar beroende på bokstavens form och design.</p>\r\n\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<div>\r\n<p><strong>Färgvalet gäller den stora bokstaven. Namnet framför görs i vitt som standard.</strong></p>\r\n\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>\r\n</div>",
+      "description": "<p>Gör studenten extra minnesvärd med en <strong>personlig studentpresent</strong> som är skapad med namn och stor bokstav.</p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "3ff3d6e4-cf30-417d-86e5-f6bba704277b",
+      "url": "/uploads/imports/13683f3a-8277-44d9-ac4e-899d4b8a105e.webp",
+      "alt_text": "Personlig studentpresent till kille eller tjej 2026 (namez)",
+      "sort_order": 0
+    },
+    {
+      "id": "9fb2f1ec-c027-4b57-a936-cdf76d8a30ba",
+      "url": "/uploads/imports/a8670492-b226-4b01-b309-876ffa29214a.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "5e8982b8-8a38-4ba2-a278-396a04b44029",
+      "url": "/uploads/imports/cc84a007-8408-43b5-8b5a-bd1584f0d200.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "7b89a137-1437-4689-aeaf-d1af513f09a0",
+      "url": "/uploads/imports/053a4fd4-4242-497d-9ef8-6d9428e93c7a.webp",
+      "alt_text": null,
+      "sort_order": 3
+    }
+  ],
+  "variants": [
+    {
+      "id": "52275903-c27f-40e1-bba0-acd56c8618b3",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Svart"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "dd4a555e-20fb-46b1-b580-fbea37a01f89",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Röd"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "eaa4bb5b-9a56-47e7-85a4-56016b69188a",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Gul"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f89b6509-c9a5-44df-a470-97fdcc9d4efa",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Blå"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "c81890a4-ebef-4119-b5ae-db4271578591",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusrosa"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4b239fca-e9f5-4698-afdc-0e40bd631f21",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Ljusblå"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "85447636-ba24-4aaa-afde-bc803a063c83",
+      "sku": null,
+      "price": 275,
+      "compare_at_price": 490,
+      "stock": 999,
+      "options": {
+        "Färg": "Grön"
+      },
+      "is_active": true,
+      "images": []
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "b776990f-2056-4fe5-ae8d-d991ff9d6b83",
+      "name": "custom_name_v3",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "pattern": "^[A-Za-zÅÄÖåäö0-9]{1,12}$",
+        "max_length": 12,
+        "allowed_chars": "A-Za-zÅÄÖåäö0-9"
+      },
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Write the name here:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters.",
+            "required": "Please enter a name.",
+            "allowed_chars": "Only letters (A–Z, Å, Ä, Ö) and digits allowed, max 12 characters."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Skriv namn här:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Namn",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken.",
+            "required": "Vänligen skriv ett namn.",
+            "allowed_chars": "Endast bokstäver (A–Z, Å, Ä, Ö) och siffror tillåtna, max 12 tecken."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "اكتب الاسم هنا:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "الاسم",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا.",
+            "required": "يرجى كتابة اسم.",
+            "allowed_chars": "يُسمح بالأحرف (A–Z، Å، Ä، Ö) والأرقام فقط، بحد أقصى 12 حرفًا."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Name hier eingeben:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Name",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen.",
+            "required": "Bitte gib einen Namen ein.",
+            "allowed_chars": "Nur Buchstaben (A–Z, Å, Ä, Ö) und Ziffern erlaubt, max. 12 Zeichen."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Écrivez le nom ici :",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Nom",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max.",
+            "required": "Veuillez saisir un nom.",
+            "allowed_chars": "Seules les lettres (A–Z, Å, Ä, Ö) et les chiffres sont autorisés, 12 caractères max."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Adı buraya yazın:",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": "Ad",
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "pattern": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter.",
+            "required": "Lütfen bir ad yazın.",
+            "allowed_chars": "Yalnızca harfler (A–Z, Å, Ä, Ö) ve rakamlar, en fazla 12 karakter."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "99a28439-0545-4011-bd20-a50c5db7c969",
+      "name": "ppom_details",
+      "type": "CHECKBOX_GROUP",
+      "is_required": false,
+      "placeholder": null,
+      "options": [
+        "Student 2026",
+        "Studentmössa",
+        "Svensk flagga",
+        "Nallebjörn"
+      ],
+      "validation_rules": null,
+      "linked_validation": null,
+      "sort_order": 1,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants",
+        "default_checked": [
+          "Student 2026",
+          "Studentmössa",
+          "Svensk flagga",
+          "Nallebjörn"
+        ]
+      },
+      "translations": [
+        {
+          "locale": "sv",
+          "label": "Välj detaljer i designen",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        }
+      ],
+      "children": []
+    }
+  ],
+  "faqs": [],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    },
+    {
+      "id": "154a7e83-24bd-45d9-81ec-7fea69cb458e",
+      "slug": "3d-printing",
+      "path": [
+        "3d-printing"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D printing"
+        }
+      ]
+    },
+    {
+      "id": "1cc3133b-a41b-45b3-9a20-b92a359cd381",
+      "slug": "3d-namnskyltar",
+      "path": [
+        "namnskyltar",
+        "3d-namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "3D Namnskyltar"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "01a1f7d6-4a64-4c13-9490-7b2891304cd7",
+      "slug": "namnskyltar",
+      "path": [
+        "namnskyltar"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Namnskyltar"
+        }
+      ]
+    }
+  ]
+}

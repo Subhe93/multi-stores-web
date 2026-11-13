@@ -1,0 +1,532 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/termosflaska-for-barn-med-graverat-namn-450-ml?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "d563f60e-8229-4934-b1ca-d1f80087a0bb",
+  "status": "PUBLISHED",
+  "base_price": 225,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "ENGRAVE",
+  "variant_option_config": [
+    {
+      "name": "Antal",
+      "style": "card",
+      "values": [
+        "1 flaska",
+        "2 flaskor",
+        "3 flaskor"
+      ],
+      "valueMeta": {
+        "2 flaskor": {
+          "units": 2
+        },
+        "3 flaskor": {
+          "units": 3
+        }
+      },
+      "card_layout": "list"
+    },
+    {
+      "name": "Djur",
+      "style": "image",
+      "values": [
+        "Zebra",
+        "Anka",
+        "Elefant",
+        "Dinosaurie",
+        "Flodhäst"
+      ],
+      "imageMap": {
+        "Anka": "https://api.shopsdoor.com/uploads/products/e703851e-fb0b-4258-914f-52438259514d.webp",
+        "Zebra": "https://api.shopsdoor.com/uploads/products/e593c91a-15c9-4ba7-87c7-43e9a9ecebe5.webp",
+        "Elefant": "https://api.shopsdoor.com/uploads/products/a7e5d1ac-0127-4c69-a5b6-407576db251b.webp",
+        "Flodhäst": "https://api.shopsdoor.com/uploads/products/f6928e9f-43cf-4523-9104-062dd24c6ece.webp",
+        "Dinosaurie": "https://api.shopsdoor.com/uploads/products/dc0e4f02-3fec-4a7c-bd99-e0d0d175b061.webp"
+      },
+      "swatchMap": {
+        "Anka": "https://api.shopsdoor.com/uploads/products/d45ed35f-0d22-4733-98fc-badf2ec47aa8.webp",
+        "Zebra": "https://api.shopsdoor.com/uploads/products/fb3ba800-ac3e-4314-b00a-5abd42665afc.webp",
+        "Elefant": "https://api.shopsdoor.com/uploads/products/c94804b9-85c3-4b9c-9a55-88a48c5a90af.webp",
+        "Flodhäst": "https://api.shopsdoor.com/uploads/products/ef10206e-d5d6-4511-ace9-502ff59f47e2.webp",
+        "Dinosaurie": "https://api.shopsdoor.com/uploads/products/41ca22bd-af95-4bd3-aa09-677595ebbf80.webp"
+      }
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "1f1ff522-5e9e-4799-ae34-78bf462960a9",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "sv",
+      "title": "Termosflaska för barn med graverat namn – 450 ml",
+      "slug": "termosflaska-for-barn-med-graverat-namn-450-ml",
+      "short_description": "<p>En personlig termosflaska med barnets namn graverat och ett lekfullt djurformat lock. Flaskan rymmer 450 ml och har dubbla väggar i rostfritt stål som hjälper till att hålla drycken varm eller kall. Med namnet på flaskan är den lätt att känna igen på förskolan, i skolan och på utflykten.</p>",
+      "description": "<p>Vilken flaska är min? Med barnets namn graverat på flaskan blir den lätt att känna igen på förskolan, i skolan och på utflykten. Locket är format som ett djur och gör flaskan till en lekfull present till födelsedagen, skolstarten eller julen.</p>"
+    }
+  ],
+  "images": [
+    {
+      "id": "5fdc0236-030d-46f9-b07e-8c3d015b45c7",
+      "url": "/uploads/products/dd85c906-a1ba-4d28-9cf9-09dabcdf6952.webp",
+      "alt_text": null,
+      "sort_order": 0
+    },
+    {
+      "id": "15cfd377-045e-4381-979e-fd4cd72a685a",
+      "url": "/uploads/products/21333b11-6f20-41dd-b1b1-22ab87c29e10.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "1b4f1697-7888-4eb2-96f8-0d7155e90599",
+      "url": "/uploads/products/27866af6-4e4b-4730-af48-0d0ea6c4cb13.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "7412152d-1179-40a5-a22c-a098dff1a139",
+      "url": "/uploads/products/e1f09fe9-fa57-413d-968e-75e2c6f2f575.webp",
+      "alt_text": null,
+      "sort_order": 3
+    },
+    {
+      "id": "d741ad5b-3bcf-41fc-8923-6227c7bf5f7e",
+      "url": "/uploads/products/c4e4a826-7653-4fe9-a517-22332f727a69.webp",
+      "alt_text": null,
+      "sort_order": 4
+    },
+    {
+      "id": "e8180501-fed3-4909-9e98-f97986dabea9",
+      "url": "/uploads/products/2432a332-fa3b-4060-8a59-d839385e5269.webp",
+      "alt_text": null,
+      "sort_order": 5
+    },
+    {
+      "id": "27029223-e8dd-49e6-9107-edb9394410f5",
+      "url": "/uploads/products/cc75b015-01fd-4d0b-bab0-26aef87e4283.webp",
+      "alt_text": null,
+      "sort_order": 6
+    }
+  ],
+  "variants": [
+    {
+      "id": "b0ba190b-c5a0-43a2-9dd7-5e975588a44e",
+      "sku": null,
+      "price": 225,
+      "stock": 999,
+      "options": {
+        "Djur": "Zebra",
+        "Antal": "1 flaska"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/958c32c0-fef5-47f7-b683-bf91ac60fd40.webp"
+        }
+      ]
+    },
+    {
+      "id": "f88369d9-c097-4d99-adcb-1ea862fb3deb",
+      "sku": null,
+      "price": 399,
+      "stock": 999,
+      "options": {
+        "Djur": "Zebra",
+        "Antal": "2 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/958c32c0-fef5-47f7-b683-bf91ac60fd40.webp"
+        }
+      ]
+    },
+    {
+      "id": "d0376118-7eaf-4f6b-b4ba-6de670bc5749",
+      "sku": null,
+      "price": 549,
+      "stock": 999,
+      "options": {
+        "Djur": "Zebra",
+        "Antal": "3 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/958c32c0-fef5-47f7-b683-bf91ac60fd40.webp"
+        }
+      ]
+    },
+    {
+      "id": "e0a304ed-c517-43ab-a89d-50b4dc20fa70",
+      "sku": null,
+      "price": 225,
+      "stock": 999,
+      "options": {
+        "Djur": "Anka",
+        "Antal": "1 flaska"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e2291262-c231-4ef9-8da4-9b8adc60a180.webp"
+        }
+      ]
+    },
+    {
+      "id": "fb0ecded-2888-4adb-911c-487bad980226",
+      "sku": null,
+      "price": 399,
+      "stock": 999,
+      "options": {
+        "Djur": "Anka",
+        "Antal": "2 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e2291262-c231-4ef9-8da4-9b8adc60a180.webp"
+        }
+      ]
+    },
+    {
+      "id": "21f133ae-36c5-460e-982c-cb5820726f86",
+      "sku": null,
+      "price": 549,
+      "stock": 999,
+      "options": {
+        "Djur": "Anka",
+        "Antal": "3 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e2291262-c231-4ef9-8da4-9b8adc60a180.webp"
+        }
+      ]
+    },
+    {
+      "id": "e7e9b32c-a08f-4bf4-9936-2a406df9050a",
+      "sku": null,
+      "price": 225,
+      "stock": 999,
+      "options": {
+        "Djur": "Elefant",
+        "Antal": "1 flaska"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e9706927-bbc4-4c86-82c5-7fc7dcc75498.webp"
+        }
+      ]
+    },
+    {
+      "id": "bd41c277-488b-44e6-a6af-b360cce0db9f",
+      "sku": null,
+      "price": 399,
+      "stock": 999,
+      "options": {
+        "Djur": "Elefant",
+        "Antal": "2 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e9706927-bbc4-4c86-82c5-7fc7dcc75498.webp"
+        }
+      ]
+    },
+    {
+      "id": "832314da-6e5e-4c6f-94ca-804f1c581c8e",
+      "sku": null,
+      "price": 549,
+      "stock": 999,
+      "options": {
+        "Djur": "Elefant",
+        "Antal": "3 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/e9706927-bbc4-4c86-82c5-7fc7dcc75498.webp"
+        }
+      ]
+    },
+    {
+      "id": "3b450a33-0caf-4c5c-9855-6f504233510e",
+      "sku": null,
+      "price": 225,
+      "stock": 999,
+      "options": {
+        "Djur": "Dinosaurie",
+        "Antal": "1 flaska"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/34a5aac1-2fa0-437f-8571-1d31ed2ae401.webp"
+        }
+      ]
+    },
+    {
+      "id": "fb3e2fee-d28f-48c1-82ce-c38eb2550f37",
+      "sku": null,
+      "price": 399,
+      "stock": 999,
+      "options": {
+        "Djur": "Dinosaurie",
+        "Antal": "2 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/34a5aac1-2fa0-437f-8571-1d31ed2ae401.webp"
+        }
+      ]
+    },
+    {
+      "id": "be8d189a-44e8-4cc9-8079-55f5140d182e",
+      "sku": null,
+      "price": 549,
+      "stock": 999,
+      "options": {
+        "Djur": "Dinosaurie",
+        "Antal": "3 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/34a5aac1-2fa0-437f-8571-1d31ed2ae401.webp"
+        }
+      ]
+    },
+    {
+      "id": "e809c85e-efa4-48d7-94ca-2c047254add4",
+      "sku": null,
+      "price": 225,
+      "stock": 999,
+      "options": {
+        "Djur": "Flodhäst",
+        "Antal": "1 flaska"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/611a5eb1-c728-4798-b3cb-d36d52994af9.webp"
+        }
+      ]
+    },
+    {
+      "id": "5a25bb01-8523-4f0b-8190-59c6d6cdb9d0",
+      "sku": null,
+      "price": 399,
+      "stock": 999,
+      "options": {
+        "Djur": "Flodhäst",
+        "Antal": "2 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/611a5eb1-c728-4798-b3cb-d36d52994af9.webp"
+        }
+      ]
+    },
+    {
+      "id": "b6266194-e16b-4242-a4ad-eca09952dfa7",
+      "sku": null,
+      "price": 549,
+      "stock": 999,
+      "options": {
+        "Djur": "Flodhäst",
+        "Antal": "3 flaskor"
+      },
+      "is_active": true,
+      "images": [
+        {
+          "url": "/uploads/products/611a5eb1-c728-4798-b3cb-d36d52994af9.webp"
+        }
+      ]
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "a36c61af-be12-4800-b475-7fba4271fef3",
+      "name": "engraving_text",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": "Skriv namnet precis som du vill att det ska graveras.",
+      "options": null,
+      "validation_rules": null,
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": null,
+      "translations": [
+        {
+          "locale": "sv",
+          "label": "Barnets namn",
+          "placeholder": "Skriv namnet precis som du vill att det ska graveras.",
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "7e204524-b3b4-4379-b0cb-69441cc2d890",
+      "name": "bottles",
+      "type": "REPEATER",
+      "is_required": false,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": null,
+      "linked_validation": null,
+      "sort_order": 3,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": {
+        "max": 3,
+        "lead": {
+          "fields": [
+            "engraving_text"
+          ],
+          "options": [
+            "Djur"
+          ]
+        },
+        "count": {
+          "option": "Antal"
+        },
+        "start_index": 2
+      },
+      "ui": null,
+      "translations": [
+        {
+          "locale": "sv",
+          "label": "Flaska {i}",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": null,
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": null
+        }
+      ],
+      "children": [
+        {
+          "id": "cacec46e-1848-43d1-945e-9dff40559125",
+          "name": "animal",
+          "type": "COLOR_PALETTE",
+          "is_required": true,
+          "placeholder": null,
+          "options": null,
+          "validation_rules": null,
+          "linked_validation": null,
+          "sort_order": 0,
+          "parent_id": "7e204524-b3b4-4379-b0cb-69441cc2d890",
+          "conditions": null,
+          "pricing": null,
+          "repeat": null,
+          "ui": {
+            "palette_from_option": "Djur"
+          },
+          "translations": [
+            {
+              "locale": "sv",
+              "label": "Djur",
+              "placeholder": null,
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": null
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "d10d5c8b-83ce-4105-bcd4-c079b7b460b9",
+          "name": "name",
+          "type": "TEXT",
+          "is_required": true,
+          "placeholder": "Skriv namnet precis som du vill att det ska graveras.",
+          "options": null,
+          "validation_rules": null,
+          "linked_validation": null,
+          "sort_order": 1,
+          "parent_id": "7e204524-b3b4-4379-b0cb-69441cc2d890",
+          "conditions": null,
+          "pricing": null,
+          "repeat": null,
+          "ui": null,
+          "translations": [
+            {
+              "locale": "sv",
+              "label": "Barnets namn",
+              "placeholder": "Skriv namnet precis som du vill att det ska graveras.",
+              "option_labels": null,
+              "display_label": null,
+              "sublabel": null,
+              "note": null,
+              "help_text": null,
+              "help_image_url": null,
+              "messages": null
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  ],
+  "faqs": [],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "1f1ff522-5e9e-4799-ae34-78bf462960a9",
+      "slug": "dricksflaska",
+      "path": [
+        "dricksflaska"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dricksflaska"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "1f1ff522-5e9e-4799-ae34-78bf462960a9",
+      "slug": "dricksflaska",
+      "path": [
+        "dricksflaska"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Dricksflaska"
+        }
+      ]
+    }
+  ]
+}

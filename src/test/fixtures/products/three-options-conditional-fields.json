@@ -1,0 +1,1237 @@
+{
+  "_source": "GET https://api.shopsdoor.com/api/storefront/namez-se/products/personligt-3d-namnhalsband-med-ett-eller-flera-namn?locale=sv (fetched 2026-11-13, trimmed)",
+  "id": "d8f06c09-07e4-4693-8e39-abe5cc557396",
+  "status": "PUBLISHED",
+  "base_price": 390,
+  "tax_rate_bp": 2500,
+  "product_type": "CUSTOMIZABLE",
+  "customization_type": "ENGRAVE",
+  "variant_option_config": [
+    {
+      "name": "Färg",
+      "style": "color",
+      "values": [
+        "Blank Guld",
+        "Matt Svart",
+        "Blank Silver"
+      ],
+      "colorMap": {
+        "Blank Guld": "#b49840",
+        "Matt Svart": "#000000",
+        "Blank Silver": "#d8d8d8"
+      }
+    },
+    {
+      "name": "Gravyr teckensnitt",
+      "style": "image",
+      "values": [
+        "Typewriter",
+        "Handwriting",
+        "Old London",
+        "Standard"
+      ],
+      "swatchMap": {
+        "Standard": "/uploads/imports/58f55ba2-841d-41ea-bac2-34f8d0e3f356.webp",
+        "Old London": "/uploads/imports/29f77f27-4a89-4f9a-9fb9-52d4204119f0.webp",
+        "Typewriter": "/uploads/imports/d5b595c0-5d7a-4f37-8673-8b9d537ee509.webp",
+        "Handwriting": "/uploads/imports/51c9e330-3e60-498b-9922-2d9e46f0210a.webp"
+      }
+    },
+    {
+      "name": "Antal inskriptioner",
+      "style": "text",
+      "values": [
+        "1 Inskription",
+        "2 Inskriptioner",
+        "3 Inskriptioner",
+        "4 Inskriptioner"
+      ]
+    }
+  ],
+  "personalization": {
+    "enabled": true,
+    "free_shipping_threshold": 400,
+    "currency": "SEK"
+  },
+  "primary_creator_category_id": "50d9c8a9-2ce4-4a48-860d-4c05997388b4",
+  "promotions": [],
+  "bundles": [],
+  "translations": [
+    {
+      "locale": "en",
+      "title": "Personalized 3D Name Necklace with One or More Names",
+      "slug": "personalized-3d-name-necklace-with-one-or-more-names",
+      "short_description": null,
+      "description": "Personalized 3D Name Necklace with One or More Names This stylish and timeless 3D necklace is perfect for carrying names, dates or words that mean something special to you. Choose for yourself what you want to engrave with our precision laser engraving technology to make the piece unique to you. The necklace is available in three elegant colors – gold, black and steel – so you can choose the style that suits you best. With its modern and minimalist look, this piece is just as perfect as a personal gift or as an accessory in your everyday life. Features: • Engraving: Custom laser engraving for "
+    },
+    {
+      "locale": "sv",
+      "title": "Personligt 3D Namnhalsband med Ett eller Flera Namn",
+      "slug": "personligt-3d-namnhalsband-med-ett-eller-flera-namn",
+      "short_description": "Elegant och unikt halsband i 3D, anpassat med lasergraverade namn. Finns i tre sofistikerade färger: svart, vitt och guld.",
+      "description": "<strong>Personligt 3D Namnhalsband med Ett eller Flera Namn</strong>\r\nDetta stilrena och tidlösa halsband i 3D är perfekt för att bära med dig namn, datum eller ord som betyder något speciellt för dig. Välj själv vad du vill gravera med vår precisionsteknik i lasergravyr för att göra smycket unikt för dig.\r\n\r\nHalsbandet finns i tre eleganta färger – guld, svart och stål – så att du kan välja den stil som passar dig bäst. Med sitt moderna och minimalistiska utseende är detta smycke lika perfekt som en personlig gåva eller som en accessoar i din vardag.\r\n\r\n<strong>Egenskaper:</strong>\r\n<ul>\r\n \t<"
+    }
+  ],
+  "images": [
+    {
+      "id": "44a8def5-b169-4008-ba5a-6459969c5639",
+      "url": "/uploads/imports/bfb363b4-285a-40db-ab5b-daaf3f62810d.webp",
+      "alt_text": null,
+      "sort_order": 0
+    },
+    {
+      "id": "f950669a-a4ce-4598-8275-b0cbca5c7d14",
+      "url": "/uploads/imports/37403f50-c812-4ce9-a8cd-5988eb8d3b3f.webp",
+      "alt_text": null,
+      "sort_order": 1
+    },
+    {
+      "id": "3c283f46-e800-4e82-bf38-6c12d8474735",
+      "url": "/uploads/imports/e1835496-fab2-4ede-b139-7dfaee9a48e8.webp",
+      "alt_text": null,
+      "sort_order": 2
+    },
+    {
+      "id": "2023c60a-a124-4f9b-b4cb-e425d8d52dc9",
+      "url": "/uploads/imports/2d1438ff-f656-4ae5-9a58-6b003c548482.webp",
+      "alt_text": null,
+      "sort_order": 3
+    },
+    {
+      "id": "86587ce2-af73-46c4-8b09-8434d191a890",
+      "url": "/uploads/imports/41bcc5d7-55fb-4c9a-874c-7c0419f590d3.webp",
+      "alt_text": null,
+      "sort_order": 4
+    },
+    {
+      "id": "ceee2bb8-a5e4-4d1f-9a0b-f94678b05648",
+      "url": "/uploads/imports/791d351e-9b97-4751-81d1-9b6736efd988.webp",
+      "alt_text": null,
+      "sort_order": 5
+    },
+    {
+      "id": "5b098f68-5a33-4ecc-8dc0-6b1fe688dc83",
+      "url": "/uploads/imports/da14c0ff-430e-445a-af12-01652469c536.webp",
+      "alt_text": null,
+      "sort_order": 6
+    }
+  ],
+  "variants": [
+    {
+      "id": "afbe8c6a-3f7f-4f9d-9713-94fd5ed69acc",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f6924cee-1a61-4cb9-8b07-3cd7d492d217",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "a5dca973-a9ab-4ef7-8af3-eaae843d36d5",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b413e091-57cd-4c4c-9d2c-972347aeea27",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "50126c12-2c35-49de-841f-471fcdbffab6",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "3f4c3b21-f9db-473f-a621-1c690592bcba",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b434c0d0-ded2-4dd2-9ac6-df92dad6332d",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b23befd7-f3b3-4620-9318-3de91926c9e7",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "43bf6827-6860-47da-a6b7-0dd4673054ce",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "783c7c9f-2875-4559-8c8e-c2bc9efa8746",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "54f0bee1-61b3-49d3-b972-03a00b0900bb",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b9bb7236-a218-457f-ad95-96a7fbec165f",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "c421ef22-7321-4cf2-a30b-fc1d32b1b8d8",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "1b6917c6-64c4-4faa-aedc-a25ec9f046e4",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "11d036bb-5e3b-416e-9677-c0c0cc52d63c",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "ed445e47-bbab-455f-bd62-fad79ac81988",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "759bb3bd-cef1-4a71-8445-515f225120a0",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Guld",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d285d393-c915-47b9-befe-576e5513428c",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "1e5e3ee1-f39e-473a-9125-a015f0167a58",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "cd5aacac-99a1-4b46-a6d6-09ae700defdc",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5fd23972-b4fa-4710-bc46-cc0d546f3426",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "74a0956d-51ac-4fd8-b737-228a9bdbd973",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "6e194d1c-3356-4465-a7d1-d95e97c4533a",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "0395a804-549f-46e6-b83f-1cd883e31b7a",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "cfed6153-c183-43dd-afb9-ef14c161b3de",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "e23ff39d-1256-45a4-b05a-919c169135ce",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d226386b-4683-4cc9-823b-e0f7ceaf7970",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "10f16f61-2397-4b9a-a778-b41cf6463485",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4500b9a5-182e-4b1b-8ad7-7120473bf196",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5b253006-58f2-424d-948b-535312d31464",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "7ec86aae-e9ee-40bc-94a2-5fd1f24f2ea0",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "1beadd07-93e4-4c52-bcda-73778fee287f",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Matt Svart",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5be54938-74c5-477c-936a-8a329889f1e6",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "88da9ce7-a759-4e2b-a4b6-bcf00910d2f2",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "4d81486a-afbc-4f84-bb5c-f3adc3ffdc13",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "98f38785-cc09-4c3e-b200-16b3cb8d8ae3",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Typewriter",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "8ea8434b-49c8-45a7-ba40-6f3be37758f8",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "7c663fde-4e4d-480c-a6e4-19261327f9cc",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "7744e90b-dcfb-44a2-ad9b-090e56c23979",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "0b31e136-c3cb-4a97-aaba-3b1e2344d5ab",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Handwriting",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "b62b18f9-fc72-4178-a481-40887bee4d83",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "5514bd8a-f3df-4405-8c13-f5ea08edc5d9",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "1804aa56-2644-4723-95b1-511abc6d8c95",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "f1125f98-1620-45d0-81cb-1317554d8ad8",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Old London",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "c9d032df-1b69-4779-abfa-0f9fc595c78c",
+      "sku": null,
+      "price": 390,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "1 Inskription"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "13563404-7ddf-44e6-be98-29ff4764f423",
+      "sku": null,
+      "price": 440,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "2 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "d8b63c9b-922c-4e07-beaa-310eba934cdb",
+      "sku": null,
+      "price": 480,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "3 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    },
+    {
+      "id": "95c49624-42a0-4aa2-a827-5b3ef13b7639",
+      "sku": null,
+      "price": 510,
+      "stock": 999,
+      "options": {
+        "Färg": "Blank Silver",
+        "Gravyr teckensnitt": "Standard",
+        "Antal inskriptioner": "4 Inskriptioner"
+      },
+      "is_active": true,
+      "images": []
+    }
+  ],
+  "custom_fields": [
+    {
+      "id": "2bb0c2c4-eb8e-482d-9d54-50a72a3bdfee",
+      "name": "field_1_v2",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 15
+      },
+      "linked_validation": null,
+      "sort_order": 0,
+      "parent_id": null,
+      "conditions": null,
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Front engraving",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Up to 15 characters",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Please fill in all required fields."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Framsidan gravyr",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Upp till 15 tecken",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Vänligen fyll i alla obligatoriska fält."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "نقش الواجهة الأمامية",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "حتى 15 حرفًا",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "يرجى ملء جميع الحقول المطلوبة."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Gravur Vorderseite",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Bis zu 15 Zeichen",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Bitte fülle alle Pflichtfelder aus."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Gravure avant",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Jusqu'à 15 caractères",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Veuillez remplir tous les champs obligatoires."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Ön yüz gravürü",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "En fazla 15 karakter",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Lütfen tüm zorunlu alanları doldurun."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "46f350a6-fbdc-43e2-8c0e-defe16823fa9",
+      "name": "field_2_v2",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 15
+      },
+      "linked_validation": null,
+      "sort_order": 1,
+      "parent_id": null,
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "op": "gte",
+            "key": "Antal inskriptioner",
+            "value": 2,
+            "source": "option"
+          }
+        ]
+      },
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Left inscription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Up to 15 characters",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Please fill in all required fields."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Vänster inskription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Upp till 15 tecken",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Vänligen fyll i alla obligatoriska fält."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "النقش الأيسر",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "حتى 15 حرفًا",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "يرجى ملء جميع الحقول المطلوبة."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Linke Inschrift",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Bis zu 15 Zeichen",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Bitte fülle alle Pflichtfelder aus."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Inscription gauche",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Jusqu'à 15 caractères",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Veuillez remplir tous les champs obligatoires."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Sol yazı",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "En fazla 15 karakter",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Lütfen tüm zorunlu alanları doldurun."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "3fe5fc4b-b417-4867-beae-862527439ee8",
+      "name": "field_3_v2",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 15
+      },
+      "linked_validation": null,
+      "sort_order": 2,
+      "parent_id": null,
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "op": "gte",
+            "key": "Antal inskriptioner",
+            "value": 3,
+            "source": "option"
+          }
+        ]
+      },
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Back inscription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Up to 15 characters",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Please fill in all required fields."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Baksidan inskription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Upp till 15 tecken",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Vänligen fyll i alla obligatoriska fält."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "النقش الخلفي",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "حتى 15 حرفًا",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "يرجى ملء جميع الحقول المطلوبة."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Inschrift Rückseite",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Bis zu 15 Zeichen",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Bitte fülle alle Pflichtfelder aus."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Inscription arrière",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Jusqu'à 15 caractères",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Veuillez remplir tous les champs obligatoires."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Arka yazı",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "En fazla 15 karakter",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Lütfen tüm zorunlu alanları doldurun."
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "7ab320d2-1078-4e71-8099-540bd6ed2147",
+      "name": "field_4_v2",
+      "type": "TEXT",
+      "is_required": true,
+      "placeholder": null,
+      "options": null,
+      "validation_rules": {
+        "max_length": 15
+      },
+      "linked_validation": null,
+      "sort_order": 3,
+      "parent_id": null,
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "op": "gte",
+            "key": "Antal inskriptioner",
+            "value": 4,
+            "source": "option"
+          }
+        ]
+      },
+      "pricing": null,
+      "repeat": null,
+      "ui": {
+        "placement": "after_variants"
+      },
+      "translations": [
+        {
+          "locale": "en",
+          "label": "Right inscription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Up to 15 characters",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Please fill in all required fields."
+          }
+        },
+        {
+          "locale": "sv",
+          "label": "Höger inskription",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Upp till 15 tecken",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Vänligen fyll i alla obligatoriska fält."
+          }
+        },
+        {
+          "locale": "ar",
+          "label": "النقش الأيمن",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "حتى 15 حرفًا",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "يرجى ملء جميع الحقول المطلوبة."
+          }
+        },
+        {
+          "locale": "de",
+          "label": "Rechte Inschrift",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Bis zu 15 Zeichen",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Bitte fülle alle Pflichtfelder aus."
+          }
+        },
+        {
+          "locale": "fr",
+          "label": "Inscription droite",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "Jusqu'à 15 caractères",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Veuillez remplir tous les champs obligatoires."
+          }
+        },
+        {
+          "locale": "tr",
+          "label": "Sağ yazı",
+          "placeholder": null,
+          "option_labels": null,
+          "display_label": null,
+          "sublabel": "En fazla 15 karakter",
+          "note": null,
+          "help_text": null,
+          "help_image_url": null,
+          "messages": {
+            "required": "Lütfen tüm zorunlu alanları doldurun."
+          }
+        }
+      ],
+      "children": []
+    }
+  ],
+  "faqs": [],
+  "attributes": [],
+  "creator_categories": [
+    {
+      "id": "50d9c8a9-2ce4-4a48-860d-4c05997388b4",
+      "slug": "smycken",
+      "path": [
+        "smycken"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Smycken"
+        }
+      ]
+    }
+  ],
+  "primary_collection_path": [
+    {
+      "id": "50d9c8a9-2ce4-4a48-860d-4c05997388b4",
+      "slug": "smycken",
+      "path": [
+        "smycken"
+      ],
+      "translations": [
+        {
+          "locale": "sv",
+          "name": "Smycken"
+        }
+      ]
+    }
+  ]
+}
