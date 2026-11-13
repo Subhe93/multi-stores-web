@@ -99,6 +99,8 @@ export function normalizeKustomTotals(raw: KustomCheckoutSessionResponse['totals
   return {
     subtotal: num(raw.subtotal),
     shipping_cost: num(raw.shipping_cost),
+    // Kept only when true: absent means "0 may still be unknown" (older API).
+    ...(raw.shipping_quoted === true ? { shipping_quoted: true } : {}),
     discount_amount: num(raw.discount_amount),
     tax_lines: lines,
     tax_total: raw.tax_total !== undefined ? num(raw.tax_total) : lines.reduce((s, l) => s + l.tax_amount, 0),
