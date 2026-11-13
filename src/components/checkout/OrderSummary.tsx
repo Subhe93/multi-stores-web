@@ -63,6 +63,7 @@ export interface OrderSummaryProps {
   shippingEstimate: { min: number; max: number } | null;
   shippingLoading: boolean;
   shippingError: string;
+  /** Kept for callers; the shipping colour follows `shippingCost` / the coupon. */
   effectiveShipping: number;
   /** When set, every line gets quantity +/- and a remove button. */
   onUpdateQuantity?: (itemId: string, quantity: number) => Promise<void> | void;
@@ -98,6 +99,22 @@ export interface OrderSummaryProps {
   /** Exempt quote line prices per cart line id, shown as-is (never re-netted). */
   exemptPrices?: Record<string, ExemptLinePrice> | null;
   t: (key: string) => string;
+}
+
+/**
+ * Colour of the shipping value: green only for a real "free" (the cost is
+ * 0 or the coupon gives free shipping); an unknown cost ("calculated at
+ * checkout") or one still loading is neutral grey, never green.
+ */
+export function shippingValueClass(s: {
+  shippingLoading: boolean;
+  couponFreeShipping: boolean;
+  shippingCost: number | null;
+}): string {
+  if (s.shippingLoading) return 'text-gray-500';
+  if (s.couponFreeShipping || s.shippingCost === 0) return 'font-medium text-green-600';
+  if (s.shippingCost === null) return 'text-gray-500';
+  return 'font-medium text-gray-900';
 }
 
 interface LineControlsProps {
@@ -159,7 +176,7 @@ export function OrderSummary({
   items, subtotal, discount, total, currency,
   coupon, couponCode, setCouponCode, couponLoading, couponError,
   onApplyCoupon, onRemoveCoupon,
-  shippingCost, shippingEstimate, shippingLoading, shippingError, effectiveShipping,
+  shippingCost, shippingEstimate, shippingLoading, shippingError,
   onUpdateQuantity, onRemoveItem, onRemoveUnavailable, shippingNote, shippingMethodName,
   taxLines = [], pricingMode = 'INCLUSIVE', taxEstimated = false, taxPending = false,
   b2bNet = null, netItems = null,
@@ -349,7 +366,7 @@ export function OrderSummary({
             {t('cart.shipping')}
             {shippingMethodName ? ` (${shippingMethodName})` : ''}
           </span>
-          <span className={`font-medium ${effectiveShipping === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+          <span className={shippingValueClass({ shippingLoading, couponFreeShipping: Boolean(coupon?.freeShipping), shippingCost })} data-testid="summary-shipping">
             {shippingLoading ? '...'
               : coupon?.freeShipping ? t('checkout.freeShippingLabel')
               : shippingCost === null ? t('cart.calculatedAtCheckout')

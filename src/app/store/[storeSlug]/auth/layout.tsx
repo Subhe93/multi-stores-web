@@ -33,10 +33,13 @@ export default async function StoreAuthLayout({
   const { storeSlug } = await params;
   const bg = await loadAuthBackground(storeSlug);
 
+  // Every wrapper carries data-clarity-mask: sign-in forms are masked in
+  // Clarity recordings when Clarity was loaded on an earlier page and the
+  // visitor navigated here client-side (it is not loaded on auth routes).
   // No settings: the original look, unchanged.
   if (!bg) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
+      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16" data-clarity-mask="True">
         <div className="w-full max-w-md">{children}</div>
       </div>
     );
@@ -47,6 +50,7 @@ export default async function StoreAuthLayout({
   return (
     <div
       className="relative isolate overflow-hidden"
+      data-clarity-mask="True"
       style={bg.color ? { backgroundColor: bg.color } : undefined}
     >
       {/* Decorative: absolutely positioned (no CLS), never the LCP element. */}

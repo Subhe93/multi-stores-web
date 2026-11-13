@@ -79,6 +79,10 @@ describe('storefront policy', () => {
     expect(csp['connect-src']).not.toContain('https:');
     expect(csp['connect-src']).not.toContain('ws:');
   });
+  it('allows Microsoft Clarity uploads (connect-src) and its tag script (script-src https:)', () => {
+    expect(csp['connect-src']).toEqual(expect.arrayContaining(['https://*.clarity.ms', 'https://c.bing.com']));
+    expect(csp['script-src']).toContain('https:');
+  });
   it('builder preview is framable by the dashboard origins', () => {
     const preview = storefrontCspDirectives(prod, { frameAncestors: ['https://app.shopsdoor.com'] });
     expect(preview['frame-ancestors']).toEqual(["'self'", 'https://app.shopsdoor.com']);

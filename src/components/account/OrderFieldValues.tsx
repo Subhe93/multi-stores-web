@@ -89,7 +89,7 @@ export function OrderFieldValues({ rows, locale, primaryLocale, className }: Ord
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-clarity-mask="True">
       {groups.map((g, gi) => (
         <div key={`${g.key}-${gi}`} className="text-[11px] text-gray-500 flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <span className="font-medium text-gray-600">{g.label}:</span>

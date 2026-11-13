@@ -88,7 +88,9 @@ export function PersonalizationForm({
     );
 
   return (
-    <div id={anchor ? 'personalize' : undefined} className="flex flex-col gap-5 scroll-mt-24">
+    // data-clarity-mask: typed names and choices are customer data; masked
+    // in Clarity session recordings.
+    <div id={anchor ? 'personalize' : undefined} className="flex flex-col gap-5 scroll-mt-24" data-clarity-mask="True">
       {pieceRep ? (
         <>
           <PieceGroup heading={groupHeading(pieceRep, pieceOneIndex(pieceRep), locale, primaryLocale, (k, p) => t(k, p))}>

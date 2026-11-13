@@ -39,9 +39,20 @@ export interface AppliedCoupon {
 export interface CouponLine {
   productId: string;
   customProductId?: string;
+  /** Selected variant: its price adjustment moves the provider-cost floor. */
+  variantId?: string;
   price: number;
   quantity: number;
   unavailableInMarket?: boolean;
+}
+
+/** One `line_totals` entry of POST /promotions/validate-coupon. */
+export interface CouponLineTotal {
+  product_id: string;
+  amount: number;
+  /** Units behind `amount` (the line may carry add-ons, so never estimated). */
+  quantity: number;
+  variant_id?: string;
 }
 
 /** Money is compared and shown in 2 decimals, like the API's rounding. */
@@ -54,10 +65,19 @@ export function couponLineProductId(line: CouponLine): string {
   return line.customProductId || line.productId || '';
 }
 
-/** `line_totals` for POST /promotions/validate-coupon (same shape as the order path). */
-export function couponLineTotals(lines: readonly CouponLine[]): { product_id: string; amount: number }[] {
+/**
+ * `line_totals` for POST /promotions/validate-coupon (same shape as the order
+ * path). Quantity and variant let the API judge the marketplace
+ * provider-cost floor exactly like the order (per unit, per variant).
+ */
+export function couponLineTotals(lines: readonly CouponLine[]): CouponLineTotal[] {
   return availableLines(lines)
-    .map((l) => ({ product_id: couponLineProductId(l), amount: roundMoney2(l.price * l.quantity) }))
+    .map((l): CouponLineTotal => ({
+      product_id: couponLineProductId(l),
+      amount: roundMoney2(l.price * l.quantity),
+      quantity: Math.max(1, Math.round(l.quantity)),
+      ...(l.variantId ? { variant_id: l.variantId } : {}),
+    }))
     .filter((l) => l.product_id !== '');
 }
 
@@ -129,7 +149,8 @@ export function inferTargeted(
 
 /**
  * Coupon errors that depend on the cart (minimum amount / quantity, no
- * matching product): the code stays pending and is retried after the cart
+ * matching product, the marketplace provider-cost floor, which another item
+ * or quantity can lift): the code stays pending and is retried after the cart
  * changes. `transient` = no answer about the code itself (rate limit,
  * server error, network drop, aborted request, a proxy's non-JSON error
  * page, an API that does not know a request field yet): kept, retried
@@ -140,6 +161,8 @@ export const SOFT_COUPON_ERROR_CODES = [
   'PROMOTION_COUPON_MIN_AMOUNT',
   'PROMOTION_COUPON_MIN_QUANTITY',
   'PROMOTION_COUPON_NOT_APPLICABLE',
+  'ORDER_DISCOUNT_BELOW_PROVIDER_COST',
+  'PROMOTION_COUPON_BELOW_COST',
 ] as const;
 
 // Older API builds send the minimum failures as a plain message (no code).

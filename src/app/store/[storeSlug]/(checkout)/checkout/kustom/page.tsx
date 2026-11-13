@@ -9,6 +9,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
+import { navigateRespectingClarity } from '@/components/tracking/clarity';
 
 // Response of POST /payments/kustom/session (see plans/kustom-integration/API-CONTRACT.md).
 interface KustomSessionResponse {
@@ -81,7 +82,12 @@ function KustomCheckoutContent() {
         // returns now is the confirmation one, which belongs on the
         // confirmation page — go there instead of embedding it here.
         if (res.status.toLowerCase() === 'checkout_complete') {
-          router.replace(lp(`/checkout/kustom/confirmation?orderId=${encodeURIComponent(orderId)}`));
+          // A full page load when Clarity ran here (never on confirmations).
+          navigateRespectingClarity(
+            lp(`/checkout/kustom/confirmation?orderId=${encodeURIComponent(orderId)}`),
+            (href) => router.replace(href),
+            true,
+          );
           return;
         }
         setHtml(res.html_snippet);

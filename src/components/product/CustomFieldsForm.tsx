@@ -186,8 +186,10 @@ export function CustomFieldsForm({
         : 'border-gray-200 focus:ring-gray-900/20 focus:border-gray-400'
     }`;
 
+  // data-clarity-mask: customer-entered values and upload previews are
+  // masked in Clarity session recordings.
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5" data-clarity-mask="True">
       {fields.map((field) => {
         const error = errors[field.id];
         // Values are stored as `unknown`; each control below only ever receives

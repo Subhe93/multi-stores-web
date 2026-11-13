@@ -112,7 +112,8 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
   }
 
   return (
-    <div className={`flex gap-3 py-4 border-b border-gray-100 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
+    // data-clarity-mask: cart lines can carry personalization (names).
+    <div data-clarity-mask="True" className={`flex gap-3 py-4 border-b border-gray-100 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail with quantity badge */}
       <div className="relative w-16 h-16 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>

@@ -79,7 +79,10 @@ export function ProductCouponBanner({ className }: { className?: string }) {
 
   const input: CouponPreviewInput | null =
     activeCode && storeId
-      ? { storeId, marketKey, marketPreview, code: activeCode, productId, lineAmount, cartSubtotal, itemCount }
+      ? {
+          storeId, marketKey, marketPreview, code: activeCode, productId, lineAmount, cartSubtotal, itemCount,
+          quantity, variantId: state?.selectedVariantId ?? null,
+        }
       : null;
   const sig = input ? couponPreviewSig(input) : null;
 
@@ -161,6 +164,15 @@ export function ProductCouponBanner({ className }: { className?: string }) {
     return (
       <p role="status" className={`text-xs text-gray-500 ${className ?? ''}`.trim()} data-testid="coupon-banner-na">
         {t('product.couponNotApplicable', { code: view.code })}
+      </p>
+    );
+  }
+  if (view.kind === 'below_cost') {
+    // Marketplace provider-cost floor: the order would refuse the code, so
+    // no discounted price is shown, only a muted note.
+    return (
+      <p role="status" className={`text-xs text-gray-500 ${className ?? ''}`.trim()} data-testid="coupon-banner-below-cost">
+        {t('product.couponBelowCost', { code: view.code })}
       </p>
     );
   }

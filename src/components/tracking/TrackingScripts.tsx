@@ -8,6 +8,8 @@ import { setActiveTrackers, type StoreTracking } from '@/lib/consent';
 // Vendor tags (GA4, Meta Pixel, TikTok Pixel) — Namez go-live 3.9. Rendered
 // only once consent is granted (or the store does not require it), so a
 // "denied" visitor never has a tracker script in the document at all.
+// Microsoft Clarity is not here: it has its own consent and route gate
+// (<ClarityScript>, mounted by <StoreTracking>).
 
 interface TrackingScriptsProps {
   tracking: StoreTracking;
@@ -18,7 +20,12 @@ declare global {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
     fbq?: (...args: unknown[]) => void;
-    ttq?: { page?: () => void; track?: (event: string, params?: Record<string, unknown>) => void };
+    ttq?: {
+      page?: () => void;
+      track?: (event: string, params?: Record<string, unknown>) => void;
+      /** TikTok consent API: stops cookies and events after a withdrawal. */
+      revokeConsent?: () => void;
+    };
   }
 }
 
@@ -61,6 +68,22 @@ export function TrackingScripts({ tracking }: TrackingScriptsProps) {
     setActiveTrackers({ ga4: Boolean(ga4), meta: Boolean(meta), tiktok: Boolean(tiktok) });
     return () => setActiveTrackers(null);
   }, [ga4, meta, tiktok]);
+
+  // Re-accept in the same document (withdraw, then accept again without a
+  // reload): next/script dedupes the inline init by id, so it does not run
+  // again and GA4 would stay on the "denied" update sent at withdrawal.
+  // On the first mount `gtag` is usually not defined yet and the inline
+  // init sends the update itself; a repeated "granted" update is harmless.
+  useEffect(() => {
+    if (ga4 && typeof window.gtag === 'function') {
+      window.gtag('consent', 'update', {
+        ad_storage: 'granted',
+        ad_user_data: 'granted',
+        ad_personalization: 'granted',
+        analytics_storage: 'granted',
+      });
+    }
+  }, [ga4]);
 
   if (!ga4 && !meta && !tiktok) return null;
 

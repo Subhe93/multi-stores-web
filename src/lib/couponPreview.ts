@@ -22,8 +22,14 @@ export interface CouponPreview {
   /** Fixed face value in the market currency. */
   amount: number | null;
   free_shipping: boolean;
-  /** False when the coupon targets other products. */
+  /** False when the coupon targets other products, or (with `below_cost`) cannot be used on it. */
   applies: boolean;
+  /**
+   * Marketplace provider-cost floor: the discounted price would fall below
+   * what the provider is owed, so the order would reject the coupon. Sent
+   * with `applies: false`; absent from older API answers (= false).
+   */
+  below_cost?: boolean;
   /** Market currency; null without a positive minimum. */
   min_amount: number | null;
   min_quantity: number | null;
@@ -46,6 +52,9 @@ export interface CouponPreviewInput {
   lineAmount: number;
   cartSubtotal: number;
   itemCount: number;
+  /** Units behind `lineAmount` and the selected variant (provider-cost floor). */
+  quantity?: number;
+  variantId?: string | null;
 }
 
 /** The last server answer for one (code, product): the figures it was for. */
@@ -66,6 +75,10 @@ export function couponPreviewBody(input: CouponPreviewInput): Record<string, unk
     line_amount: roundMoney2(Math.max(0, input.lineAmount)),
     cart_subtotal: roundMoney2(Math.max(0, input.cartSubtotal)),
     item_count: Math.max(0, Math.round(input.itemCount)),
+    // The line may carry add-ons or a variant price: the API judges the
+    // provider-cost floor on these instead of guessing them from the amount.
+    ...(typeof input.quantity === 'number' && input.quantity >= 1 ? { quantity: Math.round(input.quantity) } : {}),
+    ...(input.variantId ? { variant_id: input.variantId } : {}),
   };
 }
 
@@ -77,7 +90,7 @@ export function couponPreviewKey(storeId: string, marketKey: string | undefined,
 /** Identifies one request (static key + the dynamic figures). */
 export function couponPreviewSig(input: CouponPreviewInput): string {
   const b = couponPreviewBody(input);
-  return `${couponPreviewKey(input.storeId, input.marketKey, input.code, input.productId)}|${input.marketPreview ? 1 : 0}|${b.line_amount}|${b.cart_subtotal}|${b.item_count}`;
+  return `${couponPreviewKey(input.storeId, input.marketKey, input.code, input.productId)}|${input.marketPreview ? 1 : 0}|${b.line_amount}|${b.cart_subtotal}|${b.item_count}|${b.quantity ?? ''}|${b.variant_id ?? ''}`;
 }
 
 export function staticOf(p: CouponPreview): CouponPreviewStatic {
@@ -88,6 +101,7 @@ export function staticOf(p: CouponPreview): CouponPreviewStatic {
     amount: p.amount,
     free_shipping: p.free_shipping,
     applies: p.applies,
+    ...(p.below_cost === true ? { below_cost: true } : {}),
     min_amount: p.min_amount,
     min_quantity: p.min_quantity,
   };
@@ -112,6 +126,7 @@ export function parsePreviewStatic(raw: unknown): CouponPreviewStatic | null {
   if (s.discount_kind !== 'percentage' && s.discount_kind !== 'fixed' && s.discount_kind !== null) return null;
   if (!isNumOrNull(s.percent) || !isNumOrNull(s.amount) || !isNumOrNull(s.min_amount) || !isNumOrNull(s.min_quantity)) return null;
   if (typeof s.free_shipping !== 'boolean' || typeof s.applies !== 'boolean') return null;
+  if (s.below_cost !== undefined && s.below_cost !== null && typeof s.below_cost !== 'boolean') return null;
   if (s.discount_kind === 'percentage' && !isNum(s.percent)) return null;
   if (s.discount_kind === 'fixed' && !isNum(s.amount)) return null;
   return {
@@ -121,6 +136,7 @@ export function parsePreviewStatic(raw: unknown): CouponPreviewStatic | null {
     amount: s.amount,
     free_shipping: s.free_shipping,
     applies: s.applies,
+    ...(s.below_cost === true ? { below_cost: true } : {}),
     min_amount: s.min_amount,
     min_quantity: s.min_quantity,
   };
@@ -161,6 +177,8 @@ export type CouponBannerView =
   | { kind: 'none' }
   /** Muted note: the code targets other products. */
   | { kind: 'not_applicable'; code: string }
+  /** Muted note: the order would refuse the code on this product (provider-cost floor); no price. */
+  | { kind: 'below_cost'; code: string }
   /** A minimum is not reached yet: condition text, no price. */
   | { kind: 'min_not_met'; code: string; minAmount: number | null; minQuantity: number | null; freeShipping: boolean }
   /** Percentage on this product: the discounted line price (null = no figure). */
@@ -183,6 +201,7 @@ export function couponBannerView(
 ): CouponBannerView {
   if (!s) return { kind: 'none' };
   const code = s.code;
+  if (s.below_cost === true) return { kind: 'below_cost', code };
   if (!s.applies) return { kind: 'not_applicable', code };
 
   const fresh = answer && answer.sig === current.sig ? answer : null;

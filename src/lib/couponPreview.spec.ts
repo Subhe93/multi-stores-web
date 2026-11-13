@@ -43,6 +43,16 @@ describe('couponPreviewBody / keys', () => {
     expect(couponPreviewKey('s1', 'de', 'X', 'p1')).not.toBe(couponPreviewKey('s1', undefined, 'X', 'p1'));
     const base = { storeId: 's1', code: 'X', productId: 'p1', lineAmount: 100, cartSubtotal: 100, itemCount: 1 };
     expect(couponPreviewSig(base)).not.toBe(couponPreviewSig({ ...base, itemCount: 2 }));
+    expect(couponPreviewSig(base)).not.toBe(couponPreviewSig({ ...base, variantId: 'v1' }));
+  });
+
+  it('sends the quantity and the selected variant for the provider-cost floor', () => {
+    expect(
+      couponPreviewBody({ storeId: 's1', code: 'X', productId: 'p1', lineAmount: 50, cartSubtotal: 50, itemCount: 1, quantity: 1, variantId: 'v1' }),
+    ).toMatchObject({ line_amount: 50, quantity: 1, variant_id: 'v1' });
+    const none = couponPreviewBody({ storeId: 's1', code: 'X', productId: 'p1', lineAmount: 50, cartSubtotal: 50, itemCount: 1, quantity: 0, variantId: null });
+    expect(none).not.toHaveProperty('quantity');
+    expect(none).not.toHaveProperty('variant_id');
   });
 });
 
@@ -121,6 +131,18 @@ describe('couponBannerView', () => {
   it('free shipping', () => {
     const s: CouponPreviewStatic = { ...PCT, discount_kind: null, percent: null, free_shipping: true };
     expect(couponBannerView(s, null, cur(100))).toEqual({ kind: 'free_shipping', code: 'SUMMER20' });
+  });
+
+  it('below_cost gives its own muted note (no price), even with applies:true', () => {
+    expect(couponBannerView({ ...PCT, applies: false, below_cost: true }, null, cur(100))).toEqual({ kind: 'below_cost', code: 'SUMMER20' });
+    expect(couponBannerView({ ...PCT, below_cost: true }, null, cur(100))).toEqual({ kind: 'below_cost', code: 'SUMMER20' });
+  });
+
+  it('parsePreviewStatic keeps below_cost:true, drops false/absent, rejects a non-boolean', () => {
+    expect(parsePreviewStatic({ ...PCT, applies: false, below_cost: true })).toEqual({ ...PCT, applies: false, below_cost: true });
+    expect(parsePreviewStatic({ ...PCT, below_cost: false })).toEqual(PCT);
+    expect(parsePreviewStatic(PCT)).toEqual(PCT);
+    expect(parsePreviewStatic({ ...PCT, below_cost: 'yes' })).toBeNull();
   });
 
   it('applies:false gives the muted note; no static gives nothing', () => {

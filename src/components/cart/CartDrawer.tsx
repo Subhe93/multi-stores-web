@@ -80,6 +80,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           typography rules reach it. The theme fonts/colours come from the
           `:root` custom properties the layout emits for the same reason. */}
       <div
+        data-clarity-mask="True"
         className={`store-overlay fixed top-0 inset-e-0 z-50 h-full w-full max-w-md shadow-xl transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
         }`}

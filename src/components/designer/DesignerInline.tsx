@@ -1012,7 +1012,8 @@ export function DesignerCanvasInline() {
   const ratio = s.spec.width / s.spec.height;
   const hasPhoto = s.slots.some((sl) => Boolean(s.renderState.photos[sl.id]));
   return (
-    <div data-designer-ui>
+    // data-clarity-mask: the preview shows the customer's photos and texts.
+    <div data-designer-ui data-clarity-mask="True">
       <div className="relative w-full overflow-hidden rounded-xl bg-gray-100" style={{ aspectRatio: String(ratio) }}>
         <DesignerCanvas
           spec={s.spec}
@@ -1122,7 +1123,9 @@ export function DesignerFormInline({
   const saveState = draft.saving ? t('saving') : draft.saveError ? t('saveFailed') : draft.design ? t('savedShort') : '';
 
   return (
-    <div className="space-y-5" data-designer-form data-designer-ui>
+    // data-clarity-mask: typed texts, uploaded photos and proof thumbnails
+    // are customer data, masked in Clarity session recordings.
+    <div className="space-y-5" data-designer-form data-designer-ui data-clarity-mask="True">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
         <span className="h-4 w-1 rounded-full" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} aria-hidden="true" />
         {heading}

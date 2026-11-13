@@ -182,8 +182,9 @@ describe('useCart coupons', () => {
     await waitFor(() => expect(text('coupon')).toBe('TYPED'));
     const body = JSON.parse((validateCalls()[0][1] as { body: string }).body);
     expect(body.line_totals).toEqual([
-      { product_id: 'p1', amount: 100 },
-      { product_id: 'p2', amount: 300 },
+      // Quantity always travels (the provider-cost floor never guesses it).
+      { product_id: 'p1', amount: 100, quantity: 1 },
+      { product_id: 'p2', amount: 300, quantity: 1 },
     ]);
     expect(text('discount')).toBe('10');
     expect(text('total')).toBe('390');

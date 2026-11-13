@@ -30,7 +30,7 @@ export function PersonalizationSummary({ display, className, textClassName = 'te
   );
 
   return (
-    <div className={className ?? 'flex flex-col gap-0.5'}>
+    <div className={className ?? 'flex flex-col gap-0.5'} data-clarity-mask="True">
       {flat.map((f, i) => (
         <span key={`${f.id}-${i}`} className={`text-xs ${textClassName}`}>
           {f.label}: <CartFieldValue value={f.value} display={f.display} />

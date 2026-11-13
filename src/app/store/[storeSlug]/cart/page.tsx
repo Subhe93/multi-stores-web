@@ -157,7 +157,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
   }
 
   return (
-    <div className={`flex gap-4 py-5 border-b border-gray-200 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
+    // data-clarity-mask: cart lines can carry personalization (names).
+    <div data-clarity-mask="True" className={`flex gap-4 py-5 border-b border-gray-200 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail */}
       <div className="relative w-20 h-20 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
@@ -343,11 +344,19 @@ export default function StoreCartPage() {
   const quoteState = useCartQuote();
   const quote = quoteState.quote;
   const quoteLoading = quoteState.status === 'loading';
-  const shippingUnknown = quoteState.status === 'unknown' && !coupon?.freeShipping;
+  // The applied coupon cannot be used on these items (marketplace
+  // provider-cost floor): no discount row, the figures come from a quote
+  // without the coupon, and the shopper is offered to remove the code.
+  const couponRejected = Boolean(coupon?.code && quoteState.couponRejected);
+  const couponFreeShipping = Boolean(coupon?.freeShipping) && !couponRejected;
+  const shippingUnknown = quoteState.status === 'unknown' && !couponFreeShipping;
   // Every row of the box comes from one source: the quote once it is known.
   const shownSubtotal = quote ? quote.subtotal : subtotal;
-  const shownDiscount = quote ? quote.discount : discount;
-  const shownTotal = quote ? quote.total : total;
+  const shownDiscount = couponRejected ? 0 : quote ? quote.discount : discount;
+  const shownTotal = quote ? quote.total : couponRejected ? subtotal : total;
+  // The quote is for the default destination, without a postcode: shipping
+  // and total are estimates until checkout has the address (gap 11).
+  const quotedCountry = quote ? quoteState.countryCode : null;
   const shownTaxLines = quote ? quote.taxLines : taxLines;
   const shownTaxEstimated = quote ? false : taxEstimated;
   // Company view: the quote's net block once there is one, else the cart's.
@@ -449,8 +458,8 @@ export default function StoreCartPage() {
                 </span>
               </h2>
 
-              {/* Mini item list */}
-              <div className="space-y-3 mb-4">
+              {/* Mini item list (masked in Clarity recordings) */}
+              <div className="space-y-3 mb-4" data-clarity-mask="True">
                 {items.map((item) => {
                   const img = resolveMediaUrl(item.imageUrl || item.image);
                   const title = item.title || item.name || 'Product';
@@ -482,7 +491,22 @@ export default function StoreCartPage() {
               <div className="border-t border-gray-200 pt-4 space-y-1">
 
                 {/* Coupon input */}
-                {coupon?.code ? (
+                {coupon?.code && couponRejected ? (
+                  <div role="status" data-testid="cart-coupon-rejected" className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span className="text-sm font-medium text-gray-500 line-through">{coupon.code}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">{t('cart.couponNotApplicableToItems', { code: coupon.code })}</p>
+                    <button
+                      type="button"
+                      onClick={() => removeCoupon()}
+                      className="min-h-11 -mb-2 text-xs font-medium text-gray-700 hover:text-red-600 underline underline-offset-2 transition-colors"
+                    >
+                      {t('cart.removeCoupon')}
+                    </button>
+                  </div>
+                ) : coupon?.code ? (
                   <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2 mb-3">
                     <div className="flex items-center gap-2">
                       <Tag className="w-3.5 h-3.5 text-green-600" />
@@ -552,15 +576,15 @@ export default function StoreCartPage() {
                     ) : (
                       <span className="font-medium text-gray-900" data-testid="cart-shipping">{formatPrice(quoteShipping, currency, locale)}</span>
                     )
-                  ) : coupon?.freeShipping ? (
+                  ) : couponFreeShipping ? (
                     <span className="text-green-600 font-medium" data-testid="cart-shipping">{t('checkout.freeShippingLabel')}</span>
                   ) : (
                     <span className="text-gray-500" data-testid="cart-shipping">{t('cart.calculatedAtCheckout')}</span>
                   )}
                 </div>
-                {quoteShipping !== null && quoteShipping > 0 && quoteState.countryCode && (
-                  <p className="text-xs text-gray-500 text-end -mt-1 pb-1">
-                    {t('cart.shippingEstimatedFor', { country: countryName(quoteState.countryCode, locale) })}
+                {quoteShipping !== null && quotedCountry && (
+                  <p className="text-xs text-gray-500 text-end -mt-1 pb-1" data-testid="cart-shipping-estimated">
+                    {t('cart.shippingEstimatedFor', { country: countryName(quotedCountry, locale) })}
                   </p>
                 )}
 
@@ -593,6 +617,9 @@ export default function StoreCartPage() {
                       <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
                       <span className="text-base font-bold text-gray-900" data-testid="cart-total">{formatPrice(shownTotal, currency, locale)}</span>
                     </div>
+                    {quote && (
+                      <p className="text-xs text-gray-500" data-testid="cart-total-estimated">{t('cart.finalTotalAtCheckout')}</p>
+                    )}
                     {shownTaxLines.length > 0 && shownTaxEstimated && (
                       <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
                     )}
@@ -604,7 +631,7 @@ export default function StoreCartPage() {
                 ) : (
                 <>
                 <div className="flex justify-between py-3 border-t border-gray-200 mt-1">
-                  <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
+                  <span className="text-base font-semibold text-gray-900" data-testid="cart-total-label">{quote ? t('cart.estimatedTotal') : t('cart.total')}</span>
                   {/* EXCLUSIVE quote: before tax here, the grand total (quote.total) below. */}
                   <span className="text-base font-bold text-gray-900" data-testid="cart-total">
                     {formatPrice(quote && taxExclusive ? quoteTotalBeforeTax(quote) : shownTotal, currency, locale)}
@@ -612,6 +639,9 @@ export default function StoreCartPage() {
                 </div>
                 {shippingUnknown && (
                   <p className="text-xs text-gray-500 -mt-2 pb-2">{t('cart.shippingAddedAtCheckout')}</p>
+                )}
+                {quote && (
+                  <p className="text-xs text-gray-500 -mt-2 pb-2" data-testid="cart-total-estimated">{t('cart.finalTotalAtCheckout')}</p>
                 )}
                 {taxExclusive && quote ? (
                   // Quoted: the server's tax lines and grand total, as at checkout.

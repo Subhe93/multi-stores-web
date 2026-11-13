@@ -120,7 +120,11 @@ const KUSTOM = [
   'https://*.klarnaservices.com',
 ];
 const TURNSTILE = ['https://challenges.cloudflare.com'];
-/** Built-in store tracking apps (GA4 / Meta pixel / TikTok pixel). */
+/**
+ * Built-in store tracking apps (GA4 / Meta pixel / TikTok pixel / Microsoft
+ * Clarity). Clarity uploads to `*.clarity.ms` and syncs with `c.bing.com`;
+ * its tag script (www.clarity.ms) is covered by `https:` in script-src.
+ */
 const ANALYTICS = [
   'https://*.google-analytics.com',
   'https://*.analytics.google.com',
@@ -131,6 +135,8 @@ const ANALYTICS = [
   'https://*.facebook.net',
   'https://*.tiktok.com',
   'https://*.tiktokw.us',
+  'https://*.clarity.ms',
+  'https://c.bing.com',
 ];
 const VIDEO_FRAMES = [
   'https://www.youtube.com',

@@ -163,6 +163,8 @@ describe('ProductCouponBanner', () => {
       line_amount: 100,
       cart_subtotal: 150,
       item_count: 3,
+      // The units behind line_amount (provider-cost floor, never estimated).
+      quantity: 1,
     });
     const banner = screen.getByTestId('coupon-banner');
     expect(banner.getAttribute('role')).toBe('status');
@@ -214,6 +216,16 @@ describe('ProductCouponBanner', () => {
     await flush();
     expect(screen.getByTestId('coupon-banner').textContent).toContain('product.couponFreeShipping');
     expect(screen.queryByTestId('coupon-banner-price')).toBeNull();
+  });
+
+  it('below_cost (marketplace provider-cost floor): muted note, no price, no green banner', async () => {
+    apiMock.mockResolvedValue(preview({ applies: false, below_cost: true, discount_amount: null }));
+    renderBanner();
+    await flush();
+    expect(screen.queryByTestId('coupon-banner')).toBeNull();
+    expect(screen.queryByTestId('coupon-banner-price')).toBeNull();
+    expect(screen.queryByTestId('coupon-banner-na')).toBeNull();
+    expect(screen.getByTestId('coupon-banner-below-cost').textContent).toBe('product.couponBelowCost {"code":"SUMMER20"}');
   });
 
   it('applies:false: muted one-line note only', async () => {

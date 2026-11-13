@@ -73,8 +73,15 @@ describe('couponDiscount', () => {
 describe('couponLineTotals / couponCartKey', () => {
   it('per-line totals of the available lines, keyed like the order path', () => {
     expect(couponLineTotals([{ ...A, quantity: 2 }, { productId: 'base', customProductId: 'c1', price: 10, quantity: 1 }, HIDDEN])).toEqual([
-      { product_id: 'p1', amount: 200 },
-      { product_id: 'c1', amount: 10 },
+      { product_id: 'p1', amount: 200, quantity: 2 },
+      { product_id: 'c1', amount: 10, quantity: 1 },
+    ]);
+  });
+  it('sends the quantity and the variant (provider-cost floor is per unit and variant)', () => {
+    // A 30 unit with a 20 add-on: the amount is not a multiple of a unit
+    // price, so the API must never estimate the quantity from it.
+    expect(couponLineTotals([{ productId: 'base', customProductId: 'c1', variantId: 'v1', price: 50, quantity: 1 }])).toEqual([
+      { product_id: 'c1', amount: 50, quantity: 1, variant_id: 'v1' },
     ]);
   });
   it('key ignores line order and changes with quantity', () => {
@@ -108,6 +115,9 @@ describe('classifyCouponError', () => {
     expect(classifyCouponError({ code: 'PROMOTION_COUPON_MIN_AMOUNT', status: 400 })).toBe('soft');
     expect(classifyCouponError({ code: 'PROMOTION_COUPON_MIN_QUANTITY', status: 400 })).toBe('soft');
     expect(classifyCouponError({ code: 'PROMOTION_COUPON_NOT_APPLICABLE', status: 400 })).toBe('soft');
+    // Marketplace provider-cost floor: another item or quantity can lift it.
+    expect(classifyCouponError({ code: 'ORDER_DISCOUNT_BELOW_PROVIDER_COST', status: 400 })).toBe('soft');
+    expect(classifyCouponError({ code: 'PROMOTION_COUPON_BELOW_COST', status: 400 })).toBe('soft');
     // Older API: plain message, no code.
     expect(classifyCouponError(Object.assign(new Error('Minimum order amount is 500'), { status: 400 }))).toBe('soft');
     expect(classifyCouponError(Object.assign(new Error('Minimum 3 items required'), { status: 400 }))).toBe('soft');

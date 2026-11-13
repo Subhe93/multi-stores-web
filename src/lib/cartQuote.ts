@@ -14,7 +14,10 @@ export const QUOTE_DEBOUNCE_MS = 400;
 
 // Where a store is assumed to ship before an address is known: mirror of
 // kustom-checkout.service `defaultCountry` (market's first country, else the
-// currency's home market, else the store language's country).
+// currency's home market, else the store language's country). MARKETPLACE
+// stores also pass the customer's saved country and the tax country (see
+// below and useCartQuote); INDEPENDENT stores pass neither, so the mirror
+// holds for every Kustom store.
 const CURRENCY_COUNTRIES: Record<string, string> = {
   SEK: 'SE', NOK: 'NO', DKK: 'DK', GBP: 'GB', USD: 'US', CHF: 'CH', PLN: 'PL',
   CZK: 'CZ', HUF: 'HU', RON: 'RO', AUD: 'AU', NZD: 'NZ', CAD: 'CA',
@@ -24,18 +27,71 @@ const LOCALE_COUNTRIES: Record<string, string> = {
   nl: 'NL', tr: 'TR', en: 'GB', pl: 'PL', es: 'ES',
 };
 
-/** Default destination country (ISO2, upper-case) of the cart quote; null when unknown. */
+const iso2 = (v: string | null | undefined): string | null => {
+  const s = (v ?? '').trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(s) ? s : null;
+};
+
+/**
+ * Default destination country (ISO2, upper-case) of the cart quote; null when
+ * unknown. Order: the logged-in customer's saved address country (when the
+ * market ships there, or there is no market), the market's first country,
+ * the currency's home country, the store's tax registration country, then
+ * the store language's country. The tax country comes before the language
+ * so a EUR store in English (marketplace stores: tax country SE) is not
+ * quoted for the United Kingdom.
+ */
 export function defaultQuoteCountry(
   marketCountries: readonly string[] | null | undefined,
   currency: string | null | undefined,
   primaryLocale: string | null | undefined,
+  taxCountry?: string | null,
+  savedCountry?: string | null,
 ): string | null {
-  const byMarket = marketCountries?.[0];
-  if (byMarket) return byMarket.toUpperCase();
+  const markets = (marketCountries ?? []).map(iso2).filter((c): c is string => Boolean(c));
+  const saved = iso2(savedCountry);
+  if (saved && (markets.length === 0 || markets.includes(saved))) return saved;
+  if (markets[0]) return markets[0];
   const byCurrency = currency ? CURRENCY_COUNTRIES[currency.toUpperCase()] : undefined;
   if (byCurrency) return byCurrency;
+  const byTax = iso2(taxCountry);
+  if (byTax) return byTax;
   const lang = (primaryLocale ?? '').toLowerCase().split(/[-_]/)[0] ?? '';
   return LOCALE_COUNTRIES[lang] ?? null;
+}
+
+/**
+ * Quote / order error codes meaning "this coupon cannot be used on these
+ * items" (marketplace provider-cost floor). The cart drops the discount,
+ * re-quotes without the code and offers to remove it.
+ */
+export const COUPON_BELOW_COST_CODES: ReadonlySet<string> = new Set([
+  'ORDER_DISCOUNT_BELOW_PROVIDER_COST',
+  'PROMOTION_COUPON_BELOW_COST',
+]);
+
+/**
+ * Client-side coupon figures of a summary (checkout before / without a
+ * quote). When the quote refused the applied coupon (provider-cost floor)
+ * the order will not grant it: no discount, no free shipping, and the
+ * un-discounted total, like the cart page.
+ */
+export function clientCouponFigures(input: {
+  subtotal: number;
+  total: number;
+  discount: number;
+  couponFreeShipping: boolean;
+  refused: boolean;
+}): { discount: number; total: number; freeShipping: boolean } {
+  return input.refused
+    ? { discount: 0, total: input.subtotal, freeShipping: false }
+    : { discount: input.discount, total: input.total, freeShipping: input.couponFreeShipping };
+}
+
+/** The error's code when it is a coupon-below-cost rejection, else null. */
+export function couponBelowCostCode(err: unknown): string | null {
+  const code = (err as { code?: unknown } | null | undefined)?.code;
+  return typeof code === 'string' && COUPON_BELOW_COST_CODES.has(code) ? code : null;
 }
 
 export interface CartQuoteRequest {

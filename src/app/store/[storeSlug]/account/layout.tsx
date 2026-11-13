@@ -33,7 +33,7 @@ export default function StoreAccountLayout({ children }: { children: React.React
 
   if (!ready) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64" data-clarity-mask="True">
         <p className="text-sm text-gray-400 animate-pulse">{tCommon('loading')}</p>
       </div>
     );
@@ -45,8 +45,11 @@ export default function StoreAccountLayout({ children }: { children: React.React
     { href: lp('/account/addresses'), icon: MapPin, label: t('addresses') },
   ];
 
+  // Customer data (profile, orders, addresses): masked in Clarity recordings
+  // in case Clarity loaded on an earlier page and the visitor navigated here
+  // client-side (Clarity itself is not loaded on account routes).
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8" data-clarity-mask="True">
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
         {/* Sidebar */}
         <aside className="space-y-1">

@@ -1,5 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildCartQuoteBody, defaultQuoteCountry, normalizeCartQuote, quoteTotalBeforeTax, quotedSummaryFigures } from './cartQuote';
+import { COUPON_BELOW_COST_CODES, buildCartQuoteBody, clientCouponFigures, couponBelowCostCode, defaultQuoteCountry, normalizeCartQuote, quoteTotalBeforeTax, quotedSummaryFigures } from './cartQuote';
+
+describe('clientCouponFigures (checkout summary without a quote)', () => {
+  it('keeps the client discount, total and free shipping of an accepted coupon', () => {
+    expect(clientCouponFigures({ subtotal: 300, total: 210, discount: 90, couponFreeShipping: true, refused: false }))
+      .toEqual({ discount: 90, total: 210, freeShipping: true });
+  });
+  it('a coupon the quote refused (provider-cost floor) shows no discount, no free shipping, the full total', () => {
+    expect(clientCouponFigures({ subtotal: 300, total: 210, discount: 90, couponFreeShipping: true, refused: true }))
+      .toEqual({ discount: 0, total: 300, freeShipping: false });
+  });
+});
 
 describe('defaultQuoteCountry', () => {
   it('prefers the market first country, then the currency, then the store language', () => {
@@ -7,6 +20,52 @@ describe('defaultQuoteCountry', () => {
     expect(defaultQuoteCountry([], 'SEK', 'en')).toBe('SE');
     expect(defaultQuoteCountry(null, 'EUR', 'de-AT')).toBe('DE');
     expect(defaultQuoteCountry(undefined, 'EUR', undefined)).toBeNull();
+  });
+
+  it('uses the store tax country before the language (marketplace EUR + en + tax SE => SE, not GB)', () => {
+    expect(defaultQuoteCountry(null, 'EUR', 'en', 'SE')).toBe('SE');
+    expect(defaultQuoteCountry([], 'EUR', 'en', 'se')).toBe('SE');
+    // Market and currency still come first.
+    expect(defaultQuoteCountry(['DE'], 'EUR', 'en', 'SE')).toBe('DE');
+    expect(defaultQuoteCountry(null, 'NOK', 'en', 'SE')).toBe('NO');
+    // No (or an invalid) tax country: the language as before.
+    expect(defaultQuoteCountry(null, 'EUR', 'en', null)).toBe('GB');
+    expect(defaultQuoteCountry(null, 'EUR', 'en', 'Sweden')).toBe('GB');
+  });
+
+  it("prefers the customer's saved country when the market ships there (or there is no market)", () => {
+    expect(defaultQuoteCountry(null, 'EUR', 'en', 'SE', 'fi')).toBe('FI');
+    expect(defaultQuoteCountry(['SE', 'NO'], 'SEK', 'sv', 'SE', 'NO')).toBe('NO');
+    // Outside the market: the market's first country.
+    expect(defaultQuoteCountry(['SE'], 'SEK', 'sv', 'SE', 'DE')).toBe('SE');
+    expect(defaultQuoteCountry(null, 'SEK', 'sv', null, '')).toBe('SE');
+  });
+});
+
+describe('coupon-below-cost translations (checkout shows errors.<code> via useApiError)', () => {
+  const LOCALES = ['en', 'ar', 'tr', 'de', 'fr', 'sv'];
+  const read = (locale: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../i18n/messages/${locale}.json`, import.meta.url)), 'utf8')) as Record<string, Record<string, unknown>>;
+  it.each(LOCALES)('%s has every code and the cart / banner notes', (locale) => {
+    const m = read(locale);
+    for (const code of COUPON_BELOW_COST_CODES) {
+      expect(typeof m.errors![code]).toBe('string');
+      expect(String(m.errors![code]).length).toBeGreaterThan(10);
+    }
+    expect(m.cart!.couponNotApplicableToItems).toContain('{code}');
+    expect(m.product!.couponBelowCost).toContain('{code}');
+    expect(typeof m.cart!.estimatedTotal).toBe('string');
+    expect(typeof m.cart!.finalTotalAtCheckout).toBe('string');
+  });
+});
+
+describe('couponBelowCostCode', () => {
+  it('recognises the provider-cost floor codes only', () => {
+    expect(couponBelowCostCode({ code: 'ORDER_DISCOUNT_BELOW_PROVIDER_COST' })).toBe('ORDER_DISCOUNT_BELOW_PROVIDER_COST');
+    expect(couponBelowCostCode({ code: 'PROMOTION_COUPON_BELOW_COST' })).toBe('PROMOTION_COUPON_BELOW_COST');
+    expect(couponBelowCostCode({ code: 'PROMOTION_COUPON_INVALID' })).toBeNull();
+    expect(couponBelowCostCode(new Error('x'))).toBeNull();
+    expect(couponBelowCostCode(null)).toBeNull();
   });
 });
 

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatPrice } from '@/lib/format';
 import StoreCartPage from './page';
+import { resetSavedCountryCache } from '@/hooks/useCartQuote';
 
 // Full cart page: real shipping + totals from POST /orders/quote for the
 // market's default destination (same figures as checkout / Kustom).
@@ -12,6 +13,8 @@ const h = vi.hoisted(() => ({
   token: null as string | null,
   market: null as unknown,
   isCompany: false,
+  tax: null as unknown,
+  primaryLocale: undefined as string | undefined,
 }));
 
 vi.mock('next-intl', () => {
@@ -39,6 +42,8 @@ vi.mock('@/hooks/useAuth', () => ({
   readStoredAccessToken: () => null,
 }));
 vi.mock('@/hooks/useMarket', () => ({ useMarket: () => h.market }));
+vi.mock('@/hooks/useStoreTax', () => ({ useStoreTax: () => h.tax }));
+vi.mock('@/hooks/useStorePrimaryLocale', () => ({ useStorePrimaryLocale: () => h.primaryLocale }));
 vi.mock('@/hooks/useBuyerType', () => ({
   useBuyerType: () => ({ isCompany: h.isCompany, settings: {} }),
 }));
@@ -86,7 +91,10 @@ describe('cart page real shipping', () => {
     localStorage.clear();
     h.token = null;
     h.isCompany = false;
+    h.tax = null;
+    h.primaryLocale = undefined;
     h.market = { key: 'se', countries: ['SE'], currency: 'SEK' };
+    resetSavedCountryCache();
     setCart();
   });
 
@@ -112,7 +120,8 @@ describe('cart page real shipping', () => {
     render(<StoreCartPage />);
     await waitFor(() => expect(shipping()).toBe('checkout.freeShippingLabel'));
     expect(total()).toBe(SEK(450));
-    expect(screen.queryByText(/cart\.shippingEstimatedFor/)).toBeNull();
+    // Free for the default destination only: still labelled as an estimate.
+    expect(screen.getByTestId('cart-shipping-estimated').textContent).toBe('cart.shippingEstimatedFor(Sverige)');
   });
 
   it('a failed quote falls back to "calculated at checkout" with the cart totals', async () => {
@@ -215,6 +224,99 @@ describe('cart page real shipping', () => {
     await waitFor(() => expect(shipping()).toBe(SEK(39.2)));
     expect(bodyOf(quoteCalls()[0]!).buyer_type).toBe('COMPANY');
     expect(total()).toBe(SEK(349));
+  });
+
+  it('a quoted cart labels shipping and total as estimates until checkout has the address', async () => {
+    api.mockResolvedValue(quote());
+    render(<StoreCartPage />);
+    // Before the quote: the plain label, no estimate note.
+    expect(screen.getByTestId('cart-total-label').textContent).toBe('cart.total');
+    expect(screen.queryByTestId('cart-total-estimated')).toBeNull();
+    await waitFor(() => expect(shipping()).toBe(SEK(49)));
+    expect(screen.getByTestId('cart-total-label').textContent).toBe('cart.estimatedTotal');
+    expect(screen.getByTestId('cart-total-estimated').textContent).toBe('cart.finalTotalAtCheckout');
+  });
+
+  it('a failed quote keeps the plain Total label (shipping is added at checkout)', async () => {
+    api.mockRejectedValue(Object.assign(new Error('boom'), { status: 500 }));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(shipping()).toBe('cart.calculatedAtCheckout'));
+    expect(screen.getByTestId('cart-total-label').textContent).toBe('cart.total');
+    expect(screen.queryByTestId('cart-total-estimated')).toBeNull();
+  });
+
+  it('marketplace store (EUR, en, no market): quotes the store tax country, not GB', async () => {
+    h.market = null;
+    h.tax = { pricing_mode: 'INCLUSIVE', display_prices_incl_tax: true, country: 'SE', registrant: 'PLATFORM' };
+    h.primaryLocale = 'en';
+    setCart({ currency: 'EUR', marketKey: undefined });
+    api.mockResolvedValue(quote({ currency: 'EUR' }));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(quoteCalls()).toHaveLength(1));
+    expect(bodyOf(quoteCalls()[0]!).country_code).toBe('SE');
+  });
+
+  it("marketplace store: a logged-in shopper is quoted for the saved address country", async () => {
+    h.market = null;
+    h.token = 'jwt-saved';
+    h.primaryLocale = 'en';
+    h.tax = { pricing_mode: 'INCLUSIVE', display_prices_incl_tax: true, country: 'SE', registrant: 'PLATFORM' };
+    setCart({ currency: 'EUR', marketKey: undefined });
+    api.mockImplementation((endpoint: string) =>
+      Promise.resolve(endpoint === '/customers/me/addresses'
+        ? [{ id: 'a1', country_code: 'DE' }, { id: 'a2', country_code: 'fi', is_default: true }]
+        : quote({ currency: 'EUR' })));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(quoteCalls()).toHaveLength(1));
+    expect(bodyOf(quoteCalls()[0]!).country_code).toBe('FI');
+  });
+
+  it('INDEPENDENT store (Namez): the market country like Kustom, no address read, no wait', async () => {
+    h.token = 'jwt-namez';
+    h.market = { key: 'shop', countries: ['SE', 'DE'], currency: 'EUR' };
+    h.tax = { pricing_mode: 'INCLUSIVE', display_prices_incl_tax: true, country: 'SE', registrant: 'STORE' };
+    setCart({ currency: 'EUR', marketKey: 'shop' });
+    api.mockImplementation((endpoint: string) =>
+      Promise.resolve(endpoint === '/customers/me/addresses'
+        ? [{ id: 'a1', country_code: 'DE', is_default: true }]
+        : quote({ currency: 'EUR' })));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(quoteCalls()).toHaveLength(1));
+    expect(bodyOf(quoteCalls()[0]!).country_code).toBe('SE');
+    expect(api.mock.calls.some((c) => c[0] === '/customers/me/addresses')).toBe(false);
+  });
+
+  it('coupon below the provider cost: not applicable, no discount row, re-quoted without it, remove offered', async () => {
+    const removeCoupon = vi.fn();
+    setCart({ coupon: { code: 'BIG30', discount: 30, type: 'percentage' }, discount: 90, total: 210, removeCoupon });
+    api.mockImplementation((_e: string, opts: { body: string }) => {
+      const body = JSON.parse(opts.body);
+      return body.coupon_code
+        ? Promise.reject(Object.assign(new Error('raw english'), { status: 400, code: 'ORDER_DISCOUNT_BELOW_PROVIDER_COST' }))
+        : Promise.resolve(quote());
+    });
+    render(<StoreCartPage />);
+    await waitFor(() => expect(screen.getByTestId('cart-coupon-rejected')).toBeInTheDocument());
+    expect(quoteCalls()).toHaveLength(2);
+    expect(bodyOf(quoteCalls()[0]!).coupon_code).toBe('BIG30');
+    expect(bodyOf(quoteCalls()[1]!).coupon_code).toBeUndefined();
+    expect(screen.getByText('cart.couponNotApplicableToItems(BIG30)')).toBeInTheDocument();
+    expect(screen.queryByTestId('cart-discount')).toBeNull();
+    expect(total()).toBe(SEK(349));
+    expect(shipping()).toBe(SEK(49));
+    screen.getByRole('button', { name: 'cart.removeCoupon' }).click();
+    expect(removeCoupon).toHaveBeenCalled();
+  });
+
+  it('coupon below cost and the retry fails too: no discount, the cart subtotal as total', async () => {
+    setCart({ coupon: { code: 'BIG30', discount: 30, type: 'percentage', freeShipping: true }, discount: 90, total: 210 });
+    api.mockRejectedValue(Object.assign(new Error('x'), { status: 400, code: 'PROMOTION_COUPON_BELOW_COST' }));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(screen.getByTestId('cart-coupon-rejected')).toBeInTheDocument());
+    expect(screen.queryByTestId('cart-discount')).toBeNull();
+    expect(total()).toBe(SEK(300));
+    // The coupon's free shipping does not apply either.
+    expect(shipping()).toBe('cart.calculatedAtCheckout');
   });
 
   it('lines unavailable in the market send no request and keep the fallback', async () => {

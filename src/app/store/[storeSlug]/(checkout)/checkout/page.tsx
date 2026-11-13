@@ -38,7 +38,8 @@ import {
 import { formatPrice } from '@/lib/format';
 import { normalizeB2bNetTotals, normalizeTaxExemptReason, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type TaxLine } from '@/lib/tax';
 import { exemptLinePrices, normalizeQuoteTaxExemption } from '@/lib/taxExemption';
-import { quotedSummaryFigures } from '@/lib/cartQuote';
+import { clientCouponFigures, couponBelowCostCode, quotedSummaryFigures } from '@/lib/cartQuote';
+import { navigateRespectingClarity } from '@/components/tracking/clarity';
 import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
 // Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
@@ -481,6 +482,9 @@ function CheckoutForm({
   // `CUSTOMER_UPLOAD_*`) is shown instead of silently dropping the quote.
   // `guest` = the quote priced the local lines, so `line_index` maps to them.
   const [quoteLineError, setQuoteLineError] = useState<{ err: ApiError; guest: boolean } | null>(null);
+  // Marketplace provider-cost floor: the quote refused the applied coupon
+  // (ORDER_DISCOUNT_BELOW_PROVIDER_COST); its translated message is shown.
+  const [quoteCouponError, setQuoteCouponError] = useState<ApiError | null>(null);
   // Buyer type the current quote was made for: an exemption of the previous
   // buyer type is ignored at once after a toggle (M2.5 L5).
   const [quoteCompany, setQuoteCompany] = useState<boolean | null>(null);
@@ -503,8 +507,19 @@ function CheckoutForm({
     selectedShippingMethod && selectedShippingMethod.type !== 'PICKUP'
       ? selectedShippingMethod.estimated_days
       : null;
-  const effectiveShipping = coupon?.freeShipping ? 0 : (shippingCost ?? 0);
-  const finalTotal = total + effectiveShipping;
+  // The quote refused the applied coupon (provider-cost floor): the order
+  // would not grant it, so the summary drops its discount and free shipping
+  // and shows the un-discounted total, like the cart page.
+  const couponRefused = Boolean(coupon?.code && quoteCouponError);
+  const clientCoupon = clientCouponFigures({
+    subtotal, total, discount, couponFreeShipping: Boolean(coupon?.freeShipping), refused: couponRefused,
+  });
+  const clientDiscount = clientCoupon.discount;
+  const effectiveShipping = clientCoupon.freeShipping ? 0 : (shippingCost ?? 0);
+  const finalTotal = clientCoupon.total + effectiveShipping;
+  // The summary's coupon: a refused one keeps its code row (with Remove) but
+  // never labels shipping as free.
+  const summaryCoupon = couponRefused && coupon ? { ...coupon, freeShipping: false } : coupon;
 
   // Destination the quotes are made for: the selected saved address, else the form.
   const activeSavedAddress =
@@ -576,7 +591,7 @@ function CheckoutForm({
   // Once quoted, the subtotal and discount rows come from the same quote as
   // `displayTotal` (exempt or not), so the rows always add up to the total
   // that is charged; the client figures are the fallback until then.
-  const { subtotal: summarySubtotal, discount: summaryDiscount } = quotedSummaryFigures(quote, { subtotal, discount });
+  const { subtotal: summarySubtotal, discount: summaryDiscount } = quotedSummaryFigures(quote, { subtotal, discount: clientDiscount });
   const quoteItems = quote?.items;
   const exemptPrices = useMemo(
     () => (exemptReason ? exemptLinePrices(quoteItems, items) : null),
@@ -748,7 +763,7 @@ function CheckoutForm({
           ...(isCompany && quoteVatNumber ? { vat_number: quoteVatNumber } : {}),
         }),
       })
-        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); setQuoteLineError(null); } })
+        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); setQuoteLineError(null); setQuoteCouponError(null); } })
         .catch((err: unknown) => {
           if (cancelled) return;
           setQuote(null);
@@ -770,6 +785,7 @@ function CheckoutForm({
           setQuoteLineError(isLineErrorCode((err as ApiError | null)?.code)
             ? { err: err as ApiError, guest: !isLoggedInForQuote }
             : null);
+          setQuoteCouponError(couponBelowCostCode(err) ? (err as ApiError) : null);
         })
         .finally(() => { if (!cancelled) setQuoteLoading(false); });
     }, QUOTE_DEBOUNCE_MS);
@@ -1207,7 +1223,12 @@ function CheckoutForm({
             } catch { /* webhook will reconcile as a fallback */ }
           }
           await clearCart();
-          router.push(confirmationPath(state === 'processing' ? '&stripe_return=1&redirect_status=processing' : ''));
+          // A full page load when Clarity ran here: it never follows onto the
+          // confirmation (its URL carries the order and payment ids).
+          navigateRespectingClarity(
+            confirmationPath(state === 'processing' ? '&stripe_return=1&redirect_status=processing' : ''),
+            (href) => router.push(href),
+          );
         };
 
         let clientSecret = pending.clientSecret;
@@ -1324,7 +1345,7 @@ function CheckoutForm({
         });
         await clearCart();
         if (createdGuestAccount) rememberGuestAccount(order.id, form.email);
-        router.push(lp(`/checkout/confirmation?orderId=${order.id}`));
+        navigateRespectingClarity(lp(`/checkout/confirmation?orderId=${order.id}`), (href) => router.push(href));
       }
     } catch (err: unknown) {
       const code = (err as { code?: string } | null)?.code;
@@ -1411,7 +1432,9 @@ function CheckoutForm({
       {t('checkout.returnToCart')}
     </Link>
   );
-  const quoteLineMessage = quoteLineError ? lineErrorMessage(quoteLineError.err, quoteLineError.guest) : '';
+  const quoteLineMessage = quoteLineError
+    ? lineErrorMessage(quoteLineError.err, quoteLineError.guest)
+    : quoteCouponError && quoteCouponCode ? apiError(quoteCouponError) : '';
   const errorBox = (spacing: string) => {
     if (!error) {
       return quoteLineMessage ? (
@@ -1541,7 +1564,7 @@ function CheckoutForm({
           <div className="px-4 pb-5 pt-3 border-t border-gray-200">
             <OrderSummary
               items={items} subtotal={summarySubtotal} discount={summaryDiscount}
-              total={displayTotal} currency={currency} coupon={coupon}
+              total={displayTotal} currency={currency} coupon={summaryCoupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
               onApplyCoupon={handleApplyCoupon} onRemoveCoupon={() => removeCoupon()}
@@ -1913,7 +1936,7 @@ function CheckoutForm({
             </h2>
             <OrderSummary
               items={items} subtotal={summarySubtotal} discount={summaryDiscount}
-              total={displayTotal} currency={currency} coupon={coupon}
+              total={displayTotal} currency={currency} coupon={summaryCoupon}
               couponCode={couponCode} setCouponCode={setCouponCode}
               couponLoading={couponLoading} couponError={couponError}
               onApplyCoupon={handleApplyCoupon} onRemoveCoupon={() => removeCoupon()}

@@ -98,9 +98,12 @@ export default async function CheckoutLayout({
         `}</style>
 
         {(store.market?.preview || noindex) && <meta name="robots" content="noindex, nofollow" />}
+        {/* data-clarity-mask: the whole checkout (addresses, names, totals)
+            is masked in Clarity recordings; clicks and scroll still record. */}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
+          data-clarity-mask="True"
           className="min-h-screen flex flex-col store-page"
           style={{
             // The theme layout wraps <main> in a max-width container. Break out
