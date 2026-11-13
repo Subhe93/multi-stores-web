@@ -153,7 +153,9 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   // over the client-side cart figures.
   const summarySubtotal = totals ? totals.subtotal : subtotal;
   const summaryDiscount = totals ? totals.discount_amount : discount;
-  const summaryShipping = totals && totals.shipping_cost > 0 ? totals.shipping_cost : null;
+  // A priced destination makes 0 a real "free shipping" (e.g. the free
+  // threshold is met); without one, 0 only means "not known yet".
+  const summaryShipping = totals && (totals.shipping_quoted || totals.shipping_cost > 0) ? totals.shipping_cost : null;
   const summaryTotal = totals ? totals.total : total;
   const summaryPricingMode = totals ? totals.pricing_mode : taxPricingMode;
   const summaryTaxLines = totals

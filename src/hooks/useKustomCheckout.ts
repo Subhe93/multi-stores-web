@@ -44,6 +44,9 @@ export interface KustomCartLine {
 export interface KustomSessionTotals {
   subtotal: number;
   shipping_cost: number;
+  /** True when shipping was priced for a destination (0 = free shipping).
+   *  Absent from older APIs: then 0 is treated as not yet known. */
+  shipping_quoted?: boolean;
   discount_amount: number;
   tax_lines: TaxLine[];
   tax_total: number;
