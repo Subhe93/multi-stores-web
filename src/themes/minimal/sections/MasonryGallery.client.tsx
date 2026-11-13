@@ -4,8 +4,9 @@
 // server-side theme registry resolves `.Component` to a ClientReference.
 // Client-side for the lightbox (keyboard navigation + scroll lock).
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -21,6 +22,9 @@ interface MasonryImage {
   caption?: string;
   url?: string;
 }
+
+// No external store: only tells the server render (false) from the client (true).
+const subscribeNothing = () => () => undefined;
 
 function clampColumns(n: unknown, fallback: number): number {
   const v = typeof n === 'number' ? n : fallback;
@@ -38,6 +42,11 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
   const rtl = locale === 'ar';
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // The lightbox is portalled to <body> (like the product gallery, M94): an
+  // ancestor with its own stacking context (reveal/transform wrapper) kept
+  // the fixed overlay under later page elements. The portal needs the DOM, so
+  // it only mounts on the client (nothing renders there on the server).
+  const canPortal = useSyncExternalStore(subscribeNothing, () => true, () => false);
 
   const close = useCallback(() => setOpenIndex(null), []);
   const next = useCallback(
@@ -160,7 +169,9 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
             })}
           </StaggerGroup>
 
-          {/* Minimal dark lightbox. */}
+          {/* Minimal dark lightbox, portalled to <body>. The portal leaves the
+              page's `dir` / theme scope, so it carries the direction itself. */}
+          {canPortal && createPortal(
           <AnimatePresence>
             {openIndex !== null && images[openIndex] && (
               <motion.div
@@ -169,6 +180,7 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
                 className="fixed inset-0 z-100 flex items-center justify-center"
+                dir={rtl ? 'rtl' : 'ltr'}
                 style={{ backgroundColor: 'rgba(0,0,0,0.92)' }}
                 onClick={close}
                 role="dialog"
@@ -240,7 +252,9 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                 </motion.figure>
               </motion.div>
             )}
-          </AnimatePresence>
+          </AnimatePresence>,
+          document.body,
+          )}
         </>
       )}
     </section>

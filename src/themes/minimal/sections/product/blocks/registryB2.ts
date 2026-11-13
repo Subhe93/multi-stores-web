@@ -52,7 +52,9 @@ export const productShortDescriptionSection: SectionDefinition = {
     },
     pageTypes: PRODUCT_ONLY,
     translatable: [],
-    schema: [],
+    schema: [
+      { key: 'show_divider', type: 'boolean', label: { en: 'Divider below', ar: 'خط فاصل أسفله' }, defaultValue: false },
+    ],
   },
   Component: ProductShortDescriptionBlock,
   defaultSettings: {},

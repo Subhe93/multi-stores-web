@@ -251,6 +251,14 @@
     }
   },
   "product": {
+    "playVideo": "تشغيل الفيديو",
+    "playVideoNamed": "تشغيل الفيديو: {alt}",
+    "videoUnavailable": "تعذّر تشغيل هذا الفيديو حالياً.",
+    "mediaViewer": "عارض الوسائط",
+    "videoConsentNotice": "هذا الفيديو مستضاف على {provider}. اقبل ملفات تعريف الارتباط لتشغيله هنا، أو شاهده هناك.",
+    "watchOnYouTube": "شاهد على YouTube",
+    "watchOnVimeo": "شاهد على Vimeo",
+    "productVideos": "فيديوهات المنتج",
     "allProducts": "جميع المنتجات",
     "searchPlaceholder": "ابحث عن منتجات...",
     "filterByCategory": "تصفية حسب الفئة",

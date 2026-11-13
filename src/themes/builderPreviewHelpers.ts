@@ -183,3 +183,56 @@ export function adoptPreviewTax(
   const next = normalizeStoreTax(posted);
   return JSON.stringify(current ?? null) === JSON.stringify(next) ? current : next;
 }
+
+/** The store's legacy brand colours (`store.theme`), as the live layout reads them. */
+export interface PreviewStoreBrand {
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
+// A plain colour value only (it is written into a style attribute / CSS rule).
+const BRAND_COLOR = /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/]+\)|[a-z]{3,20})$/i;
+
+function brandColor(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const v = value.trim();
+  return v && BRAND_COLOR.test(v) ? v : undefined;
+}
+
+/**
+ * The brand colours after an UPDATE_SECTIONS message: the `theme` block of the
+ * owner's read of the store (a store that is not LIVE answers the route's
+ * anonymous read with its "coming soon" shell, without it). Absent or not an
+ * object keeps the current value; unsafe colour values are dropped.
+ */
+export function adoptPreviewBrand(posted: unknown, current: PreviewStoreBrand | undefined): PreviewStoreBrand | undefined {
+  if (!posted || typeof posted !== 'object' || Array.isArray(posted)) return current;
+  const raw = posted as Record<string, unknown>;
+  const next: PreviewStoreBrand = {};
+  const primary = brandColor(raw.primaryColor);
+  const secondary = brandColor(raw.secondaryColor);
+  if (primary) next.primaryColor = primary;
+  if (secondary) next.secondaryColor = secondary;
+  return current && JSON.stringify(current) === JSON.stringify(next) ? current : next;
+}
+
+/**
+ * The legacy `--store-*` colour variables the product markup reads (selected
+ * thumbnail border, add-to-cart fill...), resolved like the live store
+ * layout: an explicit store colour wins, otherwise the theme's tokens. The
+ * preview defined none, so a draft store's preview fell back to the
+ * hard-coded blue of `var(--store-primary, #2563eb)`.
+ */
+export function previewBrandVars(
+  brand: PreviewStoreBrand | undefined,
+  tokens: { primary: string; secondary: string },
+  primaryContrast: (primary: string) => string,
+): Record<string, string> {
+  const primary = brandColor(brand?.primaryColor) ?? tokens.primary;
+  const secondary = brandColor(brand?.secondaryColor) ?? tokens.secondary;
+  return {
+    '--store-primary': primary,
+    '--store-primary-contrast': primaryContrast(primary),
+    '--store-secondary': secondary,
+  };
+}

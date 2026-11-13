@@ -71,6 +71,12 @@ interface ProductInput {
   priceCurrency: string;
   availability?: 'InStock' | 'OutOfStock' | 'PreOrder';
   aggregateRating?: { ratingValue: number; reviewCount: number };
+  /**
+   * Product video: VideoObject entries (see buildVideoObjectsJsonLd in
+   * lib/productVideo). `subjectOf` is added only for a non-empty list, so a
+   * product without video keeps exactly the same JSON-LD.
+   */
+  videos?: object[];
 }
 
 export function buildProduct(input: ProductInput) {
@@ -99,6 +105,7 @@ export function buildProduct(input: ProductInput) {
           },
         }
       : {}),
+    ...(input.videos?.length ? { subjectOf: input.videos } : {}),
   };
 }
 

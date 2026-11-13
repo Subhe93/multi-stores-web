@@ -236,4 +236,18 @@ describe('BuilderPreviewClient product blocks', () => {
     await waitFor(() => expect(providedApps.at(-1)).toEqual({ personalization: { enabled: true, settings: { x: 1 } } }));
     expect(providedTax.at(-1)).toMatchObject({ country: 'SE' });
   });
+  it('defines the --store-* brand colours (theme tokens, then the posted owner-read store colour)', async () => {
+    const { container } = renderPreview(undefined, 'SEK');
+    const root = () => container.querySelector('.store-root') as HTMLElement;
+    // Without a store colour: the theme's primary, like the live layout.
+    const tokenPrimary = root().style.getPropertyValue('--theme-colors-primary');
+    expect(tokenPrimary).not.toBe('');
+    expect(root().style.getPropertyValue('--store-primary')).toBe(tokenPrimary);
+    expect(root().style.getPropertyValue('--store-primary-contrast')).not.toBe('');
+    post({ type: 'UPDATE_SECTIONS', sections, theme: { primaryColor: '#e11d48' } });
+    await waitFor(() => expect(root().style.getPropertyValue('--store-primary')).toBe('#e11d48'));
+    // A later update without the block keeps it.
+    post({ type: 'UPDATE_SECTIONS', sections });
+    expect(root().style.getPropertyValue('--store-primary')).toBe('#e11d48');
+  });
 });

@@ -238,6 +238,24 @@ describe('product-short-description', () => {
     const { container } = withState(makeProduct(), <ProductShortDescriptionBlock {...live()} />);
     expect(container.querySelector('em')?.textContent).toBe('Short');
   });
+  it('adds the monolith divider (20px apart) only when show_divider is true', () => {
+    const { container, unmount } = withState(
+      makeProduct(),
+      <ProductShortDescriptionBlock {...live({ settings: { show_divider: true } })} />,
+    );
+    const divider = container.querySelector('[data-short-description-divider]');
+    expect(divider?.className).toBe('border-t border-gray-100');
+    expect(divider?.parentElement?.className).toBe('flex flex-col gap-5');
+    unmount();
+    // Saved sections have no key: unchanged markup (no divider, no gap wrapper class).
+    for (const settings of [{}, { show_divider: false }]) {
+      const off = withState(makeProduct(), <ProductShortDescriptionBlock {...live({ settings })} />);
+      expect(off.container.querySelector('[data-short-description-divider]')).toBeNull();
+      expect(off.container.querySelector('.gap-5')).toBeNull();
+      expect(off.container.querySelector('em')?.textContent).toBe('Short');
+      off.unmount();
+    }
+  });
   it('renders nothing without one (placeholder in the builder)', () => {
     const product = makeProduct({ translations: [{ locale: 'en', title: 'Mug', slug: 'mug' }] });
     const { container } = withState(product, <ProductShortDescriptionBlock {...live()} />);

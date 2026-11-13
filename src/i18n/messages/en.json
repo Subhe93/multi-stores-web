@@ -251,6 +251,14 @@
     }
   },
   "product": {
+    "playVideo": "Play video",
+    "playVideoNamed": "Play video: {alt}",
+    "videoUnavailable": "This video can't be played right now.",
+    "mediaViewer": "Media viewer",
+    "videoConsentNotice": "This video is hosted on {provider}. Accept cookies to play it here, or watch it there.",
+    "watchOnYouTube": "Watch on YouTube",
+    "watchOnVimeo": "Watch on Vimeo",
+    "productVideos": "Product videos",
     "allProducts": "All Products",
     "searchPlaceholder": "Search products...",
     "filterByCategory": "Filter by Category",

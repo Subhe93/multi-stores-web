@@ -8,6 +8,7 @@ import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps } from '@/lib/storeApps';
+import { adoptPreviewBrand } from '@/themes/builderPreviewHelpers';
 import { locales, defaultLocale } from '@/i18n/config';
 import type { StoreHero } from '@/lib/hero';
 import type {
@@ -24,7 +25,7 @@ interface StoreLite {
   logo_url?: string;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
-  theme?: { hero?: StoreHero };
+  theme?: { hero?: StoreHero; primaryColor?: string; secondaryColor?: string };
   currency?: string;
   /** Tax settings — drives the price suffix in previewed product sections. */
   tax?: StoreTaxConfig | null;
@@ -174,6 +175,9 @@ export default async function BuilderPreviewPage({
             storeContext,
             apps: storeApps,
             tax: storeTax,
+            // Legacy brand colours of a LIVE store (the dashboard posts the
+            // owner's read for a store that is not LIVE).
+            brand: adoptPreviewBrand(store.theme, undefined),
           }}
         />
       </NextIntlClientProvider>

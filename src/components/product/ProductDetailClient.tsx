@@ -16,6 +16,7 @@ import { ProductPageStateProvider, useProductPageState, type ProductTabId } from
 import { formatPrice } from '@/lib/format';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
+import type { StorefrontProductVideo } from '@/lib/productVideo';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import {
   DesignerCanvasSlot,
@@ -29,6 +30,10 @@ import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Designer products with videos only (D7): requested only when rendered.
+const ProductVideoList = dynamic(() => import('@/components/product/video/ProductVideoList').then((m) => m.ProductVideoList));
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -52,6 +57,8 @@ export interface ProductData {
     short_description?: string | null;
   }[];
   images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
+  /** Gallery videos; the API omits the key when the product has none. */
+  videos?: StorefrontProductVideo[];
   // Marketplace vendor - only present when the store shows vendor names.
   vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
   variants?: {
@@ -332,6 +339,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     bundlePricing,
     translation,
     galleryImages,
+    galleryMedia,
+    hasVideos,
+    productVideos,
+    storeSlug,
     baseUnitPrice,
     display,
     currentPrice,
@@ -421,10 +432,14 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 />
               )}
               <DesignerCanvasSlot className="-order-1 min-w-0 md:order-0" />
+              {/* Decision D7: a designer product's videos sit below the canvas. */}
+              {/* Phones: after the form and CTA (they edit the canvas above). */}
+              {hasVideos && <ProductVideoList videos={productVideos} storeSlug={storeSlug ?? ''} className="order-last md:order-0" />}
             </>
           ) : (
             <ProductGallery
               images={galleryImages}
+              {...(hasVideos ? { items: galleryMedia, storeSlug: storeSlug ?? '' } : {})}
               activeIndex={activeGalleryIndex}
               onIndexChange={setActiveGalleryIndex}
               aspect={options?.galleryAspect}

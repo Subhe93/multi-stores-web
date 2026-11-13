@@ -251,6 +251,14 @@
     }
   },
   "product": {
+    "playVideo": "Videoyu oynat",
+    "playVideoNamed": "Videoyu oynat: {alt}",
+    "videoUnavailable": "Bu video şu anda oynatılamıyor.",
+    "mediaViewer": "Medya görüntüleyici",
+    "videoConsentNotice": "Bu video {provider} üzerinde barındırılıyor. Burada oynatmak için çerezleri kabul edin veya videoyu orada izleyin.",
+    "watchOnYouTube": "YouTube'da izle",
+    "watchOnVimeo": "Vimeo'da izle",
+    "productVideos": "Ürün videoları",
     "allProducts": "Tüm Ürünler",
     "searchPlaceholder": "Ürün ara...",
     "filterByCategory": "Kategoriye Göre Filtrele",

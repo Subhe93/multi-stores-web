@@ -302,3 +302,88 @@ describe('ProductPageState', () => {
     spy.mockRestore();
   });
 });
+
+describe('ProductPageState gallery media (product video)', () => {
+  const VIDEO = (id: string, position: number) => ({
+    id,
+    kind: 'file' as const,
+    url: `/uploads/products/${id}.mp4`,
+    poster_url: null,
+    duration_s: 10,
+    width: null,
+    height: null,
+    position,
+    alt: null,
+    created_at: '2026-11-13T10:00:00.000Z',
+  });
+
+  it('without videos, galleryMedia mirrors galleryImages (same ids, urls, alts) and hasVideos is false', () => {
+    const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperFor(makeProduct()) });
+    expect(result.current.hasVideos).toBe(false);
+    expect(result.current.productVideos).toEqual([]);
+    expect(result.current.galleryMedia).toEqual(result.current.galleryImages.map((i) => ({ kind: 'image', ...i })));
+    // Also after a variant switch (leading images on top).
+    act(() => {
+      result.current.setOptionSelections({ Color: 'Red' });
+      result.current.setSelectedVariantId('v-red');
+    });
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(result.current.galleryImages.map((i) => i.id));
+  });
+
+  it('inserts videos among the product-level images; leading variant images stay first', () => {
+    const product = makeProduct({ videos: [VIDEO('v1', 1)] });
+    const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperFor(product) });
+    expect(result.current.hasVideos).toBe(true);
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['i1', 'v1', 'i2']);
+    expect(result.current.productVideos.map((v) => v.alt)).toEqual(['Mug']);
+    // galleryImages is unchanged and image-only.
+    expect(result.current.galleryImages.map((i) => i.id)).toEqual(['i1', 'i2']);
+
+    act(() => {
+      result.current.setOptionSelections({ Color: 'Red' });
+      result.current.setSelectedVariantId('v-red');
+    });
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual([
+      'variant-v-red-0',
+      'option-Color-Red',
+      'i1',
+      'v1',
+      'i2',
+    ]);
+    expect(result.current.galleryMedia[0]).toEqual({ kind: 'image', ...result.current.galleryImages[0] });
+  });
+
+  it('an imageMap colour image that duplicates a product image keeps the video after its original image', () => {
+    // Editor order [base-1, video, base-2, base-3]; Blue maps to base-1 itself.
+    const product = makeProduct({
+      images: [{ id: 'i1', url: IMG('base-1') }, { id: 'i2', url: IMG('base-2') }, { id: 'i3', url: IMG('base-3') }],
+      variants: [],
+      variant_option_config: [{ name: 'Color', style: 'swatch', imageMap: { Blue: IMG('base-1'), Red: IMG('base-3') } }],
+      videos: [VIDEO('v1', 1)],
+    });
+    const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperFor(product) });
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['i1', 'v1', 'i2', 'i3']);
+    // base-1 moves into the leading block; the video still follows it.
+    act(() => result.current.setOptionSelections({ Color: 'Blue' }));
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['option-Color-Blue', 'v1', 'i2', 'i3']);
+    // base-3 (after the video) moves up; the video stays after base-1.
+    act(() => result.current.setOptionSelections({ Color: 'Red' }));
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['option-Color-Red', 'i1', 'v1', 'i2']);
+  });
+
+  it('drops all videos when the product has no images', () => {
+    const product = makeProduct({ images: [], variants: [], variant_option_config: [], videos: [VIDEO('v1', 1)] });
+    const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperFor(product) });
+    expect(result.current.galleryMedia).toEqual([]);
+    expect(result.current.hasVideos).toBe(false);
+  });
+
+  it('drops a video with an unknown external host', () => {
+    const product = makeProduct({
+      videos: [{ ...VIDEO('bad', 1), kind: 'youtube', url: 'https://evil.com/watch?v=dQw4w9WgXcQ' }],
+    });
+    const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperFor(product) });
+    expect(result.current.hasVideos).toBe(false);
+    expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['i1', 'i2']);
+  });
+});

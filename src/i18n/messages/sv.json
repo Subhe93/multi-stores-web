@@ -251,6 +251,14 @@
     }
   },
   "product": {
+    "playVideo": "Spela upp video",
+    "playVideoNamed": "Spela upp video: {alt}",
+    "videoUnavailable": "Videon kan inte spelas upp just nu.",
+    "mediaViewer": "Mediavisare",
+    "videoConsentNotice": "Videon finns på {provider}. Godkänn cookies för att spela den här, eller titta där.",
+    "watchOnYouTube": "Titta på YouTube",
+    "watchOnVimeo": "Titta på Vimeo",
+    "productVideos": "Produktvideor",
     "allProducts": "Alla produkter",
     "searchPlaceholder": "Sök produkter...",
     "filterByCategory": "Filtrera efter kategori",

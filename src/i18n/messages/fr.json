@@ -251,6 +251,14 @@
     }
   },
   "product": {
+    "playVideo": "Lire la vidéo",
+    "playVideoNamed": "Lire la vidéo : {alt}",
+    "videoUnavailable": "Cette vidéo ne peut pas être lue pour le moment.",
+    "mediaViewer": "Visionneuse de médias",
+    "videoConsentNotice": "Cette vidéo est hébergée sur {provider}. Acceptez les cookies pour la lire ici, ou regardez-la là-bas.",
+    "watchOnYouTube": "Regarder sur YouTube",
+    "watchOnVimeo": "Regarder sur Vimeo",
+    "productVideos": "Vidéos du produit",
     "allProducts": "Tous les produits",
     "searchPlaceholder": "Rechercher des produits...",
     "filterByCategory": "Filtrer par catégorie",

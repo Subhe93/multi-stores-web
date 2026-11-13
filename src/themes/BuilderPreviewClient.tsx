@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
-import { mergeTokens, tokensToCssVars } from './tokens';
+import { mergeTokens, storePrimaryContrast, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
@@ -22,14 +22,17 @@ import type { StoreTaxConfig } from '@/lib/tax';
 import {
   HOVER_CSS,
   adoptPreviewApps,
+  adoptPreviewBrand,
   adoptPreviewCurrency,
   adoptPreviewProduct,
   adoptPreviewTax,
   findEditablePath,
   findParentId,
+  previewBrandVars,
   resolveSectionContent,
   safeSectionId,
   selectionCss,
+  type PreviewStoreBrand,
 } from './builderPreviewHelpers';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
@@ -78,6 +81,9 @@ interface InitialPreviewState {
   // the providers of the route (StoreProviders) apply unchanged.
   apps?: StorefrontApps;
   tax?: StoreTaxConfig | null;
+  // The store's legacy brand colours (`store.theme`), behind the `--store-*`
+  // variables of the product markup. Same source rule as apps / tax.
+  brand?: PreviewStoreBrand;
 }
 
 interface BuilderPreviewClientProps {
@@ -107,6 +113,9 @@ interface UpdateMessage {
   // of the store payload); absent, the route's values stay.
   apps?: unknown;
   tax?: unknown;
+  // The `theme` block of the same owner read (brand colours); absent, the
+  // route's value stays.
+  theme?: unknown;
 }
 
 interface ScrollMessage {
@@ -176,6 +185,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
               : prev.storeContext,
             apps: adoptPreviewApps(data.apps, prev.apps),
             tax: adoptPreviewTax(data.tax, prev.tax),
+            brand: adoptPreviewBrand(data.theme, prev.brand),
           };
         });
       } else if (data.type === 'SCROLL_TO_SECTION') {
@@ -320,7 +330,17 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
     () => mergeTokens(theme.tokens, state.customizations),
     [theme, state.customizations],
   );
-  const cssVars = useMemo(() => tokensToCssVars(tokens), [tokens]);
+  // Theme tokens plus the legacy `--store-*` brand colours the live store
+  // layout defines (explicit store colour, else the theme's tokens).
+  const cssVars = useMemo(
+    () => ({
+      ...tokensToCssVars(tokens),
+      ...previewBrandVars(state.brand, tokens.colors, (primary) =>
+        storePrimaryContrast(primary, tokens, state.customizations),
+      ),
+    }),
+    [tokens, state.brand, state.customizations],
+  );
   // Store-wide custom CSS, sanitized exactly like the live store layout. It
   // follows the customizations pushed by the dashboard, so it updates while
   // the owner types in the theme customizer.

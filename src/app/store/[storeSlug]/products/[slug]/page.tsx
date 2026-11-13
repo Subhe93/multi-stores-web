@@ -19,6 +19,7 @@ import type { ProductContext, SectionInstance } from '@/themes/types';
 import { productAvailability } from '@/lib/productAvailability';
 import { projectProductForClient } from '@/lib/productPayload';
 import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { canonicalRedirectHref, encodeUrlPath, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
 
@@ -87,6 +88,28 @@ function buildFaqPageFromProduct(product: Pick<ProductRecord, 'faqs'> | null | u
     .filter((x: unknown): x is { question: string; answer: string } => x !== null);
 
   return buildFaqPage(items);
+}
+
+/**
+ * Product video: VideoObject entries for the Product JSON-LD `subjectOf`
+ * (only videos with a poster; contract 6.5). Undefined for a product without
+ * video, so its JSON-LD stays exactly as before. Media URLs are absolute like
+ * the product's `image` list (resolveMediaUrl).
+ */
+function productVideosLd(
+  product: { videos?: StorefrontProductVideo[] },
+  name: string,
+  shortDescriptionHtml: string | null | undefined,
+) {
+  if (!product.videos?.length) return undefined;
+  const description = shortDescriptionHtml?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || null;
+  const list = buildVideoObjectsJsonLd({
+    videos: product.videos,
+    productName: name,
+    description,
+    toAbsoluteUrl: (url) => resolveMediaUrl(url),
+  });
+  return list.length ? list : undefined;
 }
 
 // Per-product metadata: title/description from translations, canonical, hreflang
@@ -235,6 +258,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       priceCurrency: storeCurrency,
       // Simple products count too (was: always OutOfStock without variants).
       availability: productAvailability(product),
+      videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
     });
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     // Client sections get a slim copy (current-locale rows only); JSON-LD
@@ -335,6 +359,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     priceCurrency: storeCurrency,
     // Simple products count too (was: always OutOfStock without variants).
     availability: productAvailability(product),
+    videos: productVideosLd(product, translation?.title || 'Product', translation?.short_description),
   });
 
   // Home › ancestors… › primary › product (M6 §2; no "Collections" index

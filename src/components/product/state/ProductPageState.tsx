@@ -15,6 +15,12 @@ import { uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
+import {
+  buildGalleryMedia,
+  toGalleryVideoItems,
+  type GalleryItem,
+  type GalleryVideoItem,
+} from '@/lib/productVideo';
 
 // ── Shared product page state ─────────────────────────────
 //
@@ -143,7 +149,7 @@ function useProductPageStateValue({
     return variants.find((v) => v.id === selectedVariantId) ?? null;
   }, [selectedVariantId, variants]);
 
-  const galleryImages = useMemo<ProductGalleryImage[]>(() => {
+  const gallery = useMemo<{ images: ProductGalleryImage[]; leadingCount: number; base: ProductGalleryImage[] }>(() => {
     const alt = translation?.title || '';
     // Priority: variant-specific images (per-combination override), then
     // value-level images of the currently picked options (Shopify-style: one
@@ -180,12 +186,36 @@ function useProductPageStateValue({
 
     // Dedupe by URL, first occurrence wins (prioritized images stay on top).
     const seen = new Set<string>();
-    return [...prioritized, ...baseImages].filter((img) => {
+    const images = [...prioritized, ...baseImages].filter((img) => {
       if (seen.has(img.url)) return false;
       seen.add(img.url);
       return true;
     });
+    // Surviving prioritized images come first; the rest are product-level
+    // (the slots video positions count, see buildGalleryMedia).
+    const leadingCount = images.filter((img) => prioritized.includes(img)).length;
+    // `base`: the product-level list before the dedupe, so a video stays
+    // after the image the merchant put it after (buildGalleryMedia).
+    return { images, leadingCount, base: baseImages };
   }, [product.images, product.variant_option_config, selectedVariant, optionSelections, translation]);
+  const galleryImages = gallery.images;
+
+  // Product videos (decision D6: index 0 stays an image). Without videos the
+  // media list mirrors galleryImages one to one, so galleries render unchanged.
+  const productVideos = useMemo<GalleryVideoItem[]>(
+    () => toGalleryVideoItems(product.videos, translation?.title || ''),
+    [product.videos, translation],
+  );
+  const galleryMedia = useMemo<GalleryItem[]>(() => {
+    if (!productVideos.length) return gallery.images.map((img) => ({ kind: 'image' as const, ...img }));
+    return buildGalleryMedia(
+      gallery.images.slice(0, gallery.leadingCount),
+      gallery.images.slice(gallery.leadingCount),
+      productVideos,
+      gallery.base,
+    );
+  }, [gallery, productVideos]);
+  const hasVideos = productVideos.length > 0 && galleryMedia.some((item) => item.kind === 'video');
 
   // Jump back to the first image whenever the gallery's lead image changes
   // (variant picked or a value-level image surfaced).
@@ -193,6 +223,13 @@ function useProductPageStateValue({
   useEffect(() => {
     setActiveGalleryIndex(0);
   }, [leadImageUrl]);
+  // Product video: a variant change also goes back to the first slide (an
+  // image, D6) when the lead image stays the same, so a playing video
+  // unmounts. Without videos the key never changes (behaviour as before).
+  const variantResetKey = hasVideos ? selectedVariantId ?? '' : '';
+  useEffect(() => {
+    if (variantResetKey) setActiveGalleryIndex(0);
+  }, [variantResetKey]);
 
   // Personalization app: the per-unit modifier (0 when it is not shown).
   const personalizationDelta = app.priceDelta;
@@ -480,6 +517,9 @@ function useProductPageStateValue({
     handleFileRemove,
     // Gallery
     galleryImages,
+    galleryMedia,
+    hasVideos,
+    productVideos,
     leadImageUrl,
     activeGalleryIndex,
     setActiveGalleryIndex,

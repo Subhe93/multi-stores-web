@@ -2,10 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
+import type { GalleryItem } from '@/lib/productVideo';
+
+// Product video: a product WITH videos renders ProductMediaGallery (images +
+// videos, shared lightbox), loaded through next/dynamic with SSR. A product
+// without videos renders ImageOnlyGallery below, which is the pre-video
+// gallery unchanged (markup, inline lightbox, key handling), and never
+// requests the video chunk (Namez guard: no new JS, no markup change).
+const ProductMediaGallery = dynamic(() => import('./video/ProductMediaGallery').then((m) => m.ProductMediaGallery));
 
 interface GalleryImage {
   id: string;
@@ -15,6 +24,13 @@ interface GalleryImage {
 
 interface ProductGalleryProps {
   images: GalleryImage[];
+  /**
+   * Images and videos in gallery order. Passed only when the product has
+   * videos; without it the image-only gallery renders.
+   */
+  items?: GalleryItem[];
+  /** Store slug: YouTube / Vimeo embeds load only with this store's consent. */
+  storeSlug?: string;
   activeIndex?: number;
   onIndexChange?: (index: number) => void;
   /** Main-image aspect ratio; defaults to square (existing behavior). */
@@ -27,7 +43,12 @@ const GALLERY_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 'square' }: ProductGalleryProps) {
+export function ProductGallery({ items, storeSlug, ...props }: ProductGalleryProps) {
+  if (items) return <ProductMediaGallery {...props} items={items} storeSlug={storeSlug} />;
+  return <ImageOnlyGallery {...props} />;
+}
+
+function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square' }: ProductGalleryProps) {
   const t = useTranslations();
   const [internalIndex, setInternalIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);

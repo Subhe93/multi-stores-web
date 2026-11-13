@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   adoptPreviewApps,
+  adoptPreviewBrand,
   adoptPreviewCurrency,
   adoptPreviewTax,
   adoptPreviewProduct,
   findEditablePath,
   findParentId,
   findSection,
+  previewBrandVars,
   resolveSectionContent,
   safeSectionId,
   selectionCss,
@@ -161,5 +163,36 @@ describe('adoptPreviewTax', () => {
     const current = adoptPreviewTax({ pricing_mode: 'INCLUSIVE' }, null);
     expect(adoptPreviewTax(undefined, current)).toBe(current);
     expect(adoptPreviewTax({ pricing_mode: 'INCLUSIVE' }, current)).toBe(current);
+  });
+});
+
+describe('preview brand colours (--store-*)', () => {
+  const tokens = { primary: '#111827', secondary: '#6b7280' };
+  const contrast = (c: string) => `on(${c})`;
+
+  it('falls back to the theme tokens when the store sets no colour', () => {
+    expect(previewBrandVars(undefined, tokens, contrast)).toEqual({
+      '--store-primary': '#111827',
+      '--store-primary-contrast': 'on(#111827)',
+      '--store-secondary': '#6b7280',
+    });
+  });
+
+  it('uses the store colours of the owner read; unsafe values are dropped', () => {
+    const brand = adoptPreviewBrand({ primaryColor: ' #e11d48 ', secondaryColor: 'red;}body{x:y' }, undefined);
+    expect(brand).toEqual({ primaryColor: '#e11d48' });
+    expect(previewBrandVars(brand, tokens, contrast)).toEqual({
+      '--store-primary': '#e11d48',
+      '--store-primary-contrast': 'on(#e11d48)',
+      '--store-secondary': '#6b7280',
+    });
+  });
+
+  it('keeps the current value when nothing usable is posted, and the same object for equal input', () => {
+    const current = { primaryColor: '#000000' };
+    expect(adoptPreviewBrand(undefined, current)).toBe(current);
+    expect(adoptPreviewBrand('x', current)).toBe(current);
+    expect(adoptPreviewBrand({ primaryColor: '#000000' }, current)).toBe(current);
+    expect(adoptPreviewBrand({}, current)).toEqual({});
   });
 });
