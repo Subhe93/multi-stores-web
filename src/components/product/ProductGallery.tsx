@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
@@ -322,8 +323,12 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
         </div>
       )}
 
-      {/* Full-screen lightbox */}
-      {lightboxOpen && (
+      {/* Full-screen lightbox. Portalled to <body>: an ancestor of the gallery
+          (sticky column, reveal/transform wrapper) creates its own stacking
+          context, which kept the overlay under later page elements such as
+          the bundle cards. The lightbox only opens after a click, so
+          document is always defined here. */}
+      {lightboxOpen && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
           onClick={guardedClick(() => setLightboxOpen(false))}
@@ -378,7 +383,8 @@ export function ProductGallery({ images, activeIndex, onIndexChange, aspect = 's
               </span>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
