@@ -202,6 +202,12 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
         ),
       }
     : null;
+  // Product blocks (category 'product') also get an explicit builderPreview
+  // flag so their "no data" placeholder shows only in the builder preview.
+  const productBlockProps =
+    !isContainer && def.schema?.category === 'product'
+      ? { builderPreview: !!ctx.builderPreview }
+      : null;
   const inner = (
     <div className={innerScope} style={ctx.wrapperStyle}>
       <Component
@@ -217,6 +223,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
         chrome={ctx.chrome || undefined}
         preloaded={ctx.preloaded?.[section.id]}
         {...containerProps}
+        {...productBlockProps}
       />
     </div>
   );

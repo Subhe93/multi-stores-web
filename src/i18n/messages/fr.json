@@ -1019,6 +1019,7 @@
     "STORE_NOT_LIVE": "Cette boutique n’accepte pas encore de commandes."
   },
   "builderPreview": {
+    "selectParent": "Sélectionner le parent",
     "moveUp": "Monter",
     "moveDown": "Descendre",
     "duplicate": "Dupliquer",

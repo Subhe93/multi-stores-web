@@ -51,10 +51,8 @@ import { featuredProductsSection } from './sections/FeaturedProducts';
 import { productSliderSection } from './sections/ProductSlider';
 import { collectionProductsSection } from './sections/CollectionProducts';
 import { productPageMagicSection } from './sections/product/ProductPageMagic';
-import { productGalleryMagicSection } from './sections/product/ProductGalleryMagic';
-import { productDetailsMagicSection } from './sections/product/ProductDetailsMagic';
-import { productTabsMagicSection } from './sections/product/ProductTabsMagic';
-import { addToCartMagicSection } from './sections/product/AddToCartMagic';
+import { registryB1 } from './sections/product/blocks/registryB1';
+import { productBlocksB2 } from './sections/product/blocks/registryB2';
 import { productListingMagicSection } from './sections/listing/ProductListingMagic';
 import { layoutRowSection } from './sections/layout/LayoutRow';
 import { layoutColumnSection } from './sections/layout/LayoutColumn';
@@ -117,12 +115,13 @@ export const minimalTheme: Theme = {
     'collection-products': collectionProductsSection,
     // Magic sections — read from product context, only useful on PRODUCT_TEMPLATE.
     // `product-page` is the full-fidelity body (matches the standalone design);
-    // the granular ones below remain for backward-compat with older templates.
+    // The separate product blocks below all read the shared product page
+    // state. registryB1 also carries the rebuilt split sections that keep
+    // their keys (product-gallery, product-details, add-to-cart) and
+    // productBlocksB2 carries product-tabs, so older templates keep working.
     'product-page': productPageMagicSection,
-    'product-gallery': productGalleryMagicSection,
-    'product-details': productDetailsMagicSection,
-    'product-tabs': productTabsMagicSection,
-    'add-to-cart': addToCartMagicSection,
+    ...registryB1,
+    ...productBlocksB2,
     // Layout containers — hold child sections (parent_id), PRODUCT_TEMPLATE only.
     'layout-row': layoutRowSection,
     'layout-column': layoutColumnSection,

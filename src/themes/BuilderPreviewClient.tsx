@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
+import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 import { mergeTokens, tokensToCssVars } from './tokens';
@@ -12,6 +12,14 @@ import { ProductPageStateProvider } from '@/components/product/state/ProductPage
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import { dashboardOrigins } from '@/lib/platformHosts';
 import { sanitizeCustomCss } from '@/lib/customCss';
+import {
+  HOVER_CSS,
+  findEditablePath,
+  findParentId,
+  resolveSectionContent,
+  safeSectionId,
+  selectionCss,
+} from './builderPreviewHelpers';
 import type { ListingContext, ProductContext, SectionInstance, StoreContext, ThemeCustomizations } from './types';
 
 // Only the builder that embedded this preview may drive it, and messages go
@@ -182,37 +190,11 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   // The clicked element's text is matched against the section's resolved
   // content (top-level strings + repeater item strings) to find its field.
   useEffect(() => {
+    // Sections arrive as one flat list (nested ones carry parent_id), so the
+    // lookup finds a section at any depth.
     function resolveContent(sectionId: string): Record<string, unknown> | null {
-      const section = stateRef.current.sections.find((s) => s.id === sectionId);
-      if (!section) return null;
-      const rows = Array.isArray(section.translations) ? section.translations : [];
-      return (
-        rows.find((r) => r.locale === stateRef.current.locale)?.content ??
-        rows.find((r) => r.locale === stateRef.current.primaryLocale)?.content ??
-        rows[0]?.content ??
-        null
-      );
-    }
-
-    function findEditablePath(
-      content: Record<string, unknown>,
-      text: string,
-    ): (string | number)[] | null {
-      for (const [key, value] of Object.entries(content)) {
-        if (typeof value === 'string' && value.trim() && value.trim() === text) return [key];
-        if (Array.isArray(value)) {
-          for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            if (!item || typeof item !== 'object') continue;
-            for (const [subKey, subValue] of Object.entries(item as Record<string, unknown>)) {
-              if (typeof subValue === 'string' && subValue.trim() && subValue.trim() === text) {
-                return [key, i, subKey];
-              }
-            }
-          }
-        }
-      }
-      return null;
+      const { sections, locale, primaryLocale } = stateRef.current;
+      return resolveSectionContent(sections, sectionId, locale, primaryLocale);
     }
 
     function startEdit(el: HTMLElement, sectionId: string, path: (string | number)[]) {
@@ -343,7 +325,14 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
 
   // Only [a-zA-Z0-9_-] can appear in section ids (uuids); strip anything else
   // so the injected CSS selector cannot be broken out of.
-  const safeSelectedId = selectedId?.replace(/[^a-zA-Z0-9_-]/g, '') || null;
+  const safeSelectedId = safeSectionId(selectedId);
+  // Parent layout container of the selection (null for root sections): it
+  // gets a dashed outline and the toolbar offers "Select parent".
+  const selectedParentId = useMemo(
+    () => (safeSelectedId ? safeSectionId(findParentId(state.sections, selectedId)) : null),
+    [safeSelectedId, selectedId, state.sections],
+  );
+  const selectedCss = selectionCss(safeSelectedId, selectedParentId);
 
   return (
     <div
@@ -353,26 +342,18 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       className="store-root"
       style={cssVars as CSSProperties}
     >
-      {/* Builder-only affordances: a subtle dashed outline on hover so blocks
-          read as clickable, and a solid indigo frame + corner glow on the
-          selected section so the creator always knows what they're editing. */}
-      <style>{`
-        [data-section-id] { cursor: pointer; transition: outline-color 120ms ease, box-shadow 120ms ease; outline: 1px dashed transparent; outline-offset: -1px; }
-        [data-section-id]:hover { outline-color: rgba(99, 102, 241, 0.55); }
-      `}</style>
+      {/* Builder-only affordances: a subtle dashed outline on the innermost
+          hovered section so blocks read as clickable, a solid indigo frame +
+          corner glow on the selected section so the creator always knows
+          what they're editing, and a dashed frame on its parent container. */}
+      <style>{HOVER_CSS}</style>
+      {selectedCss && <style>{selectedCss}</style>}
       {safeSelectedId && (
-        <style>{`
-          [data-section-id="${safeSelectedId}"],
-          [data-section-id="${safeSelectedId}"]:hover {
-            outline: 2px solid #6366f1;
-            outline-offset: -2px;
-            box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.12), 0 0 0 3px rgba(99, 102, 241, 0.18);
-            border-radius: 2px;
-          }
-        `}</style>
-      )}
-      {safeSelectedId && (
-        <SectionToolbar sectionId={safeSelectedId} sections={state.sections} />
+        <SectionToolbar
+          sectionId={safeSelectedId}
+          parentId={selectedParentId}
+          sections={state.sections}
+        />
       )}
       {customCss && (
         <style data-store-custom-css="" dangerouslySetInnerHTML={{ __html: customCss }} />
@@ -412,6 +393,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
                 listing={state.listing}
                 currency={state.currency}
                 storeContext={state.storeContext}
+                builderPreview
               />
             </PreviewProductState>
           </DesignerSessionProvider>
@@ -428,9 +410,12 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
  */
 function SectionToolbar({
   sectionId,
+  parentId,
   sections,
 }: {
   sectionId: string;
+  /** Parent layout container, when the section is nested. */
+  parentId: string | null;
   sections: SectionInstance[];
 }) {
   const t = useTranslations('builderPreview');
@@ -477,7 +462,12 @@ function SectionToolbar({
     );
   };
 
+  // Move up/down act within the section's siblings; the dashboard resolves
+  // that from the tree, the preview just posts the action.
   const buttons = [
+    ...(parentId
+      ? [{ action: 'select-parent', title: t('selectParent'), Icon: ArrowUpToLine }]
+      : []),
     { action: 'move-up', title: t('moveUp'), Icon: ChevronUp },
     { action: 'move-down', title: t('moveDown'), Icon: ChevronDown },
     { action: 'duplicate', title: t('duplicate'), Icon: Copy },

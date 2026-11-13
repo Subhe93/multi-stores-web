@@ -9,11 +9,12 @@ export const productGalleryMagicSection: SectionDefinition = {
     id: 'product-gallery',
     label: { en: 'Product Gallery', ar: 'معرض المنتج' },
     icon: 'gallery',
-    category: 'commerce',
+    category: 'product',
     description: {
-      en: 'Magic section. Four layouts (main+thumbnails, grid, stacked, carousel) with optional hover-zoom.',
-      ar: 'قسم سحري. أربع تخطيطات (رئيسي+مصغرات، شبكة، مكدّس، شريط) مع تكبير عند المرور.',
+      en: 'Product images that follow the chosen variant and colour. Classic (as the product page), main+thumbnails, grid, stacked or carousel, with optional hover-zoom.',
+      ar: 'صور المنتج تتبع الخيار واللون المختار. كلاسيكي (كصفحة المنتج)، رئيسي+مصغرات، شبكة، مكدّس أو شريط، مع تكبير عند المرور.',
     },
+    pageTypes: ['PRODUCT_TEMPLATE'],
     translatable: [],
     schema: [
       {
@@ -22,6 +23,7 @@ export const productGalleryMagicSection: SectionDefinition = {
         label: { en: 'Layout', ar: 'التخطيط' },
         defaultValue: 'main-thumbnails',
         options: [
+          { value: 'classic', label: { en: 'Classic (as the product page)', ar: 'كلاسيكي (كصفحة المنتج)' } },
           { value: 'main-thumbnails', label: { en: 'Main + Thumbnails', ar: 'رئيسي + مصغرات' } },
           { value: 'carousel', label: { en: 'Carousel', ar: 'شريط' } },
           { value: 'grid', label: { en: 'Two-column grid', ar: 'شبكة عمودين' } },

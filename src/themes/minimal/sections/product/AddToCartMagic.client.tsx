@@ -1,185 +1,52 @@
 'use client';
 
 // Component implementation. Definition lives in AddToCartMagic.tsx.
+//
+// Product layout wave 2 (B1): the section is a composite of the variant
+// picker, the personalization fields and the quantity + add-to-cart CTA on
+// the page's shared product state. It used to keep its own selection
+// (pre-picking the first variant), quantity and personalization app, so it
+// disagreed with the gallery and price of other sections and missed bundles,
+// the customer upload and the piece-one rule. Now one state drives them all,
+// and adding validates and prices exactly like the monolith product page.
+// The saved settings (`button_style`, `full_width`, `show_quantity`,
+// `show_stock`, `sticky_on_mobile`, content `button_label`) keep their names
+// and look.
 
-import { useMemo, useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Check, Loader2, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { useApiError } from '@/lib/useApiError';
-import { resolveMediaUrl } from '@/lib/api';
-import type { LineSource } from '@/lib/cartLine';
-import type { ProductContext, SectionRenderProps } from '../../../types';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
-import { VariantSelector } from '@/components/product/VariantSelector';
-import { useDisplayPrice } from '@/hooks/useDisplayPrice';
-import type { PersonalizationProduct } from '@/lib/personalization/form';
-import type { POptionConfig } from '@multi-stores/core/personalization/types';
+import { CustomerUpload } from '@/components/product/CustomerUpload';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
-import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
-import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
-import { useAddToCartLine } from '@/components/product/useAddToCartLine';
 import { DesignerFormSlot, useDesignerAddonsTotal, useDesignerSession } from '@/components/designer/DesignerSession';
-import type { DesignedLine } from '@/components/designer/DesignerInline';
+import { formatPrice } from '@/lib/format';
+import type { SectionRenderProps } from '../../../types';
 import {
-  errorKey,
-  readApiPersonalizationErrors,
-} from '@/components/product/personalization/model';
+  B1Placeholder,
+  B1_SCOPE_STYLE,
+  BundleChip,
+  StateVariantSelector,
+  b1LangPrefix,
+  hasMainVariantOptions,
+  isBlockPreview,
+  useBlockState,
+} from './blocks/b1Shared';
 
-/** `variant_option_config` entry as `VariantSelector` reads it. */
-type SectionOptionConfig = POptionConfig & {
-  style: string;
-  values?: string[];
-  colorMap?: Record<string, string>;
-  dualColorMap?: Record<string, [string, string]>;
-  imageMap?: Record<string, string>;
-  swatchMap?: Record<string, string>;
-  valueMeta?: Record<string, unknown>;
-};
-
-interface NormalisedVariant {
-  id: string;
-  price: number;
-  compareAtPrice?: number;
-  /** Same value under the payload name, read by the variation cards (cards v2). */
-  compare_at_price?: number;
-  stock?: number;
-  is_active?: boolean | null;
-  label: string;
-  /** Picks keyed by the original-case option name (as the API and the evaluator use them). */
-  options: Record<string, string>;
-}
-
-type RawVariant = NonNullable<ProductContext['variants']>[number] & {
-  options?: unknown;
-  is_active?: boolean | null;
-};
-
-/**
- * Variant options: the storefront payload's `options` JSON (name → value),
- * falling back to the legacy `variant_values` rows.
- */
-function variantOptions(v: RawVariant): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (v.options && typeof v.options === 'object' && !Array.isArray(v.options)) {
-    for (const [name, value] of Object.entries(v.options as Record<string, unknown>)) {
-      if (typeof value === 'string' && name !== '') out[name] = value;
-    }
-    if (Object.keys(out).length > 0) return out;
-  }
-  for (const vv of v.variant_values || []) {
-    if (vv && typeof vv.option_name === 'string' && typeof vv.option_value === 'string') {
-      out[vv.option_name] = vv.option_value;
-    }
-  }
-  return out;
-}
-
-function normaliseVariants(product: ProductContext): NormalisedVariant[] {
-  return ((product.variants || []) as RawVariant[]).map((v) => {
-    const options = variantOptions(v);
-    const label = Object.values(options).join(' / ') || v.sku || 'Default';
-    return {
-      id: v.id,
-      price: v.price,
-      compareAtPrice: v.compare_at_price,
-      compare_at_price: v.compare_at_price,
-      stock: v.stock,
-      is_active: v.is_active,
-      label,
-      options,
-    };
-  });
-}
-
-/** Option names the variants carry (the picker's groups). */
-function optionNamesOf(variants: NormalisedVariant[]): string[] {
-  const names: string[] = [];
-  for (const v of variants) for (const name of Object.keys(v.options)) if (!names.includes(name)) names.push(name);
-  return names;
-}
-
-/** The variant the picks resolve to: every option picked and a matching variant. */
-function resolveVariant(
-  variants: NormalisedVariant[],
-  optionNames: string[],
-  picks: Record<string, string>,
-): NormalisedVariant | undefined {
-  if (!optionNames.every((n) => typeof picks[n] === 'string')) return undefined;
-  return variants.find((v) => optionNames.every((n) => v.options[n] === picks[n]));
-}
-
-// The option picker is the page's `VariantSelector` (M5 D19), which reads the
-// store primary colour; map the theme token onto it for this section.
-const SCOPE_STYLE = {
-  ['--store-primary' as string]: 'var(--theme-colors-primary)',
-  ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
-} as CSSProperties;
-
-export function AddToCartMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
+export function AddToCartMagic(props: SectionRenderProps) {
+  const { settings, content, locale, primaryLocale } = props;
   const t = useTranslations();
-  // Shared add-to-cart (M5 D31): same line metadata as the product page,
-  // "added" confirmation with its timer cleared on unmount (D28).
-  const { addLine, addDesignLine, justAdded, markAdded } = useAddToCartLine();
-  // b2b app: company view shows net amounts.
-  const display = useDisplayPrice();
-  const variants = useMemo(() => (product ? normaliseVariants(product) : []), [product]);
-  const optionConfigs = useMemo(
-    () =>
-      Array.isArray(product?.variant_option_config)
-        ? (product.variant_option_config as SectionOptionConfig[])
-        : [],
-    [product],
-  );
-  const optionNames = useMemo(() => optionNamesOf(variants), [variants]);
-
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(variants[0]?.id ?? null);
-  const [optionSelection, setOptionSelection] = useState<Record<string, string>>(() => ({
-    ...(variants[0]?.options ?? {}),
-  }));
-
-  // No fallback to the first variant: when the picked options match no
-  // variant, nothing is selected and the button is disabled.
-  const selectedVariant = useMemo(
-    () => variants.find((v) => v.id === selectedVariantId),
-    [variants, selectedVariantId],
-  );
-
-  const c = currency || 'EUR';
-  const taxRateBp = product?.tax_rate_bp ?? null;
-
-  // Personalization app (M4.1), shared with the product page: gate, form,
-  // variation cards, URL prefill and price delta. Off = the M4.0 section;
-  // the storefront product carries `custom_fields` (+ creator `field_values`)
-  // through ProductContext's catch-all, with the same form and rules.
-  const app = usePersonalizationApp({
-    product: product as PersonalizationProduct | undefined,
-    personalization: product?.personalization,
-    optionConfig: optionConfigs,
-    variants,
-    variantOptions: selectedVariant?.options,
-    optionSelections: optionSelection,
-    locale,
-    primaryLocale: primaryLocale || locale,
-    currency: c,
-    taxRateBp,
-    onPrefillOptions: (picks) => {
-      const next = { ...optionSelection, ...picks };
-      setOptionSelection(next);
-      setSelectedVariantId(resolveVariant(variants, optionNames, next)?.id ?? null);
-    },
-  });
-  const { appSettings, market, storeSlug, advanced, cardsConfig } = app;
-  const personalization = app.fields;
-  const [qty, setQty] = useState(1);
-  const [busy, setBusy] = useState(false);
-  const [addError, setAddError] = useState('');
-  const apiError = useApiError();
+  const state = useBlockState(props);
   // Designer app (M4.2 / M5.5): the inline form replaces the fields and the
   // add button; the canvas renders in the gallery section (shared session).
   const designer = useDesignerSession();
   const designerAddons = useDesignerAddonsTotal();
+
+  if (!state) {
+    return <B1Placeholder preview={isBlockPreview(props)} locale={locale} label={{ en: 'Add to cart', ar: 'إضافة للسلة' }} />;
+  }
 
   const buttonStyle = (settings.button_style as 'solid' | 'outline') || 'solid';
   const fullWidth = settings.full_width !== false;
@@ -187,131 +54,33 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   const showSticky = settings.sticky_on_mobile === true;
   const showQuantity = settings.show_quantity !== false;
 
-  if (!product) {
-    return (
-      <div
-        className="text-center py-12 px-4"
-        style={{
-          backgroundColor: 'var(--theme-colors-surface)',
-          border: '1px dashed var(--theme-colors-border)',
-          borderRadius: 'var(--theme-radius-md)',
-        }}
-      >
-        <div className="text-xs uppercase tracking-wide text-[var(--theme-colors-muted)]">
-          {t('common.addToCart')}
-        </div>
-      </div>
-    );
-  }
-
-  // The shown unit price includes the personalization modifier where it is
-  // in the shown currency (display only; the server prices the line).
-  const displayPrice = Number(selectedVariant?.price ?? product.base_price ?? 0) + app.priceDelta;
-  const compareAt = selectedVariant?.compareAtPrice ?? product.compare_at_price;
+  const {
+    product, variants, selectedVariant, selectedVariantId, advanced, appSettings, app, personalization,
+    currency, taxRateBp, display, currentPrice, displayPrice, displayComparePrice, quantity, isDraftPreview,
+    isOutOfStock, isAddDisabled, addingToCart, addedToCart, customFieldError, addToCartError,
+  } = state;
+  const money = (amount: number) => formatPrice(display(amount, taxRateBp, currency).amount, currency, state.locale);
   const stock = selectedVariant?.stock;
-
-  const money = (amount: number) =>
-    new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
-      style: 'currency',
-      currency: c,
-      maximumFractionDigits: 2,
-    }).format(display(amount, taxRateBp, c).amount);
-  const priceLabel = money(Number(displayPrice));
-  const compareAtLabel = compareAt
-    ? new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
-        style: 'currency',
-        currency: c,
-        maximumFractionDigits: 2,
-      }).format(display(Number(compareAt), taxRateBp, c).amount)
-    : null;
-
   const buttonLabel = (content.button_label as string) || t('common.addToCart');
-  const tr =
-    product.translations.find((t) => t.locale === locale) ||
-    product.translations.find((t) => t.locale === 'en') ||
-    product.translations[0];
-  const title = tr?.title || 'Product';
-  const imageUrl = product.images?.[0]?.url ? resolveMediaUrl(product.images[0].url) : undefined;
   // Secondary locales get a path prefix; the primary stays canonical.
-  const langPrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
+  const langPrefix = b1LangPrefix(locale, primaryLocale);
 
-  // What both add paths (fields / design) know about the line (M5 D31).
-  const lineSource: LineSource = {
-    title,
-    unitPrice: displayPrice,
-    imageUrl,
-    variantOptions: selectedVariant?.options ?? null,
-    currency: c,
-    taxRateBp,
-  };
-
-  async function handleAdd() {
-    if (!product || busy || needsVariant || draftPreview) return;
-    setAddError('');
-    // Same rules as the API; a missing required field blocks the add.
-    const check = personalization.validateAll();
-    if (!check.ok) {
-      // A field error already shows inline under its field: focus and scroll
-      // to it (D20) instead of repeating the message below the button.
-      if (check.fieldId) focusPersonalizationField(check.fieldId);
-      else setAddError(check.firstError || '');
-      return;
-    }
-    // No custom fields → `{}` and no display lines, exactly as before M4.0 (G0).
-    const { fields, display } = personalization.buildPayload();
-    setBusy(true);
-    try {
-      await addLine({ productId: product.id, variantId: selectedVariantId, quantity: qty, source: lineSource }, fields ?? {}, {
-        ...(display ? { customFieldDisplay: display } : {}),
-        // Personalization app (D14): guests validate on the server first.
-        ...(advanced && storeSlug
-          ? { personalizationCheck: { storeSlug, locale, market: market?.key ?? null } }
-          : {}),
-      });
-    } catch (err) {
-      // Field rule errors (K2) show inline on their field only; others
-      // (e.g. CART_ITEM_NOT_AVAILABLE_IN_MARKET) are translated via errors.*
-      const appErrors = advanced ? readApiPersonalizationErrors(err) : null;
-      const fieldId = appErrors?.[0] ? errorKey(appErrors[0]) : (err as { field_id?: unknown } | null)?.field_id;
-      if (personalization.applyServerError(err)) {
-        if (typeof fieldId === 'string') focusPersonalizationField(fieldId);
-      } else setAddError(apiError(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function handleDesignerAdd(line: DesignedLine) {
-    if (!product) return Promise.resolve();
-    return addDesignLine({ productId: product.id, variantId: selectedVariantId, quantity: qty, source: lineSource }, line);
-  }
-
-  function handleDesignerDone(kind: 'added' | 'saved') {
-    if (kind === 'added') markAdded();
-  }
-
-  const oos = typeof stock === 'number' && stock <= 0;
-  // A product with variants needs one resolved before it can be added.
-  const needsVariant = variants.length > 0 && !selectedVariant;
-  // Owner preview of a DRAFT product: the button stays disabled.
-  const draftPreview = product?.status === 'DRAFT';
-
-  // Option picker of the variants (page form; also the designer review
-  // step): the page's selector, controlled by this section's picks (D19).
-  const optionPicker = () =>
-    variants.length > 0 ? (
-      <VariantSelector
-        variants={variants}
-        selections={optionSelection}
-        selectedVariantId={selectedVariantId ?? undefined}
-        onSelect={(id) => setSelectedVariantId(id ?? null)}
-        onSelectionsChange={setOptionSelection}
-        optionConfigs={optionConfigs}
-        personalization={cardsConfig}
-        inStockText={t('product.inStock')}
-        outOfStockText={t('product.outOfStock')}
-      />
-    ) : null;
+  const primaryButton: CSSProperties =
+    buttonStyle === 'outline'
+      ? {
+          backgroundColor: 'transparent',
+          color: 'var(--theme-colors-primary)',
+          border: '2px solid var(--theme-colors-primary)',
+          borderRadius: 'var(--theme-radius-md)',
+          fontWeight: 'var(--theme-weight-bold)',
+        }
+      : {
+          backgroundColor: 'var(--theme-colors-primary)',
+          color: 'var(--theme-colors-primaryContrast, #fff)',
+          borderRadius: 'var(--theme-radius-md)',
+          fontWeight: 'var(--theme-weight-bold)',
+          boxShadow: 'var(--theme-shadow-md)',
+        };
 
   // "Added" confirmation with a way to the cart (M5 D5).
   const addedState = (
@@ -339,6 +108,13 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
     </div>
   );
 
+  // Quantity: the stock of the chosen variant caps it; a bundle offer sets
+  // its minimum and step (multiples of the bundle size).
+  const min = state.quantityMin;
+  const step = state.quantityStep;
+  const max = state.maxStock;
+  const canDecrement = quantity - step >= min;
+  const canIncrement = max === undefined || quantity + step <= max;
   const quantityPicker = showQuantity ? (
     <div className="flex items-center gap-3">
       <span className="text-xs font-medium" style={{ color: 'var(--theme-colors-text)' }}>
@@ -354,9 +130,10 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
       >
         <button
           type="button"
-          onClick={() => setQty((q) => Math.max(1, q - 1))}
+          onClick={() => canDecrement && state.handleQuantityChange(quantity - step)}
+          disabled={!canDecrement}
           aria-label={t('common.decreaseQuantity')}
-          className="size-11 inline-flex items-center justify-center"
+          className="size-11 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ color: 'var(--theme-colors-text)' }}
         >
           <Minus className="size-3.5" />
@@ -365,13 +142,14 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
           className="px-3 py-1.5 text-sm tabular-nums"
           style={{ minWidth: 40, textAlign: 'center', color: 'var(--theme-colors-text)' }}
         >
-          {qty}
+          {quantity}
         </span>
         <button
           type="button"
-          onClick={() => setQty((q) => q + 1)}
+          onClick={() => canIncrement && state.handleQuantityChange(quantity + step)}
+          disabled={!canIncrement}
           aria-label={t('common.increaseQuantity')}
-          className="size-11 inline-flex items-center justify-center"
+          className="size-11 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ color: 'var(--theme-colors-text)' }}
         >
           <Plus className="size-3.5" />
@@ -384,68 +162,34 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
   // the section's quantity picker next to it (NPP has none).
   const designerForm = designer ? (
     <DesignerFormSlot
-      totalLabel={money((Number(displayPrice) + designerAddons) * qty)}
+      totalLabel={money((currentPrice + designerAddons) * quantity)}
       formatMoney={money}
       quantitySelector={quantityPicker}
-      blockedReason={
-        draftPreview ? t('store.productPreviewBar') : oos ? t('product.outOfStock') : needsVariant ? t('product.selectOptions') : null
-      }
-      addedContent={justAdded ? addedState : undefined}
-      onAddToCart={handleDesignerAdd}
-      onDone={handleDesignerDone}
+      blockedReason={isDraftPreview ? t('store.productPreviewBar') : state.designerBlockedReason}
+      addedContent={addedToCart ? addedState : undefined}
+      onAddToCart={state.handleDesignerAdd}
+      onDone={state.handleDesignerDone}
       buttonClassName={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 px-6 py-3 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none ${fullWidth ? 'w-full' : ''}`}
-      buttonStyle={
-        buttonStyle === 'outline'
-          ? {
-              backgroundColor: 'transparent',
-              color: 'var(--theme-colors-primary)',
-              border: '2px solid var(--theme-colors-primary)',
-              borderRadius: 'var(--theme-radius-md)',
-              fontWeight: 'var(--theme-weight-bold)',
-            }
-          : {
-              backgroundColor: 'var(--theme-colors-primary)',
-              color: 'var(--theme-colors-primaryContrast, #fff)',
-              borderRadius: 'var(--theme-radius-md)',
-              fontWeight: 'var(--theme-weight-bold)',
-              boxShadow: 'var(--theme-shadow-md)',
-            }
-      }
+      buttonStyle={primaryButton}
     />
   ) : null;
 
-  const cta = justAdded ? addedState : (
+  const cta = addedToCart ? addedState : (
     <button
       type="button"
-      onClick={handleAdd}
-      disabled={busy || oos || needsVariant || draftPreview}
+      onClick={state.handleAddToCart}
+      disabled={addingToCart || isAddDisabled}
       className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
         fullWidth ? 'w-full' : ''
       }`}
-      style={
-        buttonStyle === 'outline'
-          ? {
-              backgroundColor: 'transparent',
-              color: 'var(--theme-colors-primary)',
-              border: '2px solid var(--theme-colors-primary)',
-              borderRadius: 'var(--theme-radius-md)',
-              fontWeight: 'var(--theme-weight-bold)',
-            }
-          : {
-              backgroundColor: 'var(--theme-colors-primary)',
-              color: 'var(--theme-colors-primaryContrast, #fff)',
-              borderRadius: 'var(--theme-radius-md)',
-              fontWeight: 'var(--theme-weight-bold)',
-              boxShadow: 'var(--theme-shadow-md)',
-            }
-      }
+      style={primaryButton}
     >
-      {busy ? (
+      {addingToCart ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
           {t('product.addingToCart')}
         </>
-      ) : oos ? (
+      ) : isOutOfStock ? (
         t('product.outOfStock')
       ) : (
         <>
@@ -458,21 +202,22 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
 
   return (
     <>
-      <section className="space-y-5" style={SCOPE_STYLE}>
+      <section className="space-y-5" style={B1_SCOPE_STYLE}>
         {advanced && !designer && (
           <PersonalizationForm
             model={advanced}
             placement="before_variants"
             showAllErrors={personalization.showAllErrors}
-            locale={locale}
-            primaryLocale={primaryLocale || locale}
+            locale={state.locale}
+            primaryLocale={state.primaryLocale}
             anchor
           />
         )}
-        {optionPicker()}
+        {hasMainVariantOptions(state) && <StateVariantSelector state={state} />}
 
         <div className="flex items-baseline gap-3">
           <span
+            data-product-price=""
             style={{
               fontSize: 'var(--theme-scale-h3)',
               fontWeight: 'var(--theme-weight-bold)',
@@ -480,14 +225,14 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
               textShadow: 'var(--theme-price-shadow, none)', backgroundColor: 'var(--theme-price-bg, transparent)', padding: 'var(--theme-price-pad, 0)', borderRadius: '0.375rem',
             }}
           >
-            {priceLabel}
+            {money(displayPrice)}
           </span>
-          {compareAtLabel && compareAt && compareAt > displayPrice && (
+          {displayComparePrice !== undefined && displayComparePrice > displayPrice && (
             <span
               className="line-through text-sm"
               style={{ color: 'var(--theme-colors-muted)' }}
             >
-              {compareAtLabel}
+              {money(displayComparePrice)}
             </span>
           )}
           <PriceTaxSuffix className="text-xs" style={{ color: 'var(--theme-colors-muted)' }} taxRateBp={taxRateBp} />
@@ -503,15 +248,22 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             </span>
           )}
         </div>
+        {/* Line price headline, like the monolith: show the unit price × quantity. */}
+        {quantity > 1 && (
+          <p className="text-xs" style={{ color: 'var(--theme-colors-muted)' }}>
+            {money(currentPrice)} × {quantity}
+          </p>
+        )}
 
         {advanced && !designer && (
           <PersonalizationForm
             model={advanced}
             placement="after_variants"
             showAllErrors={personalization.showAllErrors}
-            locale={locale}
-            primaryLocale={primaryLocale || locale}
+            locale={state.locale}
+            primaryLocale={state.primaryLocale}
             showSummary={appSettings.validation_summary}
+            pieceOne={state.pieceOptionKeys.length > 0 ? <StateVariantSelector state={state} pieceOne /> : undefined}
           />
         )}
         {!advanced && !designer && personalization.fields.length > 0 && (
@@ -525,15 +277,36 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             onFill={personalization.onFill}
           />
         )}
+        {product.allow_customer_upload && !designer && (
+          <CustomerUpload
+            onFileSelect={state.handleFileSelect}
+            onRemove={state.handleFileRemove}
+            accept="image/*"
+            maxSizeMB={10}
+            label={t('product.fileUploads')}
+            uploading={state.customerFileUploading}
+            error={state.customerFileError}
+            required
+          />
+        )}
 
+        <BundleChip state={state} />
         {designerForm ?? (
           <>
             {quantityPicker}
             {cta}
           </>
         )}
-        {addError && (
-          <p role="alert" className="text-sm text-red-600">{addError}</p>
+        {customFieldError && (
+          <p className="text-sm text-red-600">{customFieldError}</p>
+        )}
+        {addToCartError && addToCartError !== customFieldError && (
+          <p role="alert" className="text-sm text-red-600">{addToCartError}</p>
+        )}
+        {!designer && variants.length > 0 && !selectedVariantId && (
+          <p className="text-xs text-center" style={{ color: 'var(--theme-colors-muted)' }}>
+            {t('product.selectOptions')}
+          </p>
         )}
       </section>
 
@@ -545,7 +318,7 @@ export function AddToCartMagic({ settings, content, locale, primaryLocale, produ
             backgroundColor: 'var(--theme-colors-background)',
             borderTop: '1px solid var(--theme-colors-border)',
             boxShadow: 'var(--theme-shadow-lg)',
-            ...SCOPE_STYLE,
+            ...B1_SCOPE_STYLE,
           }}
         >
           {cta}

@@ -1019,6 +1019,7 @@
     "STORE_NOT_LIVE": "Den här butiken tar inte emot beställningar ännu."
   },
   "builderPreview": {
+    "selectParent": "Välj överordnad",
     "moveUp": "Flytta upp",
     "moveDown": "Flytta ner",
     "duplicate": "Duplicera",

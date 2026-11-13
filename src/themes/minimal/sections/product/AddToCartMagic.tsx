@@ -9,11 +9,12 @@ export const addToCartMagicSection: SectionDefinition = {
     id: 'add-to-cart',
     label: { en: 'Add to Cart', ar: 'إضافة للسلة' },
     icon: 'shopping-cart',
-    category: 'commerce',
+    category: 'product',
     description: {
-      en: 'Magic section. Auto-detects color options as swatches, supports size pills, quantity, sticky mobile CTA.',
-      ar: 'قسم سحري. يكتشف خيار اللون كدوائر ملوّنة، يدعم المقاسات والكمية وزر ثابت أسفل الجوال.',
+      en: 'Options (swatches, size pills), personalization fields, price, quantity and the add-to-cart button in one block, following the page’s product state. Optional sticky mobile CTA.',
+      ar: 'الخيارات (دوائر الألوان، المقاسات) وحقول التخصيص والسعر والكمية وزر الإضافة للسلة في قسم واحد، يتبع حالة المنتج في الصفحة. زر ثابت أسفل الجوال اختياري.',
     },
+    pageTypes: ['PRODUCT_TEMPLATE'],
     translatable: ['button_label'],
     schema: [
       {

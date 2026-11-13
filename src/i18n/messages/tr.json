@@ -1019,6 +1019,7 @@
     "STORE_NOT_LIVE": "Bu mağaza henüz sipariş kabul etmiyor."
   },
   "builderPreview": {
+    "selectParent": "Üst öğeyi seç",
     "moveUp": "Yukarı taşı",
     "moveDown": "Aşağı taşı",
     "duplicate": "Çoğalt",

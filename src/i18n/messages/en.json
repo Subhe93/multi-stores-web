@@ -1019,6 +1019,7 @@
     "STORE_NOT_LIVE": "This store is not open for orders yet."
   },
   "builderPreview": {
+    "selectParent": "Select parent",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "duplicate": "Duplicate",

@@ -1019,6 +1019,7 @@
     "STORE_NOT_LIVE": "هذا المتجر لا يستقبل الطلبات بعد."
   },
   "builderPreview": {
+    "selectParent": "تحديد الحاوية الأم",
     "moveUp": "تحريك لأعلى",
     "moveDown": "تحريك لأسفل",
     "duplicate": "تكرار",

@@ -3,17 +3,27 @@
 // Component implementation. Definition lives in ProductGalleryMagic.tsx so the
 // server-side theme registry resolves `.Component` to a ClientReference rather
 // than swallowing the entire section object as opaque client data.
+//
+// Product layout wave 2 (B1): the gallery reads the page's shared product
+// state, so its images follow the chosen variant (variant images, then the
+// picked colour's `imageMap` image, then the product gallery) and the active
+// image is the one every other block sees. The saved settings (`layout`,
+// `aspect`, `enable_zoom`) keep their names and meaning; `classic` is the
+// monolith product page's gallery (ProductGallery: swipe, zoom, lightbox).
 
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
-import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
+import { ProductGallery } from '@/components/product/ProductGallery';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { DesignerCanvasSlot, useDesignerSession } from '@/components/designer/DesignerSession';
 import type { SectionRenderProps } from '../../../types';
+import { B1Placeholder, isBlockPreview, useBlockState } from './blocks/b1Shared';
 
-type Layout = 'main-thumbnails' | 'grid' | 'stacked' | 'carousel';
+type Layout = 'classic' | 'main-thumbnails' | 'grid' | 'stacked' | 'carousel';
 type Aspect = 'square' | 'portrait' | 'landscape';
+
+const LAYOUTS: Layout[] = ['classic', 'main-thumbnails', 'grid', 'stacked', 'carousel'];
 
 const ASPECT: Record<Aspect, string> = {
   square: 'aspect-square',
@@ -21,63 +31,57 @@ const ASPECT: Record<Aspect, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-function PreviewPlaceholder({ label, hint }: { label: string; hint: string }) {
-  return (
-    <div
-      className="text-center py-12 px-4"
-      style={{
-        backgroundColor: 'var(--theme-colors-surface)',
-        border: '1px dashed var(--theme-colors-border)',
-        borderRadius: 'var(--theme-radius-md)',
-      }}
-    >
-      <div className="text-xs uppercase tracking-wide text-[var(--theme-colors-muted)] mb-1">
-        {label}
-      </div>
-      <p className="text-xs text-[var(--theme-colors-muted)]">{hint}</p>
-    </div>
-  );
-}
-
-export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
-  const layout = (settings.layout as Layout) || 'main-thumbnails';
-  const aspect = (settings.aspect as Aspect) || 'square';
+export function ProductGalleryMagic(props: SectionRenderProps) {
+  const { settings, locale } = props;
+  const layout: Layout = LAYOUTS.includes(settings.layout as Layout) ? (settings.layout as Layout) : 'main-thumbnails';
+  const aspect: Aspect = (settings.aspect as Aspect) in ASPECT ? (settings.aspect as Aspect) : 'square';
   const enableZoom = settings.enable_zoom !== false;
 
-  const images = (product?.images || []).filter((i) => !!i.url);
-  const [active, setActive] = useState(0);
+  const state = useBlockState(props);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   // Designer app (M5.5): the live canvas takes the gallery's place, with the
-  // product's featured image as a small thumbnail above it (NPP layout). The
-  // form lives in the add-to-cart section; both share the page's session.
+  // lead image as a small thumbnail above it (NPP layout). The form lives in
+  // another block; both share the page's session.
   const designer = useDesignerSession();
 
-  if (designer && product) {
+  if (!state) {
+    return <B1Placeholder preview={isBlockPreview(props)} locale={locale} label={{ en: 'Product gallery', ar: 'معرض المنتج' }} />;
+  }
+
+  const images = state.galleryImages;
+  const active = Math.min(state.activeGalleryIndex, Math.max(images.length - 1, 0));
+  const setActive = state.setActiveGalleryIndex;
+
+  if (designer) {
     const featured = images[0];
     return (
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4">
         {featured && (
-          // eslint-disable-next-line @next/next/no-img-element -- store media, as the gallery itself renders it
+          // eslint-disable-next-line @next/next/no-img-element -- natural-ratio thumbnail; optimized srcset
           <img
-            {...responsiveImgProps(resolveMediaUrl(featured.url), '270px')}
-            alt={featured.alt_text || ''}
+            {...responsiveImgProps(featured.url, '270px')}
+            alt={featured.alt}
             fetchPriority="high"
-            className="mx-auto block h-auto w-full max-w-67.5 object-cover"
-            style={{ borderRadius: 'var(--theme-radius-md)', boxShadow: 'var(--theme-shadow-sm)' }}
+            className="mx-auto block h-auto w-full max-w-67.5 rounded-xl shadow-sm"
           />
         )}
-        <DesignerCanvasSlot />
+        <DesignerCanvasSlot className="min-w-0" />
       </section>
     );
   }
 
-  if (!product || images.length === 0) {
+  // The monolith's gallery; also the empty state of every layout.
+  if (layout === 'classic' || images.length === 0) {
     return (
-      <PreviewPlaceholder
-        label="Product gallery"
-        hint={product ? 'This product has no images yet.' : 'Pick a sample product to preview.'}
-      />
+      <section className="min-w-0">
+        <ProductGallery
+          images={images}
+          activeIndex={state.activeGalleryIndex}
+          onIndexChange={setActive}
+          aspect={aspect}
+        />
+      </section>
     );
   }
 
@@ -93,7 +97,6 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
   // React does not treat it as a new element type (and remount) every render.
   const renderMainImage = (index: number) => {
     const img = images[index];
-    const src = resolveMediaUrl(img.url);
     // The lead image is the page's LCP: preload it at high priority.
     const lead = index === 0;
     return (
@@ -108,13 +111,14 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
         onMouseLeave={() => setZoom(null)}
       >
         <StoreImage
-          src={src}
-          alt={img.alt_text || ''}
+          key={img.url}
+          src={img.url}
+          alt={img.alt}
           fill
           sizes="(min-width: 768px) 50vw, 100vw"
           preload={lead}
           fetchPriority={lead ? 'high' : undefined}
-          unoptimized={isSvgSrc(src)}
+          unoptimized={isSvgSrc(img.url)}
           className="object-cover transition-transform duration-300"
           style={
             enableZoom && zoom
@@ -137,66 +141,32 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
     );
   };
 
-  if (layout === 'grid') {
+  if (layout === 'grid' || layout === 'stacked') {
+    const grid = layout === 'grid';
     return (
-      <section className="grid grid-cols-2 gap-3">
-        {images.map((img, i) => {
-          const src = resolveMediaUrl(img.url);
-          return (
-            <div
-              key={i}
-              className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
-              style={{
-                borderRadius: 'var(--theme-radius-md)',
-                border: '1px solid var(--theme-colors-border)',
-              }}
-            >
-              <StoreImage
-                src={src}
-                alt={img.alt_text || ''}
-                fill
-                sizes="(min-width: 768px) 25vw, 50vw"
-                preload={i === 0}
-                fetchPriority={i === 0 ? 'high' : undefined}
-                loading={i < 2 ? 'eager' : undefined}
-                unoptimized={isSvgSrc(src)}
-                className="object-cover"
-              />
-            </div>
-          );
-        })}
-      </section>
-    );
-  }
-
-  if (layout === 'stacked') {
-    return (
-      <section className="space-y-3">
-        {images.map((img, i) => {
-          const src = resolveMediaUrl(img.url);
-          return (
-            <div
-              key={i}
-              className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
-              style={{
-                borderRadius: 'var(--theme-radius-md)',
-                border: '1px solid var(--theme-colors-border)',
-              }}
-            >
-              <StoreImage
-                src={src}
-                alt={img.alt_text || ''}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                preload={i === 0}
-                fetchPriority={i === 0 ? 'high' : undefined}
-                loading={i < 1 ? 'eager' : undefined}
-                unoptimized={isSvgSrc(src)}
-                className="object-cover"
-              />
-            </div>
-          );
-        })}
+      <section className={grid ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
+        {images.map((img, i) => (
+          <div
+            key={img.url}
+            className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
+            style={{
+              borderRadius: 'var(--theme-radius-md)',
+              border: '1px solid var(--theme-colors-border)',
+            }}
+          >
+            <StoreImage
+              src={img.url}
+              alt={img.alt}
+              fill
+              sizes={grid ? '(min-width: 768px) 25vw, 50vw' : '(min-width: 768px) 50vw, 100vw'}
+              preload={i === 0}
+              fetchPriority={i === 0 ? 'high' : undefined}
+              loading={i < (grid ? 2 : 1) ? 'eager' : undefined}
+              unoptimized={isSvgSrc(img.url)}
+              className="object-cover"
+            />
+          </div>
+        ))}
       </section>
     );
   }
@@ -209,7 +179,7 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
           <>
             <button
               type="button"
-              onClick={() => setActive((i) => (i - 1 + images.length) % images.length)}
+              onClick={() => setActive((active - 1 + images.length) % images.length)}
               className="absolute top-1/2 -translate-y-1/2 left-2 size-9 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white"
               aria-label="Previous"
             >
@@ -217,16 +187,16 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
             </button>
             <button
               type="button"
-              onClick={() => setActive((i) => (i + 1) % images.length)}
+              onClick={() => setActive((active + 1) % images.length)}
               className="absolute top-1/2 -translate-y-1/2 right-2 size-9 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white"
               aria-label="Next"
             >
               <ChevronRight className="size-4" />
             </button>
             <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
-              {images.map((_, i) => (
+              {images.map((img, i) => (
                 <button
-                  key={i}
+                  key={img.url}
                   type="button"
                   onClick={() => setActive(i)}
                   className="size-1.5 rounded-full transition-all"
@@ -251,9 +221,11 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
         <div className="grid grid-cols-5 gap-2 mt-3">
           {images.slice(0, 10).map((img, i) => (
             <button
-              key={i}
+              key={img.url}
               type="button"
               onClick={() => setActive(i)}
+              aria-label={`Image ${i + 1}`}
+              aria-pressed={i === active}
               className="relative block w-full aspect-square overflow-hidden transition-all"
               style={{
                 borderRadius: 'var(--theme-radius-sm)',
@@ -265,11 +237,11 @@ export function ProductGalleryMagic({ settings, product }: SectionRenderProps) {
               }}
             >
               <StoreImage
-                src={resolveMediaUrl(img.url)}
-                alt={img.alt_text || ''}
+                src={img.url}
+                alt={img.alt}
                 fill
                 sizes="(min-width: 768px) 10vw, 20vw"
-                unoptimized={isSvgSrc(resolveMediaUrl(img.url))}
+                unoptimized={isSvgSrc(img.url)}
                 className="object-cover"
               />
             </button>

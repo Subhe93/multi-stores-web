@@ -17,6 +17,7 @@
 import dynamic from 'next/dynamic';
 
 export const AddToCartMagic = dynamic(() => import('./AddToCartMagic.client').then((m) => m.AddToCartMagic));
+export const ProductDetailsMagic = dynamic(() => import('./ProductDetailsMagic.client').then((m) => m.ProductDetailsMagic));
 export const ProductGalleryMagic = dynamic(() => import('./ProductGalleryMagic.client').then((m) => m.ProductGalleryMagic));
 export const ProductPageMagic = dynamic(() => import('./ProductPageMagic.client').then((m) => m.ProductPageMagic));
 export const ProductTabsMagic = dynamic(() => import('./ProductTabsMagic.client').then((m) => m.ProductTabsMagic));

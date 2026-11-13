@@ -158,7 +158,8 @@ export interface SectionSchema {
   id: string;
   label: LocalizedString;
   icon?: string;
-  category: 'showcase' | 'content' | 'commerce' | 'social' | 'layout' | 'header' | 'footer';
+  // 'product': the separate product blocks of a PRODUCT_TEMPLATE.
+  category: 'showcase' | 'content' | 'commerce' | 'social' | 'layout' | 'header' | 'footer' | 'product';
   description?: LocalizedString;
   // Keys from `schema` that hold translatable content (per-locale).
   // Everything else lives in `settings` (single value across locales).
@@ -402,7 +403,11 @@ export interface SectionRenderProps {
   sectionId?: string;
   /** Already rendered child sections, in sibling order. */
   layoutChildren?: LayoutChildNode[];
-  /** True inside the dashboard builder preview (empty-container placeholder). */
+  /**
+   * True inside the dashboard builder preview (empty-container placeholder).
+   * Also passed (true/false) to product blocks (schema category 'product'),
+   * which show a "no data" placeholder only in the builder preview.
+   */
   builderPreview?: boolean;
 }
 

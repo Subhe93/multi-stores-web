@@ -304,3 +304,42 @@ describe('SectionRenderer reveal and LCP', () => {
     expect(revealed(container)).toEqual([]);
   });
 });
+
+// ── builderPreview on product blocks ────────────────────────────────────
+
+describe('SectionRenderer builderPreview on product blocks', () => {
+  const productProbe: SectionDefinition = {
+    schema: { id: 'product-title', label: { en: 'Product title' }, category: 'product', translatable: [], schema: [] },
+    Component: (props: SectionRenderProps) => <p data-bp={String(props.builderPreview)} />,
+  };
+  const contentProbe: SectionDefinition = {
+    schema: { id: 'rich-text', label: { en: 'Rich text' }, category: 'content', translatable: [], schema: [] },
+    Component: (props: SectionRenderProps) => <p data-bp={String(props.builderPreview)} />,
+  };
+  const blockTheme: Theme = {
+    ...theme,
+    sections: { ...theme.sections, 'product-title': productProbe, 'rich-text': contentProbe },
+  };
+  const sections = [sec('p', 'product-title', 0), sec('t', 'rich-text', 1)];
+  const flags = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('[data-bp]')).map((el) => el.getAttribute('data-bp'));
+
+  it('passes an explicit flag to product blocks only', () => {
+    const live = render(<SectionRenderer {...base} theme={blockTheme} sections={sections} />);
+    expect(flags(live.container)).toEqual(['false', 'undefined']);
+    live.unmount();
+    const builder = render(<SectionRenderer {...base} theme={blockTheme} builderPreview sections={sections} />);
+    expect(flags(builder.container)).toEqual(['true', 'undefined']);
+  });
+
+  it('registers every product block in the minimal theme', () => {
+    for (const key of [
+      'product-breadcrumb', 'product-title', 'product-price', 'product-short-description',
+      'product-promotions', 'product-bundles', 'product-variants', 'product-personalization',
+      'product-buy', 'product-gallery', 'product-trust', 'product-shipping', 'product-tabs',
+      'product-details', 'add-to-cart', 'product-page',
+    ]) {
+      expect(minimalTheme.sections[key]?.Component, key).toBeTruthy();
+    }
+  });
+});
