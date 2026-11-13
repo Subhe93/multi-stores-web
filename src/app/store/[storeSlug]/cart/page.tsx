@@ -520,7 +520,13 @@ export default function StoreCartPage() {
 
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-gray-600">{t('cart.shipping')}</span>
-                  <span className="text-green-600 font-medium">{t('checkout.freeShippingLabel')}</span>
+                  {/* The cart has no shipping quote: "free" only when the applied
+                      coupon grants it; otherwise the cost is shown at checkout. */}
+                  {coupon?.freeShipping ? (
+                    <span className="text-green-600 font-medium">{t('checkout.freeShippingLabel')}</span>
+                  ) : (
+                    <span className="text-gray-500">{t('cart.calculatedAtCheckout')}</span>
+                  )}
                 </div>
 
                 {discount > 0 && (
