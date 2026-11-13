@@ -66,7 +66,13 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     headers,
   });
 
-  const json = await res.json();
+  // An error answer without a JSON body (a proxy's HTML 502/503 page, an
+  // empty 429) still becomes an ApiError carrying its HTTP status, so
+  // callers can tell "server unavailable" from "request rejected".
+  const json = await res.json().catch((parseErr: unknown) => {
+    if (res.ok) throw parseErr;
+    return {};
+  });
 
   if (!res.ok) {
     const err = new Error(json.message || 'API request failed') as ApiError;

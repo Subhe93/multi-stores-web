@@ -321,7 +321,15 @@
     "fileUploads": "File uploads",
     "percentOff": "{percent}% off",
     "amountOff": "{amount} off",
-    "buyQuantity": "Buy {count}"
+    "buyQuantity": "Buy {count}",
+    "couponActive": "Discount code <strong>{code}</strong> is active",
+    "couponPendingCheckout": "Discount code <strong>{code}</strong> is deducted at checkout",
+    "couponYourPrice": "Your price with discount: {price}",
+    "couponFixedOff": "{amount} off your order",
+    "couponFreeShipping": "Free shipping on your order",
+    "couponMinAmount": "Applies to orders of at least {amount}",
+    "couponMinQuantity": "Applies when you buy at least {count} items",
+    "couponNotApplicable": "Discount code {code} does not apply to this product"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "Remove coupon",
     "discount": "Discount",
     "calculatedAtCheckout": "Calculated at checkout",
+    "shippingEstimatedFor": "Estimated for {country}",
+    "shippingAddedAtCheckout": "Shipping is added at checkout",
     "emptyDescription": "Looks like you haven't added any items yet.",
     "itemCount": "{count} items",
     "clearCart": "Clear Cart",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "Payment settings changed, please try again.",
     "PAYMENT_PROVIDER_ERROR": "The payment provider could not process this payment right now. Please try again in a moment or choose another payment method.",
     "CART_ITEMS_UNAVAILABLE": "Some items in your cart are no longer available. Please review your cart and try again.",
-    "STORE_NOT_LIVE": "This store is not open for orders yet."
+    "STORE_NOT_LIVE": "This store is not open for orders yet.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "Your order does not reach the minimum amount for this coupon",
+    "PROMOTION_COUPON_MIN_QUANTITY": "Your order does not have enough items for this coupon"
   },
   "builderPreview": {
     "selectParent": "Select parent",

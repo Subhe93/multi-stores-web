@@ -321,7 +321,15 @@
     "fileUploads": "Fichiers à envoyer",
     "percentOff": "{percent}% de réduction",
     "amountOff": "{amount} de réduction",
-    "buyQuantity": "Achetez-en {count}"
+    "buyQuantity": "Achetez-en {count}",
+    "couponActive": "Le code promo <strong>{code}</strong> est activé",
+    "couponPendingCheckout": "Le code promo <strong>{code}</strong> sera déduit au paiement",
+    "couponYourPrice": "Votre prix avec remise : {price}",
+    "couponFixedOff": "{amount} de remise sur votre commande",
+    "couponFreeShipping": "Livraison gratuite pour votre commande",
+    "couponMinAmount": "Valable dès {amount} d’achat",
+    "couponMinQuantity": "Valable dès {count} articles achetés",
+    "couponNotApplicable": "Le code promo {code} ne s’applique pas à ce produit"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "Supprimer le coupon",
     "discount": "Réduction",
     "calculatedAtCheckout": "Calculé à la caisse",
+    "shippingEstimatedFor": "Estimé pour {country}",
+    "shippingAddedAtCheckout": "Livraison ajoutée lors du paiement",
     "emptyDescription": "Il semble que vous n'ayez pas encore ajouté d'articles.",
     "itemCount": "{count} articles",
     "clearCart": "Vider le panier",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "Les paramètres de paiement ont changé, veuillez réessayer.",
     "PAYMENT_PROVIDER_ERROR": "Le prestataire de paiement n'a pas pu traiter ce paiement pour le moment. Veuillez réessayer dans un instant ou choisir un autre moyen de paiement.",
     "CART_ITEMS_UNAVAILABLE": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
-    "STORE_NOT_LIVE": "Cette boutique n’accepte pas encore de commandes."
+    "STORE_NOT_LIVE": "Cette boutique n’accepte pas encore de commandes.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "Votre commande n’atteint pas le montant minimum pour ce code promo",
+    "PROMOTION_COUPON_MIN_QUANTITY": "Votre commande ne contient pas assez d’articles pour ce code promo"
   },
   "builderPreview": {
     "selectParent": "Sélectionner le parent",

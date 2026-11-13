@@ -321,7 +321,15 @@
     "fileUploads": "Datei-Uploads",
     "percentOff": "{percent}% Rabatt",
     "amountOff": "{amount} Rabatt",
-    "buyQuantity": "{count} kaufen"
+    "buyQuantity": "{count} kaufen",
+    "couponActive": "Rabattcode <strong>{code}</strong> ist aktiviert",
+    "couponPendingCheckout": "Rabattcode <strong>{code}</strong> wird an der Kasse abgezogen",
+    "couponYourPrice": "Ihr Preis mit Rabatt: {price}",
+    "couponFixedOff": "{amount} Rabatt auf Ihre Bestellung",
+    "couponFreeShipping": "Kostenloser Versand für Ihre Bestellung",
+    "couponMinAmount": "Gilt ab einem Bestellwert von {amount}",
+    "couponMinQuantity": "Gilt ab {count} Artikeln",
+    "couponNotApplicable": "Der Rabattcode {code} gilt nicht für dieses Produkt"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "Gutschein entfernen",
     "discount": "Rabatt",
     "calculatedAtCheckout": "Wird an der Kasse berechnet",
+    "shippingEstimatedFor": "Berechnet für {country}",
+    "shippingAddedAtCheckout": "Versand wird an der Kasse hinzugefügt",
     "emptyDescription": "Sie haben noch keine Artikel hinzugefügt.",
     "itemCount": "{count} Artikel",
     "clearCart": "Warenkorb leeren",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "Die Zahlungseinstellungen haben sich geändert, bitte versuche es erneut.",
     "PAYMENT_PROVIDER_ERROR": "Der Zahlungsanbieter konnte diese Zahlung gerade nicht verarbeiten. Bitte versuche es gleich noch einmal oder wähle eine andere Zahlungsart.",
     "CART_ITEMS_UNAVAILABLE": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
-    "STORE_NOT_LIVE": "Dieser Shop nimmt noch keine Bestellungen an."
+    "STORE_NOT_LIVE": "Dieser Shop nimmt noch keine Bestellungen an.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "Ihre Bestellung erreicht den Mindestbetrag für diesen Gutschein nicht",
+    "PROMOTION_COUPON_MIN_QUANTITY": "Ihre Bestellung enthält zu wenige Artikel für diesen Gutschein"
   },
   "builderPreview": {
     "selectParent": "Übergeordnetes Element auswählen",

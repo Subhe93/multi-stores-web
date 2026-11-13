@@ -24,6 +24,10 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
+import { couponDiscount } from '@/lib/couponDiscount';
+import { useCartQuote } from '@/hooks/useCartQuote';
+import { quoteTotalBeforeTax } from '@/lib/cartQuote';
+import { countryName } from '@/lib/marketSwitch';
 import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components/cart/UnavailableRemovedNotice';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -329,11 +333,29 @@ export default function StoreCartPage() {
   // Lines of deleted / unpublished products are dropped on load.
   useCartAvailabilityCheck();
 
-  const discount = coupon
-    ? coupon.type === 'percentage'
-      ? subtotal * (coupon.discount / 100)
-      : coupon.discount
-    : 0;
+  // Shared coupon formula (same as drawer / checkout / useCart total).
+  const discount = couponDiscount(coupon, items);
+
+  // Real shipping + totals for the market's default destination (POST
+  // /orders/quote, the path checkout and Kustom price with). Once known the
+  // summary shows the server's figures so the cart equals checkout; until
+  // then (or when it fails) the client figures stay and shipping is "at checkout".
+  const quoteState = useCartQuote();
+  const quote = quoteState.quote;
+  const quoteLoading = quoteState.status === 'loading';
+  const shippingUnknown = quoteState.status === 'unknown' && !coupon?.freeShipping;
+  // Every row of the box comes from one source: the quote once it is known.
+  const shownSubtotal = quote ? quote.subtotal : subtotal;
+  const shownDiscount = quote ? quote.discount : discount;
+  const shownTotal = quote ? quote.total : total;
+  const shownTaxLines = quote ? quote.taxLines : taxLines;
+  const shownTaxEstimated = quote ? false : taxEstimated;
+  // Company view: the quote's net block once there is one, else the cart's.
+  const shownB2bNet = quote ? quote.b2b : b2bNet;
+  const shownNetItems = quote?.b2b ? quote.b2b.net_items : netItems;
+  const quoteShipping = quote
+    ? (companyNet && quote.b2b ? quote.b2b.net_shipping : quote.shippingCost)
+    : null;
 
   if (loading) return <CartSkeleton />;
   if (items.length === 0) return <CartEmpty />;
@@ -515,51 +537,67 @@ export default function StoreCartPage() {
                 {/* Totals */}
                 <div className="flex justify-between text-sm text-gray-600 py-1">
                   <span>{companyNet ? t('b2b.subtotalExclVat') : t('cart.subtotal')}</span>
-                  <span className="font-medium text-gray-900">{formatPrice(companyNet ? netItems ?? subtotal : subtotal, currency, locale)}</span>
+                  <span className="font-medium text-gray-900" data-testid="cart-subtotal">{formatPrice(companyNet ? shownNetItems ?? shownSubtotal : shownSubtotal, currency, locale)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-gray-600">{t('cart.shipping')}</span>
-                  {/* The cart has no shipping quote: "free" only when the applied
-                      coupon grants it; otherwise the cost is shown at checkout. */}
-                  {coupon?.freeShipping ? (
-                    <span className="text-green-600 font-medium">{t('checkout.freeShippingLabel')}</span>
+                  {/* Quoted for the default destination; "free" from the quote
+                      (threshold or coupon) or, without a quote, from the coupon. */}
+                  {quoteLoading ? (
+                    <span className="text-gray-500" aria-busy="true" data-testid="cart-shipping">…</span>
+                  ) : quoteShipping !== null ? (
+                    quoteShipping === 0 ? (
+                      <span className="text-green-600 font-medium" data-testid="cart-shipping">{t('checkout.freeShippingLabel')}</span>
+                    ) : (
+                      <span className="font-medium text-gray-900" data-testid="cart-shipping">{formatPrice(quoteShipping, currency, locale)}</span>
+                    )
+                  ) : coupon?.freeShipping ? (
+                    <span className="text-green-600 font-medium" data-testid="cart-shipping">{t('checkout.freeShippingLabel')}</span>
                   ) : (
-                    <span className="text-gray-500">{t('cart.calculatedAtCheckout')}</span>
+                    <span className="text-gray-500" data-testid="cart-shipping">{t('cart.calculatedAtCheckout')}</span>
                   )}
                 </div>
+                {quoteShipping !== null && quoteShipping > 0 && quoteState.countryCode && (
+                  <p className="text-xs text-gray-500 text-end -mt-1 pb-1">
+                    {t('cart.shippingEstimatedFor', { country: countryName(quoteState.countryCode, locale) })}
+                  </p>
+                )}
 
-                {discount > 0 && (
+                {shownDiscount > 0 && (
                   companyNet ? (
                     // Net subtotal is already post-discount (L4): informational only.
-                    <p className="text-xs text-gray-500 py-1">{t('b2b.includesDiscount', { amount: formatPrice(discount, currency, locale) })}</p>
+                    <p className="text-xs text-gray-500 py-1">{t('b2b.includesDiscount', { amount: formatPrice(shownDiscount, currency, locale) })}</p>
                   ) : (
                   <div className="flex justify-between text-sm py-1">
                     <span className="text-green-600">{t('cart.discount')}</span>
-                    <span className="text-green-600 font-medium">-{formatPrice(discount, currency, locale)}</span>
+                    <span className="text-green-600 font-medium" data-testid="cart-discount">-{formatPrice(shownDiscount, currency, locale)}</span>
                   </div>
                   )
                 )}
 
                 {companyNet ? (
                   <div className="pt-2 border-t border-gray-200 mt-1 pb-2 space-y-1">
-                    {b2bNet && (
+                    {shownB2bNet && (
                       <div className="flex justify-between text-sm py-1">
                         <span className="font-medium text-gray-900">{t('b2b.netTotal')}</span>
-                        <span className="font-medium text-gray-900">{formatPrice(b2bNet.net_total, currency, locale)}</span>
+                        <span className="font-medium text-gray-900">{formatPrice(shownB2bNet.net_total, currency, locale)}</span>
                       </div>
                     )}
-                    {taxLines.length > 0 ? (
-                      <TaxLineRows lines={taxLines} currency={currency} variant="row" />
+                    {shownTaxLines.length > 0 ? (
+                      <TaxLineRows lines={shownTaxLines} currency={currency} variant="row" />
                     ) : (
                       <p className="text-xs text-gray-500">{t('cart.taxAtCheckout')}</p>
                     )}
                     <div className="flex justify-between py-2 border-t border-gray-200">
                       <span className="text-base font-semibold text-gray-900">{t('b2b.totalInclVat')}</span>
-                      <span className="text-base font-bold text-gray-900">{formatPrice(total, currency, locale)}</span>
+                      <span className="text-base font-bold text-gray-900" data-testid="cart-total">{formatPrice(shownTotal, currency, locale)}</span>
                     </div>
-                    {taxLines.length > 0 && taxEstimated && (
+                    {shownTaxLines.length > 0 && shownTaxEstimated && (
                       <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
+                    )}
+                    {shippingUnknown && (
+                      <p className="text-xs text-gray-500">{t('cart.shippingAddedAtCheckout')}</p>
                     )}
                     <ReverseChargeCartHint />
                   </div>
@@ -567,9 +605,26 @@ export default function StoreCartPage() {
                 <>
                 <div className="flex justify-between py-3 border-t border-gray-200 mt-1">
                   <span className="text-base font-semibold text-gray-900">{t('cart.total')}</span>
-                  <span className="text-base font-bold text-gray-900">{formatPrice(total, currency, locale)}</span>
+                  {/* EXCLUSIVE quote: before tax here, the grand total (quote.total) below. */}
+                  <span className="text-base font-bold text-gray-900" data-testid="cart-total">
+                    {formatPrice(quote && taxExclusive ? quoteTotalBeforeTax(quote) : shownTotal, currency, locale)}
+                  </span>
                 </div>
-                {taxExclusive ? (
+                {shippingUnknown && (
+                  <p className="text-xs text-gray-500 -mt-2 pb-2">{t('cart.shippingAddedAtCheckout')}</p>
+                )}
+                {taxExclusive && quote ? (
+                  // Quoted: the server's tax lines and grand total, as at checkout.
+                  quote.taxLines.length > 0 ? (
+                    <div className="-mt-1 pb-2 space-y-1">
+                      <TaxLineRows lines={quote.taxLines} currency={currency} variant="row" />
+                      <div className="flex justify-between py-2 border-t border-gray-200">
+                        <span className="text-sm font-semibold text-gray-900">{t('cart.totalInclTax')}</span>
+                        <span className="text-sm font-bold text-gray-900" data-testid="cart-total-incl-tax">{formatPrice(quote.total, currency, locale)}</span>
+                      </div>
+                    </div>
+                  ) : null
+                ) : taxExclusive ? (
                   taxLines.length > 0 && totalWithTax !== null ? (
                     // Tax is added on top of the total: itemized lines + grand total.
                     <div className="-mt-1 pb-2 space-y-1">
@@ -589,7 +644,7 @@ export default function StoreCartPage() {
                 ) : (
                   // Prices are tax inclusive: informational rows, the total is unchanged.
                   <div className="-mt-2 pb-2 space-y-0.5">
-                    <TaxLineRows lines={taxLines} currency={currency} variant="muted" />
+                    <TaxLineRows lines={shownTaxLines} currency={currency} variant="muted" />
                   </div>
                 )}
                 </>

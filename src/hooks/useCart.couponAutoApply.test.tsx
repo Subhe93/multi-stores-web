@@ -82,7 +82,7 @@ describe('CartProvider coupon auto-apply', () => {
 
   it('an invalid code shows the error notice once and is dropped', async () => {
     localStorage.setItem(GUEST_CART_KEY, JSON.stringify([LINE]));
-    api.mockRejectedValueOnce(new Error('COUPON_INVALID'));
+    api.mockRejectedValueOnce(Object.assign(new Error('Invalid coupon code'), { code: 'PROMOTION_COUPON_INVALID', status: 400 }));
     mount(ON);
     await waitFor(() => expect(screen.getByTestId('notice').textContent).toBe('invalid:SPRING'));
     expect(screen.getByTestId('coupon').textContent).toBe('');

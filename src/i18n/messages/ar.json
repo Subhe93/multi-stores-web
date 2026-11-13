@@ -321,7 +321,15 @@
     "fileUploads": "رفع الملفات",
     "percentOff": "خصم {percent}%",
     "amountOff": "خصم {amount}",
-    "buyQuantity": "اشترِ {count}"
+    "buyQuantity": "اشترِ {count}",
+    "couponActive": "كود الخصم <strong>{code}</strong> مفعّل",
+    "couponPendingCheckout": "يُخصم كود الخصم <strong>{code}</strong> عند الدفع",
+    "couponYourPrice": "سعرك بعد الخصم: {price}",
+    "couponFixedOff": "خصم {amount} على طلبك",
+    "couponFreeShipping": "شحن مجاني لطلبك",
+    "couponMinAmount": "يسري على الطلبات بقيمة {amount} على الأقل",
+    "couponMinQuantity": "يسري عند شراء {count} قطع على الأقل",
+    "couponNotApplicable": "كود الخصم {code} لا يسري على هذا المنتج"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "إزالة الكوبون",
     "discount": "الخصم",
     "calculatedAtCheckout": "يُحسب عند الدفع",
+    "shippingEstimatedFor": "تقدير للشحن إلى {country}",
+    "shippingAddedAtCheckout": "تُضاف رسوم الشحن عند الدفع",
     "emptyDescription": "يبدو أنك لم تضف أي عناصر بعد.",
     "itemCount": "{count} عناصر",
     "clearCart": "إفراغ السلة",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "تغيّرت إعدادات الدفع، يرجى المحاولة مرة أخرى.",
     "PAYMENT_PROVIDER_ERROR": "تعذّر على مزوّد الدفع معالجة هذه الدفعة الآن. يرجى المحاولة مرة أخرى بعد قليل أو اختيار طريقة دفع أخرى.",
     "CART_ITEMS_UNAVAILABLE": "بعض المنتجات في سلتك لم تعد متوفرة. يرجى مراجعة السلة والمحاولة مرة أخرى.",
-    "STORE_NOT_LIVE": "هذا المتجر لا يستقبل الطلبات بعد."
+    "STORE_NOT_LIVE": "هذا المتجر لا يستقبل الطلبات بعد.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "طلبك لم يصل إلى الحد الأدنى للمبلغ لهذا الكوبون",
+    "PROMOTION_COUPON_MIN_QUANTITY": "عدد القطع في طلبك أقل من المطلوب لهذا الكوبون"
   },
   "builderPreview": {
     "selectParent": "تحديد الحاوية الأم",

@@ -67,7 +67,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const searchParams = useSearchParams();
   const { token, user, loading: authLoading, refresh: refreshAuth } = useAuth();
   const {
-    items, subtotal, total, coupon, currency, loading: cartLoading,
+    items, subtotal, total, coupon, discount, currency, loading: cartLoading,
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
     b2bNet: cartB2bNet, netItems,
     updateQuantity, removeItem, applyCoupon, removeCoupon,
@@ -125,9 +125,6 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
-  const discount = coupon
-    ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
-    : 0;
 
   const { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, session, retry } = useKustomCheckout({
     storeSlug,

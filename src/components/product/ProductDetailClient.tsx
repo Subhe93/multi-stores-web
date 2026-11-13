@@ -5,6 +5,7 @@ import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePr
 import { useTranslations } from 'next-intl';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
+import { ProductCouponBanner } from '@/components/product/ProductCouponBanner';
 import { VariantSelector } from '@/components/product/VariantSelector';
 import { QuantitySelector } from '@/components/product/QuantitySelector';
 import { CustomerUpload } from '@/components/product/CustomerUpload';
@@ -486,6 +487,8 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 {t('product.savingsAmount', { amount: formatPrice(display(savings, taxRateBp, currency).amount, currency, locale) })}
               </p>
             )}
+            {/* Campaign-link / applied coupon: what it does for this line. */}
+            <ProductCouponBanner className="mt-1" />
             {selectedVariant?.sku && (
               <p className="text-xs text-gray-400 mt-1">SKU: {selectedVariant.sku}</p>
             )}

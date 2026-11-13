@@ -62,6 +62,16 @@ import {
   type GuestPersonalizationCheck,
 } from '@/components/product/personalization/validateApi';
 import { trackAddToCart } from '@/lib/trackEvents';
+import {
+  classifyCouponError,
+  couponCartKey,
+  couponDiscount,
+  couponLineTotals,
+  couponStorageKey,
+  inferTargeted,
+  parseStoredCoupon,
+  type AppliedCoupon,
+} from '@/lib/couponDiscount';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -190,12 +200,8 @@ export interface CartItemMetadata {
   design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number; doubleSided?: true; proofBackUrl?: string | null };
 }
 
-interface Coupon {
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  freeShipping?: boolean;
-}
+/** Applied coupon (shape and discount rule live in `@/lib/couponDiscount`). */
+export type Coupon = AppliedCoupon;
 
 /** Tax figures GET /cart returns (API-CONTRACT-TAX §3): itemized lines,
  *  estimated for the store's registration country until an address is known. */
@@ -305,10 +311,42 @@ interface CartContextValue extends CartState {
   /** Coupon auto-apply (M5.1): the code captured from the URL and what
    *  happened to it; null when nothing was captured or the notice was hidden. */
   couponNotice: CouponAutoApplyNotice | null;
+  /** Hides the notice only; a pending code stays pending. */
   dismissCouponNotice: () => void;
+  /** Coupon discount on the current lines (`couponDiscount` helper); 0 without a coupon. */
+  discount: number;
+  /** A campaign-link code waiting to be applied (cart empty or not yet
+   *  qualifying: minimum amount / quantity, no matching product); null when none. */
+  pendingCouponCode: string | null;
+  /** Forgets the pending code (state + storage) and hides its notice. */
+  discardPendingCoupon: () => void;
+  /** Store the cart (and its coupon) belongs to. */
+  storeId: string | undefined;
+  /** Markets app: the request market key the cart prices and validates in
+   *  (undefined for stores without the app). */
+  marketKey: string | undefined;
+  /** Market-preview host: `preview` goes with `market` (DRAFT market). */
+  marketPreview: boolean;
 }
 
 // ── Local-storage helpers (guest cart) ─────────────────
+
+/** A scheduled retry of a coupon request (see COUPON_TRANSIENT_RETRY_MS). */
+interface CouponRetry {
+  key: string;
+  attempts: number;
+  waiting: boolean;
+}
+
+// Quiet period after a cart change before an applied coupon is re-validated
+// (quantity steppers fire several changes; the endpoint is throttled).
+const COUPON_REVALIDATE_DELAY_MS = 600;
+
+// Retries after a transient coupon failure (rate limit, 5xx, network drop),
+// so a throttled check is repeated once the throttle window has passed even
+// when the cart never changes again (add to cart -> straight to checkout).
+// After the last one the code waits for the next cart change.
+export const COUPON_TRANSIENT_RETRY_MS = [5_000, 15_000, 45_000, 120_000] as const;
 
 // Stable reference so consumers' effects don't re-run on every render.
 const EMPTY_TAX_LINES: TaxLine[] = [];
@@ -338,19 +376,43 @@ function saveLocalCart(items: CartItem[]) {
   safeStorageWrite(localStore(), GUEST_CART_KEY, JSON.stringify(items));
 }
 
-function loadLocalCoupon(): Coupon | null {
+// The applied coupon is kept per store for guests AND logged-in customers:
+// the server cart does not carry a coupon (GET /cart sends none), so the
+// browser is where it survives page loads.
+//
+// A stored coupon is never trusted as-is: its server amount and cart
+// signature are dropped in memory, so the re-validation effect checks it
+// once per load (expired / deactivated / edited since) and the cart shows
+// the live estimate meanwhile. The legacy global `guest_coupon` key (shared
+// by every /store/<slug> store on one origin) is only adopted `unverified`:
+// it shows no discount and is not exposed until this store validates it.
+function loadLocalCoupon(storeId: string | undefined): Coupon | null {
   const store = localStore();
   if (!store) return null;
   try {
-    const raw = store.getItem(GUEST_COUPON_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const own = parseStoredCoupon(store.getItem(couponStorageKey(storeId)));
+    if (own) return withoutServerFigures(own);
+    const legacy = parseStoredCoupon(store.getItem(GUEST_COUPON_KEY));
+    return legacy ? { ...withoutServerFigures(legacy), unverified: true } : null;
   } catch {
     return null;
   }
 }
 
-function saveLocalCoupon(coupon: Coupon | null) {
-  safeStorageWrite(localStore(), GUEST_COUPON_KEY, coupon ? JSON.stringify(coupon) : null);
+/** The coupon without its server amount / cart signature (re-validated before use). */
+function withoutServerFigures(c: Coupon): Coupon {
+  const out: Coupon = { ...c };
+  delete out.cartKey;
+  delete out.discountAmount;
+  delete out.unverified;
+  return out;
+}
+
+function saveLocalCoupon(storeId: string | undefined, coupon: Coupon | null) {
+  const store = localStore();
+  safeStorageWrite(store, couponStorageKey(storeId), coupon ? JSON.stringify(coupon) : null);
+  // The legacy key is retired on any write so it can never resurrect a removed coupon.
+  safeStorageWrite(store, GUEST_COUPON_KEY, null);
 }
 
 // ── Normalize API cart response ───────────────────────
@@ -536,11 +598,13 @@ function normalizeCartResponse(data: unknown): { items: CartItem[]; coupon: Coup
     return { items: data.map(normalizeCartItem), coupon: null, tax: null };
   }
   if (data && typeof data === 'object') {
-    const obj = data as { items?: unknown; coupon?: Coupon | null };
+    const obj = data as { items?: unknown; coupon?: unknown };
     const rawItems: RawCartItem[] = Array.isArray(obj.items) ? obj.items : [];
     return {
       items: rawItems.map(normalizeCartItem),
-      coupon: obj.coupon ?? null,
+      // null = the response carries no coupon (GET /cart never does today):
+      // callers then keep the locally applied one instead of wiping it.
+      coupon: obj.coupon && typeof obj.coupon === 'object' ? parseStoredCoupon(JSON.stringify(obj.coupon)) : null,
       tax: normalizeCartTax(data),
     };
   }
@@ -637,7 +701,87 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const [pendingCoupon, setPendingCoupon] = useState<string | null>(null);
   const [couponNotice, setCouponNotice] = useState<CouponAutoApplyNotice | null>(null);
   const dismissCouponNotice = useCallback(() => setCouponNotice(null), []);
-  const autoApplyBusy = useRef(false);
+  // One coupon request at a time (auto-apply or re-validation); `couponTick`
+  // re-runs the coupon effects after a request so a cart change made while
+  // it was in flight is picked up.
+  const couponBusy = useRef(false);
+  const [couponTick, setCouponTick] = useState(0);
+  // Cart signature of the last attempt that failed softly (min amount /
+  // quantity, no matching product, rate limit): the pending code is retried
+  // only once the cart differs from it.
+  const pendingAttemptKeyRef = useRef<string | null>(null);
+  // Transient-failure retries (auto-apply and re-validation): the attempt
+  // key (`code|cart`), how many retries ran and whether one is scheduled.
+  const applyRetryRef = useRef<CouponRetry | null>(null);
+  const revalidateRetryRef = useRef<CouponRetry | null>(null);
+  const retryTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => {
+    const timers = retryTimersRef.current;
+    return () => {
+      timers.forEach((id) => clearTimeout(id));
+      timers.clear();
+    };
+  }, []);
+  /**
+   * Schedules the next retry for `key` after a transient failure. False when
+   * the retries are used up (the caller then waits for a cart change).
+   */
+  const scheduleCouponRetry = useCallback((ref: { current: CouponRetry | null }, key: string): boolean => {
+    const attempts = ref.current?.key === key ? ref.current.attempts : 0;
+    if (attempts >= COUPON_TRANSIENT_RETRY_MS.length) {
+      ref.current = null;
+      return false;
+    }
+    const entry: CouponRetry = { key, attempts: attempts + 1, waiting: true };
+    ref.current = entry;
+    const id = setTimeout(() => {
+      retryTimersRef.current.delete(id);
+      entry.waiting = false;
+      setCouponTick((n) => n + 1);
+    }, COUPON_TRANSIENT_RETRY_MS[attempts]);
+    retryTimersRef.current.add(id);
+    return true;
+  }, []);
+  // `coupon` as of the latest commit (read by async coupon work).
+  const couponRef = useRef<Coupon | null>(null);
+  couponRef.current = coupon;
+
+  /** Sets the applied coupon and persists it per store (guests and customers). */
+  const commitCoupon = useCallback((next: Coupon | null) => {
+    couponRef.current = next;
+    setCoupon(next);
+    saveLocalCoupon(storeId, next);
+  }, [storeId]);
+
+  /** Mirrors a server cart response. The coupon is only taken over when the
+   *  response carries one: GET /cart and the line endpoints send none, and
+   *  the locally applied coupon must survive them (logged-in carts). */
+  const adoptServerCart = useCallback(
+    (cart: { items: CartItem[]; coupon: Coupon | null; tax: CartTax | null }) => {
+      setItems(cart.items);
+      if (cart.coupon) commitCoupon(cart.coupon);
+      setServerTax(cart.tax);
+    },
+    [commitCoupon],
+  );
+
+  const setPendingCode = useCallback((code: string | null) => {
+    setPendingCoupon(code);
+    safeStorageWrite(localStore(), pendingCouponStorageKey(storeId), code);
+    if (code === null) pendingAttemptKeyRef.current = null;
+  }, [storeId]);
+
+  /** Reloads the stored coupon of this store (no write). */
+  const restoreCoupon = useCallback(() => {
+    const stored = loadLocalCoupon(storeId);
+    couponRef.current = stored;
+    setCoupon(stored);
+  }, [storeId]);
+
+  const discardPendingCoupon = useCallback(() => {
+    setPendingCode(null);
+    setCouponNotice((n) => (n && n.status === 'pending' ? null : n));
+  }, [setPendingCode]);
 
   // ── Guest cart → server cart ────────────────────────
   // The login effect and the checkout sync share one in-flight run (no line
@@ -653,7 +797,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       }),
     );
     if (result.moved.length + result.dropped.length + result.failed.length === 0) return result;
-    if (loadLocalCart().length === 0) saveLocalCoupon(null);
+    // The applied coupon is kept: it is stored per store for customers too.
     // A set, not a sum: rejected lines stay local and are retried on the next
     // run, so they must not be counted twice.
     setMigrationDropped(result.dropped.length);
@@ -676,17 +820,25 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
   // ── Cross-tab sync of the guest cart (M5 D12) ─────────
   // Another tab (same origin) changed the stored cart or coupon: mirror it.
-  // Logged-in carts live on the server and refetch on their own.
+  // Logged-in carts live on the server and refetch on their own; their
+  // coupon is stored locally, so it is mirrored for them too.
   useEffect(() => {
-    if (isAuthenticated || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
+    const couponKey = couponStorageKey(storeId);
     const onStorage = (event: StorageEvent) => {
+      if (event.key === couponKey) {
+        const next = parseStoredCoupon(event.newValue);
+        couponRef.current = next;
+        setCoupon(next);
+        return;
+      }
+      if (isAuthenticated) return;
       const lines = guestCartFromStorageEvent(event);
       if (lines) setItems(lines);
-      else if (event.key === GUEST_COUPON_KEY) setCoupon(loadLocalCoupon());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, storeId]);
 
   // ── Cross-market cart hand-off landing (markets app only) ──
   // `?c=` carries a guest's lines from another market domain (D10 / L9).
@@ -809,6 +961,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     if (isAuthenticated && token) {
       // The server cart is authoritative now: stop mirroring `items` to storage.
       setGuestLoaded(false);
+      // The coupon is kept in the browser for customers too (GET /cart
+      // carries none), so it is restored before the server cart arrives.
+      restoreCoupon();
       // Check if we just transitioned from guest to authenticated
       const wasGuest = prevToken === null || prevToken === undefined;
       const hasGuestItems = wasGuest && loadLocalCart().length > 0;
@@ -828,36 +983,33 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
               const refreshed = normalizeCartResponse(
                 await api<unknown>(`/cart${localeQuery}`, { token })
               );
-              setItems(refreshed.items);
-              setCoupon(refreshed.coupon);
-              setServerTax(refreshed.tax);
+              adoptServerCart(refreshed);
             } catch {
-              setItems(cart.items);
-              setCoupon(cart.coupon);
-              setServerTax(cart.tax);
+              adoptServerCart(cart);
             }
           } else {
-            setItems(cart.items);
-            setCoupon(cart.coupon);
-            setServerTax(cart.tax);
+            adoptServerCart(cart);
           }
         })
         .catch(() => {
           // API failed — fallback to local cart so the user doesn't lose items
           setItems(loadLocalCart());
-          setCoupon(loadLocalCoupon());
+          restoreCoupon();
           setServerTax(null);
         })
         .finally(() => setLoading(false));
     } else {
       // Guest: load from localStorage
       setItems(loadLocalCart());
-      setCoupon(loadLocalCoupon());
+      // Logout (a session token went away): the departed customer's coupon
+      // must not carry over to the next visitor of a shared device.
+      if (typeof prevToken === 'string' && prevToken !== '') commitCoupon(null);
+      else restoreCoupon();
       setServerTax(null);
       setLoading(false);
       setGuestLoaded(true);
     }
-  }, [isAuthenticated, token, localeQuery, migrateLocalCart]);
+  }, [isAuthenticated, token, localeQuery, migrateLocalCart, adoptServerCart, restoreCoupon, commitCoupon]);
 
   // ── Add item ───────────────────────────────────────
 
@@ -894,9 +1046,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           }
         );
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
       } else {
         let fields = customFields;
         let meta = metadata;
@@ -934,7 +1084,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         quantity,
       });
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders, storeCurrency]
+    [isAuthenticated, token, localeQuery, ownerHeaders, storeCurrency, adoptServerCart]
   );
 
   // ── Update quantity ────────────────────────────────
@@ -960,16 +1110,14 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           data = await api<unknown>(`/cart${localeQuery}`, { token });
         }
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
       } else {
         setItems((prev) => {
           return prev.map((item) => (item.id === itemId ? { ...item, quantity } : item));
         });
       }
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders]
+    [isAuthenticated, token, localeQuery, ownerHeaders, adoptServerCart]
   );
 
   // ── Clear bundle on a line ─────────────────────────
@@ -987,9 +1135,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           }
         );
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
       } else {
         setItems((prev) => {
           return prev.map((item) => {
@@ -1012,7 +1158,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
       }
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders]
+    [isAuthenticated, token, localeQuery, ownerHeaders, adoptServerCart]
   );
 
   // ── Remove item ────────────────────────────────────
@@ -1025,16 +1171,14 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           { method: 'DELETE', token, headers: ownerHeaders() }
         );
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
       } else {
         setItems((prev) => {
           return prev.filter((item) => item.id !== itemId);
         });
       }
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders]
+    [isAuthenticated, token, localeQuery, ownerHeaders, adoptServerCart]
   );
 
   // ── Designer lines ─────────────────────────────────
@@ -1045,16 +1189,14 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         // The server block carries the new text values and a fresh proof.
         const data = await api<unknown>(`/cart${localeQuery}`, { token });
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
         return;
       }
       setItems((prev) => {
         return patchGuestDesignLine(prev, designId, patch);
       });
     },
-    [isAuthenticated, token, localeQuery]
+    [isAuthenticated, token, localeQuery, adoptServerCart]
   );
 
   const replaceDesignLine = useCallback(
@@ -1078,16 +1220,14 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
         const data = await api<unknown>(`/cart/items/${line.id}${localeQuery}`, { method: 'DELETE', token, headers: ownerHeaders() });
         const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        adoptServerCart(cart);
         return;
       }
       setItems((prev) => {
         return replaceGuestDesignLine(prev, oldDesignId, nextDesign);
       });
     },
-    [isAuthenticated, token, localeQuery, items, ownerHeaders]
+    [isAuthenticated, token, localeQuery, items, ownerHeaders, adoptServerCart]
   );
 
   // ── Clear cart ─────────────────────────────────────
@@ -1101,7 +1241,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       }
     }
     setItems([]);
-    setCoupon(null);
+    commitCoupon(null);
     setServerTax(null);
     setPricesUpdated(false);
     setHandoffDropped(0);
@@ -1109,27 +1249,30 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     setMigrationDropError(null);
     // Also for logged-in customers (the guest effect does not run for them).
     saveLocalCart([]);
-    saveLocalCoupon(null);
-  }, [isAuthenticated, token, ownerHeaders]);
+  }, [isAuthenticated, token, ownerHeaders, commitCoupon]);
 
   // ── Coupon auto-apply: capture from the URL ─────────
   useEffect(() => {
-    if (!couponAutoapply || typeof window === 'undefined') return;
-    const key = pendingCouponStorageKey(storeId);
-    const hit = captureCouponFromSearch(window.location.search, checkoutSettings);
+    if (typeof window === 'undefined') return;
+    const hit = couponAutoapply ? captureCouponFromSearch(window.location.search, checkoutSettings) : null;
     if (hit) {
       const url = new URL(window.location.href);
       url.search = hit.search;
       window.history.replaceState(window.history.state, '', url.toString());
-      safeStorageWrite(localStore(), key, hit.code);
-      setPendingCoupon(hit.code);
+      setPendingCode(hit.code);
       setCouponNotice({ code: hit.code, status: 'pending' });
       return;
     }
     // A code captured on an earlier page load that could not be applied yet
-    // (empty cart) is still waiting.
+    // (empty or not yet qualifying cart) is still waiting.
     try {
-      const stored = localStore()?.getItem(key) ?? null;
+      const stored = localStore()?.getItem(pendingCouponStorageKey(storeId)) ?? null;
+      if (stored && !couponAutoapply) {
+        // The merchant turned auto-apply off since: a captured code must not
+        // apply itself any more.
+        setPendingCode(null);
+        return;
+      }
       if (stored) {
         setPendingCoupon(stored);
         setCouponNotice((n) => n ?? { code: stored, status: 'pending' });
@@ -1143,40 +1286,88 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
   // ── Apply coupon ───────────────────────────────────
 
-  const applyCoupon = useCallback(
-    async (code: string) => {
-      // Validate coupon and get discount amount (public endpoint)
+  // Latest lines for async coupon work (validation always prices the cart
+  // as it is when the request goes out).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  /**
+   * POST /promotions/validate-coupon for `lines`, the same inputs the order
+   * path validates with (subtotal, item count, product ids and per-line
+   * totals, so a targeted coupon is priced on its lines only). Resolves with
+   * the coupon to apply; throws the API error otherwise.
+   */
+  const validateCouponFor = useCallback(
+    async (code: string, lines: CartItem[]): Promise<Coupon> => {
+      const subtotalNow = sumLineTotals(lines);
+      const lineTotals = couponLineTotals(lines);
       const validation = await api<{
         valid: boolean;
         type: string;
         value: number;
-        /** 'percentage' | 'fixed'; absent from older APIs (type decides). */
+        /** 'percentage' | 'fixed' | null (no line discount); absent from older APIs (type decides). */
         discount_kind?: 'percentage' | 'fixed' | null;
         discount_amount: number;
         free_shipping: boolean;
+        /** Optional: targeted product ids / flag when the API sends them. */
+        product_ids?: unknown;
+        targeted?: unknown;
       }>('/promotions/validate-coupon', {
         method: 'POST',
         body: JSON.stringify({
           coupon_code: code,
           store_id: storeId,
-          subtotal: sumLineTotals(items),
-          item_count: availableLines(items).reduce((sum, i) => sum + i.quantity, 0),
-          product_ids: availableLines(items).map((i) => i.customProductId || i.productId).filter(Boolean),
+          subtotal: subtotalNow,
+          item_count: availableLines(lines).reduce((sum, i) => sum + i.quantity, 0),
+          product_ids: availableLines(lines).map((i) => i.customProductId || i.productId).filter(Boolean),
+          line_totals: lineTotals,
           // Market stores: the subtotal is in the market currency; the API
           // converts so a fixed coupon is charged in that currency too.
           ...(marketKey ? { market: marketKey, ...(marketPreview ? { preview: true } : {}) } : {}),
         }),
       });
 
-      const isPercentage = validation.discount_kind
-        ? validation.discount_kind === 'percentage'
-        : validation.type === 'PERCENTAGE' || validation.type === 'COUPON';
-      const couponData: Coupon = {
+      const hasKind = validation.discount_kind !== undefined;
+      const kind: 'percentage' | 'fixed' | null = hasKind
+        ? validation.discount_kind ?? null
+        : validation.type === 'PERCENTAGE' || validation.type === 'COUPON'
+          ? 'percentage'
+          : null;
+      const amount = Number(validation.discount_amount) || 0;
+      const value = Number(validation.value) || 0;
+      // Percentage: the rate. Fixed (current API): the face value, capped per
+      // cart by the helper. No kind (free shipping / older API fixed): the
+      // amount the server computed.
+      const discount = kind === 'percentage' ? value : kind === 'fixed' ? value : amount;
+      const productIds = Array.isArray(validation.product_ids)
+        ? validation.product_ids.filter((x): x is string => typeof x === 'string' && x !== '')
+        : undefined;
+      const targeted =
+        typeof validation.targeted === 'boolean'
+          ? validation.targeted
+          : productIds && productIds.length > 0
+            ? true
+            : kind && lineTotals.length > 0
+              ? inferTargeted(kind, value, amount, subtotalNow)
+              : undefined;
+      return {
         code,
-        discount: isPercentage ? validation.value : validation.discount_amount,
-        type: isPercentage ? 'percentage' : 'fixed',
-        freeShipping: validation.free_shipping,
+        discount,
+        type: kind === 'percentage' ? 'percentage' : 'fixed',
+        freeShipping: validation.free_shipping === true,
+        discountAmount: amount,
+        cartKey: couponCartKey(lines),
+        ...(targeted !== undefined ? { targeted } : {}),
+        ...(productIds && productIds.length > 0 ? { productIds } : {}),
       };
+    },
+    [storeId, marketKey, marketPreview],
+  );
+
+  /** Validates, applies and persists `code` for the current lines. */
+  const applyCouponNow = useCallback(
+    async (code: string) => {
+      const couponData = await validateCouponFor(code, itemsRef.current);
 
       if (isAuthenticated && token) {
         // Also persist in server cart session
@@ -1185,71 +1376,158 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
             method: 'POST',
             token,
             headers: ownerHeaders(),
-            body: JSON.stringify({ code }),
+            body: JSON.stringify({ coupon_code: code }),
           });
         } catch {
           // Non-critical: coupon is sent with order anyway
         }
       }
 
-      setCoupon(couponData);
-      saveLocalCoupon(couponData);
+      commitCoupon(couponData);
     },
-    [isAuthenticated, token, items, storeId, ownerHeaders, marketKey, marketPreview]
+    [isAuthenticated, token, ownerHeaders, validateCouponFor, commitCoupon],
   );
 
-  // ── Coupon auto-apply: apply once the cart has a line ──
-  const applyCouponRef = useRef(applyCoupon);
-  applyCouponRef.current = applyCoupon;
-  const couponRef = useRef(coupon);
-  couponRef.current = coupon;
+  // Typed by the shopper: a link code still waiting would later replace it,
+  // so the pending code goes (it is the same code or the shopper chose another).
+  const applyCoupon = useCallback(
+    async (code: string) => {
+      await applyCouponNow(code);
+      if (pendingCoupon !== null) discardPendingCoupon();
+    },
+    [applyCouponNow, pendingCoupon, discardPendingCoupon],
+  );
+
+  // ── Coupon auto-apply: apply once the cart qualifies ──
+  // Soft failures (minimum amount / quantity, no matching product, rate
+  // limit) keep the code pending and retry after the cart changes; only a
+  // hard failure (unknown, inactive, expired, used up) discards it.
+  const applyCouponNowRef = useRef(applyCouponNow);
+  applyCouponNowRef.current = applyCouponNow;
   useEffect(() => {
-    if (!couponAutoapply || !pendingCoupon || loading || autoApplyBusy.current) return;
+    if (!pendingCoupon || loading || couponBusy.current) return;
     if (availableLines(items).length === 0) return;
+    const cartKey = couponCartKey(items);
+    if (pendingAttemptKeyRef.current === cartKey) return;
     const code = pendingCoupon;
-    const key = pendingCouponStorageKey(storeId);
-    autoApplyBusy.current = true;
+    const retryKey = `${code}|${cartKey}`;
+    if (applyRetryRef.current?.key === retryKey && applyRetryRef.current.waiting) return;
+    const current = couponRef.current?.code;
+    if (current && current.toUpperCase() === code.toUpperCase()) {
+      setPendingCode(null);
+      setCouponNotice({ code, status: 'applied' });
+      return;
+    }
+    couponBusy.current = true;
     (async () => {
       try {
-        const current = couponRef.current?.code;
-        if (!current || current.toUpperCase() !== code.toUpperCase()) await applyCouponRef.current(code);
+        await applyCouponNowRef.current(code);
+        applyRetryRef.current = null;
+        setPendingCode(null);
         setCouponNotice({ code, status: 'applied' });
-      } catch {
-        setCouponNotice({ code, status: 'invalid' });
+      } catch (err) {
+        const kind = classifyCouponError(err);
+        if (kind === 'hard') {
+          applyRetryRef.current = null;
+          setPendingCode(null);
+          setCouponNotice({ code, status: 'invalid' });
+        } else if (kind === 'transient' && scheduleCouponRetry(applyRetryRef, retryKey)) {
+          // Retried on a timer (the cart may never change again); a hidden
+          // notice stays hidden.
+        } else {
+          // Soft, or transient with the retries used up: kept for the next
+          // cart change.
+          applyRetryRef.current = null;
+          pendingAttemptKeyRef.current = cartKey;
+        }
       } finally {
-        // One attempt per captured code: a rejected code is not retried on
-        // every cart change (the shopper can still type it manually).
-        autoApplyBusy.current = false;
-        setPendingCoupon(null);
-        safeStorageWrite(localStore(), key, null);
+        couponBusy.current = false;
+        setCouponTick((n) => n + 1);
       }
     })();
-  }, [couponAutoapply, pendingCoupon, loading, items, storeId]);
+  }, [pendingCoupon, loading, items, couponTick, setPendingCode, scheduleCouponRetry]);
+
+  // ── Applied coupon: re-validate when the lines change ──
+  // The order path re-validates the coupon against the cart it is placed
+  // with, so the cart re-checks it too: a fresh server amount for the new
+  // lines, and a coupon the cart no longer qualifies for is taken off
+  // (back to pending on a soft failure) instead of showing a discount the
+  // order would reject.
+  const revalidateSkipRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!coupon || loading || couponBusy.current) return;
+    if (availableLines(items).length === 0) return;
+    const cartKey = couponCartKey(items);
+    if (coupon.cartKey === cartKey) return;
+    const code = coupon.code;
+    if (revalidateSkipRef.current === `${code}|${cartKey}`) return;
+    const retry = revalidateRetryRef.current;
+    if (retry?.key === `${code}|${cartKey}` && retry.waiting) return;
+    const timer = setTimeout(() => {
+      if (couponBusy.current) return;
+      couponBusy.current = true;
+      const lines = itemsRef.current;
+      const linesKey = couponCartKey(lines);
+      (async () => {
+        try {
+          const next = await validateCouponFor(code, lines);
+          // Removed or replaced meanwhile: the newer state wins.
+          if (couponRef.current?.code !== code) return;
+          revalidateRetryRef.current = null;
+          commitCoupon(next);
+        } catch (err) {
+          if (couponRef.current?.code !== code) return;
+          const kind = classifyCouponError(err);
+          if (kind === 'transient') {
+            // Rate limit / server / network error: keep the coupon and retry
+            // on a timer; once the retries are used up, wait for a cart change.
+            if (!scheduleCouponRetry(revalidateRetryRef, `${code}|${linesKey}`)) {
+              revalidateSkipRef.current = `${code}|${linesKey}`;
+            }
+            return;
+          }
+          revalidateRetryRef.current = null;
+          // A legacy coupon (shared `guest_coupon` key) was never shown in
+          // this store: when it does not apply here it goes without a notice.
+          const legacy = couponRef.current?.unverified === true;
+          commitCoupon(null);
+          if (legacy) {
+            if (kind === 'soft') {
+              setPendingCode(code);
+              pendingAttemptKeyRef.current = linesKey;
+            }
+            return;
+          }
+          if (kind === 'soft') {
+            setPendingCode(code);
+            pendingAttemptKeyRef.current = linesKey;
+            setCouponNotice({ code, status: 'pending' });
+          } else {
+            setCouponNotice({ code, status: 'invalid' });
+          }
+        } finally {
+          couponBusy.current = false;
+          setCouponTick((n) => n + 1);
+        }
+      })();
+    }, COUPON_REVALIDATE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [coupon, loading, items, couponTick, validateCouponFor, commitCoupon, setPendingCode, scheduleCouponRetry]);
 
   // ── Remove coupon ──────────────────────────────────
-
+  // Client-side only as far as the cart is concerned: the server endpoint
+  // answers with a bare message (no cart), so its response never touches the
+  // lines or the tax figures.
   const removeCoupon = useCallback(async () => {
+    commitCoupon(null);
     if (isAuthenticated && token) {
       try {
-        const data = await api<unknown>(
-          `/cart/remove-coupon${localeQuery}`,
-          { method: 'DELETE', token, headers: ownerHeaders() }
-        );
-        const cart = normalizeCartResponse(data);
-        setItems(cart.items);
-        setCoupon(cart.coupon);
-        setServerTax(cart.tax);
+        await api<unknown>(`/cart/remove-coupon${localeQuery}`, { method: 'DELETE', token, headers: ownerHeaders() });
       } catch {
-        setCoupon(null);
-        setServerTax(null);
-        saveLocalCoupon(null);
+        // Non-critical: the order only uses the coupon the cart sends.
       }
-    } else {
-      setCoupon(null);
-      setServerTax(null);
-      saveLocalCoupon(null);
     }
-  }, [isAuthenticated, token, localeQuery, ownerHeaders]);
+  }, [isAuthenticated, token, localeQuery, ownerHeaders, commitCoupon]);
 
   // ── Computed values ────────────────────────────────
 
@@ -1264,13 +1542,10 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     [items]
   );
 
-  const total = useMemo(() => {
-    if (!coupon) return subtotal;
-    if (coupon.type === 'percentage') {
-      return subtotal - subtotal * (coupon.discount / 100);
-    }
-    return Math.max(0, subtotal - coupon.discount);
-  }, [subtotal, coupon]);
+  // One discount formula for every surface (cart, drawer, checkout).
+  const discount = useMemo(() => couponDiscount(coupon, items), [coupon, items]);
+
+  const total = useMemo(() => Math.max(0, subtotal - discount), [subtotal, discount]);
 
   // ── Unavailable (deleted / unpublished) lines ───────
 
@@ -1311,9 +1586,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           }
           if (unavailableLines(cart.items, refs).length > 0) remaining = true;
           if (isAuthenticated && jwt === token) {
-            setItems(cart.items);
-            setCoupon(cart.coupon);
-            setServerTax(cart.tax);
+            adoptServerCart(cart);
           } else if (!isAuthenticated) {
             // The session was created mid-checkout and the provider has not
             // switched yet: keep the in-memory guest lines in step.
@@ -1338,7 +1611,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
       // before (the load probe and a stale quote can report the same product).
       return refs.length > 0 && !remaining && refs.every((ref) => resolvedRefsRef.current.has(unavailableRefKey(ref)));
     },
-    [token, isAuthenticated, localeQuery, items, ownerHeaders],
+    [token, isAuthenticated, localeQuery, items, ownerHeaders, adoptServerCart],
   );
 
   const checkCartAvailability = useCallback(async () => {
@@ -1381,34 +1654,37 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     try {
       const data = await api<unknown>(`/cart${localeQuery}`, { token: authToken });
       const cart = normalizeCartResponse(data);
-      setItems(cart.items);
-      setCoupon(cart.coupon);
-      setServerTax(cart.tax);
+      adoptServerCart(cart);
     } catch {
       // Keep current state
     }
     return dropped;
-  }, [localeQuery, migrateLocalCart]);
+  }, [localeQuery, migrateLocalCart, adoptServerCart]);
 
   // ── Tax (server-computed; guest carts carry no figures) ─
 
   const currency = storeCurrency || items[0]?.currency || 'EUR';
   const taxPricingMode: TaxPricingMode =
     serverTax?.pricingMode ?? storeTax?.pricing_mode ?? 'INCLUSIVE';
-  const taxLines = serverTax?.lines ?? EMPTY_TAX_LINES;
-  const taxTotal = serverTax?.total ?? 0;
+  // The server cart carries no coupon, so its tax lines, tax-inclusive total
+  // and b2b net block are computed without the discount. With a discount
+  // they are not shown (tax at checkout / the cart's own net estimate),
+  // never a coupon-less figure next to a discounted total.
+  const cartTax = serverTax && !(discount > 0) ? serverTax : null;
+  const taxLines = cartTax?.lines ?? EMPTY_TAX_LINES;
+  const taxTotal = cartTax?.total ?? 0;
   // A guest cart (or an API without tax figures) is always an estimate.
-  const taxEstimated = serverTax ? serverTax.estimated : true;
+  const taxEstimated = cartTax ? cartTax.estimated : true;
   const totalWithTax = useMemo(() => {
     if (taxPricingMode === 'INCLUSIVE') return total;
-    if (serverTax?.totalWithTax !== null && serverTax?.totalWithTax !== undefined) return serverTax.totalWithTax;
+    if (cartTax?.totalWithTax !== null && cartTax?.totalWithTax !== undefined) return cartTax.totalWithTax;
     // EXCLUSIVE with lines but no explicit figure: add the tax on top.
-    if (serverTax && serverTax.lines.length > 0) return total + serverTax.total;
+    if (cartTax && cartTax.lines.length > 0) return total + cartTax.total;
     return null;
-  }, [taxPricingMode, total, serverTax]);
+  }, [taxPricingMode, total, cartTax]);
 
   // ── Company view net figures (b2b app) ──────────────
-  const b2bNet = serverTax?.b2b ?? null;
+  const b2bNet = cartTax?.b2b ?? null;
   const netItems = useMemo(() => {
     if (b2bNet) return b2bNet.net_items;
     // Guest / no server block: Σ net line prices when every line has a rate
@@ -1425,7 +1701,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   const value: CartContextValue = {
     items,
     loading,
-    coupon,
+    // A legacy coupon still being validated for this store is not applied
+    // yet: no surface shows it and no quote / order sends it.
+    coupon: coupon?.unverified ? null : coupon,
     addItem,
     updateQuantity,
     clearBundle,
@@ -1459,6 +1737,12 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     dismissPricesNotice,
     couponNotice,
     dismissCouponNotice,
+    discount,
+    pendingCouponCode: pendingCoupon,
+    discardPendingCoupon,
+    storeId,
+    marketKey,
+    marketPreview: Boolean(marketPreview),
   };
 
   return createElement(CartContext.Provider, { value }, children);

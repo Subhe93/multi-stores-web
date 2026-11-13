@@ -2,12 +2,14 @@
 
 // product-price block: the line price (unit × quantity) with compare-at,
 // savings, the unit × quantity line, the b2b / tax suffix (PriceDisplay ->
-// useDisplayPrice + PriceTaxSuffix) and an optional SKU, with
+// useDisplayPrice + PriceTaxSuffix), the coupon banner (show_coupon) and an
+// optional SKU, with
 // ProductDetailClient's markup. Every value comes from the shared state, so
 // it follows the variant, bundle and personalization picked elsewhere.
 
 import { useTranslations } from 'next-intl';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
+import { ProductCouponBanner } from '@/components/product/ProductCouponBanner';
 import { formatPrice } from '@/lib/format';
 import type { SectionRenderProps } from '../../../../types';
 import { B1Placeholder, B1Scope, isBlockPreview, useBlockState } from './b1Shared';
@@ -23,6 +25,7 @@ export function ProductPriceBlock(props: SectionRenderProps) {
   const showSavings = settings.show_savings !== false;
   const showUnitLine = settings.show_unit_price !== false;
   const showSku = settings.show_sku !== false;
+  const showCoupon = settings.show_coupon !== false;
   const {
     app, currency, taxRateBp, display, quantity, currentPrice,
     displayPrice, displayComparePrice, savings, sku,
@@ -52,6 +55,8 @@ export function ProductPriceBlock(props: SectionRenderProps) {
           {t('product.savingsAmount', { amount: formatPrice(display(savings, taxRateBp, currency).amount, currency, stateLocale) })}
         </p>
       )}
+      {/* Campaign-link / applied coupon: what it does for this line. */}
+      {showCoupon && <ProductCouponBanner className="mt-1" />}
       {showSku && sku && (
         <p className="text-xs text-gray-400 mt-1">SKU: {sku}</p>
       )}

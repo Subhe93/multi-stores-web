@@ -50,6 +50,31 @@ describe('api() headers', () => {
   });
 });
 
+describe('api() error bodies', () => {
+  const respond = (res: Partial<Response>) =>
+    vi.stubGlobal('fetch', vi.fn(async () => res as Response));
+
+  it('a non-JSON error page (proxy 502) still throws an error carrying its status', async () => {
+    respond({ ok: false, status: 502, json: async () => { throw new SyntaxError("Unexpected token '<'"); } });
+    await expect(api('/x')).rejects.toMatchObject({ status: 502, message: 'API request failed' });
+  });
+
+  it('an empty 429 body keeps the status', async () => {
+    respond({ ok: false, status: 429, json: async () => { throw new SyntaxError('Unexpected end of JSON input'); } });
+    await expect(api('/x')).rejects.toMatchObject({ status: 429 });
+  });
+
+  it('a JSON error keeps its message and code', async () => {
+    respond({ ok: false, status: 400, json: async () => ({ code: 'PROMOTION_COUPON_INVALID', message: 'Invalid coupon code' }) });
+    await expect(api('/x')).rejects.toMatchObject({ status: 400, code: 'PROMOTION_COUPON_INVALID', message: 'Invalid coupon code' });
+  });
+
+  it('an unreadable success body still throws the parse error', async () => {
+    respond({ ok: true, status: 200, json: async () => { throw new SyntaxError('bad'); } });
+    await expect(api('/x')).rejects.toBeInstanceOf(SyntaxError);
+  });
+});
+
 describe('storefront cache options', () => {
   it('on the server (production) reads cache-config and tags the fetch', async () => {
     vi.stubEnv('NODE_ENV', 'production');

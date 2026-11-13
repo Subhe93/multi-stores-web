@@ -321,7 +321,15 @@
     "fileUploads": "Dosya yükleme",
     "percentOff": "%{percent} indirim",
     "amountOff": "{amount} indirim",
-    "buyQuantity": "{count} adet al"
+    "buyQuantity": "{count} adet al",
+    "couponActive": "İndirim kodu <strong>{code}</strong> etkin",
+    "couponPendingCheckout": "İndirim kodu <strong>{code}</strong> ödeme adımında düşülür",
+    "couponYourPrice": "İndirimli fiyatınız: {price}",
+    "couponFixedOff": "Siparişinizde {amount} indirim",
+    "couponFreeShipping": "Siparişinizde ücretsiz kargo",
+    "couponMinAmount": "En az {amount} tutarındaki siparişlerde geçerlidir",
+    "couponMinQuantity": "En az {count} ürün alındığında geçerlidir",
+    "couponNotApplicable": "{code} indirim kodu bu ürün için geçerli değil"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "Kuponu kaldır",
     "discount": "İndirim",
     "calculatedAtCheckout": "Ödeme sırasında hesaplanır",
+    "shippingEstimatedFor": "{country} için hesaplandı",
+    "shippingAddedAtCheckout": "Kargo ödeme sırasında eklenir",
     "emptyDescription": "Henüz sepetinize ürün eklememişsiniz.",
     "itemCount": "{count} ürün",
     "clearCart": "Sepeti Temizle",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "Ödeme ayarları değişti, lütfen tekrar deneyin.",
     "PAYMENT_PROVIDER_ERROR": "Ödeme sağlayıcısı bu ödemeyi şu anda işleyemedi. Lütfen birazdan tekrar deneyin veya başka bir ödeme yöntemi seçin.",
     "CART_ITEMS_UNAVAILABLE": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
-    "STORE_NOT_LIVE": "Bu mağaza henüz sipariş kabul etmiyor."
+    "STORE_NOT_LIVE": "Bu mağaza henüz sipariş kabul etmiyor.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "Siparişiniz bu kupon için minimum tutara ulaşmıyor",
+    "PROMOTION_COUPON_MIN_QUANTITY": "Siparişinizde bu kupon için yeterli ürün yok"
   },
   "builderPreview": {
     "selectParent": "Üst öğeyi seç",

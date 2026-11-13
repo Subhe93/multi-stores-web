@@ -25,7 +25,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = useTranslations();
   const lp = useLocalePath();
   const {
-    items, itemCount, subtotal, total, coupon, currency,
+    items, itemCount, subtotal, total, coupon, discount, currency,
     taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
     updateQuantity, removeItem, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
     hasUnavailableItems,
@@ -183,7 +183,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </IfApp>
                 <CartSummary
                   subtotal={subtotal}
-                  discount={coupon ? (coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount) : undefined}
+                  // Shared coupon formula (lib/couponDiscount via useCart).
+                  discount={coupon ? discount : undefined}
                   total={total}
                   currency={currency}
                   taxLines={taxLines}

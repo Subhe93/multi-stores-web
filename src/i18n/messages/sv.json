@@ -321,7 +321,15 @@
     "fileUploads": "Filuppladdning",
     "percentOff": "{percent}% rabatt",
     "amountOff": "{amount} rabatt",
-    "buyQuantity": "Köp {count}"
+    "buyQuantity": "Köp {count}",
+    "couponActive": "Rabattkoden <strong>{code}</strong> är aktiverad",
+    "couponPendingCheckout": "Rabattkoden <strong>{code}</strong> dras av i kassan",
+    "couponYourPrice": "Ditt pris med rabatt: {price}",
+    "couponFixedOff": "{amount} rabatt på din beställning",
+    "couponFreeShipping": "Fri frakt på din beställning",
+    "couponMinAmount": "Gäller vid köp för minst {amount}",
+    "couponMinQuantity": "Gäller vid köp av minst {count} artiklar",
+    "couponNotApplicable": "Rabattkoden {code} gäller inte för den här produkten"
   },
   "personalization": {
     "counter": "{count} / {max}",
@@ -364,6 +372,8 @@
     "removeCoupon": "Ta bort kupong",
     "discount": "Rabatt",
     "calculatedAtCheckout": "Beräknas i kassan",
+    "shippingEstimatedFor": "Beräknad för {country}",
+    "shippingAddedAtCheckout": "Frakt tillkommer i kassan",
     "emptyDescription": "Det ser ut som att du inte har lagt till några varor ännu.",
     "itemCount": "{count} varor",
     "clearCart": "Töm varukorg",
@@ -1016,7 +1026,9 @@
     "PAYMENT_ROUTE_CHANGED_RETRY": "Betalningsinställningarna har ändrats, försök igen.",
     "PAYMENT_PROVIDER_ERROR": "Betalningsleverantören kunde inte hantera betalningen just nu. Försök igen om en stund eller välj ett annat betalsätt.",
     "CART_ITEMS_UNAVAILABLE": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
-    "STORE_NOT_LIVE": "Den här butiken tar inte emot beställningar ännu."
+    "STORE_NOT_LIVE": "Den här butiken tar inte emot beställningar ännu.",
+    "PROMOTION_COUPON_MIN_AMOUNT": "Din beställning når inte minimibeloppet för den här rabattkoden",
+    "PROMOTION_COUPON_MIN_QUANTITY": "Din beställning har för få artiklar för den här rabattkoden"
   },
   "builderPreview": {
     "selectParent": "Välj överordnad",

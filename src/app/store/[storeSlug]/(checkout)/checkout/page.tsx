@@ -38,8 +38,11 @@ import {
 import { formatPrice } from '@/lib/format';
 import { normalizeB2bNetTotals, normalizeTaxExemptReason, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type TaxLine } from '@/lib/tax';
 import { exemptLinePrices, normalizeQuoteTaxExemption } from '@/lib/taxExemption';
+import { quotedSummaryFigures } from '@/lib/cartQuote';
 import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
+// Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
+import { QUOTE_DEBOUNCE_MS } from '@/lib/cartQuote';
 import { isLineErrorCode } from '@/lib/checkoutLineErrors';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
@@ -227,8 +230,6 @@ interface OrderQuoteResponse {
   tax_exempt_reason?: string | null;
   tax_exemption?: unknown;
 }
-// Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
-const QUOTE_DEBOUNCE_MS = 400;
 
 interface SavedAddress {
   id: string;
@@ -354,7 +355,7 @@ function CheckoutForm({
   const [stripeEpoch, setStripeEpoch] = useState(0);
   const { token, user, login, register, registerGuest } = useAuth();
   const {
-    items, subtotal, total, coupon, currency,
+    items, subtotal, total, coupon, discount, currency,
     taxLines: cartTaxLines, taxPricingMode, taxEstimated: cartTaxEstimated,
     b2bNet: cartB2bNet, netItems,
     clearCart, applyCoupon, removeCoupon, syncGuestCartToServer,
@@ -490,9 +491,8 @@ function CheckoutForm({
   const [rcNotConfirmed, setRcNotConfirmed] = useState(false);
 
   const isLoggedIn = Boolean(token);
-  const discount = coupon
-    ? coupon.type === 'percentage' ? subtotal * (coupon.discount / 100) : coupon.discount
-    : 0;
+  // `discount` (useCart) is the shared coupon formula (lib/couponDiscount):
+  // targeted lines only for a targeted coupon, fixed amounts capped.
   // Fall back to the first method so a stale selection can never leave the
   // order without a shipping cost.
   const selectedShippingMethod =
@@ -573,9 +573,10 @@ function CheckoutForm({
   const quoteForBuyer = quote !== null && quoteCompany === isCompany;
   const exemptReason = quote && quoteForBuyer ? normalizeTaxExemptReason(quote.tax_exempt_reason) : null;
   const quoteExemption = quote && quoteForBuyer ? normalizeQuoteTaxExemption(quote.tax_exemption) : null;
-  // Exempt quote (any buyer): its subtotal / discount are what is paid.
-  const summarySubtotal = exemptReason && quote ? Number(quote.subtotal) : subtotal;
-  const summaryDiscount = exemptReason && quote ? Number(quote.discount_amount) : discount;
+  // Once quoted, the subtotal and discount rows come from the same quote as
+  // `displayTotal` (exempt or not), so the rows always add up to the total
+  // that is charged; the client figures are the fallback until then.
+  const { subtotal: summarySubtotal, discount: summaryDiscount } = quotedSummaryFigures(quote, { subtotal, discount });
   const quoteItems = quote?.items;
   const exemptPrices = useMemo(
     () => (exemptReason ? exemptLinePrices(quoteItems, items) : null),
