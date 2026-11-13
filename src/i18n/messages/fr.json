@@ -286,6 +286,8 @@
     "selectOptions": "Sélectionnez les options ci-dessus",
     "savingsAmount": "Vous économisez {amount}",
     "shippingAndDelivery": "Livraison & Expédition",
+    "shippingHeading": "Livraison",
+    "returnsHeading": "Retours",
     "customizeYourProduct": "Personnalisez votre produit",
     "endsOn": "Se termine le",
     "requiredFieldsMissing": "Veuillez remplir tous les champs obligatoires",

@@ -286,6 +286,8 @@
     "selectOptions": "Välj alternativ ovan",
     "savingsAmount": "Du sparar {amount}",
     "shippingAndDelivery": "Frakt och leverans",
+    "shippingHeading": "Frakt",
+    "returnsHeading": "Returer",
     "customizeYourProduct": "Anpassa din produkt",
     "endsOn": "Slutar den",
     "requiredFieldsMissing": "Fyll i alla obligatoriska fält innan du lägger i varukorgen",

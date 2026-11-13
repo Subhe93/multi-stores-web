@@ -286,6 +286,8 @@
     "selectOptions": "اختر الخيارات أعلاه",
     "savingsAmount": "وفّرت {amount}",
     "shippingAndDelivery": "الشحن والتوصيل",
+    "shippingHeading": "الشحن",
+    "returnsHeading": "الإرجاع",
     "customizeYourProduct": "خصّص منتجك",
     "endsOn": "ينتهي في",
     "requiredFieldsMissing": "يرجى ملء جميع الحقول المطلوبة قبل الإضافة إلى السلة",

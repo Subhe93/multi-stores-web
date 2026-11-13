@@ -20,7 +20,7 @@ export type ProductBlockTabId = 'description' | 'specifications' | 'faq' | 'ship
 type Attribute = NonNullable<ProductData['attributes']>[number];
 
 /** One attribute value, rendered by its template type (same rules as the monolith). */
-function AttributeValue({ attr }: { attr: Attribute }) {
+export function AttributeValue({ attr }: { attr: Attribute }) {
   const t = useTranslations();
   const type = attr.template?.type;
   const val = attr.value;

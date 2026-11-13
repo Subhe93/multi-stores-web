@@ -286,6 +286,8 @@
     "selectOptions": "Yukarıdan seçenekleri belirleyin",
     "savingsAmount": "{amount} tasarruf",
     "shippingAndDelivery": "Kargo ve Teslimat",
+    "shippingHeading": "Kargo",
+    "returnsHeading": "İade",
     "customizeYourProduct": "Ürününüzü Özelleştirin",
     "endsOn": "Bitiş tarihi",
     "requiredFieldsMissing": "Lütfen tüm gerekli alanları doldurun",

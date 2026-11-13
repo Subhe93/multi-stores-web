@@ -286,6 +286,8 @@
     "selectOptions": "Select options above",
     "savingsAmount": "You save {amount}",
     "shippingAndDelivery": "Shipping & Delivery",
+    "shippingHeading": "Shipping",
+    "returnsHeading": "Returns",
     "customizeYourProduct": "Customize Your Product",
     "endsOn": "Ends on",
     "requiredFieldsMissing": "Please fill in all required fields before adding to cart",

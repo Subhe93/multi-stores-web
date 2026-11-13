@@ -54,6 +54,7 @@ import { collectionProductsSection } from './sections/CollectionProducts';
 import { productPageMagicSection } from './sections/product/ProductPageMagic';
 import { registryB1 } from './sections/product/blocks/registryB1';
 import { productBlocksB2 } from './sections/product/blocks/registryB2';
+import { productBlocksB3 } from './sections/product/blocks/registryB3';
 import { productListingMagicSection } from './sections/listing/ProductListingMagic';
 import { layoutRowSection } from './sections/layout/LayoutRow';
 import { layoutColumnSection } from './sections/layout/LayoutColumn';
@@ -124,6 +125,8 @@ export const minimalTheme: Theme = {
     'product-page': productPageMagicSection,
     ...registryB1,
     ...productBlocksB2,
+    // Standalone pieces of product-tabs (description, specs, FAQ, shipping & returns).
+    ...productBlocksB3,
     // Layout containers — hold child sections (parent_id), PRODUCT_TEMPLATE only.
     'layout-row': layoutRowSection,
     'layout-column': layoutColumnSection,
