@@ -12,8 +12,10 @@ import { ProductPageStateProvider } from '@/components/product/state/ProductPage
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import { dashboardOrigins } from '@/lib/platformHosts';
 import { sanitizeCustomCss } from '@/lib/customCss';
+import { projectProductForClient } from '@/lib/productPayload';
 import {
   HOVER_CSS,
+  adoptPreviewProduct,
   findEditablePath,
   findParentId,
   resolveSectionContent,
@@ -78,6 +80,10 @@ interface UpdateMessage {
   // Forwarded from the dashboard so header/footer sections resolve a selected
   // menu live (kept fresh, including menus created this session).
   menus?: NonNullable<StoreContext['menus']>;
+  // Sample product read by the builder with the owner's token (PRODUCT_TEMPLATE
+  // only). The route's own anonymous read finds nothing for a store that is
+  // not LIVE; absent, the server-side sample stays.
+  product?: ProductContext;
 }
 
 interface ScrollMessage {
@@ -116,29 +122,37 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'UPDATE_SECTIONS') {
-        setState((prev) => ({
-          themeKey: data.themeKey ?? prev.themeKey,
-          customizations: data.customizations ?? prev.customizations,
-          sections: data.sections ?? prev.sections,
-          locale: data.locale ?? prev.locale,
-          primaryLocale: data.primaryLocale ?? prev.primaryLocale,
-          // Preserve preview-only context the dashboard never sends — but fold
-          // in fresh menus when provided so chrome sections resolve them.
-          product: prev.product,
-          listing: prev.listing,
-          currency: prev.currency,
-          storeContext: data.menus
-            ? {
-                ...(prev.storeContext ?? {
-                  storeName: '',
-                  primaryLocale: data.primaryLocale ?? prev.primaryLocale,
-                  secondaryLocales: [],
-                  pages: [],
-                }),
-                menus: data.menus,
-              }
-            : prev.storeContext,
-        }));
+        setState((prev) => {
+          const nextLocale = data.locale ?? prev.locale;
+          const nextPrimary = data.primaryLocale ?? prev.primaryLocale;
+          // A posted product is the raw API payload: give it the same
+          // projection the live product page applies, so dynamic sources
+          // (e.g. product_attribute label matching) resolve exactly as live.
+          const posted = adoptPreviewProduct(data.product, undefined);
+          return {
+            themeKey: data.themeKey ?? prev.themeKey,
+            customizations: data.customizations ?? prev.customizations,
+            sections: data.sections ?? prev.sections,
+            locale: nextLocale,
+            primaryLocale: nextPrimary,
+            // Preserve preview-only context the dashboard does not send — but
+            // fold in fresh menus and the owner-read sample product when provided.
+            product: posted ? projectProductForClient(posted, nextLocale, nextPrimary) : prev.product,
+            listing: prev.listing,
+            currency: prev.currency,
+            storeContext: data.menus
+              ? {
+                  ...(prev.storeContext ?? {
+                    storeName: '',
+                    primaryLocale: data.primaryLocale ?? prev.primaryLocale,
+                    secondaryLocales: [],
+                    pages: [],
+                  }),
+                  menus: data.menus,
+                }
+              : prev.storeContext,
+          };
+        });
       } else if (data.type === 'SCROLL_TO_SECTION') {
         const el = document.querySelector(
           `[data-section-id="${data.section_id}"]`,

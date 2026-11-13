@@ -18,6 +18,7 @@ import { gallerySliderSection } from './sections/GallerySlider';
 import { faqListSection } from './sections/FaqList';
 import { callToActionSection } from './sections/CallToAction';
 import { imageWithTextSection } from './sections/ImageWithText';
+import { singleImageSection } from './sections/SingleImage';
 import { trustBadgesSection } from './sections/TrustBadges';
 import { newsletterSignupSection } from './sections/NewsletterSignup';
 import { socialIconsSection } from './sections/SocialIcons';
@@ -84,6 +85,7 @@ export const minimalTheme: Theme = {
     'image-gallery': imageGallerySection,
     'gallery-slider': gallerySliderSection,
     'image-with-text': imageWithTextSection,
+    'single-image': singleImageSection,
     'faq-list': faqListSection,
     'call-to-action': callToActionSection,
     'trust-badges': trustBadgesSection,

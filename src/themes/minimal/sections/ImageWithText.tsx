@@ -1,11 +1,21 @@
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { IMAGE_SOURCE_FIELDS, STATIC_IMAGE_SHOW_IF } from './_shared/dynamicSourceFields';
 import { buttonStyles, colorOr, mediaFx } from '../../elementStyles';
 import { Reveal } from '../../_motion';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc } from '@/lib/storeMedia';
+import {
+  DynamicSourceHint,
+  dynamicImageSource,
+  isDynamicPreview,
+  productHasAnyImage,
+  resolveDynamicImage,
+  type DynamicImageSource,
+} from './_shared/dynamicSource';
+import { DynamicProductImage } from './_shared/lazyDynamic';
 
 type Position = 'left' | 'right';
 type Aspect = 'square' | 'portrait' | 'landscape' | 'wide';
@@ -17,7 +27,66 @@ const ASPECT_CLASS: Record<Aspect, string> = {
   wide: 'aspect-[16/9]',
 };
 
-function ImageWithText({ settings, content }: SectionRenderProps) {
+const IMAGE_SIZES = '(min-width: 768px) 50vw, 100vw';
+
+/**
+ * Image block for a dynamic `image_source` (product image). Null when there
+ * is nothing to show on the live store; a hint in the builder preview.
+ */
+function dynamicImageBlock(
+  source: DynamicImageSource,
+  { settings, product, locale, builderPreview }: SectionRenderProps,
+  aspectClass: string,
+) {
+  const preview = isDynamicPreview(builderPreview);
+  const hint = preview ? (
+    <DynamicSourceHint
+      source={source}
+      locale={locale}
+      hasProduct={!!product}
+      className={`${aspectClass} flex flex-col items-center justify-center`}
+      style={{ borderRadius: 'var(--theme-radius-lg)' }}
+    />
+  ) : null;
+  if (!product) return hint;
+  const resolved = resolveDynamicImage(source, product, settings, locale);
+  if (source === 'variant_image') {
+    if (!productHasAnyImage(product)) return hint;
+    // Live store without a featured image: the island would render nothing
+    // until a variant with an image is picked, leaving an empty grid column.
+    // Collapse to text only instead (the builder keeps the island + hint).
+    if (!resolved && !preview) return null;
+    return (
+      <DynamicProductImage
+        mode="fill"
+        fallback={resolved}
+        placeholder={hint}
+        frameClassName={`relative ${aspectClass}`}
+        frameStyle={mediaFx()}
+        imgClassName="object-cover"
+        sizes={IMAGE_SIZES}
+      />
+    );
+  }
+  if (!resolved) return hint;
+  return (
+    <div className={`relative ${aspectClass}`} style={mediaFx()} data-dynamic-image={source}>
+      <StoreImage
+        src={resolved.url}
+        alt={resolved.alt}
+        fill
+        sizes={IMAGE_SIZES}
+        unoptimized={isSvgSrc(resolved.url)}
+        className="object-cover"
+      />
+    </div>
+  );
+}
+
+function ImageWithText(props: SectionRenderProps) {
+  const { settings, content } = props;
+  // A missing / 'static' / unknown image_source keeps the uploaded image.
+  const imageSource = dynamicImageSource(settings);
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'p');
   const position = (settings.image_position as Position) || 'left';
@@ -92,7 +161,7 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
     </div>
   );
 
-  const imageBlock = resolvedImage ? (
+  const imageBlock = imageSource ? dynamicImageBlock(imageSource, props, ASPECT_CLASS[aspect]) : resolvedImage ? (
     <div className={`relative ${ASPECT_CLASS[aspect]}`} style={mediaFx()}>
       <StoreImage
         src={resolvedImage}
@@ -117,6 +186,16 @@ function ImageWithText({ settings, content }: SectionRenderProps) {
       </span>
     </div>
   );
+
+  if (imageSource && !imageBlock) {
+    // Live store, product without that image: text only, no empty box.
+    if (!eyebrow && !heading && !body && !ctaText) return null;
+    return (
+      <section className="my-12">
+        <Reveal direction="up">{text}</Reveal>
+      </section>
+    );
+  }
 
   return (
     <section className="grid md:grid-cols-2 gap-8 lg:gap-20 my-12 items-center">
@@ -147,7 +226,8 @@ export const imageWithTextSection: SectionDefinition = {
     },
     translatable: ['eyebrow', 'heading', 'body', 'cta_text'],
     schema: [
-      { key: 'image', type: 'image', label: { en: 'Image', ar: 'الصورة' } },
+      { key: 'image', type: 'image', label: { en: 'Image', ar: 'الصورة' }, showIf: STATIC_IMAGE_SHOW_IF },
+      ...IMAGE_SOURCE_FIELDS,
       {
         key: 'image_position',
         type: 'select',

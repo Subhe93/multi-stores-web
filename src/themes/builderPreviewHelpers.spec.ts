@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  adoptPreviewProduct,
   findEditablePath,
   findParentId,
   findSection,
@@ -7,7 +8,7 @@ import {
   safeSectionId,
   selectionCss,
 } from './builderPreviewHelpers';
-import type { SectionInstance } from './types';
+import type { ProductContext, SectionInstance } from './types';
 
 function s(id: string, extra: Partial<SectionInstance> = {}): SectionInstance {
   return { id, section_key: 'rich-text', settings: {}, sort_order: 0, translations: [], ...extra };
@@ -89,5 +90,24 @@ describe('inline edit lookup', () => {
     expect(findEditablePath(content, 'Hello')).toEqual(['heading']);
     expect(findEditablePath(content, 'One')).toEqual(['items', 0, 'title']);
     expect(findEditablePath(content, 'Missing')).toBeNull();
+  });
+});
+
+describe('adoptPreviewProduct', () => {
+  const sample = { id: 'server', translations: [] } as unknown as ProductContext;
+  const posted = { id: 'posted', translations: [] } as unknown as ProductContext;
+
+  it('adopts a posted product with an id', () => {
+    expect(adoptPreviewProduct(posted, sample)).toBe(posted);
+    expect(adoptPreviewProduct(posted, undefined)).toBe(posted);
+  });
+
+  it('keeps the current product when nothing usable is posted', () => {
+    expect(adoptPreviewProduct(undefined, sample)).toBe(sample);
+    expect(adoptPreviewProduct(null, sample)).toBe(sample);
+    expect(adoptPreviewProduct({ id: '' }, sample)).toBe(sample);
+    expect(adoptPreviewProduct({ id: 7 }, sample)).toBe(sample);
+    expect(adoptPreviewProduct([{ id: 'x' }], sample)).toBe(sample);
+    expect(adoptPreviewProduct('p1', undefined)).toBeUndefined();
   });
 });

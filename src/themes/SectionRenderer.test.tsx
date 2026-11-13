@@ -343,3 +343,34 @@ describe('SectionRenderer builderPreview on product blocks', () => {
     }
   });
 });
+
+// ── builderPreview on sections with a dynamic source ─────────────────────
+
+describe('SectionRenderer builderPreview on dynamic-source sections', () => {
+  const contentProbe: SectionDefinition = {
+    schema: { id: 'rich-text', label: { en: 'Rich text' }, category: 'content', translatable: [], schema: [] },
+    Component: (props: SectionRenderProps) => <p data-bp={String(props.builderPreview)} />,
+  };
+  const dynTheme: Theme = { ...theme, sections: { ...theme.sections, 'rich-text': contentProbe } };
+  const sections = [
+    sec('static', 'rich-text', 0),
+    sec('explicit-static', 'rich-text', 1, { settings: { content_source: 'static', image_source: 'static' } }),
+    sec('dyn-text', 'rich-text', 2, { settings: { content_source: 'product_description' } }),
+    sec('dyn-image', 'rich-text', 3, { settings: { image_source: 'variant_image' } }),
+    sec('unknown', 'rich-text', 4, { settings: { content_source: 'bogus' } }),
+  ];
+  const flags = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('[data-bp]')).map((el) => el.getAttribute('data-bp'));
+
+  it('passes the flag only to sections with a dynamic source; static ones keep their props', () => {
+    const live = render(<SectionRenderer {...base} theme={dynTheme} sections={sections} />);
+    expect(flags(live.container)).toEqual(['undefined', 'undefined', 'false', 'false', 'undefined']);
+    live.unmount();
+    const builder = render(<SectionRenderer {...base} theme={dynTheme} builderPreview sections={sections} />);
+    expect(flags(builder.container)).toEqual(['undefined', 'undefined', 'true', 'true', 'undefined']);
+  });
+
+  it('registers the single-image section with the builder flag', () => {
+    expect(minimalTheme.sections['single-image']?.needsBuilderPreview).toBe(true);
+  });
+});

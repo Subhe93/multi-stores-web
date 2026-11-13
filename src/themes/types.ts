@@ -152,7 +152,21 @@ export interface FieldDefinition {
   // Conditional visibility inside a repeater — show only when sibling `key`'s
   // value is in `in`. Mirrors the dashboard FieldDefinition.
   showIf?: { key: string; in: string[] };
+  // Page types where the inspector offers this field (e.g. the dynamic
+  // source fields only on PRODUCT_TEMPLATE). Omitted = every page type.
+  // Mirrors the dashboard FieldDefinition.
+  pageTypes?: SectionPageType[];
 }
+
+export type SectionPageType =
+  | 'HOME'
+  | 'STATIC'
+  | 'LANDING'
+  | 'PRODUCT_TEMPLATE'
+  | 'HEADER'
+  | 'FOOTER'
+  | 'CATALOG_TEMPLATE'
+  | 'COLLECTION_TEMPLATE';
 
 export interface SectionSchema {
   id: string;
@@ -427,6 +441,9 @@ export interface SectionDefinition {
   // Gets `storeContext` (menus, socials, store name…). Off by default: a
   // client section would serialise the whole context into the RSC payload.
   needsStoreContext?: boolean;
+  // Gets an explicit `builderPreview` boolean (placeholders shown only in
+  // the builder). Off by default so existing sections keep their props.
+  needsBuilderPreview?: boolean;
   // Defaults used when the section is added from the palette.
   defaultSettings?: Record<string, unknown>;
   defaultContent?: Record<string, unknown>;

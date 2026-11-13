@@ -5,7 +5,7 @@
 // sections up in that flat list so selection, the toolbar and inline editing
 // work the same at any nesting depth.
 
-import type { SectionInstance } from './types';
+import type { ProductContext, SectionInstance } from './types';
 
 /** Strip everything that is not safe inside a CSS attribute selector. */
 export function safeSectionId(id: string | null | undefined): string | null {
@@ -116,4 +116,25 @@ export function findEditablePath(
     }
   }
   return null;
+}
+
+/**
+ * Product the preview renders after an UPDATE_SECTIONS message: the product
+ * the builder posted (read with the owner's token) when it is an object with
+ * an id, else the current one (the route's server-side sample, or none).
+ */
+export function adoptPreviewProduct(
+  posted: unknown,
+  current: ProductContext | undefined,
+): ProductContext | undefined {
+  if (
+    posted &&
+    typeof posted === 'object' &&
+    !Array.isArray(posted) &&
+    typeof (posted as { id?: unknown }).id === 'string' &&
+    (posted as { id: string }).id
+  ) {
+    return posted as ProductContext;
+  }
+  return current;
 }

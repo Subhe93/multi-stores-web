@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { animationClass, readSectionStyle, resolveSectionStyle, type SectionStyle } from './sectionStyle';
 import { Reveal } from './_motion';
+import { hasDynamicSource } from './minimal/sections/_shared/dynamicSourceKeys';
 import {
   buildSectionTree,
   isContainerKey,
@@ -204,8 +205,12 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
     : null;
   // Product blocks (category 'product') also get an explicit builderPreview
   // flag so their "no data" placeholder shows only in the builder preview.
+  // Same explicit flag for a section with a dynamic product source
+  // (content_source / image_source) and for sections that opt in
+  // (needsBuilderPreview). Static sections keep exactly their old props.
   const productBlockProps =
-    !isContainer && def.schema?.category === 'product'
+    !isContainer &&
+    (def.schema?.category === 'product' || def.needsBuilderPreview || hasDynamicSource(section.settings))
       ? { builderPreview: !!ctx.builderPreview }
       : null;
   const inner = (
