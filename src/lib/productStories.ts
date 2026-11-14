@@ -146,7 +146,7 @@ export function toStoryCards(
 // ── Block settings (contract 7.2) ──
 
 export type StoriesLayout = 'slider' | 'grid' | 'overlay';
-export type StoriesAspect = 'portrait' | 'square' | 'landscape';
+export type StoriesAspect = 'portrait' | 'portrait_4_5' | 'square' | 'landscape';
 export type StoriesTextPosition = 'below' | 'overlay';
 
 export interface StoriesSettings {
@@ -180,7 +180,7 @@ export function readStoriesSettings(settings: Record<string, unknown> | undefine
   return {
     showHeading: s.show_heading !== false,
     layout,
-    aspect: pick(s.card_aspect, ['portrait', 'square', 'landscape'] as const, 'portrait'),
+    aspect: pick(s.card_aspect, ['portrait', 'portrait_4_5', 'square', 'landscape'] as const, 'portrait'),
     columns: clampInt(s.columns, 1, 6, 4),
     columnsTablet: clampInt(s.columns_tablet, 1, 4, 3),
     columnsMobile: clampInt(s.columns_mobile, 1, 2, 1),

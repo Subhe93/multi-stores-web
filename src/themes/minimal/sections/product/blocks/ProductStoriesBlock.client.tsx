@@ -78,6 +78,7 @@ const ProductVideoSlide = dynamic(
 
 const ASPECT_CLASS: Record<StoriesAspect, string> = {
   portrait: 'aspect-[9/16]',
+  portrait_4_5: 'aspect-[4/5]',
   square: 'aspect-square',
   landscape: 'aspect-video',
 };
@@ -86,6 +87,7 @@ const ASPECT_CLASS: Record<StoriesAspect, string> = {
 // boxes get fewer lines so stars, quote and name fit without being clipped.
 const OVERLAY_CLAMP: Record<StoriesAspect, string> = {
   portrait: 'line-clamp-6',
+  portrait_4_5: 'line-clamp-5',
   square: 'line-clamp-4',
   landscape: 'line-clamp-3',
 };
@@ -164,7 +166,7 @@ export function ProductStoriesBlock({
         headingTag(settings?.heading_level, 'h2'),
         {
           id: headingId,
-          className: 'text-xl font-semibold text-gray-900 wrap-break-word',
+          className: 'text-sm font-semibold text-gray-900 wrap-break-word',
           'data-product-block-heading': '',
         },
         heading,
