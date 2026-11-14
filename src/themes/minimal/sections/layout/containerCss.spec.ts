@@ -128,6 +128,60 @@ describe('buildColumnCss', () => {
     const css = buildColumnCss('c', {}, [{ id: 'x', layout: { order: { tablet: 3 } } }]);
     expect(css).toContain(`${T}{.lc-c>.s-x{order:3}}`);
   });
+
+  // QA 2026-11-14: a product without bundles / variants / personalization
+  // showed the two info-column dividers as one double line.
+  describe('double divider', () => {
+    const child = (id: string, divider = false) => ({ id, layout: {}, divider });
+
+    it('hides the second divider while every child between them is empty', () => {
+      const css = buildColumnCss('c', {}, [
+        child('title'),
+        child('d1', true),
+        child('bundles'),
+        child('variants'),
+        child('d2', true),
+        child('buy'),
+      ]);
+      expect(css).toContain(
+        '.lc-c:has(>.s-bundles>div:only-child:empty):has(>.s-variants>div:only-child:empty)>.s-d2{display:none}',
+      );
+      // Nothing targets the first divider or the other children.
+      expect(css).not.toContain('>.s-d1{display:none}');
+      expect(css).not.toContain('>.s-buy{display:none}');
+      // :has() must not be nested (invalid CSS, the whole rule would drop).
+      expect(css).not.toMatch(/:has\([^)]*:has\(/);
+    });
+
+    it('always hides a divider directly after another one', () => {
+      const css = buildColumnCss('c', {}, [child('d1', true), child('d2', true)]);
+      expect(css).toContain('.lc-c>.s-d2{display:none}');
+    });
+
+    it('pairs consecutive dividers only (three dividers: two rules)', () => {
+      const css = buildColumnCss('c', {}, [child('d1', true), child('a'), child('d2', true), child('b'), child('d3', true)]);
+      expect(css).toContain('.lc-c:has(>.s-a>div:only-child:empty)>.s-d2{display:none}');
+      expect(css).toContain('.lc-c:has(>.s-b>div:only-child:empty)>.s-d3{display:none}');
+    });
+
+    it('hides no divider when a child carries an order (visual order differs from DOM)', () => {
+      // DOM: d1, empty, d2, content; the order on "content" can move it
+      // visually between the two lines, so d2 must stay visible.
+      const css = buildColumnCss('c', {}, [
+        child('d1', true),
+        child('empty'),
+        child('d2', true),
+        { id: 'content', layout: { order: { mobile: 1 } }, divider: false },
+      ]);
+      expect(css).not.toContain('>.s-d2{display:none}');
+      expect(css).toContain('order:1');
+    });
+
+    it('adds nothing for a column with at most one divider', () => {
+      const plain = buildColumnCss('c', {}, [child('a'), child('d1', true), child('b')]);
+      expect(plain).toBe(buildColumnCss('c', {}, [child('a'), child('d1'), child('b')]));
+    });
+  });
 });
 
 describe('buildGridCss', () => {

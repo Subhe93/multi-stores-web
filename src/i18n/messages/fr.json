@@ -426,7 +426,9 @@
     "couponAutoInvalid": "Le code promo {code} n’est pas valide",
     "couponAutoPending": "Le code promo {code} sera appliqué à votre panier",
     "couponNoticeDismiss": "Fermer",
-    "unavailableRemoved": "{count, plural, one {Un article qui n’est plus disponible a été retiré de votre panier} other {# articles qui ne sont plus disponibles ont été retirés de votre panier}}"
+    "unavailableRemoved": "{count, plural, one {Un article qui n’est plus disponible a été retiré de votre panier} other {# articles qui ne sont plus disponibles ont été retirés de votre panier}}",
+    "productFallback": "Produit",
+    "bundleFallback": "Lot"
   },
   "checkout": {
     "returnToStore": "Retour à la boutique",
@@ -567,7 +569,8 @@
     "paymentFormLoading": "Chargement du formulaire de paiement sécurisé…",
     "paymentFormSlow": "Cela prend plus de temps que d’habitude",
     "itemsUnavailable": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
-    "ownerPreviewNotice": "Aperçu de la boutique : la boutique n’est pas encore en ligne, seuls des paiements par carte de test sont possibles ici."
+    "ownerPreviewNotice": "Aperçu de la boutique : la boutique n’est pas encore en ligne, seuls des paiements par carte de test sont possibles ici.",
+    "addressLine2Placeholder": "Appartement, bâtiment, etc. (facultatif)"
   },
   "auth": {
     "passwordPlaceholder": "Saisissez votre mot de passe",

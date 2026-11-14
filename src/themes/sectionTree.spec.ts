@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSectionTree, readChildLayout, subtreeContains, walkTree, type SectionTreeNode } from './sectionTree';
+import { buildSectionTree, isDividerSection, readChildLayout, subtreeContains, walkTree, type SectionTreeNode } from './sectionTree';
 import type { SectionInstance } from './types';
 
 function s(id: string, key: string, sort_order: number, extra: Partial<SectionInstance> = {}): SectionInstance {
@@ -108,5 +108,15 @@ describe('readChildLayout', () => {
       }),
     ).toEqual({ span: { desktop: 2, tablet: 12 }, order: { mobile: -1 }, align_self: 'center', sticky: true });
     expect(readChildLayout({ _layout: { align_self: 'bogus', sticky: 'yes' } })).toEqual({});
+  });
+});
+
+describe('isDividerSection', () => {
+  it('is a spacer with its divider line on', () => {
+    expect(isDividerSection('spacer', { show_divider: true })).toBe(true);
+    expect(isDividerSection('spacer', { show_divider: false })).toBe(false);
+    expect(isDividerSection('spacer', {})).toBe(false);
+    expect(isDividerSection('spacer', null)).toBe(false);
+    expect(isDividerSection('rich-text', { show_divider: true })).toBe(false);
   });
 });

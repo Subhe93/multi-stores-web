@@ -6,6 +6,10 @@ import { OrderSummary, shippingValueClass, type OrderSummaryProps } from './Orde
 // look free; green only for a real 0 or a free-shipping coupon.
 
 vi.mock('@/hooks/useBuyerType', () => ({ useBuyerType: () => ({ isCompany: false, settings: {} }) }));
+vi.mock('next-intl', () => ({
+  useLocale: () => 'sv',
+  useTranslations: () => (key: string, values?: Record<string, string>) => (values?.label ? `${key}:${values.label}` : key),
+}));
 vi.mock('@/hooks/useDisplayPrice', () => ({ useDisplayPrice: () => (amount: number) => ({ amount }) }));
 
 const t = (key: string) => key;
@@ -55,5 +59,29 @@ describe('OrderSummary shipping row', () => {
   it('a priced shipping is dark', () => {
     render(<OrderSummary {...props({ shippingCost: 49, effectiveShipping: 49 })} />);
     expect(screen.getByTestId('summary-shipping').className).toContain('text-gray-900');
+  });
+});
+
+// Price format (QA 2026-11-14): the checkout summary used the 'en' default and
+// showed "SEK 275.00" next to a cart and Kustom iframe showing "275,00 kr".
+describe('OrderSummary money format', () => {
+  const kr = (n: string) => new RegExp(`^-?${n}\\s*kr$`);
+
+  it('formats line, subtotal, shipping and total in the storefront locale', () => {
+    render(<OrderSummary {...props({ shippingCost: 49, effectiveShipping: 49, total: 349 })} />);
+    expect(screen.getByTestId('summary-shipping').textContent).toMatch(kr('49,00'));
+    expect(screen.getAllByText(kr('300,00')).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(kr('349,00'))).toBeTruthy();
+    expect(screen.queryByText(/SEK/)).toBeNull();
+  });
+
+  it('formats the tax rows in the same locale', () => {
+    render(<OrderSummary {...props({ taxLines: [{ label: 'Moms', rate_bp: 2500, tax_amount: 55, taxable_amount: 220 } as never] })} />);
+    expect(screen.getByText(kr('55,00'))).toBeTruthy();
+  });
+
+  it('an explicit locale prop wins', () => {
+    render(<OrderSummary {...props({ locale: 'en' })} />);
+    expect(screen.getAllByText(/SEK\s*300\.00/).length).toBeGreaterThanOrEqual(2);
   });
 });

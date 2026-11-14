@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { X, ShoppingCart } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
@@ -23,6 +23,8 @@ interface CartDrawerProps {
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = useTranslations();
+  // Money in the storefront locale, like the cart page ("275,00 kr").
+  const locale = useLocale();
   const lp = useLocalePath();
   const {
     items, itemCount, subtotal, total, coupon, discount, currency,
@@ -152,7 +154,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     item={{
                       id: item.id,
                       productId: item.productId,
-                      title: item.title || item.name || 'Product',
+                      title: item.title || item.name || t('cart.productFallback'),
                       price: item.price,
                       quantity: item.quantity,
                       imageUrl: item.imageUrl || item.image,
@@ -167,6 +169,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     }}
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}
+                    locale={locale}
                   />
                 ))}
               </div>
@@ -188,6 +191,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   discount={coupon ? discount : undefined}
                   total={total}
                   currency={currency}
+                  locale={locale}
                   taxLines={taxLines}
                   taxPricingMode={taxPricingMode}
                   taxEstimated={taxEstimated}

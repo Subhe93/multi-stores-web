@@ -14,6 +14,7 @@ import { useCart } from '@/hooks/useCart';
 import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
 import { marketBody, marketQuery } from '@/lib/market';
+import { nameStatesDeliveryTime } from '@/lib/shippingDeliveryTime';
 import { MarketPreviewCheckoutNotice } from '@/components/layout/MarketPreviewBanner';
 import { useApiError, useCodedApiError } from '@/lib/useApiError';
 import { getStripe } from '@/lib/stripe';
@@ -548,9 +549,12 @@ function CheckoutForm({
   const selectedShippingMethod =
     shippingMethods.find((m) => m.id === selectedShippingMethodId) ?? shippingMethods[0] ?? null;
   const shippingCost = selectedShippingMethod ? selectedShippingMethod.cost : null;
-  // Pickup has no transit time, so the summary shows no day range for it.
+  // Pickup has no transit time, so the summary shows no day range for it;
+  // neither does a method whose name already states a delivery time.
   const shippingEstimate =
-    selectedShippingMethod && selectedShippingMethod.type !== 'PICKUP'
+    selectedShippingMethod &&
+    selectedShippingMethod.type !== 'PICKUP' &&
+    !nameStatesDeliveryTime(selectedShippingMethod.name)
       ? selectedShippingMethod.estimated_days
       : null;
   // The quote refused the applied coupon (provider-cost floor): the order
@@ -1497,8 +1501,8 @@ function CheckoutForm({
         {quote && !quoteLoading && (
           <p className="mt-1 font-semibold">
             {sumTaxLines(taxLines) > 0
-              ? t('b2b.vat.newTotal', { total: formatPrice(displayTotal, currency) })
-              : t('b2b.vat.newTotalNoVat', { total: formatPrice(displayTotal, currency) })}
+              ? t('b2b.vat.newTotal', { total: formatPrice(displayTotal, currency, locale) })
+              : t('b2b.vat.newTotalNoVat', { total: formatPrice(displayTotal, currency, locale) })}
           </p>
         )}
       </div>
@@ -1516,7 +1520,7 @@ function CheckoutForm({
   // "Betala med kort"); the translated key stays the fallback.
   const payButtonLabel = resolvePayButtonLabel(checkoutSettings, locale);
   // The card button names the amount that will be charged.
-  const payAmount = formatPrice(displayTotal, paymentCurrency);
+  const payAmount = formatPrice(displayTotal, paymentCurrency, locale);
   const submitLabel = paymentMethod === 'stripe'
     ? (payButtonLabel ? `${payButtonLabel} · ${payAmount}` : t('checkout.payAmount', { amount: payAmount }))
     : t('checkout.placeOrder');
@@ -1604,7 +1608,7 @@ function CheckoutForm({
             {summaryOpen ? t('checkout.hideOrderSummary') : t('checkout.showOrderSummary')}
             {summaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
-          <span className="text-sm font-bold text-gray-900">{formatPrice(displayTotal, currency)}</span>
+          <span className="text-sm font-bold text-gray-900">{formatPrice(displayTotal, currency, locale)}</span>
         </button>
         {summaryOpen && (
           <div className="px-4 pb-5 pt-3 border-t border-gray-200">
@@ -1817,7 +1821,8 @@ function CheckoutForm({
                       placeholder={t('checkout.address')} />
                     {fieldErrors.line1 && <p className="mt-1 text-xs text-red-500">{fieldErrors.line1}</p>}
                     <input name="line2" type="text" value={form.line2} onChange={handleChange}
-                      placeholder="Apartment, suite, etc. (optional)"
+                      placeholder={t('checkout.addressLine2Placeholder')}
+                      aria-label={t('checkout.addressLine2Placeholder')}
                       className={`mt-2 ${inputCls()}`} />
                   </div>
 
@@ -1927,7 +1932,7 @@ function CheckoutForm({
                           const isActive = selectedShippingMethod?.id === method.id;
                           const daysLabel = method.type === 'PICKUP'
                             ? t('checkout.pickUpInStore')
-                            : method.estimated_days
+                            : method.estimated_days && !nameStatesDeliveryTime(method.name)
                               ? `${method.estimated_days.min === method.estimated_days.max
                                   ? method.estimated_days.min
                                   : `${method.estimated_days.min}–${method.estimated_days.max}`} ${t('checkout.businessDays')}`
@@ -1952,7 +1957,7 @@ function CheckoutForm({
                                 {daysLabel && <p className="text-xs text-gray-500 mt-0.5">{daysLabel}</p>}
                               </div>
                               <span className={`text-sm font-medium shrink-0 ${method.cost === 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                {method.cost === 0 ? t('checkout.free') : formatPrice(method.cost, currency)}
+                                {method.cost === 0 ? t('checkout.free') : formatPrice(method.cost, currency, locale)}
                               </span>
                             </label>
                           );

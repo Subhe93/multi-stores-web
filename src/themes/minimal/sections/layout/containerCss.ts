@@ -30,6 +30,8 @@ export const DEFAULT_STICKY_TOP_PX = 24;
 export interface ContainerChild {
   id: string;
   layout: ChildLayout;
+  /** A spacer drawing a divider line (sectionTree isDividerSection). */
+  divider?: boolean;
 }
 
 /** Class of the flex / grid element a container renders. */
@@ -246,6 +248,7 @@ export function buildColumnCss(sectionId: string, settings: Record<string, unkno
   // A child that rendered nothing (e.g. a product block with no data for this
   // product) takes no gap, like the monolith's conditional blocks.
   out.rule('desktop', `${sel}>[data-section-id]:has(>div:only-child:empty)`, ['display:none']);
+  appendDoubleDividerRules(out, sel, children);
   for (const child of children) appendCommonChildRules(out, sel, child);
   if (s.stickyDesktop) {
     // The column's own inner div sticks inside its wrapper, which a parent
@@ -255,6 +258,36 @@ export function buildColumnCss(sectionId: string, settings: Record<string, unkno
     out.media(mq, `.${scopeClassFor(sectionId)}-i`, ['position:sticky', `top:${s.stickyTop}px`]);
   }
   return out.toString();
+}
+
+/**
+ * Two divider lines with nothing visible between them read as one double
+ * line (e.g. a product without bundles, variants or personalization: every
+ * block between the two dividers renders nothing). For each pair of
+ * consecutive dividers in the column, the second one is hidden while every
+ * child between them is empty; as soon as one of them renders content the
+ * rule no longer matches. Same emptiness test as the collapse rule above;
+ * one flat :has() per child since :has() cannot be nested. Children are taken
+ * in sibling (DOM) order, as rendered. A per-breakpoint `order` on any child
+ * can move content visually between two dividers that are adjacent in the
+ * DOM, so no rule is emitted at all when a child carries one (a visible
+ * double line beats a hidden divider next to content).
+ */
+function appendDoubleDividerRules(out: CssBuilder, sel: string, children: ContainerChild[]) {
+  const reordered = children.some((c) => BPS.some((bp) => c.layout.order?.[bp] !== undefined));
+  if (reordered) return;
+  let prevDivider = -1;
+  children.forEach((child, i) => {
+    if (!child.divider) return;
+    if (prevDivider >= 0) {
+      const between = children.slice(prevDivider + 1, i);
+      const allEmpty = between
+        .map((c) => `:has(>.${scopeClassFor(c.id)}>div:only-child:empty)`)
+        .join('');
+      out.rule('desktop', `${sel}${allEmpty}>.${scopeClassFor(child.id)}`, ['display:none']);
+    }
+    prevDivider = i;
+  });
 }
 
 // ── Grid ────────────────────────────────────────────────────────────────

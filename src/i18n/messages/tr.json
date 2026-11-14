@@ -426,7 +426,9 @@
     "couponAutoInvalid": "{code} indirim kodu geçerli değil",
     "couponAutoPending": "{code} indirim kodu sepetinize uygulanacak",
     "couponNoticeDismiss": "Kapat",
-    "unavailableRemoved": "{count, plural, one {Artık mevcut olmayan bir ürün sepetinizden çıkarıldı} other {Artık mevcut olmayan # ürün sepetinizden çıkarıldı}}"
+    "unavailableRemoved": "{count, plural, one {Artık mevcut olmayan bir ürün sepetinizden çıkarıldı} other {Artık mevcut olmayan # ürün sepetinizden çıkarıldı}}",
+    "productFallback": "Ürün",
+    "bundleFallback": "Paket"
   },
   "checkout": {
     "returnToStore": "Mağazaya dön",
@@ -567,7 +569,8 @@
     "paymentFormLoading": "Güvenli ödeme formu yükleniyor…",
     "paymentFormSlow": "Bu işlem normalden uzun sürüyor",
     "itemsUnavailable": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
-    "ownerPreviewNotice": "Mağaza önizlemesi: mağaza henüz yayında değil, bu yüzden burada yalnızca test kartı ödemeleri yapılabilir."
+    "ownerPreviewNotice": "Mağaza önizlemesi: mağaza henüz yayında değil, bu yüzden burada yalnızca test kartı ödemeleri yapılabilir.",
+    "addressLine2Placeholder": "Daire, kat vb. (isteğe bağlı)"
   },
   "auth": {
     "passwordPlaceholder": "Şifrenizi girin",

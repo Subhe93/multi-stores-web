@@ -33,6 +33,11 @@ export function scopeClassFor(sectionId: string): string {
   return `s-${sectionId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 }
 
+/** True for a section that renders a horizontal divider line (a spacer with its line on). */
+export function isDividerSection(sectionKey: string, settings: Record<string, unknown> | null | undefined): boolean {
+  return sectionKey === 'spacer' && settings?.show_divider === true;
+}
+
 export interface SectionTreeNode {
   section: SectionInstance;
   /** 1 for root sections. */

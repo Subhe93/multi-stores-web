@@ -133,7 +133,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
   const { currency } = useCart();
   const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
-  const title = item.title || item.name || 'Product';
+  const title = item.title || item.name || t('cart.productFallback');
   // Designer lines: the proof replaces the product image once it exists.
   const designInfo = useCartDesign(item.design, item.id.startsWith('local_'));
   const [proofFailed, setProofFailed] = useState(false);
@@ -210,7 +210,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
               <Tag className="w-3 h-3" />
-              {item.bundleTitle || 'Bundle'}
+              {item.bundleTitle || t('cart.bundleFallback')}
               {item.bundleLabel ? ` · ${item.bundleLabel}` : ''}
             </span>
             {item.bundleStickerText && (
@@ -463,7 +463,7 @@ export default function StoreCartPage() {
               <div className="space-y-3 mb-4" data-clarity-mask="True">
                 {items.map((item) => {
                   const img = resolveMediaUrl(item.imageUrl || item.image);
-                  const title = item.title || item.name || 'Product';
+                  const title = item.title || item.name || t('cart.productFallback');
                   return (
                     <div key={item.id} className="flex items-center gap-3">
                       <div className="relative w-10 h-10 shrink-0">

@@ -50,7 +50,7 @@ export function ContainerShell({
   const css = buildCss(
     sectionId,
     settings,
-    children.map((c) => ({ id: c.id, layout: c.layout })),
+    children.map((c) => ({ id: c.id, layout: c.layout, divider: c.divider })),
   );
   return (
     <>

@@ -134,7 +134,9 @@ export type FieldType =
   | 'menuPicker'
   | 'productPicker'
   | 'collectionPicker'
-  | 'repeater';
+  | 'repeater'
+  // Per-breakpoint image width/height object (`image_size`, see imageSizing.ts).
+  | 'imageSize';
 
 export interface FieldDefinition {
   key: string;
@@ -431,6 +433,8 @@ export interface LayoutChildNode {
   sectionKey: string;
   /** Sanitised `settings._layout` of the child. */
   layout: ChildLayout;
+  /** The child draws a divider line (spacer with show_divider). */
+  divider?: boolean;
   /** The child's full wrapper (scope class `s-<id>`), ready to place. */
   node: ReactNode;
 }

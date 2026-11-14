@@ -426,7 +426,9 @@
     "couponAutoInvalid": "كود الخصم {code} غير صالح",
     "couponAutoPending": "سيُطبَّق كود الخصم {code} على سلتك",
     "couponNoticeDismiss": "إغلاق",
-    "unavailableRemoved": "{count, plural, one {تمت إزالة منتج لم يعد متوفراً من سلتك} other {تمت إزالة # منتجات لم تعد متوفرة من سلتك}}"
+    "unavailableRemoved": "{count, plural, one {تمت إزالة منتج لم يعد متوفراً من سلتك} other {تمت إزالة # منتجات لم تعد متوفرة من سلتك}}",
+    "productFallback": "منتج",
+    "bundleFallback": "باقة"
   },
   "checkout": {
     "returnToStore": "العودة إلى المتجر",
@@ -567,7 +569,8 @@
     "paymentFormLoading": "جارٍ تحميل نموذج الدفع الآمن…",
     "paymentFormSlow": "يستغرق هذا وقتاً أطول من المعتاد",
     "itemsUnavailable": "بعض المنتجات في سلتك لم تعد متوفرة. يرجى مراجعة السلة والمحاولة مرة أخرى.",
-    "ownerPreviewNotice": "معاينة المتجر: المتجر لم يُطلق بعد، لذا يمكن هنا تنفيذ مدفوعات البطاقة التجريبية فقط."
+    "ownerPreviewNotice": "معاينة المتجر: المتجر لم يُطلق بعد، لذا يمكن هنا تنفيذ مدفوعات البطاقة التجريبية فقط.",
+    "addressLine2Placeholder": "الشقة، الطابق، إلخ (اختياري)"
   },
   "auth": {
     "passwordPlaceholder": "أدخل كلمة المرور",

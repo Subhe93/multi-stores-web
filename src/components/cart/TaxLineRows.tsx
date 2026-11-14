@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/format';
 import { lowerFirstLabel, taxLineLabel, type TaxLine } from '@/lib/tax';
 
@@ -33,6 +33,7 @@ export function useTaxLineLabel(): (line: TaxLine) => string {
 interface TaxLineRowsProps {
   lines: TaxLine[];
   currency: string;
+  /** Number format locale; defaults to the storefront locale (same as the cart). */
   locale?: string;
   /** `muted`: small grey rows (tax already included); `row`: regular price rows. */
   variant?: 'muted' | 'row';
@@ -40,8 +41,10 @@ interface TaxLineRowsProps {
   format?: (amount: number) => string;
 }
 
-export function TaxLineRows({ lines, currency, locale = 'en', variant = 'row', format }: TaxLineRowsProps) {
+export function TaxLineRows({ lines, currency, locale: localeProp, variant = 'row', format }: TaxLineRowsProps) {
   const label = useTaxLineLabel();
+  const intlLocale = useLocale();
+  const locale = localeProp ?? intlLocale;
   const tCart = useTranslations('cart');
   if (lines.length === 0) return null;
   // Muted = the tax is already part of the total above: say so in the row.

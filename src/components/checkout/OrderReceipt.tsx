@@ -140,7 +140,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
               const title =
                 pickTitle(item.custom_product?.translations, locale) ||
                 pickTitle(item.product?.translations, locale) ||
-                'Product';
+                t('cart.productFallback');
               // Server-resolved per line (mockup → chosen option value's
               // image → product photo); the chain is a legacy fallback.
               const imgUrl =

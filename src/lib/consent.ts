@@ -99,7 +99,24 @@ export const CONSENT_CHANGE_EVENT = 'ms:consent-change';
 export const CONSENT_OPEN_EVENT = 'ms:consent-open';
 export const COOKIE_SETTINGS_HASH = '#cookie-settings';
 /** Cookie-policy page slugs the banner links to when the store publishes one. */
+// Keep identical to COOKIE_POLICY_SLUGS in multi-stores-api
+// src/modules/storefront/cookie-page.ts.
 export const COOKIE_POLICY_SLUGS = ['om-cookies', 'cookies', 'cookie-policy', 'cookiepolicy'];
+
+/**
+ * Root-relative href of the store's cookie page, or null when none is
+ * published. The API's `cookie_page_slug` covers every published page type
+ * (a LANDING page is not in `pages`); older APIs without the field fall back
+ * to the published static pages. The locale prefix is applied client-side.
+ */
+export function cookiePolicyHref(store: {
+  cookie_page_slug?: string | null;
+  pages?: ReadonlyArray<{ slug: string }> | null;
+}): string | null {
+  if (store.cookie_page_slug) return `/${store.cookie_page_slug}`;
+  const page = (store.pages ?? []).find((p) => COOKIE_POLICY_SLUGS.includes(p.slug));
+  return page ? `/${page.slug}` : null;
+}
 
 export interface TrackingChoice {
   analytics: boolean;

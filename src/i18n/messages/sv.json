@@ -426,7 +426,9 @@
     "couponAutoInvalid": "Rabattkoden {code} är inte giltig",
     "couponAutoPending": "Rabattkoden {code} läggs till i din varukorg",
     "couponNoticeDismiss": "Stäng",
-    "unavailableRemoved": "{count, plural, one {En vara som inte längre finns har tagits bort från din varukorg} other {# varor som inte längre finns har tagits bort från din varukorg}}"
+    "unavailableRemoved": "{count, plural, one {En vara som inte längre finns har tagits bort från din varukorg} other {# varor som inte längre finns har tagits bort från din varukorg}}",
+    "productFallback": "Produkt",
+    "bundleFallback": "Paket"
   },
   "checkout": {
     "returnToStore": "Tillbaka till butiken",
@@ -567,7 +569,8 @@
     "paymentFormLoading": "Laddar det säkra betalformuläret…",
     "paymentFormSlow": "Det här tar längre tid än vanligt",
     "itemsUnavailable": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
-    "ownerPreviewNotice": "Förhandsvisning av butiken: butiken är inte live ännu, så här kan bara testbetalningar med kort göras."
+    "ownerPreviewNotice": "Förhandsvisning av butiken: butiken är inte live ännu, så här kan bara testbetalningar med kort göras.",
+    "addressLine2Placeholder": "Lägenhet, c/o, etc. (valfritt)"
   },
   "auth": {
     "passwordPlaceholder": "Ange ditt lösenord",

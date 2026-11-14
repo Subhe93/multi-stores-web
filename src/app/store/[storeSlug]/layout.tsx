@@ -39,7 +39,10 @@ import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
-import { COOKIE_POLICY_SLUGS, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
+import {
+  cookiePolicyHref as resolveCookiePolicyHref,
+  type StoreTracking as StoreTrackingIds,
+} from '@/lib/consent';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
 
@@ -106,6 +109,8 @@ interface Store {
   favicon_url?: string;
   language_config?: LanguageConfig | null;
   pages?: StorePage[];
+  /** Slug of the published cookie page of any type (consent v2); absent on older APIs. */
+  cookie_page_slug?: string | null;
   theme_key?: string;
   theme_customizations?: ThemeCustomizations;
   theme?: {
@@ -473,9 +478,8 @@ export default async function StoreLayout({
   // cookie page when one is published under a known slug (every store: the
   // dialog also serves external media on stores without trackers);
   // otherwise the link is simply omitted.
-  const cookiePage = pages.find((p) => COOKIE_POLICY_SLUGS.includes(p.slug));
   // Locale prefix is applied client-side (useLocalePath) like every page link.
-  const cookiePolicyHref = cookiePage ? `/${cookiePage.slug}` : null;
+  const cookiePolicyHref = resolveCookiePolicyHref(store);
 
   // Legal pages (Privacy / Terms / Refund / Shipping) at /legal/{slug}: the
   // store's own page titles, the default template's, or the platform's for

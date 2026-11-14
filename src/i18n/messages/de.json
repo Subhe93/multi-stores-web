@@ -426,7 +426,9 @@
     "couponAutoInvalid": "Der Rabattcode {code} ist ungültig",
     "couponAutoPending": "Der Rabattcode {code} wird auf Ihren Warenkorb angewendet",
     "couponNoticeDismiss": "Schließen",
-    "unavailableRemoved": "{count, plural, one {Ein nicht mehr verfügbarer Artikel wurde aus deinem Warenkorb entfernt} other {# nicht mehr verfügbare Artikel wurden aus deinem Warenkorb entfernt}}"
+    "unavailableRemoved": "{count, plural, one {Ein nicht mehr verfügbarer Artikel wurde aus deinem Warenkorb entfernt} other {# nicht mehr verfügbare Artikel wurden aus deinem Warenkorb entfernt}}",
+    "productFallback": "Produkt",
+    "bundleFallback": "Paket"
   },
   "checkout": {
     "returnToStore": "Zurück zum Shop",
@@ -567,7 +569,8 @@
     "paymentFormLoading": "Sicheres Zahlungsformular wird geladen…",
     "paymentFormSlow": "Das dauert länger als gewöhnlich",
     "itemsUnavailable": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
-    "ownerPreviewNotice": "Shop-Vorschau: Der Shop ist noch nicht live, daher sind hier nur Testzahlungen mit Karte möglich."
+    "ownerPreviewNotice": "Shop-Vorschau: Der Shop ist noch nicht live, daher sind hier nur Testzahlungen mit Karte möglich.",
+    "addressLine2Placeholder": "Wohnung, Etage usw. (optional)"
   },
   "auth": {
     "passwordPlaceholder": "Passwort eingeben",

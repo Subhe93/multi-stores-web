@@ -14,6 +14,7 @@ import { hasDynamicSource } from './minimal/sections/_shared/dynamicSourceKeys';
 import {
   buildSectionTree,
   isContainerKey,
+  isDividerSection,
   readChildLayout,
   scopeClassFor,
   subtreeContains,
@@ -229,6 +230,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
             id: child.section.id,
             sectionKey: child.section.section_key,
             layout: readChildLayout(child.section.settings),
+            divider: isDividerSection(child.section.section_key, child.section.settings),
             node: renderSection(child, ctx, true),
           }),
         ),
