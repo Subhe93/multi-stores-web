@@ -47,12 +47,11 @@ export function StateAddToCartButton({
   const t = useTranslations();
   const { addedToCart, isAddDisabled, addingToCart, handleAddToCart } = state;
   // Until this boundary hydrates (its lazy chunk may still be loading) the
-  // server-rendered button has no click handler: show it busy (spinner,
-  // aria-disabled) in its normal colours. It is deliberately NOT natively
-  // `disabled` while busy: the browser fires no click on a disabled button,
-  // so React could not replay a tap that lands before the boundary hydrates.
-  // A click that does reach onClick means the code is loaded and the state
-  // is real, so it is handled normally (handleAddToCart validates itself).
+  // server-rendered button has no click handler. React does not replay a
+  // tap on a boundary whose chunk has not arrived (verified on prod, M106),
+  // so the button is natively disabled while busy, in its normal colours
+  // with a spinner: the shopper sees it is not ready yet instead of losing
+  // the tap silently, and taps again once it turns active.
   const busy = !useHydrated();
   const style: CSSProperties | undefined =
     addedToCart || isAddDisabled
@@ -68,8 +67,7 @@ export function StateAddToCartButton({
     <button
       type="button"
       onClick={handleAddToCart}
-      disabled={isAddDisabled || addingToCart}
-      aria-disabled={busy && !isAddDisabled && !addingToCart ? true : undefined}
+      disabled={busy || isAddDisabled || addingToCart}
       aria-busy={busy || addingToCart || undefined}
       data-hydrating={busy ? '' : undefined}
       className={`${className} flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${

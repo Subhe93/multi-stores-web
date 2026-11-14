@@ -104,7 +104,7 @@ const addButtons = (el: HTMLElement) =>
   Array.from(el.querySelectorAll<HTMLButtonElement>('button')).filter((b) => b.textContent?.includes('common.addToCart'));
 
 describe('product-buy: add-to-cart button before hydration', () => {
-  it('server HTML: busy and aria-disabled (not natively disabled), primary colour and label kept, spinner instead of the cart icon', () => {
+  it('server HTML: busy and natively disabled (a tap before hydration is not silently lost), primary colour and label kept, spinner instead of the cart icon', () => {
     const product = makeProduct();
     const el = serverDom(
       <Page product={product}>
@@ -117,8 +117,7 @@ describe('product-buy: add-to-cart button before hydration', () => {
     for (const b of buttons) {
       // Native `disabled` would make the browser drop the click, so React
       // could not replay a tap made before the boundary hydrates.
-      expect(b.disabled).toBe(false);
-      expect(b.getAttribute('aria-disabled')).toBe('true');
+      expect(b.disabled).toBe(true);
       expect(b.getAttribute('aria-busy')).toBe('true');
       expect(b.hasAttribute('data-hydrating')).toBe(true);
       expect(b.className).toContain('cursor-progress');
@@ -154,7 +153,7 @@ describe('product-buy: add-to-cart button before hydration', () => {
     host = document.createElement('div');
     host.innerHTML = renderToString(ui);
     document.body.appendChild(host);
-    expect(addButtons(host).every((b) => b.getAttribute('aria-disabled') === 'true')).toBe(true);
+    expect(addButtons(host).every((b) => b.disabled && b.getAttribute('aria-busy') === 'true')).toBe(true);
 
     const recoverable = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -181,46 +180,32 @@ describe('product-buy: add-to-cart button before hydration', () => {
     expect(addItem).toHaveBeenCalledTimes(1);
   });
 
-  it('a tap after the block chunk arrived but before its boundary hydrated is not lost', async () => {
+  it('stays disabled with a spinner until its boundary hydrates, then becomes clickable', async () => {
     const product = makeProduct();
-    // Server: the block renders inside a Suspense boundary. Client: the same
-    // boundary holds a lazy component whose chunk has not arrived yet.
     let resolveChunk: (m: { default: typeof ProductBuyBlock }) => void = () => undefined;
     const LazyBuy = lazy(
       () => new Promise<{ default: typeof ProductBuyBlock }>((r) => { resolveChunk = r; }),
     );
     const blockProps = props(product);
-    const serverUi = (
-      <Page product={product}>
-        <Suspense fallback={null}><ProductBuyBlock {...blockProps} /></Suspense>
-      </Page>
-    );
-    const clientUi = (
-      <Page product={product}>
-        <Suspense fallback={null}><LazyBuy {...blockProps} /></Suspense>
-      </Page>
-    );
     host = document.createElement('div');
-    host.innerHTML = renderToString(serverUi);
+    host.innerHTML = renderToString(
+      <Page product={product}><Suspense fallback={null}><ProductBuyBlock {...blockProps} /></Suspense></Page>,
+    );
     document.body.appendChild(host);
     await act(async () => {
-      root = hydrateRoot(host!, clientUi, { onRecoverableError: () => undefined });
+      root = hydrateRoot(host!, <Page product={product}><Suspense fallback={null}><LazyBuy {...blockProps} /></Suspense></Page>, { onRecoverableError: () => undefined });
     });
-    const [b] = addButtons(host);
-    expect(b.getAttribute('aria-disabled')).toBe('true');
+    // Chunk not loaded yet: disabled + spinner, so the shopper waits.
+    expect(addButtons(host)[0].disabled).toBe(true);
+    expect(addButtons(host)[0].querySelector('svg.animate-spin')).toBeTruthy();
     await act(async () => {
-      // The chunk arrives, but React has not hydrated the boundary yet (its
-      // retry is still queued). A tap now makes React hydrate it at once and
-      // dispatch the click, as long as the browser fires the click at all,
-      // which it does not for a natively disabled button.
       resolveChunk({ default: ProductBuyBlock });
-      for (let i = 0; i < 5; i += 1) await Promise.resolve();
-      expect(b.getAttribute('aria-disabled')).toBe('true');
-      // jsdom dispatches clicks on disabled buttons too, so check what a
-      // browser would do explicitly.
-      expect(b.disabled).toBe(false);
-      b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
     });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const [b] = addButtons(host);
+    expect(b.disabled).toBe(false);
+    await act(async () => { b.click(); });
     expect(addItem).toHaveBeenCalledTimes(1);
   });
 });
