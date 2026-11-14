@@ -391,6 +391,7 @@ describe('SectionRenderer builderPreview on product blocks', () => {
       'product-buy', 'product-gallery', 'product-trust', 'product-shipping', 'product-tabs',
       'product-details', 'add-to-cart', 'product-page',
       'product-description', 'product-specifications', 'product-faq', 'product-shipping-returns',
+      'product-stories',
     ]) {
       expect(minimalTheme.sections[key]?.Component, key).toBeTruthy();
     }

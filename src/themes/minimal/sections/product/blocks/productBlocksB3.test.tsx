@@ -102,12 +102,13 @@ function withState(product: ProductData, ui: ReactNode, locale = 'en') {
 }
 
 describe('registryB3', () => {
-  it('registers the four blocks on the product template only, in the product category', () => {
+  it('registers the B3 blocks on the product template only, in the product category', () => {
     expect(Object.keys(productBlocksB3).sort()).toEqual([
       'product-description',
       'product-faq',
       'product-shipping-returns',
       'product-specifications',
+      'product-stories',
     ]);
     for (const [key, def] of Object.entries(productBlocksB3)) {
       expect(def.schema.id).toBe(key);

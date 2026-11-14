@@ -94,6 +94,19 @@ describe('projectProductForClient', () => {
       },
     ],
     faqs: [{ id: 'q1', translations: [{ locale: 'sv', question: 'Q', answer: 'A' }, { locale: 'tr', question: 'Q', answer: 'A' }] }],
+    stories: [
+      {
+        id: 's1',
+        kind: 'image',
+        url: '/uploads/products/a.webp',
+        name: 'Anna',
+        translations: [
+          { locale: 'ar', quote: 'ق', subtitle: null },
+          { locale: 'de', quote: 'Q', subtitle: null },
+          { locale: 'sv', quote: 'C', subtitle: 'Stockholm' },
+        ],
+      },
+    ],
     category: { translations: [{ locale: 'en', name: 'Gifts' }, { locale: 'ar', name: 'هدايا' }] },
     primary_collection_path: [node('root', ['sv', 'de']), node('leaf', ['sv'])],
     creator_categories: [node('a', ['sv']), node('b', ['sv'])],
@@ -142,6 +155,21 @@ describe('projectProductForClient', () => {
     expect(out.bundles[0]!.offers[0]!.translations.map((t) => t.locale)).toEqual(['de', 'sv']);
     expect(out.attributes[0]!.template.translations.map((t) => t.locale)).toEqual(['sv']);
     expect(out.category.translations.map((t) => t.locale)).toEqual(['en']);
+  });
+
+  it('prunes story rows to the render locales (first row kept) and keeps the story fields', () => {
+    expect(out.stories[0]!.translations).toEqual([
+      { locale: 'ar', quote: 'ق', subtitle: null },
+      { locale: 'sv', quote: 'C', subtitle: 'Stockholm' },
+    ]);
+    expect(out.stories[0]!.id).toBe('s1');
+    expect(out.stories[0]!.name).toBe('Anna');
+  });
+
+  it('adds no stories key to a product without stories', () => {
+    const plain: Record<string, unknown> = { ...product };
+    delete plain.stories;
+    expect(projectProductForClient(plain, 'sv', 'sv')).not.toHaveProperty('stories');
   });
 
   it('keeps the breadcrumb identical', () => {

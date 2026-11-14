@@ -16,7 +16,7 @@ describe('grouped product-block chunk', () => {
   it('every lazy wrapper resolves through the shared loader, and the group exports what they read', () => {
     const sources = [read('lazyB1.tsx'), read('lazyB2.tsx'), read('lazyB3.tsx'), read('../lazy.tsx')].join('\n');
     const wrappers = Array.from(sources.matchAll(/export const (\w+) = dynamic\(\(\) =>\s*([^\r\n]+)/g));
-    expect(wrappers.length).toBe(20);
+    expect(wrappers.length).toBe(21);
     for (const [, name, body] of wrappers) {
       if (name === 'ProductPageMagic') {
         // The monolith keeps its own chunk, so its pages never fetch the blocks.

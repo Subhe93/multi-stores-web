@@ -104,6 +104,7 @@ export function projectProductForClient<T extends object>(product: T, locale: st
   if ('translations' in p) p.translations = pickTranslationRows(p.translations, locale, primaryLocale);
   if ('custom_fields' in p) p.custom_fields = mapArr(p.custom_fields, (f) => slimField(f, locale, primaryLocale));
   if ('faqs' in p) p.faqs = mapArr(p.faqs, rows);
+  if ('stories' in p) p.stories = mapArr(p.stories, rows);
   if ('promotions' in p) p.promotions = mapArr(p.promotions, rows);
   if ('category' in p) p.category = slimNode(p.category, locale, primaryLocale);
   if ('primary_collection_path' in p) {

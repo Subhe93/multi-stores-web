@@ -13,3 +13,4 @@ export const ProductDescriptionBlock = dynamic(() => loadProductBlocks().then((m
 export const ProductSpecificationsBlock = dynamic(() => loadProductBlocks().then((m) => m.ProductSpecificationsBlock));
 export const ProductFaqBlock = dynamic(() => loadProductBlocks().then((m) => m.ProductFaqBlock));
 export const ProductShippingReturnsBlock = dynamic(() => loadProductBlocks().then((m) => m.ProductShippingReturnsBlock));
+export const ProductStoriesBlock = dynamic(() => loadProductBlocks().then((m) => m.ProductStoriesBlock));

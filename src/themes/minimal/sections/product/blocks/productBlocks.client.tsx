@@ -26,6 +26,7 @@ export { ProductDescriptionBlock } from './ProductDescriptionBlock.client';
 export { ProductSpecificationsBlock } from './ProductSpecificationsBlock.client';
 export { ProductFaqBlock } from './ProductFaqBlock.client';
 export { ProductShippingReturnsBlock } from './ProductShippingReturnsBlock.client';
+export { ProductStoriesBlock } from './ProductStoriesBlock.client';
 export { ProductGalleryMagic } from '../ProductGalleryMagic.client';
 export { ProductDetailsMagic } from '../ProductDetailsMagic.client';
 export { AddToCartMagic } from '../AddToCartMagic.client';

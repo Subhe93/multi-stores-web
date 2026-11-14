@@ -17,6 +17,7 @@ import { formatPrice } from '@/lib/format';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
 import type { StorefrontProductVideo } from '@/lib/productVideo';
+import type { StorefrontProductStory } from '@/lib/productStories';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import {
   DesignerCanvasSlot,
@@ -59,6 +60,8 @@ export interface ProductData {
   images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
   /** Gallery videos; the API omits the key when the product has none. */
   videos?: StorefrontProductVideo[];
+  /** Customer stories (product-stories block); the API omits the key when the product has none. */
+  stories?: StorefrontProductStory[];
   // Marketplace vendor - only present when the store shows vendor names.
   vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
   variants?: {
