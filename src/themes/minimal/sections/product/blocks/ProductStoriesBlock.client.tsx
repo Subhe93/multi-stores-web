@@ -53,6 +53,8 @@ import { isSvgSrc } from '@/lib/storeMedia';
 import { subscribeConsent } from '@/lib/consent';
 import { embedAllowed, formatVideoDuration } from '@/lib/productVideo';
 import { useAutoplayBlocked } from '@/lib/videoAutoplay';
+import { NO_POSTER_BG } from '@/components/product/video/noPoster';
+import { VideoFirstFrame } from '@/components/product/video/VideoFirstFrame';
 import {
   MOBILE_PEEK,
   readStoriesSettings,
@@ -403,8 +405,14 @@ function StoryCardView({
   // The consent notice of the shared slide sits where the overlay text is.
   const consentShown =
     active && !playing && media.type === 'video' && media.source.type !== 'file' && !embedAllowed(storeSlug);
-  // Overlay text hides while this card's video plays (contract 7.4).
-  const hideText = overlay && (playing || consentShown);
+  // Overlay text hides while this card's player is mounted (contract 7.4),
+  // also while it is paused: the text over a paused video covered its
+  // controls (QA 2026-11-14 #20). It returns when the video ends or another
+  // story starts (the card goes back to its poster).
+  const hideText = overlay && (active || consentShown);
+  // Overlay text on a video card stays below its centred Play button, so a
+  // long quote on a small card never covers it (QA 2026-11-14 #20).
+  const reservePlay = overlay && !hideText && media.type === 'video';
 
   const mediaRef = useRef<HTMLDivElement>(null);
   const playButtonRef = useRef<HTMLButtonElement>(null);
@@ -585,8 +593,8 @@ function StoryCardView({
         data-story-card=""
         data-story-kind={media.type}
       >
-        {/* z-0: the media (and an open player) stays under the text layer,
-            so the text can return over a paused video. */}
+        {/* z-0: the media stays under the text layer (the text hides while
+            the card's player is mounted). */}
         <div className={`absolute inset-0 z-0 ${mediaFocus}`} {...mediaProps}>
           {mediaInner}
         </div>
@@ -596,6 +604,9 @@ function StoryCardView({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-black/80 via-black/40 to-transparent"
           />
         )}
+        {/* Spacer: the upper half plus half the 64px Play button and a gap
+            stays free; only the quote shrinks (min-h-0 + clamp) to fit. */}
+        {reservePlay && <div aria-hidden="true" data-story-play-space="" className="shrink-0 basis-[calc(50%+2.5rem)]" />}
         {text}
       </figure>
     );
@@ -611,7 +622,7 @@ function StoryCardView({
   );
 }
 
-/** Lazy poster (or a dark tile) with the Play button and the duration chip. */
+/** Lazy poster (or a neutral tile + first frame) with the Play button and the duration chip. */
 function StoryVideoPoster({
   card,
   sizes,
@@ -630,7 +641,7 @@ function StoryVideoPoster({
   if (media.type !== 'video') return null;
   const duration = formatVideoDuration(media.durationS);
   return (
-    <div className="absolute inset-0 overflow-hidden bg-neutral-900" data-story-poster="">
+    <div className={`absolute inset-0 overflow-hidden ${media.url ? 'bg-neutral-900' : NO_POSTER_BG}`} data-story-poster="">
       {media.url ? (
         <StoreImage
           src={media.url}
@@ -642,6 +653,11 @@ function StoryVideoPoster({
           className="object-cover"
           draggable={false}
         />
+      ) : onPlay && media.source.type === 'file' ? (
+        // No poster: neutral tile + the upload's first frame once on screen
+        // (only on the standalone poster; under a slide, the slide's own
+        // poster shows it).
+        <VideoFirstFrame src={media.source.src} />
       ) : null}
       {onPlay && (
         <button

@@ -261,7 +261,7 @@
     "externalVideoTitle": "Vidéo externe ({provider})",
     "externalVideoNotice": "Cette vidéo est hébergée par {provider}. La lire charge du contenu depuis {company} et peut déposer des cookies.",
     "externalVideoPlay": "Lire la vidéo",
-    "externalVideoAlwaysAllow": "Toujours autoriser les vidéos externes",
+    "externalVideoAlwaysAllow": "Toujours autoriser les médias externes",
     "externalVideoPrivacy": "Politique de confidentialité",
     "videoMute": "Couper le son de la vidéo",
     "videoUnmute": "Activer le son de la vidéo",
@@ -429,6 +429,7 @@
     "unavailableRemoved": "{count, plural, one {Un article qui n’est plus disponible a été retiré de votre panier} other {# articles qui ne sont plus disponibles ont été retirés de votre panier}}"
   },
   "checkout": {
+    "returnToStore": "Retour à la boutique",
     "passwordPlaceholder": "8 caractères minimum",
     "title": "Paiement",
     "shippingAddress": "Adresse de livraison",
@@ -1149,14 +1150,38 @@
   },
   "consent": {
     "title": "Nous utilisons des cookies",
-    "description": "Nous utilisons des cookies et des technologies similaires à des fins d'analyse et de marketing pour améliorer la boutique et vous proposer des offres pertinentes. Vous pouvez les accepter ou les refuser ; votre choix est conservé pendant un an.",
-    "descriptionRecordings": "Nous utilisons des cookies et des technologies similaires pour les statistiques, l'analyse du comportement (cartes de chaleur et enregistrements de session via Microsoft Clarity) et le marketing, afin d'améliorer la boutique et de vous proposer des offres pertinentes. Vous pouvez les accepter ou les refuser ; votre choix est conservé pendant un an.",
-    "descriptionRecordingsOnly": "Nous utilisons des cartes de chaleur et des enregistrements de session via Microsoft Clarity pour comprendre comment la boutique est utilisée et l'améliorer. Clarity n'est chargé que si vous acceptez ; vous pouvez accepter ou refuser, et votre choix est conservé pendant un an.",
-    "accept": "Tout accepter",
-    "reject": "Refuser",
-    "settings": "Lire notre politique de cookies",
+    "settings": "Paramètres",
     "manage": "Paramètres des cookies",
-    "externalMediaOff": "Désactiver les vidéos externes"
+    "bodyAnalyticsMarketing": "Nous utilisons des cookies nécessaires au fonctionnement de la boutique. Si vous l'acceptez, nous utilisons aussi des cookies et des technologies similaires pour les statistiques et le marketing, et affichons du contenu de services externes comme YouTube et Google Maps. Vous pouvez modifier votre choix à tout moment via Paramètres des cookies en bas de la page.",
+    "bodyAnalytics": "Nous utilisons des cookies nécessaires au fonctionnement de la boutique. Si vous l'acceptez, nous utilisons aussi des cookies et des technologies similaires pour les statistiques, et affichons du contenu de services externes comme YouTube et Google Maps. Vous pouvez modifier votre choix à tout moment via Paramètres des cookies en bas de la page.",
+    "bodyMarketing": "Nous utilisons des cookies nécessaires au fonctionnement de la boutique. Si vous l'acceptez, nous utilisons aussi des cookies et des technologies similaires pour le marketing, et affichons du contenu de services externes comme YouTube et Google Maps. Vous pouvez modifier votre choix à tout moment via Paramètres des cookies en bas de la page.",
+    "recordings": "Les statistiques incluent aussi des cartes de chaleur et des enregistrements de session via Microsoft Clarity.",
+    "cookiePolicy": "Politique de cookies",
+    "privacyPolicy": "Politique de confidentialité",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Tout refuser",
+    "dialogTitle": "Paramètres des cookies",
+    "dialogIntro": "Choisissez les cookies et technologies similaires que nous pouvons utiliser. Les cookies nécessaires sont indispensables au fonctionnement de la boutique et ne peuvent pas être désactivés. Vous pouvez modifier votre choix à tout moment.",
+    "dialogTransfer": "Certains services peuvent transférer des données vers des pays hors de l'UE/EEE, comme les États-Unis. Pour en savoir plus, consultez notre politique de cookies et notre politique de confidentialité.",
+    "dialogUngated": "Les services suivants sont utilisés sans consentement dans cette boutique : {services}.",
+    "save": "Enregistrer mes choix",
+    "close": "Fermer",
+    "alwaysOn": "Toujours actifs",
+    "services": "Services :",
+    "servicesPossible": "Peut inclure :",
+    "consentId": "Votre identifiant de consentement : {id}",
+    "copyId": "Copier",
+    "copied": "Copié",
+    "updatedAt": "Dernière modification : {date}",
+    "necessaryName": "Nécessaires",
+    "necessaryDesc": "Indispensables au fonctionnement de la boutique, par exemple le panier, la connexion, le choix de la langue, le paiement sécurisé et la mémorisation de votre choix de cookies.",
+    "analyticsName": "Statistiques",
+    "analyticsDesc": "Nous aident à comprendre comment la boutique est utilisée, par exemple quelles pages sont consultées, afin de l'améliorer.",
+    "analyticsRecordings": "Microsoft Clarity montre comment les visiteurs se déplacent sur la page (clics et défilement) grâce à des cartes de chaleur et des enregistrements de session. Ce que vous saisissez est masqué.",
+    "marketingName": "Marketing",
+    "marketingDesc": "Utilisés pour mesurer nos publicités et vous montrer des offres pertinentes sur d'autres sites et sur les réseaux sociaux. Des données sont alors partagées avec les plateformes publicitaires.",
+    "externalName": "Médias externes",
+    "externalDesc": "Affiche directement sur la page du contenu d'autres services, comme des vidéos YouTube et Vimeo et des cartes Google Maps, là où les pages de la boutique les utilisent. Le chargement de ce contenu transmet votre adresse IP au service, qui peut déposer des cookies."
   },
   "slider": {
     "goTo": "Aller à la diapositive {n}",
@@ -1213,6 +1238,7 @@
   "externalMap": {
     "notice": "Cette carte est fournie par Google Maps. L'afficher charge du contenu depuis Google, qui reçoit votre adresse IP et peut déposer des cookies.",
     "load": "Afficher la carte",
-    "privacy": "Politique de confidentialité"
+    "privacy": "Politique de confidentialité",
+    "alwaysAllow": "Toujours autoriser les médias externes"
   }
 }

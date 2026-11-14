@@ -67,7 +67,11 @@ import { readUnavailableError } from '@/lib/cartUnavailable';
 import { InvalidPersonalizationHint, hasInvalidPersonalization } from '@/components/cart/InvalidPersonalizationHint';
 import { availableLines } from '@/lib/cartAvailability';
 import { trackInitiateCheckout, trackingBody } from '@/lib/trackEvents';
-import { checkoutCountryOptions } from '@/lib/checkoutCountries';
+import {
+  checkoutCountryOptions, checkoutPrefillCountry, normalizeShippableCountries, restrictToShippable,
+  type ShippableCountries,
+} from '@/lib/checkoutCountries';
+import { useDefaultQuoteCountry } from '@/hooks/useCartQuote';
 import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -417,10 +421,52 @@ function CheckoutForm({
   // Markets app: the market's countries (the default market also serves
   // every country no other market claims); the legacy list otherwise.
   const markets = useMarkets();
-  const countryOptions = useMemo(
-    () => checkoutCountryOptions(COUNTRIES, market, markets, locale, form.country_code),
-    [market, markets, locale, form.country_code],
+  // Countries the cart's products can ship to (POST /shipping/countries).
+  // `settled` once answered or failed; a failure (or an API without the
+  // route) keeps the full list and the shipping quote explains per country.
+  const shippableProductsKey = JSON.stringify(
+    [...new Set(availableLines(items).map((i) => i.customProductId || i.productId).filter(Boolean))].sort(),
   );
+  const [shippable, setShippable] = useState<{ key: string; value: ShippableCountries | null } | null>(null);
+  useEffect(() => {
+    const productIds = JSON.parse(shippableProductsKey) as string[];
+    if (productIds.length === 0) return;
+    let cancelled = false;
+    api<unknown>('/shipping/countries', {
+      method: 'POST',
+      body: JSON.stringify({ product_ids: productIds }),
+    })
+      .then((res) => { if (!cancelled) setShippable({ key: shippableProductsKey, value: normalizeShippableCountries(res) }); })
+      .catch(() => { if (!cancelled) setShippable({ key: shippableProductsKey, value: null }); });
+    return () => { cancelled = true; };
+  }, [shippableProductsKey]);
+  const shippableNow = shippable?.key === shippableProductsKey ? shippable.value : null;
+  const shippableSettled = shippable?.key === shippableProductsKey;
+  const countryOptions = useMemo(
+    () => restrictToShippable(
+      checkoutCountryOptions(COUNTRIES, market, markets, locale, form.country_code),
+      shippableNow,
+      { current: form.country_code, locale, marketScoped: Boolean(market) },
+    ),
+    [market, markets, locale, form.country_code, shippableNow],
+  );
+  // Pre-select the country the cart quoted for (store default, or the
+  // marketplace shopper's saved address country), so shipping and the total
+  // match the cart at once; the shopper can still change it. Waits for the
+  // shippable list so a country the cart cannot ship to is not picked.
+  const defaultCountry = useDefaultQuoteCountry();
+  const countryPrefilledRef = useRef(false);
+  useEffect(() => {
+    if (!defaultCountry.done || !shippableSettled) return;
+    const code = checkoutPrefillCountry({
+      defaultCountry: defaultCountry.country,
+      formCountry: form.country_code,
+      alreadyPrefilled: countryPrefilledRef.current,
+      options: countryOptions,
+    });
+    countryPrefilledRef.current = true;
+    if (code) setForm((p) => (p.country_code ? p : { ...p, country_code: code }));
+  }, [defaultCountry.done, defaultCountry.country, shippableSettled, form.country_code, countryOptions]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
   // Availability is resolved by CheckoutRouter before either mode mounts.
@@ -1595,9 +1641,9 @@ function CheckoutForm({
               <Link href={lp('/cart')} className="hover:text-gray-600 transition-colors">
                 {t('cart.title')}
               </Link>
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3 h-3 rtl:rotate-180" aria-hidden="true" />
               <span className="text-gray-900 font-medium text-sm">{t('checkout.billingDetails')}</span>
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3 h-3 rtl:rotate-180" aria-hidden="true" />
               <span>{t('checkout.paymentMethod')}</span>
             </nav>
 

@@ -4,10 +4,11 @@ import { useEffect, useRef, type TouchEvent as ReactTouchEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { responsiveImgProps } from '@/lib/storeMedia';
+import { lockScroll } from '@/lib/scrollLock';
 import type { GalleryItem } from '@/lib/productVideo';
 import { holdAutoplay } from '@/lib/videoAutoplay';
 import { ProductVideoSlide } from './video/ProductVideoSlide';
+import { LightboxImage } from './LightboxImage';
 
 // Full-screen product media viewer for products WITH videos: the monolith's
 // ProductMediaGallery and each product-gallery block layout. A product
@@ -80,14 +81,9 @@ export function ProductLightbox({
   // (nothing autoplays inside it).
   useEffect(() => holdAutoplay(), []);
 
-  // Lock body scroll while open.
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
+  // Lock page scroll while open (lib/scrollLock: robust on iOS and with
+  // <html overflow-x: clip>; restores the scroll position on close).
+  useEffect(() => lockScroll(), []);
 
   // Escape closes; the arrow keys move along the reading direction, except
   // while a video / embed has focus (they seek there).
@@ -175,14 +171,16 @@ export function ProductLightbox({
           />
         </div>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- natural-ratio full-screen view; optimized srcset
-        <img
-          {...responsiveImgProps(current.url, '92vw')}
-          decoding="async"
+        // A spinner (over the page's already-loaded rendition, when there is
+        // one) shows until the full-size image has loaded.
+        <LightboxImage
+          key={current.url}
+          src={current.url}
+          sizes="92vw"
           alt={current.alt}
           className="max-h-[90vh] max-w-[92vw] object-contain select-none"
           onClick={(e) => { e.stopPropagation(); didSwipe.current = false; }}
-          draggable={false}
+          loadingLabel={t('common.loading')}
         />
       )}
 

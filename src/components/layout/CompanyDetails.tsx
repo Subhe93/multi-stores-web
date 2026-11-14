@@ -51,12 +51,18 @@ export function CompanyDetails({ trader, headingColor, className = '' }: Company
             {t('companyDetailsVat')} <span dir="ltr">{trader.vat_number.trim()}</span>
           </div>
         )}
+        {/* <bdi>: each line takes its own direction, so a Latin address
+            ("784 40 Borlänge") is not reordered on an RTL (ar) page, where
+            it read "Borlänge 40 784" (QA 2026-11-14). The line keeps the
+            page's alignment. */}
         {addressLines.map((line, i) => (
-          <div key={i}>{line}</div>
+          <div key={i}>
+            <bdi>{line}</bdi>
+          </div>
         ))}
         {email && (
           <div>
-            <a href={`mailto:${email}`} className="hover:underline break-all">
+            <a href={`mailto:${email}`} className="hover:underline break-all" dir="ltr">
               {email}
             </a>
           </div>

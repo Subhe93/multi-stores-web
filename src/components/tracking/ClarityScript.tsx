@@ -5,9 +5,10 @@ import Script from 'next/script';
 import { setClarityActive } from '@/lib/consent';
 import { clarityLoader, grantClarityConsent, safeClarityId } from './clarity';
 
-// Microsoft Clarity tag. <StoreTracking> mounts it only while the visitor's
-// stored choice is "granted" and the route allows Clarity (never account,
-// auth or order confirmation pages).
+// Microsoft Clarity tag. <StoreTracking> mounts it only while the visitor
+// allows the analytics category (consent v2) and the route allows Clarity
+// (never account, auth or order confirmation pages). Consent API v2:
+// analytics_Storage granted, ad_Storage always denied.
 //
 // The consent signal is sent from an effect, not from the inline script:
 // next/script dedupes inline scripts by id, so a second mount in the same

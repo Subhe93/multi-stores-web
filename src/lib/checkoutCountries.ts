@@ -61,6 +61,76 @@ export function checkoutCountryOptions(
     .sort((a, b) => a.name.localeCompare(b.name, locale));
 }
 
+/** Answer of POST /shipping/countries for the cart's products. */
+export interface ShippableCountries {
+  /** False when no product has a shipping profile (ships anywhere). */
+  restricted: boolean;
+  countries: string[];
+}
+
+/** Normalizes a /shipping/countries response; null when unusable. */
+export function normalizeShippableCountries(res: unknown): ShippableCountries | null {
+  if (!res || typeof res !== 'object') return null;
+  const r = res as { restricted?: unknown; countries?: unknown };
+  if (typeof r.restricted !== 'boolean') return null;
+  const countries = Array.isArray(r.countries)
+    ? normalize(r.countries.filter((c): c is string => typeof c === 'string'))
+    : [];
+  return { restricted: r.restricted, countries };
+}
+
+/**
+ * Limits the options to the countries the cart can ship to (a shipping zone
+ * for its products). Without a market (`options` is the fixed legacy list)
+ * the shippable countries themselves are offered, named in the shopper's
+ * locale and sorted, since the legacy list misses most of them (NO, FI, DK);
+ * with a market its options are filtered, so another market's countries
+ * never come back. The current value stays selectable so it never
+ * disappears. Unknown (null), unrestricted, or a restriction that would
+ * leave nothing keep the list unchanged: the shipping quote then explains
+ * per country.
+ */
+export function restrictToShippable(
+  options: readonly CountryOption[],
+  shippable: ShippableCountries | null | undefined,
+  opts: { current?: string | null; locale: string; marketScoped: boolean },
+): CountryOption[] {
+  if (!shippable || !shippable.restricted) return [...options];
+  const allowed = new Set(shippable.countries);
+  const cur = opts.current?.trim().toUpperCase();
+  const keepCurrent = cur && /^[A-Z]{2}$/.test(cur) ? cur : null;
+  if (!opts.marketScoped) {
+    if (allowed.size === 0) return [...options];
+    const codes = new Set(allowed);
+    if (keepCurrent) codes.add(keepCurrent);
+    const byCode = new Map(options.map((c) => [c.code, c.name]));
+    const names = displayNames(opts.locale);
+    return [...codes]
+      .map((code) => ({ code, name: names?.of(code) || byCode.get(code) || code }))
+      .sort((a, b) => a.name.localeCompare(b.name, opts.locale));
+  }
+  const kept = options.filter((o) => allowed.has(o.code) || o.code === keepCurrent);
+  return kept.some((o) => allowed.has(o.code)) ? kept : [...options];
+}
+
+/**
+ * Country the classic checkout pre-selects: the cart quote's default
+ * country, once known, when the form is still empty, nothing was
+ * pre-selected before (the shopper may clear it on purpose), and the
+ * country is one of the offered options. Null = leave the form as it is.
+ */
+export function checkoutPrefillCountry(input: {
+  defaultCountry: string | null;
+  formCountry: string;
+  alreadyPrefilled: boolean;
+  options: readonly CountryOption[];
+}): string | null {
+  if (input.alreadyPrefilled || input.formCountry) return null;
+  const code = input.defaultCountry?.trim().toUpperCase();
+  if (!code) return null;
+  return input.options.some((o) => o.code === code) ? code : null;
+}
+
 function normalize(countries: readonly string[] | null | undefined): string[] {
   return (countries ?? [])
     .map((c) => c.trim().toUpperCase())

@@ -315,13 +315,15 @@ describe('embedAllowed', () => {
     expect(embedAllowed('shop')).toBe(false);
   });
 
-  it('is true only with the external-media grant (storage or cookie)', () => {
+  it('is true only with a valid external-media grant (the timeless M110 cookie is not migrated)', () => {
     stubConsent(null, JSON.stringify({ choice: 'granted', at: Date.now(), v: 1 }));
     expect(embedAllowed('shop')).toBe(true);
     stubConsent(JSON.stringify({ choice: 'denied', at: Date.now(), v: 2 }), JSON.stringify({ choice: 'granted', at: Date.now(), v: 1 }));
     expect(embedAllowed('shop')).toBe(true);
+    // Cookie-only M110 grant: no decision time (up to 365 days old), so the
+    // facade asks again rather than granting a fresh 12 months (§3.4).
     stubConsent(null, null, 'xmedia_shop=granted.1');
-    expect(embedAllowed('shop')).toBe(true);
+    expect(embedAllowed('shop')).toBe(false);
   });
 });
 

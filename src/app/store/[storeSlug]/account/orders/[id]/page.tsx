@@ -480,7 +480,8 @@ export default function StoreOrderDetailPage() {
             {address.line2 && <p>{address.line2}</p>}
             <p>
               {[address.city, address.state].filter(Boolean).join(', ')}{' '}
-              {address.postal_code}
+              {/* Codes keep their digit order on RTL pages. */}
+              {address.postal_code && <span dir="ltr">{address.postal_code}</span>}
             </p>
             {address.country_code && <p>{address.country_code}</p>}
             {address.phone && <p className="text-gray-400">{address.phone}</p>}

@@ -158,9 +158,11 @@ export function ProductBuyBlock(props: SectionRenderProps) {
       {/* Sticky mobile CTA (the inline designer's CTA ends its own form). */}
       {sticky && !designer && (
         <div
-          className="fixed bottom-0 inset-x-0 z-30 p-3 md:hidden flex"
+          className="fixed inset-x-0 z-30 p-3 md:hidden flex"
           data-sticky-cta=""
           style={{
+            // Above the cookie banner while it is open (consent-v2 CONTRACT §4.2).
+            bottom: 'var(--ms-consent-inset, 0px)',
             backgroundColor: 'var(--theme-colors-background, #fff)',
             borderTop: '1px solid var(--theme-colors-border, #e5e7eb)',
             boxShadow: 'var(--theme-shadow-lg)',

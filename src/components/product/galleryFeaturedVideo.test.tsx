@@ -4,7 +4,7 @@ import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { ProductContext, SectionRenderProps } from '@/themes/types';
-import { clearConsent } from '@/lib/consent';
+import { __clearConsentForTests } from '@/lib/consent';
 import type { StorefrontProductVideo } from '@/lib/productVideo';
 
 // Featured product video (CONTRACT-AUTOPLAY A1 / A2, web-gallery): a video
@@ -164,7 +164,7 @@ beforeEach(() => {
   HTMLMediaElement.prototype.pause = vi.fn();
 });
 afterEach(() => {
-  clearConsent('shop');
+  __clearConsentForTests('shop');
 });
 
 const LEAD_SIZES: Record<string, string> = {

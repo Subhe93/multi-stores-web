@@ -14,6 +14,8 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { SectionRenderProps } from '../../types';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { responsiveImgProps } from '@/lib/storeMedia';
+import { lockScroll } from '@/lib/scrollLock';
+import { LightboxImage } from '@/components/product/LightboxImage';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -71,15 +73,13 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [openIndex, rtl, next, prev, close]);
 
-  // Lock page scroll while the lightbox is open.
+  // Lock page scroll while the lightbox is open (lib/scrollLock: robust on
+  // iOS and with <html overflow-x: clip>; restores the scroll position).
+  const isOpen = openIndex !== null;
   useEffect(() => {
-    if (openIndex === null) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [openIndex]);
+    if (!isOpen) return;
+    return lockScroll();
+  }, [isOpen]);
 
   return (
     <section className="py-12">
@@ -235,10 +235,13 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                   className="flex max-h-[90vh] max-w-[90vw] flex-col items-center gap-3 px-14"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    {...responsiveImgProps(resolveMediaUrl(images[openIndex].image || ''), '90vw')}
-                    decoding="async"
+                  {/* A spinner (over the tile's already-loaded rendition, when
+                      there is one) shows until the full-size image has loaded. */}
+                  <LightboxImage
+                    key={images[openIndex].image}
+                    src={resolveMediaUrl(images[openIndex].image || '')}
+                    sizes="90vw"
+                    placeholderClassName="h-[80vh] w-[90vw]"
                     alt={images[openIndex].caption || ''}
                     className="max-h-[80vh] max-w-full object-contain"
                     style={{ borderRadius: 'var(--theme-radius-sm)' }}

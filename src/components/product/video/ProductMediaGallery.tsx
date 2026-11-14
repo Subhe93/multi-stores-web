@@ -16,6 +16,7 @@ import { ProductLightbox } from '../ProductLightbox';
 import { readDirection } from '../readDirection';
 import { ProductVideoSlide } from './ProductVideoSlide';
 import { ProductVideoThumbBadge } from './ProductVideoThumbBadge';
+import { NO_POSTER_BG } from './noPoster';
 
 interface GalleryImage {
   id: string;
@@ -70,8 +71,13 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
   // Whether the inline player is mounted (the visitor pressed Play). Only a
   // playing clip continues in the lightbox (click-to-play, D3 / D4).
   const inlinePlaying = useRef(false);
+  // Same flag as state: while the inline player is mounted the gallery
+  // chrome (expand button, counter, dots) hides, so it never covers the
+  // player's controls or the YouTube logo / settings (QA 2026-11-14 #18).
+  const [videoActive, setVideoActive] = useState(false);
   const handleInlinePlaying = useCallback((playing: boolean) => {
     inlinePlaying.current = playing;
+    setVideoActive(playing);
   }, []);
 
   const mainRef = useRef<HTMLDivElement>(null);
@@ -151,6 +157,13 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
   const currentImage = media[selectedIndex] || media[0];
   const currentIsVideo = isVideoItem(currentImage);
   const hasMultiple = media.length > 1;
+  // Chrome over an active video hides (see videoActive): the counter and
+  // the dots sit over the player's bottom controls / the YouTube logo. The
+  // expand button (top corner) stays over a file video, whose controls are
+  // at the bottom, so its lightbox hand-off keeps working; over a YouTube /
+  // Vimeo embed it covered the title bar actions, so it hides there.
+  const chromeHidden = currentIsVideo && videoActive;
+  const expandHidden = chromeHidden && isVideoItem(currentImage) && currentImage.source.type !== 'file';
 
   // Full-screen viewer (shared ProductLightbox). On a video, the inline
   // player hands its position over and goes back to its poster.
@@ -307,24 +320,26 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
         )}
 
         {/* Expand to full-screen lightbox */}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); openLightbox(); }}
-          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
-          aria-label={t('product.viewFullScreen')}
-        >
-          <Maximize2 className="w-4 h-4" />
-        </button>
+        {!expandHidden && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); openLightbox(); }}
+            className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+            aria-label={t('product.viewFullScreen')}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Image counter badge */}
-        {hasMultiple && (
+        {hasMultiple && !chromeHidden && (
           <span className="absolute bottom-3 right-3 z-20 px-2.5 py-1 text-xs font-semibold text-white bg-black/50 rounded-full backdrop-blur-sm">
             {selectedIndex + 1} / {media.length}
           </span>
         )}
 
         {/* Dot indicators (mobile) */}
-        {hasMultiple && media.length <= 8 && (
+        {hasMultiple && media.length <= 8 && !chromeHidden && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-4 md:hidden" /* gap-4: dot centres 24px apart (touch-target spacing) */>
             {media.map((_, i) => (
               <button
@@ -379,7 +394,7 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
                         className="object-cover"
                       />
                     ) : (
-                      <span className="absolute inset-0 bg-neutral-900" aria-hidden="true" />
+                      <span className={`absolute inset-0 ${NO_POSTER_BG}`} aria-hidden="true" />
                     )}
                     <ProductVideoThumbBadge durationS={image.durationS} />
                   </>

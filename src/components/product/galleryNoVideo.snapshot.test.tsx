@@ -30,6 +30,11 @@ vi.mock('next-intl', () => {
   return { useLocale: () => 'sv', useTranslations: () => t };
 });
 vi.mock('@/hooks/useCart', () => ({ useCart: () => ({ addItem: vi.fn() }) }));
+// The monolith's add-to-cart button renders busy (disabled + spinner) until
+// it hydrates (QA 2026-11-14 #8, covered by ProductDetailClient.hydration
+// test). This guard is about the video feature only, so it renders the
+// hydrated button and keeps comparing against the untouched snapshots.
+vi.mock('@/hooks/useHydrated', () => ({ useHydrated: () => true }));
 
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { ProductGallery } from '@/components/product/ProductGallery';

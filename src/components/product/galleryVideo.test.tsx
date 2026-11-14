@@ -4,7 +4,7 @@ import { lazy, Suspense, type ComponentType } from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { ProductContext, SectionRenderProps } from '@/themes/types';
-import { clearConsent } from '@/lib/consent';
+import { __clearConsentForTests } from '@/lib/consent';
 import type { StorefrontProductVideo } from '@/lib/productVideo';
 
 // Product video in the galleries (contract 6.5, web-galleries): the monolith
@@ -140,7 +140,7 @@ beforeEach(() => {
   HTMLMediaElement.prototype.pause = vi.fn();
 });
 afterEach(() => {
-  clearConsent('shop');
+  __clearConsentForTests('shop');
 });
 
 /** The page state driving a monolith ProductGallery, plus a variant switch. */
@@ -479,5 +479,99 @@ describe('designer products: the video list follows the form on phones', () => {
     mono.unmount();
     const block = renderBlock({ layout: 'main-thumbnails' });
     expect(block.container.querySelector('section[aria-label="product.productVideos"]')!.className).toContain('order-last');
+  });
+});
+
+describe('QA 2026-11-14: gallery chrome, posterless videos, lightbox', () => {
+  it('monolith: counter and dots hide over a playing video; the expand button stays for a file video', async () => {
+    const { container } = renderMonolith();
+    fireEvent.click(container.querySelectorAll('button[aria-label^="product.viewImage"]')[1]);
+    expect(container.textContent).toContain('2 / 3');
+    expect(container.querySelectorAll('button[aria-label^="product.goToImage"]')).toHaveLength(3);
+    fireEvent.click(playButton());
+    await waitFor(() => expect(container.querySelector('video')).not.toBeNull());
+    expect(container.textContent).not.toContain('2 / 3');
+    expect(container.querySelectorAll('button[aria-label^="product.goToImage"]')).toHaveLength(0);
+    expect(screen.getByLabelText('product.viewFullScreen')).toBeInTheDocument();
+  });
+
+  it('monolith: the expand button hides over a playing YouTube embed', async () => {
+    __clearConsentForTests('shop');
+    const { container } = renderMonolith(makeProduct({ videos: [YT_VIDEO] }));
+    fireEvent.click(container.querySelectorAll('button[aria-label^="product.viewImage"]')[2]);
+    expect(screen.getByLabelText('product.viewFullScreen')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'product.externalVideoPlay' }));
+    await waitFor(() => expect(container.querySelector('[data-gallery-video="player"]')).not.toBeNull());
+    expect(screen.queryByLabelText('product.viewFullScreen')).toBeNull();
+  });
+
+  it('block carousel: the dots hide over a playing video', async () => {
+    const { container } = renderBlock({ layout: 'carousel' });
+    fireEvent.click(screen.getByLabelText('Next'));
+    expect(container.querySelectorAll('button[aria-label^="Image "]')).toHaveLength(3);
+    fireEvent.click(playButton());
+    await waitFor(() => expect(container.querySelector('video')).not.toBeNull());
+    expect(container.querySelectorAll('button[aria-label^="Image "]')).toHaveLength(0);
+  });
+
+  it('a file video without a poster: neutral tile + first frame (preload=metadata, #t=0.1), no player', () => {
+    const { container } = renderMonolith(makeProduct({ videos: [{ ...FILE_VIDEO, poster_url: null }] }));
+    // Thumbnail: neutral tile, never a black box.
+    const thumb = container.querySelectorAll('button[aria-label^="product.viewImage"]')[1];
+    expect(thumb.innerHTML).not.toContain('bg-neutral-900');
+    expect(thumb.querySelector('video')).toBeNull();
+
+    fireEvent.click(thumb);
+    const poster = container.querySelector('[data-gallery-video="poster"]')!;
+    expect(poster.className).not.toContain('bg-neutral-900');
+    expect(poster.className).toContain('from-neutral-200');
+    const frame = poster.querySelector('[data-video-first-frame] video') as HTMLVideoElement;
+    expect(frame).not.toBeNull();
+    expect(frame.getAttribute('src')).toMatch(/\.mp4#t=0\.1$/);
+    expect(frame.getAttribute('preload')).toBe('metadata');
+    expect(frame.muted).toBe(true);
+    expect(frame.hasAttribute('autoplay')).toBe(false);
+    expect(loads.count).toBe(0);
+  });
+
+  it('a posterless video renders no first-frame <video> on the server', () => {
+    const html = renderToString(
+      <ProductPageStateProvider product={makeProduct({ videos: [{ ...FILE_VIDEO, poster_url: null, position: 0 }] })} locale="en" primaryLocale="en" currency="SEK">
+        <MonolithHarness />
+      </ProductPageStateProvider>,
+    );
+    expect(html).not.toContain('<video');
+  });
+
+  it('the shared lightbox locks page scroll (body pinned) and restores it on close', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo');
+    renderMonolith();
+    fireEvent.click(screen.getByLabelText('product.viewFullScreen'));
+    expect(document.body.style.position).toBe('fixed');
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.body.style.position).toBe('');
+    expect(document.documentElement.style.overflow).toBe('');
+    expect(scrollTo).toHaveBeenCalled();
+    scrollTo.mockRestore();
+  });
+
+  it('the lightbox shows the gallery rendition + a spinner until the full image loads', () => {
+    renderMonolith();
+    // jsdom never decodes: mark the gallery's rendition of image "one" as loaded.
+    for (const img of Array.from(document.querySelectorAll<HTMLImageElement>(`img[src="${IMG('one')}"]`))) {
+      Object.defineProperty(img, 'complete', { value: true, configurable: true });
+      Object.defineProperty(img, 'naturalWidth', { value: 800, configurable: true });
+    }
+    fireEvent.click(screen.getByLabelText('product.viewFullScreen'));
+    const dialog = screen.getByRole('dialog');
+    const placeholder = dialog.querySelector('[data-lightbox-placeholder]')!;
+    expect(placeholder).not.toBeNull();
+    expect(placeholder.querySelector('img')!.getAttribute('src')).toContain('one');
+    const full = dialog.querySelector('img[alt="One"]') as HTMLImageElement;
+    expect(full.className).toContain('opacity-0');
+    fireEvent.load(full);
+    expect(dialog.querySelector('[data-lightbox-placeholder]')).toBeNull();
+    expect(full.className).toContain('opacity-100');
   });
 });

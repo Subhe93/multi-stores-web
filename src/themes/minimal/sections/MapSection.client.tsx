@@ -10,13 +10,19 @@
 //     a one-tap "Get directions" button. Fully RTL-aware.
 //   • Privacy: the Google iframe is not requested until the visitor clicks
 //     "Show map" (two-click facade, same principle as external videos), so
-//     Google gets no IP address / cookies on a plain page view. The builder
-//     preview loads it directly so editors can check the location.
+//     Google gets no IP address / cookies on a plain page view. "Always allow
+//     external media" stores the per-store external-media consent (consent v2
+//     category external_media) and loads it; with that consent the map loads
+//     without the facade (never in SSR markup). The builder preview loads it
+//     directly so editors can check the location.
 
-import { useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { Clock, Mail, MapPin, Navigation, Phone } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
+import { grantExternalMediaConsent, subscribeConsent } from '@/lib/consent';
+import { consentTextHash } from '@/lib/consentLog';
+import { embedAllowed } from '@/lib/productVideo';
 import type { SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -53,7 +59,7 @@ function directionsUrl(loc: MapLocation): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(queryFor(loc))}`;
 }
 
-export function MapSection({ settings, content, locale, builderPreview }: SectionRenderProps) {
+export function MapSection({ settings, content, locale, storeSlug, builderPreview }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -72,6 +78,17 @@ export function MapSection({ settings, content, locale, builderPreview }: Sectio
   const [active, setActive] = useState(0);
   // Two-click: the Google iframe loads only after "Show map" (per page view).
   const [mapLoaded, setMapLoaded] = useState(false);
+  // External-media consent for this store: server snapshot false, so SSR
+  // never renders the Google iframe (same pattern as VideoEmbed).
+  const allowed = useSyncExternalStore(subscribeConsent, () => embedAllowed(storeSlug), () => false);
+  // Withdrawing external media (Cookie settings) on this page unloads the
+  // map again, also when it was loaded by a click: the facade locks with the
+  // category, just as it unlocks with it.
+  const [prevAllowed, setPrevAllowed] = useState(allowed);
+  if (prevAllowed !== allowed) {
+    setPrevAllowed(allowed);
+    if (!allowed) setMapLoaded(false);
+  }
   const ar = locale === 'ar';
 
   if (locations.length === 0) {
@@ -102,7 +119,7 @@ export function MapSection({ settings, content, locale, builderPreview }: Sectio
       className="relative w-full overflow-hidden card-lift"
       style={{ height, borderRadius: radius, boxShadow: 'var(--theme-shadow-md)' }}
     >
-      {mapLoaded || builderPreview ? (
+      {mapLoaded || allowed || builderPreview ? (
         <iframe
           key={queryFor(loc)}
           title={loc.name || 'Map'}
@@ -113,7 +130,14 @@ export function MapSection({ settings, content, locale, builderPreview }: Sectio
           referrerPolicy="no-referrer-when-downgrade"
         />
       ) : (
-        <MapFacade top={layout === 'overlay'} onLoad={() => setMapLoaded(true)} />
+        <MapFacade
+          top={layout === 'overlay'}
+          onLoad={() => setMapLoaded(true)}
+          onAlwaysAllow={(textHash) => {
+            grantExternalMediaConsent(storeSlug, textHash);
+            setMapLoaded(true);
+          }}
+        />
       )}
       {/* Floating card for the overlay layout */}
       {layout === 'overlay' && (
@@ -200,25 +224,47 @@ export function MapSection({ settings, content, locale, builderPreview }: Sectio
 
 // ── Two-click facade ─────────────────────────────────────────
 
-function MapFacade({ top, onLoad }: { top: boolean; onLoad(): void }) {
+// Both buttons share one style: loading once is as prominent as always allowing.
+const FACADE_BUTTON =
+  'cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-colors-primary)]';
+const FACADE_BUTTON_STYLE = { backgroundColor: 'var(--theme-colors-primary)', color: 'var(--theme-colors-primaryContrast, #fff)' };
+
+function MapFacade({
+  top,
+  onLoad,
+  onAlwaysAllow,
+}: {
+  top: boolean;
+  onLoad(): void;
+  /** `textHash`: the pending sha256 of the notice (consent-log proof, §5.4). */
+  onAlwaysAllow(textHash: Promise<string>): void;
+}) {
   const t = useTranslations('externalMap');
   const lp = useLocalePath();
+  const rootRef = useRef<HTMLDivElement>(null);
   return (
     <div
+      ref={rootRef}
       data-map-facade=""
       className={`absolute inset-0 flex flex-col items-center gap-3 p-5 text-center ${top ? 'justify-start' : 'justify-center'}`}
       style={{ backgroundColor: 'var(--theme-colors-surface)', color: 'var(--theme-colors-muted)' }}
     >
       <MapPin className="size-7 shrink-0" style={{ color: 'var(--theme-colors-primary)' }} aria-hidden="true" />
-      <p className="max-w-md text-sm leading-relaxed">{t('notice')}</p>
+      <p className="max-w-md text-sm leading-relaxed" data-consent-text="">
+        {t('notice')}
+      </p>
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <button type="button" onClick={onLoad} className={FACADE_BUTTON} style={FACADE_BUTTON_STYLE}>
+          {t('load')}
+        </button>
         <button
           type="button"
-          onClick={onLoad}
-          className="cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-90"
-          style={{ backgroundColor: 'var(--theme-colors-primary)', color: 'var(--theme-colors-primaryContrast, #fff)' }}
+          data-consent-text=""
+          onClick={() => onAlwaysAllow(consentTextHash(rootRef.current))}
+          className={FACADE_BUTTON}
+          style={FACADE_BUTTON_STYLE}
         >
-          {t('load')}
+          {t('alwaysAllow')}
         </button>
         <a href={lp('/legal/privacy')} className="text-xs underline underline-offset-2" style={{ color: 'inherit' }}>
           {t('privacy')}

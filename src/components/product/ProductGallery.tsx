@@ -6,7 +6,9 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Star, Maximize2, X } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
-import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
+import { isSvgSrc } from '@/lib/storeMedia';
+import { lockScroll } from '@/lib/scrollLock';
+import { LightboxImage } from './LightboxImage';
 import type { GalleryItem } from '@/lib/productVideo';
 
 // Product video: a product WITH videos renders ProductMediaGallery (images +
@@ -113,21 +115,23 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
     return () => window.removeEventListener('keydown', handleKey);
   });
 
-  // Lightbox: lock body scroll while open, and wire Escape / arrow keys.
+  // Lightbox: lock page scroll while open (lib/scrollLock: robust on iOS
+  // and with <html overflow-x: clip>; restores the scroll position), and
+  // wire Escape / arrow keys.
   useEffect(() => {
     if (!lightboxOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    return lockScroll();
+  }, [lightboxOpen]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setLightboxOpen(false);
       else if (e.key === 'ArrowLeft') goPrev();
       else if (e.key === 'ArrowRight') goNext();
     }
     window.addEventListener('keydown', handleKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', handleKey);
-    };
+    return () => window.removeEventListener('keydown', handleKey);
   }, [lightboxOpen, selectedIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!images || images.length === 0) {
@@ -369,13 +373,16 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
             <X className="w-5 h-5" />
           </button>
 
-          <img
-            {...responsiveImgProps(currentImage.url, '92vw')}
-            decoding="async"
+          {/* A spinner (over the page's already-loaded rendition, when there
+              is one) shows until the full-size image has loaded. */}
+          <LightboxImage
+            key={currentImage.url}
+            src={currentImage.url}
+            sizes="92vw"
             alt={currentImage.alt ?? t('product.productImage')}
             className="max-h-[90vh] max-w-[92vw] object-contain select-none"
             onClick={(e) => { e.stopPropagation(); didSwipe.current = false; }}
-            draggable={false}
+            loadingLabel={t('common.loading')}
           />
 
           {hasMultiple && (

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { clearExternalMediaConsent, grantExternalMediaConsent } from '@/lib/consent';
+import { clearExternalMediaConsent, externalMediaAllowed, grantExternalMediaConsent } from '@/lib/consent';
 
 // Privacy of the builder sections that embed third parties: the video-embed
 // section uses the two-click facade + youtube-nocookie / Vimeo dnt=1 like
@@ -46,7 +46,7 @@ describe('VideoEmbed privacy', () => {
     render(<VideoEmbed {...base} settings={{ video_url: 'https://vimeo.com/76979871' }} />);
     fireEvent.click(screen.getByRole('button', { name: 'product.externalVideoAlwaysAllow' }));
     expect(document.querySelector('iframe')!.getAttribute('src')).toContain('player.vimeo.com/video/76979871?autoplay=1&dnt=1');
-    expect(window.localStorage.getItem('consent:demo:external-media')).not.toBeNull();
+    expect(externalMediaAllowed('demo')).toBe(true);
   });
 
   it('with the grant and no poster: muted nocookie embed loads directly', () => {

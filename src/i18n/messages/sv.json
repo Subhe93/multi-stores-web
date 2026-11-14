@@ -261,7 +261,7 @@
     "externalVideoTitle": "Extern video ({provider})",
     "externalVideoNotice": "Videon finns hos {provider}. Om du spelar upp den hämtas innehåll från {company} och cookies kan sättas.",
     "externalVideoPlay": "Spela upp video",
-    "externalVideoAlwaysAllow": "Tillåt alltid externa videor",
+    "externalVideoAlwaysAllow": "Tillåt alltid externa medier",
     "externalVideoPrivacy": "Integritetspolicy",
     "videoMute": "Stäng av ljudet",
     "videoUnmute": "Slå på ljudet",
@@ -429,6 +429,7 @@
     "unavailableRemoved": "{count, plural, one {En vara som inte längre finns har tagits bort från din varukorg} other {# varor som inte längre finns har tagits bort från din varukorg}}"
   },
   "checkout": {
+    "returnToStore": "Tillbaka till butiken",
     "passwordPlaceholder": "Minst 8 tecken",
     "title": "Kassa",
     "shippingAddress": "Leveransadress",
@@ -1149,14 +1150,38 @@
   },
   "consent": {
     "title": "Vi använder cookies",
-    "description": "Vi använder cookies och liknande tekniker för analys och marknadsföring så att vi kan förbättra butiken och visa relevanta erbjudanden. Du kan acceptera eller avböja; ditt val sparas i ett år.",
-    "descriptionRecordings": "Vi använder cookies och liknande tekniker för statistik, beteendeanalys (heatmaps och sessionsinspelningar via Microsoft Clarity) och marknadsföring så att vi kan förbättra butiken och visa relevanta erbjudanden. Du kan acceptera eller avböja; ditt val sparas i ett år.",
-    "descriptionRecordingsOnly": "Vi använder heatmaps och sessionsinspelningar via Microsoft Clarity för att se hur butiken används och förbättra den. Clarity laddas bara om du accepterar; du kan acceptera eller avböja, och ditt val sparas i ett år.",
-    "accept": "Acceptera alla",
-    "reject": "Avböj",
-    "settings": "Läs vår cookiepolicy",
+    "settings": "Inställningar",
     "manage": "Cookieinställningar",
-    "externalMediaOff": "Stäng av externa videor"
+    "bodyAnalyticsMarketing": "Vi använder nödvändiga cookies för att butiken ska fungera. Om du samtycker använder vi även cookies och liknande tekniker för statistik och marknadsföring, och visar innehåll från externa tjänster som YouTube och Google Maps. Du kan när som helst ändra ditt val under Cookieinställningar längst ner på sidan.",
+    "bodyAnalytics": "Vi använder nödvändiga cookies för att butiken ska fungera. Om du samtycker använder vi även cookies och liknande tekniker för statistik, och visar innehåll från externa tjänster som YouTube och Google Maps. Du kan när som helst ändra ditt val under Cookieinställningar längst ner på sidan.",
+    "bodyMarketing": "Vi använder nödvändiga cookies för att butiken ska fungera. Om du samtycker använder vi även cookies och liknande tekniker för marknadsföring, och visar innehåll från externa tjänster som YouTube och Google Maps. Du kan när som helst ändra ditt val under Cookieinställningar längst ner på sidan.",
+    "recordings": "Statistiken omfattar även heatmaps och sessionsinspelningar via Microsoft Clarity.",
+    "cookiePolicy": "Cookiepolicy",
+    "privacyPolicy": "Integritetspolicy",
+    "acceptAll": "Acceptera alla",
+    "rejectAll": "Avböj alla",
+    "dialogTitle": "Cookieinställningar",
+    "dialogIntro": "Här väljer du vilka cookies och liknande tekniker vi får använda. Nödvändiga cookies behövs för att butiken ska fungera och kan inte stängas av. Du kan ändra ditt val när som helst.",
+    "dialogTransfer": "Vissa tjänster kan föra över uppgifter till länder utanför EU/EES, till exempel USA. Läs mer i vår cookiepolicy och integritetspolicy.",
+    "dialogUngated": "Följande tjänster används utan samtycke i den här butiken: {services}.",
+    "save": "Spara val",
+    "close": "Stäng",
+    "alwaysOn": "Alltid aktiva",
+    "services": "Tjänster:",
+    "servicesPossible": "Kan omfatta:",
+    "consentId": "Ditt samtyckes-ID: {id}",
+    "copyId": "Kopiera",
+    "copied": "Kopierat",
+    "updatedAt": "Senast ändrat: {date}",
+    "necessaryName": "Nödvändiga",
+    "necessaryDesc": "Behövs för att butiken ska fungera, till exempel varukorg, inloggning, språkval, säker betalning och för att komma ihåg ditt cookieval.",
+    "analyticsName": "Statistik",
+    "analyticsDesc": "Hjälper oss att förstå hur butiken används, till exempel vilka sidor som besöks, så att vi kan förbättra den.",
+    "analyticsRecordings": "Microsoft Clarity visar hur besökare rör sig på sidan (klick och scrollning) med heatmaps och sessionsinspelningar. Uppgifter du skriver in döljs.",
+    "marketingName": "Marknadsföring",
+    "marketingDesc": "Används för att mäta våra annonser och visa dig relevanta erbjudanden på andra webbplatser och i sociala medier. Uppgifter delas då med annonsplattformarna.",
+    "externalName": "Externa medier",
+    "externalDesc": "Visar innehåll från andra tjänster direkt på sidan, som videor från YouTube och Vimeo och kartor från Google Maps, när de visas på butikens sidor. När innehållet laddas får tjänsten din IP-adress och kan sätta cookies."
   },
   "slider": {
     "goTo": "Gå till bild {n}",
@@ -1213,6 +1238,7 @@
   "externalMap": {
     "notice": "Kartan tillhandahålls av Google Maps. Om du visar den hämtas innehåll från Google, som får din IP-adress och kan sätta cookies.",
     "load": "Visa karta",
-    "privacy": "Integritetspolicy"
+    "privacy": "Integritetspolicy",
+    "alwaysAllow": "Tillåt alltid externa medier"
   }
 }

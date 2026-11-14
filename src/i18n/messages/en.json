@@ -261,7 +261,7 @@
     "externalVideoTitle": "External video ({provider})",
     "externalVideoNotice": "This video is hosted by {provider}. Playing it loads content from {company} and may set cookies.",
     "externalVideoPlay": "Play video",
-    "externalVideoAlwaysAllow": "Always allow external videos",
+    "externalVideoAlwaysAllow": "Always allow external media",
     "externalVideoPrivacy": "Privacy policy",
     "videoMute": "Mute video",
     "videoUnmute": "Unmute video",
@@ -429,6 +429,7 @@
     "unavailableRemoved": "{count, plural, one {An item that is no longer available was removed from your cart} other {# items that are no longer available were removed from your cart}}"
   },
   "checkout": {
+    "returnToStore": "Return to store",
     "passwordPlaceholder": "Min 8 characters",
     "title": "Checkout",
     "shippingAddress": "Shipping Address",
@@ -1149,14 +1150,38 @@
   },
   "consent": {
     "title": "We use cookies",
-    "description": "We use cookies and similar technologies for analytics and marketing so we can improve the store and show relevant offers. You can accept or reject them; your choice is remembered for one year.",
-    "descriptionRecordings": "We use cookies and similar technologies for statistics, behaviour analysis (heatmaps and session recordings via Microsoft Clarity) and marketing so we can improve the store and show relevant offers. You can accept or reject them; your choice is remembered for one year.",
-    "descriptionRecordingsOnly": "We use heatmaps and session recordings via Microsoft Clarity to see how the store is used and improve it. Clarity is loaded only if you accept; you can accept or reject it, and your choice is remembered for one year.",
-    "accept": "Accept all",
-    "reject": "Reject",
-    "settings": "Read our cookie policy",
+    "settings": "Settings",
     "manage": "Cookie settings",
-    "externalMediaOff": "Turn off external videos"
+    "bodyAnalyticsMarketing": "We use necessary cookies to make the store work. If you agree, we also use cookies and similar technologies for analytics and marketing, and show content from external services such as YouTube and Google Maps. You can change your choice at any time under Cookie settings at the bottom of the page.",
+    "bodyAnalytics": "We use necessary cookies to make the store work. If you agree, we also use cookies and similar technologies for analytics, and show content from external services such as YouTube and Google Maps. You can change your choice at any time under Cookie settings at the bottom of the page.",
+    "bodyMarketing": "We use necessary cookies to make the store work. If you agree, we also use cookies and similar technologies for marketing, and show content from external services such as YouTube and Google Maps. You can change your choice at any time under Cookie settings at the bottom of the page.",
+    "recordings": "Analytics also includes heatmaps and session recordings via Microsoft Clarity.",
+    "cookiePolicy": "Cookie policy",
+    "privacyPolicy": "Privacy policy",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "dialogTitle": "Cookie settings",
+    "dialogIntro": "Choose which cookies and similar technologies we may use. Necessary cookies are needed for the store to work and cannot be switched off. You can change your choice at any time.",
+    "dialogTransfer": "Some services may transfer data to countries outside the EU/EEA, such as the USA. Read more in our cookie policy and privacy policy.",
+    "dialogUngated": "The following services are used without consent in this store: {services}.",
+    "save": "Save choices",
+    "close": "Close",
+    "alwaysOn": "Always active",
+    "services": "Services:",
+    "servicesPossible": "May include:",
+    "consentId": "Your consent ID: {id}",
+    "copyId": "Copy",
+    "copied": "Copied",
+    "updatedAt": "Last changed: {date}",
+    "necessaryName": "Necessary",
+    "necessaryDesc": "Needed for the store to work, for example the cart, sign-in, language choice, secure payment and remembering your cookie choice.",
+    "analyticsName": "Analytics",
+    "analyticsDesc": "Helps us understand how the store is used, for example which pages are visited, so we can improve it.",
+    "analyticsRecordings": "Microsoft Clarity shows how visitors move around the page (clicks and scrolling) with heatmaps and session recordings. Anything you type is hidden.",
+    "marketingName": "Marketing",
+    "marketingDesc": "Used to measure our ads and show you relevant offers on other websites and social media. Data is then shared with the ad platforms.",
+    "externalName": "External media",
+    "externalDesc": "Shows content from other services directly on the page, such as videos from YouTube and Vimeo and maps from Google Maps, where the store's pages use them. Loading the content gives the service your IP address and may set cookies."
   },
   "slider": {
     "goTo": "Go to slide {n}",
@@ -1213,6 +1238,7 @@
   "externalMap": {
     "notice": "This map is provided by Google Maps. Showing it loads content from Google, which receives your IP address and may set cookies.",
     "load": "Show map",
-    "privacy": "Privacy policy"
+    "privacy": "Privacy policy",
+    "alwaysAllow": "Always allow external media"
   }
 }

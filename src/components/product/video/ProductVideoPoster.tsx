@@ -6,6 +6,8 @@ import { Play } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { formatVideoDuration, type GalleryVideoItem } from '@/lib/productVideo';
+import { VideoFirstFrame } from './VideoFirstFrame';
+import { NO_POSTER_BG } from './noPoster';
 
 // Static poster + Play button of a product video. No state beyond a swipe
 // guard and no effects: it renders on the server like an image slide, and nothing heavy (no
@@ -33,6 +35,11 @@ export interface ProductVideoPosterProps {
    * 'lazy' (story cards, which may sit far off-screen).
    */
   loading?: 'eager' | 'lazy';
+  /**
+   * Without a poster, show the upload's first frame (default). Off while a
+   * player covers the poster (no second <video> for the same file).
+   */
+  firstFrame?: boolean;
 }
 
 // A click never reaches the gallery (no lightbox on tap). Touch and pointer
@@ -55,6 +62,7 @@ export function ProductVideoPoster({
   hideDuration = false,
   badge,
   loading = 'eager',
+  firstFrame = true,
 }: ProductVideoPosterProps) {
   const t = useTranslations();
   const duration = hideDuration ? null : formatVideoDuration(item.durationS);
@@ -83,7 +91,7 @@ export function ProductVideoPoster({
   return (
     <div
       data-gallery-video="poster"
-      className={`${className} overflow-hidden bg-neutral-900`}
+      className={`${className} overflow-hidden ${item.url ? 'bg-neutral-900' : NO_POSTER_BG}`}
       onClick={stop}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -101,6 +109,9 @@ export function ProductVideoPoster({
           className="object-cover"
           draggable={false}
         />
+      ) : firstFrame && item.source.type === 'file' ? (
+        // No poster: neutral tile + the upload's first frame once on screen.
+        <VideoFirstFrame src={item.source.src} />
       ) : null}
 
       {!hidePlay && (

@@ -1,15 +1,19 @@
 // Microsoft Clarity (heatmaps + session recordings) helpers.
 //
 // Rules (plans/clarity/PLAN.md, section 9 is binding):
-// - Clarity is ALWAYS consent-gated, also when the store turned
-//   `consent_required` off: no script and no requests before "accept".
-// - After "accept" Clarity gets `consentv2` with analytics granted and ads
+// - Clarity is ALWAYS consent-gated (analytics category), also when the
+//   store turned `consent_required` off: no script and no requests before
+//   the visitor allows analytics.
+// - After that Clarity gets `consentv2` with analytics granted and ads
 //   denied (the stores do not use Microsoft Ads).
-// - On withdrawal Clarity gets `consentv2` denied plus `consent(false)`
-//   (erases _clck/_clsk), and the page reloads, because Clarity would
-//   otherwise keep collecting in cookieless mode.
+// - On withdrawal of the analytics category Clarity gets `consentv2`
+//   denied plus the deprecated `consent(false)` (erases _clck/_clsk), and
+//   the page reloads, because Clarity would otherwise keep collecting in
+//   cookieless mode (consent v2 §7.1).
 // - Never on account / auth pages or on the order confirmation (its URL can
 //   carry payment ids such as `payment_intent_client_secret`).
+import type { TrackerVendor } from '@/lib/consent';
+import { clearVendorCookies, type CookieGroup } from './consentCookies';
 import { reloadPage } from './pageReload';
 
 type ClarityFn = ((...args: unknown[]) => void) & { q?: unknown[] };
@@ -66,41 +70,79 @@ export function grantClarityConsent(): void {
   clarity()('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
 }
 
+export interface RevokeOptions {
+  /** Analytics was granted and is now withdrawn. */
+  analytics: boolean;
+  /** Marketing was granted and is now withdrawn. */
+  marketing: boolean;
+  /** Vendors that are consent-gated in this store (ungated ones are left alone, D10). */
+  gated: readonly TrackerVendor[];
+}
+
 /**
- * Consent withdrawn after it was granted in this document: tell every vendor
- * "denied" and reload when any vendor script ran, so nothing keeps
- * collecting (an executed Meta pixel keeps auto-tracking client navigations
- * and clicks after its component unmounts). `vendors` is false for stores
- * that load GA4 / Meta / TikTok without consent: the visitor's choice then
- * only governs Clarity.
+ * A category granted earlier in this document was withdrawn (consent v2
+ * §7.1): tell the vendors of that category "denied", clear their first-party
+ * cookies, and reload when any of them ran (an executed pixel keeps
+ * auto-tracking client navigations and clicks after its component
+ * unmounts). Granting more never reloads. Returns whether a reload was
+ * requested.
  */
-export function revokeTrackingConsent({ vendors }: { vendors: boolean }): void {
+export function revokeConsentCategories({ analytics, marketing, gated }: RevokeOptions): boolean {
   let ran = false;
-  if (vendors) {
-    if (typeof window.gtag === 'function') {
-      ran = true;
-      window.gtag('consent', 'update', {
-        ad_storage: 'denied',
-        ad_user_data: 'denied',
-        ad_personalization: 'denied',
-        analytics_storage: 'denied',
-      });
+  const cleared: CookieGroup[] = [];
+  const ga4Gated = gated.includes('ga4');
+  if (analytics) {
+    if (ga4Gated) {
+      // GA4 stops entirely (ad signals included), so its ad cookies go too.
+      cleared.push('ga4', 'google_ads');
+      if (typeof window.gtag === 'function') {
+        ran = true;
+        window.gtag('consent', 'update', {
+          ad_storage: 'denied',
+          ad_user_data: 'denied',
+          ad_personalization: 'denied',
+          analytics_storage: 'denied',
+        });
+      }
     }
-    if (typeof window.fbq === 'function') {
-      ran = true;
-      window.fbq('consent', 'revoke');
-    }
-    if (window.ttq) {
-      ran = true;
-      if (typeof window.ttq.revokeConsent === 'function') window.ttq.revokeConsent();
+    if (gated.includes('clarity')) {
+      cleared.push('clarity');
+      if (typeof window.clarity === 'function') {
+        ran = true;
+        window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'denied' });
+        // Deprecated v1 call (erases _clck/_clsk); kept until Microsoft removes it.
+        window.clarity('consent', false);
+      }
     }
   }
-  if (typeof window.clarity === 'function') {
-    ran = true;
-    window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'denied' });
-    window.clarity('consent', false);
+  if (marketing) {
+    // GA4 keeps running under analytics: only its ad signals go, with the
+    // Google ad cookies (`_gcl_*`) written while ad_storage was granted. No
+    // reload: with ad_storage denied GA4 writes no new ad cookies.
+    if (ga4Gated && !analytics) {
+      cleared.push('google_ads');
+      if (typeof window.gtag === 'function') {
+        window.gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      }
+    }
+    if (gated.includes('meta')) {
+      cleared.push('meta');
+      if (typeof window.fbq === 'function') {
+        ran = true;
+        window.fbq('consent', 'revoke');
+      }
+    }
+    if (gated.includes('tiktok')) {
+      cleared.push('tiktok');
+      if (window.ttq) {
+        ran = true;
+        if (typeof window.ttq.revokeConsent === 'function') window.ttq.revokeConsent();
+      }
+    }
   }
+  clearVendorCookies(cleared);
   if (ran) reloadPage();
+  return ran;
 }
 
 /**

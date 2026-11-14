@@ -102,8 +102,10 @@ function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRe
     <>
       <nav
         aria-label={t('nav.mobileNavigation')}
-        className="md:hidden fixed bottom-0 inset-x-0 z-30"
+        className="md:hidden fixed inset-x-0 z-30"
         style={{
+          // Above the cookie banner while it is open (consent-v2 CONTRACT §4.2).
+          bottom: 'var(--ms-consent-inset, 0px)',
           backgroundColor: bg,
           color: fg,
           borderTop: `1px solid ${borderColor}`,

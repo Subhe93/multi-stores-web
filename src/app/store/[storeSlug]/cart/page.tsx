@@ -433,7 +433,8 @@ export default function StoreCartPage() {
                 href={lp('/products')}
                 className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
+                {/* Points back along the reading direction (mirrored in RTL). */}
+                <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
                 {t('cart.continueShopping')}
               </Link>
 

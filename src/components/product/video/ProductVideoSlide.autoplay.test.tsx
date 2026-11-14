@@ -265,6 +265,37 @@ describe('ProductVideoSlide muted autoplay', () => {
     expect(src).not.toContain('loop=1');
   });
 
+  it('posterless autoplay clip: no first-frame <video> next to the autoplay layer (one download)', async () => {
+    const { container } = render(<ProductVideoSlide item={item({ poster_url: null })} storeSlug="shop" sizes="100vw" />);
+    expect(container.querySelector('[data-video-first-frame]')).toBeNull();
+    showAll(1);
+    await waitFor(() => expect(container.querySelector('[data-gallery-video="autoplay"] video')).not.toBeNull());
+    expect(container.querySelectorAll('video')).toHaveLength(1);
+    expect(container.querySelector('[data-video-first-frame]')).toBeNull();
+    // Losing the grant does not remount a first-frame fetch either.
+    showAll(0);
+    expect(container.querySelector('video')).toBeNull();
+    expect(container.querySelector('[data-video-first-frame]')).toBeNull();
+  });
+
+  it('posterless autoplay clip keeps the first frame when autoplay cannot run (reduced motion)', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      value: (q: string) => ({ matches: q.includes('reduce'), addEventListener() {}, removeEventListener() {} }),
+      configurable: true,
+      writable: true,
+    });
+    const { container } = render(<ProductVideoSlide item={item({ poster_url: null })} storeSlug="shop" sizes="100vw" />);
+    expect(container.querySelector('[data-video-first-frame]')).not.toBeNull();
+  });
+
+  it('posterless autoplay clip shows the first frame after a refused play()', async () => {
+    playMock.mockImplementation(() => Promise.reject(Object.assign(new Error('nope'), { name: 'NotAllowedError' })));
+    const { container } = render(<ProductVideoSlide item={item({ poster_url: null })} storeSlug="shop" sizes="100vw" />);
+    showAll(1);
+    await waitFor(() => expect(container.querySelector('[data-video-first-frame]')).not.toBeNull());
+    expect(container.querySelector('[data-gallery-video="autoplay"]')).toBeNull();
+  });
+
   it('autoStart never autoplays (user player)', async () => {
     const { container } = render(<ProductVideoSlide item={item()} storeSlug="shop" sizes="100vw" autoStart />);
     await waitFor(() => expect(container.querySelector('video[controls]')).not.toBeNull());

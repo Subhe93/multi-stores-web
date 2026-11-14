@@ -3,11 +3,11 @@ import { renderToString } from 'react-dom/server';
 import { lazy, Suspense, type ComponentType } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  clearConsent,
+  __clearConsentForTests,
   clearExternalMediaConsent,
   grantExternalMediaConsent,
   readExternalMediaConsent,
-  writeConsent,
+  saveTrackingChoice,
 } from '@/lib/consent';
 import { toGalleryVideoItem, type GalleryVideoItem, type StorefrontProductVideo } from '@/lib/productVideo';
 
@@ -74,7 +74,7 @@ beforeEach(() => {
   HTMLMediaElement.prototype.pause = vi.fn();
 });
 afterEach(() => {
-  clearConsent('shop');
+  __clearConsentForTests('shop');
   clearExternalMediaConsent('shop');
 });
 
@@ -173,8 +173,13 @@ describe('ProductVideoSlide after play', () => {
     expect(screen.getByRole('link', { name: 'product.externalVideoPrivacy' })).toHaveAttribute('href', '/legal/privacy');
   });
 
-  it('a general "Accept all" does not unlock embeds (Vimeo facade)', () => {
-    writeConsent('shop', 'granted');
+  it('analytics + marketing consent alone does not unlock embeds (Vimeo facade)', () => {
+    saveTrackingChoice(
+      'shop',
+      { analytics: true, marketing: true },
+      { ga4_measurement_id: 'G-TEST', meta_pixel_id: '123' },
+      { action: 'save', source: 'dialog', textHash: 'unavailable', locale: 'en' },
+    );
     const { container } = render(<ProductVideoSlide item={vimeoItem()} storeSlug="shop" sizes="100vw" />);
     expect(container.querySelector('iframe')).toBeNull();
     expect(screen.getByText('product.externalVideoNotice:{"provider":"Vimeo","company":"Vimeo"}')).toBeInTheDocument();

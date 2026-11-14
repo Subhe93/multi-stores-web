@@ -13,6 +13,7 @@ import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
+import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, storePrimaryContrast } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
@@ -82,6 +83,7 @@ export default async function CheckoutLayout({
   const storeName = localeTrans?.name || store.name;
 
   const messages = await getMessages();
+  const t = await getTranslations({ locale: currentLang });
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
@@ -180,8 +182,10 @@ export default async function CheckoutLayout({
               <span>&copy; {new Date().getFullYear()} {storeName}</span>
               <div className="flex items-center gap-4">
                 <Link href={`/`} className="hover:text-gray-600 transition-colors">
-                  Return to store
+                  {t('checkout.returnToStore')}
                 </Link>
+                {/* The store footer is hidden here: the cookie settings stay reachable (consent v2 D4a). */}
+                <CookieSettingsLink variant="inline" />
               </div>
             </div>
           </footer>

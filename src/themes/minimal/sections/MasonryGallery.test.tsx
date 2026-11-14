@@ -45,4 +45,12 @@ describe('MasonryGallery lightbox', () => {
     const html = renderToString(<MasonryGallery {...props()} />);
     expect(html).not.toContain('role="dialog"');
   });
+
+  it('locks page scroll while the lightbox is open and releases it on close (QA #10)', () => {
+    render(<MasonryGallery {...props()} />);
+    fireEvent.click(screen.getByLabelText('A'));
+    expect(document.body.style.position).toBe('fixed');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.body.style.position).toBe('');
+  });
 });

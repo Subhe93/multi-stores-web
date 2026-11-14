@@ -248,7 +248,7 @@ export function ProductVideoSlide({
         onTouchEnd={stop}
       >
         {/* Poster stays underneath while the player chunk loads. */}
-        <ProductVideoPoster item={item} onPlay={play} priority={priority} sizes={sizes} loading={posterLoading} hidePlay />
+        <ProductVideoPoster item={item} onPlay={play} priority={priority} sizes={sizes} loading={posterLoading} hidePlay firstFrame={false} />
         <div className="absolute inset-0 z-20">
           <ProductVideoPlayer item={item} startAt={resumeAt ?? startAt} videoRef={playerRef} onError={handleError} />
         </div>
@@ -293,6 +293,11 @@ export function ProductVideoSlide({
         loading={posterLoading}
         hidePlay={autoMounted}
         hideDuration={autoMounted}
+        // A posterless clip that will autoplay gets its frame from the muted
+        // layer; the first-frame <video> would fetch the same file a second
+        // time (and remount on every grant change). Only when autoplay cannot
+        // run (reduced motion / Save-Data / SSR, refused or ended) is it used.
+        firstFrame={blocked || autoStopped}
         overlay={facade}
       />
       {autoMounted && (

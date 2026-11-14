@@ -261,7 +261,7 @@
     "externalVideoTitle": "Externes Video ({provider})",
     "externalVideoNotice": "Dieses Video wird von {provider} bereitgestellt. Beim Abspielen werden Inhalte von {company} geladen und möglicherweise Cookies gesetzt.",
     "externalVideoPlay": "Video abspielen",
-    "externalVideoAlwaysAllow": "Externe Videos immer erlauben",
+    "externalVideoAlwaysAllow": "Externe Medien immer erlauben",
     "externalVideoPrivacy": "Datenschutzerklärung",
     "videoMute": "Video stummschalten",
     "videoUnmute": "Ton einschalten",
@@ -429,6 +429,7 @@
     "unavailableRemoved": "{count, plural, one {Ein nicht mehr verfügbarer Artikel wurde aus deinem Warenkorb entfernt} other {# nicht mehr verfügbare Artikel wurden aus deinem Warenkorb entfernt}}"
   },
   "checkout": {
+    "returnToStore": "Zurück zum Shop",
     "passwordPlaceholder": "Mind. 8 Zeichen",
     "title": "Kasse",
     "shippingAddress": "Lieferadresse",
@@ -1149,14 +1150,38 @@
   },
   "consent": {
     "title": "Wir verwenden Cookies",
-    "description": "Wir verwenden Cookies und ähnliche Technologien für Analyse und Marketing, um den Shop zu verbessern und passende Angebote zu zeigen. Sie können sie annehmen oder ablehnen; Ihre Wahl wird ein Jahr lang gespeichert.",
-    "descriptionRecordings": "Wir verwenden Cookies und ähnliche Technologien für Statistik, Verhaltensanalyse (Heatmaps und Sitzungsaufzeichnungen über Microsoft Clarity) und Marketing, um den Shop zu verbessern und passende Angebote zu zeigen. Sie können sie annehmen oder ablehnen; Ihre Wahl wird ein Jahr lang gespeichert.",
-    "descriptionRecordingsOnly": "Wir verwenden Heatmaps und Sitzungsaufzeichnungen über Microsoft Clarity, um zu sehen, wie der Shop genutzt wird, und ihn zu verbessern. Clarity wird nur geladen, wenn Sie zustimmen; Sie können annehmen oder ablehnen, Ihre Wahl wird ein Jahr lang gespeichert.",
-    "accept": "Alle akzeptieren",
-    "reject": "Ablehnen",
-    "settings": "Unsere Cookie-Richtlinie lesen",
+    "settings": "Einstellungen",
     "manage": "Cookie-Einstellungen",
-    "externalMediaOff": "Externe Videos deaktivieren"
+    "bodyAnalyticsMarketing": "Wir verwenden notwendige Cookies, damit der Shop funktioniert. Wenn Sie zustimmen, verwenden wir außerdem Cookies und ähnliche Technologien für Statistik und Marketing und zeigen Inhalte externer Dienste wie YouTube und Google Maps an. Sie können Ihre Wahl jederzeit unter Cookie-Einstellungen unten auf der Seite ändern.",
+    "bodyAnalytics": "Wir verwenden notwendige Cookies, damit der Shop funktioniert. Wenn Sie zustimmen, verwenden wir außerdem Cookies und ähnliche Technologien für Statistik und zeigen Inhalte externer Dienste wie YouTube und Google Maps an. Sie können Ihre Wahl jederzeit unter Cookie-Einstellungen unten auf der Seite ändern.",
+    "bodyMarketing": "Wir verwenden notwendige Cookies, damit der Shop funktioniert. Wenn Sie zustimmen, verwenden wir außerdem Cookies und ähnliche Technologien für Marketing und zeigen Inhalte externer Dienste wie YouTube und Google Maps an. Sie können Ihre Wahl jederzeit unter Cookie-Einstellungen unten auf der Seite ändern.",
+    "recordings": "Die Statistik umfasst auch Heatmaps und Sitzungsaufzeichnungen über Microsoft Clarity.",
+    "cookiePolicy": "Cookie-Richtlinie",
+    "privacyPolicy": "Datenschutzerklärung",
+    "acceptAll": "Alle akzeptieren",
+    "rejectAll": "Alle ablehnen",
+    "dialogTitle": "Cookie-Einstellungen",
+    "dialogIntro": "Wählen Sie, welche Cookies und ähnlichen Technologien wir verwenden dürfen. Notwendige Cookies werden für den Betrieb des Shops benötigt und können nicht deaktiviert werden. Sie können Ihre Wahl jederzeit ändern.",
+    "dialogTransfer": "Einige Dienste können Daten in Länder außerhalb der EU/des EWR übermitteln, zum Beispiel in die USA. Mehr dazu in unserer Cookie-Richtlinie und Datenschutzerklärung.",
+    "dialogUngated": "Folgende Dienste werden in diesem Shop ohne Einwilligung verwendet: {services}.",
+    "save": "Auswahl speichern",
+    "close": "Schließen",
+    "alwaysOn": "Immer aktiv",
+    "services": "Dienste:",
+    "servicesPossible": "Kann umfassen:",
+    "consentId": "Ihre Einwilligungs-ID: {id}",
+    "copyId": "Kopieren",
+    "copied": "Kopiert",
+    "updatedAt": "Zuletzt geändert: {date}",
+    "necessaryName": "Notwendig",
+    "necessaryDesc": "Werden für den Betrieb des Shops benötigt, zum Beispiel für den Warenkorb, die Anmeldung, die Sprachwahl, sicheres Bezahlen und um Ihre Cookie-Auswahl zu speichern.",
+    "analyticsName": "Statistik",
+    "analyticsDesc": "Hilft uns zu verstehen, wie der Shop genutzt wird, zum Beispiel welche Seiten besucht werden, damit wir ihn verbessern können.",
+    "analyticsRecordings": "Microsoft Clarity zeigt mit Heatmaps und Sitzungsaufzeichnungen, wie sich Besucher auf der Seite bewegen (Klicks und Scrollen). Ihre Eingaben werden ausgeblendet.",
+    "marketingName": "Marketing",
+    "marketingDesc": "Wird verwendet, um unsere Anzeigen zu messen und Ihnen relevante Angebote auf anderen Websites und in sozialen Medien zu zeigen. Dabei werden Daten mit den Werbeplattformen geteilt.",
+    "externalName": "Externe Medien",
+    "externalDesc": "Zeigt Inhalte anderer Dienste direkt auf der Seite an, etwa Videos von YouTube und Vimeo und Karten von Google Maps, wo die Seiten des Shops sie verwenden. Beim Laden erhält der Dienst Ihre IP-Adresse und kann Cookies setzen."
   },
   "slider": {
     "goTo": "Zu Folie {n}",
@@ -1213,6 +1238,7 @@
   "externalMap": {
     "notice": "Diese Karte wird von Google Maps bereitgestellt. Beim Anzeigen werden Inhalte von Google geladen; Google erhält dabei Ihre IP-Adresse und kann Cookies setzen.",
     "load": "Karte anzeigen",
-    "privacy": "Datenschutzerklärung"
+    "privacy": "Datenschutzerklärung",
+    "alwaysAllow": "Externe Medien immer erlauben"
   }
 }

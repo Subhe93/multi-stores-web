@@ -261,7 +261,7 @@
     "externalVideoTitle": "Harici video ({provider})",
     "externalVideoNotice": "Bu video {provider} üzerinde barındırılıyor. Oynatıldığında {company} kaynağından içerik yüklenir ve çerezler yerleştirilebilir.",
     "externalVideoPlay": "Videoyu oynat",
-    "externalVideoAlwaysAllow": "Harici videolara her zaman izin ver",
+    "externalVideoAlwaysAllow": "Harici medyaya her zaman izin ver",
     "externalVideoPrivacy": "Gizlilik politikası",
     "videoMute": "Videonun sesini kapat",
     "videoUnmute": "Videonun sesini aç",
@@ -429,6 +429,7 @@
     "unavailableRemoved": "{count, plural, one {Artık mevcut olmayan bir ürün sepetinizden çıkarıldı} other {Artık mevcut olmayan # ürün sepetinizden çıkarıldı}}"
   },
   "checkout": {
+    "returnToStore": "Mağazaya dön",
     "passwordPlaceholder": "En az 8 karakter",
     "title": "Ödeme",
     "shippingAddress": "Teslimat Adresi",
@@ -1149,14 +1150,38 @@
   },
   "consent": {
     "title": "Çerez kullanıyoruz",
-    "description": "Mağazayı geliştirmek ve size uygun teklifler göstermek için analiz ve pazarlama amaçlı çerezler ve benzeri teknolojiler kullanıyoruz. Kabul edebilir veya reddedebilirsiniz; seçiminiz bir yıl boyunca hatırlanır.",
-    "descriptionRecordings": "Mağazayı geliştirmek ve size uygun teklifler göstermek için istatistik, davranış analizi (Microsoft Clarity ile ısı haritaları ve oturum kayıtları) ve pazarlama amaçlı çerezler ve benzeri teknolojiler kullanıyoruz. Kabul edebilir veya reddedebilirsiniz; seçiminiz bir yıl boyunca hatırlanır.",
-    "descriptionRecordingsOnly": "Mağazanın nasıl kullanıldığını görmek ve onu geliştirmek için Microsoft Clarity ile ısı haritaları ve oturum kayıtları kullanıyoruz. Clarity yalnızca kabul ederseniz yüklenir; kabul edebilir veya reddedebilirsiniz, seçiminiz bir yıl boyunca hatırlanır.",
-    "accept": "Tümünü kabul et",
-    "reject": "Reddet",
-    "settings": "Çerez politikamızı okuyun",
+    "settings": "Ayarlar",
     "manage": "Çerez ayarları",
-    "externalMediaOff": "Harici videoları kapat"
+    "bodyAnalyticsMarketing": "Mağazanın çalışması için zorunlu çerezler kullanıyoruz. Onay verirseniz istatistik ve pazarlama için çerezler ve benzeri teknolojiler de kullanır, YouTube ve Google Maps gibi harici hizmetlerden içerik gösteririz. Seçiminizi istediğiniz zaman sayfanın altındaki Çerez ayarları bölümünden değiştirebilirsiniz.",
+    "bodyAnalytics": "Mağazanın çalışması için zorunlu çerezler kullanıyoruz. Onay verirseniz istatistik için çerezler ve benzeri teknolojiler de kullanır, YouTube ve Google Maps gibi harici hizmetlerden içerik gösteririz. Seçiminizi istediğiniz zaman sayfanın altındaki Çerez ayarları bölümünden değiştirebilirsiniz.",
+    "bodyMarketing": "Mağazanın çalışması için zorunlu çerezler kullanıyoruz. Onay verirseniz pazarlama için çerezler ve benzeri teknolojiler de kullanır, YouTube ve Google Maps gibi harici hizmetlerden içerik gösteririz. Seçiminizi istediğiniz zaman sayfanın altındaki Çerez ayarları bölümünden değiştirebilirsiniz.",
+    "recordings": "İstatistikler, Microsoft Clarity ile ısı haritalarını ve oturum kayıtlarını da kapsar.",
+    "cookiePolicy": "Çerez politikası",
+    "privacyPolicy": "Gizlilik politikası",
+    "acceptAll": "Tümünü kabul et",
+    "rejectAll": "Tümünü reddet",
+    "dialogTitle": "Çerez ayarları",
+    "dialogIntro": "Hangi çerezleri ve benzeri teknolojileri kullanabileceğimizi seçin. Zorunlu çerezler mağazanın çalışması için gereklidir ve kapatılamaz. Seçiminizi istediğiniz zaman değiştirebilirsiniz.",
+    "dialogTransfer": "Bazı hizmetler verileri AB/AEA dışındaki ülkelere, örneğin ABD’ye aktarabilir. Ayrıntılar için çerez politikamızı ve gizlilik politikamızı okuyun.",
+    "dialogUngated": "Bu mağazada şu hizmetler onay olmadan kullanılır: {services}.",
+    "save": "Seçimleri kaydet",
+    "close": "Kapat",
+    "alwaysOn": "Her zaman etkin",
+    "services": "Hizmetler:",
+    "servicesPossible": "Şunları içerebilir:",
+    "consentId": "Onay kimliğiniz: {id}",
+    "copyId": "Kopyala",
+    "copied": "Kopyalandı",
+    "updatedAt": "Son değişiklik: {date}",
+    "necessaryName": "Zorunlu",
+    "necessaryDesc": "Mağazanın çalışması için gereklidir; örneğin sepet, oturum açma, dil seçimi, güvenli ödeme ve çerez seçiminizin hatırlanması.",
+    "analyticsName": "İstatistik",
+    "analyticsDesc": "Mağazanın nasıl kullanıldığını, örneğin hangi sayfaların ziyaret edildiğini anlamamıza ve mağazayı geliştirmemize yardımcı olur.",
+    "analyticsRecordings": "Microsoft Clarity, ziyaretçilerin sayfada nasıl hareket ettiğini (tıklama ve kaydırma) ısı haritaları ve oturum kayıtlarıyla gösterir. Yazdığınız bilgiler gizlenir.",
+    "marketingName": "Pazarlama",
+    "marketingDesc": "Reklamlarımızı ölçmek ve size diğer web sitelerinde ve sosyal medyada ilgili teklifler göstermek için kullanılır. Bu durumda veriler reklam platformlarıyla paylaşılır.",
+    "externalName": "Harici medya",
+    "externalDesc": "Mağaza sayfalarında kullanıldığı yerlerde, YouTube ve Vimeo videoları ile Google Maps haritaları gibi diğer hizmetlerin içeriğini doğrudan sayfada gösterir. İçerik yüklendiğinde hizmet IP adresinizi alır ve çerez yerleştirebilir."
   },
   "slider": {
     "goTo": "{n}. slayta git",
@@ -1213,6 +1238,7 @@
   "externalMap": {
     "notice": "Bu harita Google Maps tarafından sağlanır. Haritayı göstermek Google'dan içerik yükler; Google IP adresinizi alır ve çerez yerleştirebilir.",
     "load": "Haritayı göster",
-    "privacy": "Gizlilik politikası"
+    "privacy": "Gizlilik politikası",
+    "alwaysAllow": "Harici medyaya her zaman izin ver"
   }
 }

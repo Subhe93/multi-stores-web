@@ -3,7 +3,7 @@
 // Component implementation. Definition lives in StickyCtaBar.tsx so the
 // server-side theme registry resolves `.Component` to a ClientReference.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { X } from 'lucide-react';
@@ -30,6 +30,20 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, [threshold]);
+
+  const show = visible && !dismissed;
+  // While shown, publish the bar's height as --ms-bottom-bar so the desktop
+  // cookie-settings pill (same bottom start corner) moves above it.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!show || !el) return;
+    const html = document.documentElement;
+    html.style.setProperty('--ms-bottom-bar', `${Math.ceil(el.offsetHeight)}px`);
+    return () => {
+      html.style.removeProperty('--ms-bottom-bar');
+    };
+  }, [show]);
 
   if (!text && !ctaText) {
     // Nothing to show — render a tiny in-flow hint so creators see it exists.
@@ -58,11 +72,12 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
     },
   );
 
-  const show = visible && !dismissed;
-
   return (
     <motion.div
-      className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 pointer-events-none"
+      ref={barRef}
+      className="fixed inset-x-0 z-50 px-3 pb-3 pointer-events-none"
+      // Above the cookie banner while it is open (consent-v2 CONTRACT §4.2).
+      style={{ bottom: 'var(--ms-consent-inset, 0px)' }}
       initial={false}
       animate={{ y: show ? 0 : 160, opacity: show ? 1 : 0 }}
       transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 32 }}

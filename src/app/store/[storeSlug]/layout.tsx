@@ -38,8 +38,8 @@ import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/theme
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
-import { ExternalMediaManageLink } from '@/components/tracking/ExternalMediaManageLink';
-import { COOKIE_POLICY_SLUGS, hasTrackingIds, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
+import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
+import { COOKIE_POLICY_SLUGS, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
 
@@ -469,13 +469,11 @@ export default async function StoreLayout({
   // Published static pages forwarded to header and footer
   const pages = store.pages ?? [];
 
-  // Cookie banner (3.9): only stores with at least one tracking id render it.
-  // The banner links to the store's cookie page when one is published under
-  // a known slug; otherwise the link is simply omitted.
-  const hasTracking = hasTrackingIds(store.tracking);
-  const cookiePage = hasTracking
-    ? pages.find((p) => COOKIE_POLICY_SLUGS.includes(p.slug))
-    : undefined;
+  // Consent v2: the banner and the settings dialog link to the store's
+  // cookie page when one is published under a known slug (every store: the
+  // dialog also serves external media on stores without trackers);
+  // otherwise the link is simply omitted.
+  const cookiePage = pages.find((p) => COOKIE_POLICY_SLUGS.includes(p.slug));
   // Locale prefix is applied client-side (useLocalePath) like every page link.
   const cookiePolicyHref = cookiePage ? `/${cookiePage.slug}` : null;
 
@@ -612,14 +610,16 @@ export default async function StoreLayout({
           {customCss && <StoreCustomCss css={customCss} />}
           {/* Market preview strip (nothing for other hosts). */}
           <MarketPreviewBanner />
-          {/* Cookie consent + vendor tags: nothing in the tree for stores
-              without tracking ids (no layout shift, no scripts). */}
-          {hasTracking && (
-            <StoreTracking storeSlug={storeSlug} tracking={store.tracking} policyHref={cookiePolicyHref} />
-          )}
-          {/* Stores without tracking: a pill to revoke "Always allow external
-              videos" (renders nothing until that grant is set). */}
-          {!hasTracking && <ExternalMediaManageLink storeSlug={storeSlug} />}
+          {/* Consent manager (consent v2) for every store: the banner and
+              vendor tags only for stores with gated trackers, the settings
+              dialog (external media) everywhere. Renders nothing on the
+              server (no layout shift, no scripts). */}
+          <StoreTracking
+            storeSlug={storeSlug}
+            tracking={store.tracking ?? null}
+            cookiePolicyHref={cookiePolicyHref}
+            privacyHref="/legal/privacy"
+          />
           {/* Store-owner "Edit" button: renders nothing (and loads nothing)
               unless the dashboard handed this browser an owner token. */}
           <EditHintBoot storeSlug={storeSlug} />
@@ -731,6 +731,8 @@ export default async function StoreLayout({
                     chrome
                     collapseWrappers={false}
                   />
+                  {/* Permanent way back to the cookie settings (consent v2 D4a). */}
+                  <CookieSettingsLink variant="footer-row" />
                 </footer>
               ) : (
                 <div id="store-nav-footer">
@@ -747,6 +749,7 @@ export default async function StoreLayout({
                     primaryLocale={primaryLocale}
                     platformName={platformName}
                   />
+                  <CookieSettingsLink variant="footer-row" />
                 </div>
               );
 

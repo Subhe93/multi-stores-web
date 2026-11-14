@@ -6,7 +6,7 @@
 // returns the exact image items unchanged in that case.
 
 import { resolveMediaUrl } from '@/lib/api';
-import { readExternalMediaConsent } from '@/lib/consent';
+import { externalMediaAllowed } from '@/lib/consent';
 
 /** A product video as the storefront API sends it (= API `ProductVideoOut`). */
 export interface StorefrontProductVideo {
@@ -310,14 +310,15 @@ export function buildGalleryMedia(
 }
 
 /**
- * Whether a YouTube / Vimeo embed may load for this store without a click on
- * the two-click facade: only when the visitor chose "Always allow external
- * videos" (the separate external-media consent, CONTRACT-AUTOPLAY A4/A5).
- * The general cookie banner choice does not unlock embeds. Always false on
- * the server, so SSR never renders a third-party iframe.
+ * Whether a YouTube / Vimeo / Google Maps embed may load for this store
+ * without a click on the two-click facade: only while the visitor allows the
+ * external-media category (consent v2: "Acceptera alla", the settings
+ * dialog, or "Always allow external media" on a facade). Analytics or
+ * marketing consent alone does not unlock embeds. Always false on the
+ * server, so SSR never renders a third-party iframe.
  */
 export function embedAllowed(storeSlug: string | null | undefined): boolean {
-  return !!storeSlug && readExternalMediaConsent(storeSlug);
+  return !!storeSlug && externalMediaAllowed(storeSlug);
 }
 
 /** "m:ss" for a duration chip, or null when unknown. */

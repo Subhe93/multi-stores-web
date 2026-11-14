@@ -27,6 +27,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { readDirection } from '@/components/product/readDirection';
 import type { GalleryItem, GalleryVideoItem } from '@/lib/productVideo';
+import { NO_POSTER_BG } from '@/components/product/video/noPoster';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { DesignerCanvasSlot, useDesignerSession } from '@/components/designer/DesignerSession';
 import type { SectionRenderProps } from '../../../types';
@@ -103,10 +104,14 @@ const ASPECT: Record<Aspect, string> = {
 function useOneVideoAtATime() {
   const [generation, setGeneration] = useState<Record<string, number>>({});
   const activeRef = useRef<string | null>(null);
+  // The video whose player is mounted, as state: the gallery chrome
+  // (expand button, carousel dots) hides over it (QA 2026-11-14 #18).
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const callbacks = useRef(new Map<string, (playing: boolean) => void>());
 
   const stop = useCallback((id: string) => {
     if (activeRef.current === id) activeRef.current = null;
+    setPlayingId((cur) => (cur === id ? null : cur));
     setGeneration((g) => ({ ...g, [id]: (g[id] ?? 0) + 1 }));
   }, []);
 
@@ -116,8 +121,10 @@ function useOneVideoAtATime() {
         const previous = activeRef.current;
         activeRef.current = id;
         if (previous && previous !== id) stop(previous);
-      } else if (activeRef.current === id) {
-        activeRef.current = null;
+        setPlayingId(id);
+      } else {
+        if (activeRef.current === id) activeRef.current = null;
+        setPlayingId((cur) => (cur === id ? null : cur));
       }
     },
     [stop],
@@ -138,6 +145,7 @@ function useOneVideoAtATime() {
     callbackFor,
     stop,
     activeRef,
+    playingId,
   };
 }
 
@@ -160,14 +168,14 @@ function ExpandButton({ onOpen, className }: { onOpen(): void; className: string
   );
 }
 
-/** Thumbnail of a video item: its poster (or a dark tile) with a Play mark. */
+/** Thumbnail of a video item: its poster (or a neutral tile) with a Play mark. */
 function VideoThumb({ item, sizes }: { item: GalleryVideoItem; sizes: string }) {
   return (
     <>
       {item.url ? (
         <StoreImage src={item.url} alt={item.alt} fill sizes={sizes} unoptimized={isSvgSrc(item.url)} className="object-cover" />
       ) : (
-        <span className="absolute inset-0 bg-neutral-900" aria-hidden="true" />
+        <span className={`absolute inset-0 ${NO_POSTER_BG}`} aria-hidden="true" />
       )}
       <ProductVideoThumbBadge durationS={item.durationS} />
     </>
@@ -328,7 +336,12 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
             playerRef={playerRef}
             onPlayingChange={videos.callbackFor(img.id)}
           />
-          <ExpandButton onOpen={() => openLightbox(index)} className="top-3 end-3 size-9" />
+          {/* Hidden over a playing YouTube / Vimeo embed (it covered its
+              title bar actions); a file video keeps it (controls at the
+              bottom) for the lightbox hand-off. */}
+          {!(videos.playingId === img.id && img.source.type !== 'file') && (
+            <ExpandButton onOpen={() => openLightbox(index)} className="top-3 end-3 size-9" />
+          )}
         </div>
       );
     }
@@ -424,7 +437,7 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
               />
             )}
             {/* Top corner on a video: its native controls sit at the bottom. */}
-            {hasVideos && (
+            {hasVideos && !(img.kind === 'video' && videos.playingId === img.id && img.source.type !== 'file') && (
               <ExpandButton onOpen={() => openLightbox(i)} className={`${img.kind === 'video' ? 'top-2' : 'bottom-2'} end-2 size-8`} />
             )}
           </div>
@@ -456,21 +469,24 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
             >
               <ChevronRight className="size-4" />
             </button>
-            <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
-              {items.map((img, i) => (
-                <button
-                  key={keyOf(img)}
-                  type="button"
-                  onClick={() => setActive(i)}
-                  className="size-1.5 rounded-full transition-all"
-                  style={{
-                    backgroundColor: i === active ? 'var(--theme-colors-primary)' : 'rgba(255,255,255,0.7)',
-                    width: i === active ? '20px' : '6px',
-                  }}
-                  aria-label={`Image ${i + 1}`}
-                />
-              ))}
-            </div>
+            {/* Dots hide over a playing video (they covered its controls). */}
+            {!(items[active]?.kind === 'video' && videos.playingId === items[active]?.id) && (
+              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
+                {items.map((img, i) => (
+                  <button
+                    key={keyOf(img)}
+                    type="button"
+                    onClick={() => setActive(i)}
+                    className="size-1.5 rounded-full transition-all"
+                    style={{
+                      backgroundColor: i === active ? 'var(--theme-colors-primary)' : 'rgba(255,255,255,0.7)',
+                      width: i === active ? '20px' : '6px',
+                    }}
+                    aria-label={`Image ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </>
         )}
         {lightbox}

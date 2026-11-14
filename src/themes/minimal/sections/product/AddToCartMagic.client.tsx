@@ -23,6 +23,7 @@ import { CustomerUpload } from '@/components/product/CustomerUpload';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
 import { DesignerFormSlot, useDesignerAddonsTotal, useDesignerSession } from '@/components/designer/DesignerSession';
 import { formatPrice } from '@/lib/format';
+import { useHydrated } from '@/hooks/useHydrated';
 import type { SectionRenderProps } from '../../../types';
 import {
   B1Placeholder,
@@ -43,6 +44,12 @@ export function AddToCartMagic(props: SectionRenderProps) {
   // add button; the canvas renders in the gallery section (shared session).
   const designer = useDesignerSession();
   const designerAddons = useDesignerAddonsTotal();
+  // Until this boundary hydrates (its lazy chunk may still be loading) the
+  // server-rendered CTA has no click handler, and React does not replay a
+  // tap on a boundary whose chunk has not arrived (M106). The button is then
+  // natively disabled in its normal colours with a spinner and aria-busy,
+  // like the product-buy block, instead of silently losing the tap.
+  const busy = !useHydrated();
 
   if (!state) {
     return <B1Placeholder preview={isBlockPreview(props)} locale={locale} label={{ en: 'Add to cart', ar: 'إضافة للسلة' }} />;
@@ -174,17 +181,29 @@ export function AddToCartMagic(props: SectionRenderProps) {
     />
   ) : null;
 
+  // Busy only matters for a product that can be added; one that cannot keeps
+  // its plain disabled look.
+  const hydrating = busy && !isAddDisabled && !addingToCart;
   const cta = addedToCart ? addedState : (
     <button
       type="button"
       onClick={state.handleAddToCart}
-      disabled={addingToCart || isAddDisabled}
-      className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
-        fullWidth ? 'w-full' : ''
-      }`}
+      disabled={busy || addingToCart || isAddDisabled}
+      aria-busy={busy || addingToCart || undefined}
+      data-hydrating={busy ? '' : undefined}
+      className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all ${
+        hydrating
+          ? 'opacity-80 cursor-progress'
+          : 'hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0'
+      } ${fullWidth ? 'w-full' : ''}`}
       style={primaryButton}
     >
-      {addingToCart ? (
+      {hydrating ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+          {buttonLabel}
+        </>
+      ) : addingToCart ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
           {t('product.addingToCart')}
@@ -313,8 +332,10 @@ export function AddToCartMagic(props: SectionRenderProps) {
       {/* The inline designer's CTA is at the end of its form (NPP); no sticky copy. */}
       {showSticky && !designer && (
         <div
-          className="fixed bottom-0 inset-x-0 z-30 p-3 md:hidden"
+          className="fixed inset-x-0 z-30 p-3 md:hidden"
           style={{
+            // Above the cookie banner while it is open (consent-v2 CONTRACT §4.2).
+            bottom: 'var(--ms-consent-inset, 0px)',
             backgroundColor: 'var(--theme-colors-background)',
             borderTop: '1px solid var(--theme-colors-border)',
             boxShadow: 'var(--theme-shadow-lg)',

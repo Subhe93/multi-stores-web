@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearConsent, clearExternalMediaConsent } from '@/lib/consent';
+import { __clearConsentForTests, clearExternalMediaConsent } from '@/lib/consent';
 import { __resetAutoplayForTests } from '@/lib/videoAutoplay';
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { StorefrontProductStory } from '@/lib/productStories';
@@ -171,7 +171,7 @@ const withState = (product: ProductData, ui: ReactNode, locale = 'en') => render
 const settings = (s: Record<string, unknown>) => ({ ...PRODUCT_STORIES_DEFAULTS, ...s });
 
 afterEach(() => {
-  clearConsent('demo');
+  __clearConsentForTests('demo');
   clearExternalMediaConsent('demo');
   __resetAutoplayForTests();
   vi.restoreAllMocks();
@@ -429,7 +429,7 @@ describe('media', () => {
     expect(container.querySelector('figcaption')).toBeNull();
   });
 
-  it('overlay text returns on pause, hides again on play; an ended video goes back to its poster', async () => {
+  it('overlay text stays hidden while the player is mounted (also paused); an ended video goes back to its poster', async () => {
     const { container } = withState(
       makeProduct([videoStory('v1')]),
       <ProductStoriesBlock {...props({ settings: settings({ layout: 'overlay' }) })} />,
@@ -440,9 +440,11 @@ describe('media', () => {
     const video = await screen.findByTestId('shared-player');
     expect(container.querySelector('figcaption')).toBeNull();
 
+    // QA 2026-11-14 #20: the text no longer returns over a paused video's
+    // controls.
     fireEvent.pause(video);
-    expect(container.querySelector('figcaption')!.textContent).toContain('Name v1');
-    expect(container.querySelector('.bg-linear-to-t')).not.toBeNull();
+    expect(container.querySelector('figcaption')).toBeNull();
+    expect(container.querySelector('.bg-linear-to-t')).toBeNull();
     // The player is still mounted (the visitor can resume).
     expect(screen.getByTestId('shared-player')).toBe(video);
 
@@ -458,6 +460,37 @@ describe('media', () => {
     expect(container.querySelector('figcaption')!.textContent).toContain('Name v1');
     const play = screen.getByRole('button', { name: /storyPlayNamed/ });
     expect(document.activeElement).toBe(play);
+  });
+
+  it('a file story without a poster: neutral tile + its first frame, not a black box (QA #17)', () => {
+    const { container } = withState(
+      makeProduct([videoStory('v1', { poster_url: null })]),
+      <ProductStoriesBlock {...props()} />,
+    );
+    const poster = container.querySelector('[data-story-poster]')!;
+    expect(poster.className).not.toContain('bg-neutral-900');
+    expect(poster.className).toContain('from-neutral-200');
+    const frame = poster.querySelector('[data-video-first-frame] video')!;
+    expect(frame.getAttribute('src')).toMatch(/v1\.mp4#t=0\.1$/);
+    expect(frame.getAttribute('preload')).toBe('metadata');
+    // Play is still there; the player chunk is not requested.
+    expect(screen.getByRole('button', { name: /storyPlayNamed/ })).toBeTruthy();
+    expect(screen.queryByTestId('shared-player')).toBeNull();
+  });
+
+  it('overlay text on a video card reserves the space of the centred Play button', () => {
+    const { container } = withState(
+      makeProduct([videoStory('v1'), story('i1')]),
+      <ProductStoriesBlock {...props({ settings: settings({ layout: 'overlay' }) })} />,
+    );
+    const cards = container.querySelectorAll('[data-story-card]');
+    const video = Array.from(cards).find((c) => c.getAttribute('data-story-kind') === 'video')!;
+    const image = Array.from(cards).find((c) => c.getAttribute('data-story-kind') === 'image')!;
+    const spacer = video.querySelector('[data-story-play-space]');
+    expect(spacer).not.toBeNull();
+    // The spacer sits before the text, so the text stays in the lower half.
+    expect(spacer!.compareDocumentPosition(video.querySelector('figcaption')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(image.querySelector('[data-story-play-space]')).toBeNull();
   });
 
   it('Play keeps keyboard focus in the card while the player loads', async () => {

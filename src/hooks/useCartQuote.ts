@@ -94,6 +94,41 @@ function useSavedCountry(token: string | null | undefined): { done: boolean; cou
   return known ? { done: true, country: known.country } : { done: false, country: null };
 }
 
+/**
+ * Destination country the cart quote is made for (ISO2, or null when
+ * unknown); `done` is false while a logged-in marketplace shopper's saved
+ * address is still being read. The classic checkout pre-selects the same
+ * country, so its shipping and total start equal to the cart's.
+ *
+ * MARKETPLACE stores only (the platform is the VAT registrant): the
+ * logged-in shopper's saved address country wins, then the tax country
+ * comes before the store language (an EUR + English influencer store is
+ * not quoted for the United Kingdom); the quote waits for that one read.
+ * INDEPENDENT stores (Namez) keep the plain mirror of kustom-checkout
+ * `defaultCountry`, so the cart and the Kustom checkout start on the same
+ * country and no extra request delays their quote.
+ */
+export function useDefaultQuoteCountry(): { done: boolean; country: string | null } {
+  const { token } = useAuth();
+  const { currency } = useCart();
+  const market = useMarket();
+  const primaryLocale = useStorePrimaryLocale();
+  const storeTax = useStoreTax();
+  const marketplace = storeTax?.registrant === 'PLATFORM';
+  const saved = useSavedCountry(marketplace ? token : null);
+  if (!saved.done) return { done: false, country: null };
+  return {
+    done: true,
+    country: defaultQuoteCountry(
+      market?.countries,
+      currency,
+      primaryLocale,
+      marketplace ? storeTax?.country : null,
+      marketplace ? saved.country : null,
+    ),
+  };
+}
+
 export function useCartQuote(): CartQuoteState {
   const locale = useLocale();
   const params = useParams<{ storeSlug?: string }>();
@@ -102,29 +137,9 @@ export function useCartQuote(): CartQuoteState {
   const {
     items, loading, coupon, currency, storeId, marketKey, marketPreview, hasUnavailableItems,
   } = useCart();
-  const market = useMarket();
   const { isCompany } = useBuyerType();
-  const primaryLocale = useStorePrimaryLocale();
-  const storeTax = useStoreTax();
-  // MARKETPLACE stores only (the platform is the VAT registrant): the
-  // logged-in shopper's saved address country wins, then the tax country
-  // comes before the store language (an EUR + English influencer store is
-  // not quoted for the United Kingdom); the quote waits for that one read.
-  // INDEPENDENT stores (Namez) keep the plain mirror of kustom-checkout
-  // `defaultCountry`, so the cart and the Kustom checkout start on the same
-  // country and no extra request delays their quote.
-  const marketplace = storeTax?.registrant === 'PLATFORM';
-  const saved = useSavedCountry(marketplace ? token : null);
-
-  const countryCode = saved.done
-    ? defaultQuoteCountry(
-        market?.countries,
-        currency,
-        primaryLocale,
-        marketplace ? storeTax?.country : null,
-        marketplace ? saved.country : null,
-      )
-    : null;
+  const saved = useDefaultQuoteCountry();
+  const countryCode = saved.country;
   const isLoggedIn = Boolean(token);
   // Lines travel as the serialised key so the effect depends on their
   // content (quantities, variants), not on the array identity. A logged-in

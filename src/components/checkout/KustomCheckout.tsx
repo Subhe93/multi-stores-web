@@ -255,7 +255,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         <Link href={lp('/cart')} className="hover:text-gray-600 transition-colors">
           {t('cart.title')}
         </Link>
-        <ChevronRight className="w-3 h-3" />
+        <ChevronRight className="w-3 h-3 rtl:rotate-180" aria-hidden="true" />
         <span className="text-gray-900 font-medium text-sm">{t('checkout.title')}</span>
       </nav>
       {/* Lines of deleted / unpublished products were dropped. */}

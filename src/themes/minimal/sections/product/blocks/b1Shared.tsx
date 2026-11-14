@@ -144,7 +144,7 @@ export function ProductToasts({ state, langPrefix }: { state: ProductPageState; 
   return (
     <>
       {state.addedToCart && (
-        <div role="status" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-gray-900 text-white ps-5 pe-2 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="status" style={{ bottom: 'calc(1.5rem + var(--ms-consent-inset, 0px))' }} className="fixed inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-gray-900 text-white ps-5 pe-2 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           <Check className="w-4 h-4 text-green-400 shrink-0" />
           <span className="text-sm font-medium">{t('cart.itemAdded')}</span>
           <Link
@@ -156,7 +156,7 @@ export function ProductToasts({ state, langPrefix }: { state: ProductPageState; 
         </div>
       )}
       {state.addToCartError && (
-        <div role="alert" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="alert" style={{ bottom: 'calc(1.5rem + var(--ms-consent-inset, 0px))' }} className="fixed inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           <span className="text-sm font-medium">{state.addToCartError}</span>
           <button onClick={() => state.setAddToCartError('')} aria-label={t('common.close')} className="size-11 -me-3 flex items-center justify-center text-white/70 hover:text-white ms-1">
             <X className="w-3.5 h-3.5" />

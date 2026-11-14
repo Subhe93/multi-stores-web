@@ -27,6 +27,7 @@ import {
   useDesignerSession,
 } from '@/components/designer/DesignerSession';
 import { TRUST_BADGE_ICONS, type TrustBadgeItem } from '@/lib/trustBadgeIcons';
+import { useHydrated } from '@/hooks/useHydrated';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
@@ -382,6 +383,13 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
   // page exactly as before.
   const designer = useDesignerSession();
   const designerAddons = useDesignerAddonsTotal();
+  // Until this component hydrates (the page chunk may still be loading on a
+  // slow phone) the server-rendered add-to-cart button has no click handler,
+  // and React does not replay a tap on a boundary whose chunk has not
+  // arrived. Same pattern as the product-buy block (M106): natively
+  // disabled, store colour kept, spinner + aria-busy, so the shopper sees it
+  // is not ready yet instead of losing the tap silently.
+  const busy = !useHydrated();
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -834,7 +842,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={isAddDisabled || addingToCart}
+                  disabled={busy || isAddDisabled || addingToCart}
+                  aria-busy={busy || addingToCart || undefined}
+                  data-hydrating={busy ? '' : undefined}
                   className={`flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
                     addedToCart
                       ? 'bg-green-600 text-white scale-[1.02]'
@@ -842,7 +852,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : addingToCart
                           ? 'opacity-80'
-                          : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
+                          : busy
+                            ? 'opacity-80 cursor-progress'
+                            : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
                   }`}
                   style={
                     addedToCart || isAddDisabled
@@ -857,7 +869,12 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                   }
                   data-on-primary={addedToCart || isAddDisabled || buttonStyle === 'outline' ? undefined : ''}
                 >
-                  {addingToCart ? (
+                  {busy && !isAddDisabled && !addedToCart && !addingToCart ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      {t('common.addToCart')}
+                    </>
+                  ) : addingToCart ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       {t('product.addingToCart')}
@@ -1058,7 +1075,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
       {/* Floating toast: added to cart, with a way to the cart (M5 D5) */}
       {addedToCart && (
-        <div role="status" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-gray-900 text-white ps-5 pe-2 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="status" style={{ bottom: 'calc(1.5rem + var(--ms-consent-inset, 0px))' }} className="fixed inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-gray-900 text-white ps-5 pe-2 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           <Check className="w-4 h-4 text-green-400 shrink-0" />
           <span className="text-sm font-medium">{t('cart.itemAdded')}</span>
           <Link
@@ -1072,7 +1089,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
       {/* Floating toast: error */}
       {addToCartError && (
-        <div role="alert" className="fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div role="alert" style={{ bottom: 'calc(1.5rem + var(--ms-consent-inset, 0px))' }} className="fixed inset-x-0 mx-auto w-fit max-w-[calc(100%-2rem)] z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           <span className="text-sm font-medium">{addToCartError}</span>
           <button onClick={() => setAddToCartError('')} aria-label={t('common.close')} className="size-11 -me-3 flex items-center justify-center text-white/70 hover:text-white ms-1">
             <X className="w-3.5 h-3.5" />
