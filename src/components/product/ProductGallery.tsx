@@ -26,7 +26,8 @@ interface ProductGalleryProps {
   images: GalleryImage[];
   /**
    * Images and videos in gallery order. Passed only when the product has
-   * videos; without it the image-only gallery renders.
+   * videos; without it the image-only gallery renders. Item 0 may be a
+   * featured video (CONTRACT-AUTOPLAY A1); its poster is then the LCP image.
    */
   items?: GalleryItem[];
   /** Store slug: YouTube / Vimeo embeds load only with this store's consent. */

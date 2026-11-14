@@ -13,7 +13,8 @@
 //
 // Product video: with `hasVideos` every layout reads `galleryMedia` (videos
 // play inline; grid / stacked show a poster per video, one playing at a
-// time; no zoom on a video) and opens the shared full-screen viewer
+// time; no zoom on a video; a featured video at index 0 takes the lead
+// image's LCP rule: poster preload + high priority, same sizes) and opens the shared full-screen viewer
 // (ProductLightbox). Without videos each layout renders the images exactly
 // as before: no full-screen button, no click handler, and none of the video
 // modules (they load through next/dynamic only when rendered).
@@ -306,8 +307,8 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
   const renderMainImage = (index: number) => {
     const img = items[index];
     if (img.kind === 'video') {
-      // Video slide: poster + Play; plays inline, no zoom (index 0 is
-      // always an image, so it never takes the LCP preload).
+      // Video slide: poster + Play; plays inline, no zoom. A featured video
+      // at index 0 is the lead: its poster takes the LCP preload (A2).
       return (
         <div
           ref={mainRef}
@@ -321,7 +322,9 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
             key={videos.keyFor(img.id)}
             item={img}
             storeSlug={storeSlug}
+            priority={index === 0}
             sizes="(min-width: 768px) 50vw, 100vw"
+            controlsClassName="bottom-3 start-3"
             playerRef={playerRef}
             onPlayingChange={videos.callbackFor(img.id)}
           />
@@ -395,12 +398,15 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
             onClick={hasVideos && img.kind === 'image' ? () => openLightbox(i) : undefined}
           >
             {img.kind === 'video' ? (
-              // A poster with Play per video; one plays at a time.
+              // A poster with Play per video; one plays at a time. A featured
+              // video in the first tile is the lead (LCP preload, A2).
               <ProductVideoSlide
                 key={videos.keyFor(img.id)}
                 item={img}
                 storeSlug={storeSlug}
+                priority={i === 0}
                 sizes={tileSizes}
+                controlsClassName="bottom-2 start-2"
                 playerRef={playerRef}
                 onPlayingChange={videos.callbackFor(img.id)}
               />

@@ -118,6 +118,77 @@ export function clearConsent(storeSlug: string): void {
   notify();
 }
 
+// ── External media consent (product-video CONTRACT-AUTOPLAY A4/A5) ──
+//
+// YouTube / Vimeo embeds have their own choice, separate from the tracking
+// banner: the visitor grants it with "Always allow external videos" on a
+// two-click video facade and withdraws it from the cookie-settings pill.
+
+/** External media (YouTube / Vimeo embeds): separate from the tracking choice (A4/A5). */
+export const EXTERNAL_MEDIA_VERSION = 1;
+
+/** Starts with "consent:" so subscribeConsent's storage filter covers it. */
+export function externalMediaStorageKey(storeSlug: string): string {
+  return `consent:${storeSlug}:external-media`;
+}
+
+/** Slugs are [a-z0-9-] (no "_"), so this never collides with consent_<slug>. */
+export function externalMediaCookieName(storeSlug: string): string {
+  return `xmedia_${storeSlug}`;
+}
+
+/** True when the visitor chose "Always allow external videos" for this store (< 1 year ago). */
+export function readExternalMediaConsent(storeSlug: string): boolean {
+  if (typeof window === 'undefined' || !storeSlug) return false;
+  try {
+    const raw = window.localStorage.getItem(externalMediaStorageKey(storeSlug));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<StoredConsent>;
+      const fresh = typeof parsed?.at === 'number' && Date.now() - parsed.at < CONSENT_MAX_AGE_S * 1000;
+      const version = typeof parsed?.v === 'number' ? parsed.v : 0;
+      if (fresh && version >= EXTERNAL_MEDIA_VERSION && parsed.choice === 'granted') return true;
+      // A stale or unknown entry wins over the cookie (same as readConsent:
+      // the cookie is only the fallback when storage is unusable).
+      return false;
+    }
+  } catch {
+    // Storage blocked (private mode, quota): fall through to the cookie.
+  }
+  const name = externalMediaCookieName(storeSlug).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  if (!match) return false;
+  const value = decodeURIComponent(match[1]);
+  const dot = value.lastIndexOf('.');
+  if (dot < 0) return false;
+  const version = Number(value.slice(dot + 1));
+  return value.slice(0, dot) === 'granted' && Number.isInteger(version) && version >= EXTERNAL_MEDIA_VERSION;
+}
+
+/** Store the grant (localStorage `{ choice:'granted', at, v }` + cookie `granted.1`, 1 year) and notify. */
+export function grantExternalMediaConsent(storeSlug: string): void {
+  if (typeof window === 'undefined' || !storeSlug) return;
+  const stored: StoredConsent = { choice: 'granted', at: Date.now(), v: EXTERNAL_MEDIA_VERSION };
+  try {
+    window.localStorage.setItem(externalMediaStorageKey(storeSlug), JSON.stringify(stored));
+  } catch {
+    // Storage blocked: the cookie below still carries the grant.
+  }
+  document.cookie = `${externalMediaCookieName(storeSlug)}=granted.${EXTERNAL_MEDIA_VERSION}; max-age=${CONSENT_MAX_AGE_S}; ${cookieAttributes()}`;
+  notify();
+}
+
+/** Forget the grant (storage + cookie) and notify. */
+export function clearExternalMediaConsent(storeSlug: string): void {
+  if (typeof window === 'undefined' || !storeSlug) return;
+  try {
+    window.localStorage.removeItem(externalMediaStorageKey(storeSlug));
+  } catch {
+    // Storage blocked: nothing to remove.
+  }
+  document.cookie = `${externalMediaCookieName(storeSlug)}=; max-age=0; ${cookieAttributes()}`;
+  notify();
+}
+
 /**
  * Subscribe to consent changes (useSyncExternalStore shape): this window's
  * writes, and other tabs' through the `storage` event, so a withdrawal in

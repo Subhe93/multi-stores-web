@@ -258,6 +258,15 @@
     "videoConsentNotice": "Videon finns på {provider}. Godkänn cookies för att spela den här, eller titta där.",
     "watchOnYouTube": "Titta på YouTube",
     "watchOnVimeo": "Titta på Vimeo",
+    "externalVideoTitle": "Extern video ({provider})",
+    "externalVideoNotice": "Videon finns hos {provider}. Om du spelar upp den hämtas innehåll från {company} och cookies kan sättas.",
+    "externalVideoPlay": "Spela upp video",
+    "externalVideoAlwaysAllow": "Tillåt alltid externa videor",
+    "externalVideoPrivacy": "Integritetspolicy",
+    "videoMute": "Stäng av ljudet",
+    "videoUnmute": "Slå på ljudet",
+    "videoPause": "Pausa video",
+    "videoResume": "Spela upp video",
     "productVideos": "Produktvideor",
     "storiesHeading": "Kundberättelser",
     "storiesPrevious": "Föregående berättelser",
@@ -1146,7 +1155,8 @@
     "accept": "Acceptera alla",
     "reject": "Avböj",
     "settings": "Läs vår cookiepolicy",
-    "manage": "Cookieinställningar"
+    "manage": "Cookieinställningar",
+    "externalMediaOff": "Stäng av externa videor"
   },
   "slider": {
     "goTo": "Gå till bild {n}",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "Huvudnavigering",
     "mobileNavigation": "Mobilnavigering",
     "wishlist": "Önskelista"
+  },
+  "externalMap": {
+    "notice": "Kartan tillhandahålls av Google Maps. Om du visar den hämtas innehåll från Google, som får din IP-adress och kan sätta cookies.",
+    "load": "Visa karta",
+    "privacy": "Integritetspolicy"
   }
 }

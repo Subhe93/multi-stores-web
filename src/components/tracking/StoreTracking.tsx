@@ -5,6 +5,7 @@ import { useSelectedLayoutSegments } from 'next/navigation';
 import {
   hasTrackingIds,
   readConsent,
+  readExternalMediaConsent,
   requiredConsentVersion,
   subscribeConsent,
   writeConsent,
@@ -67,6 +68,13 @@ export function StoreTracking({ storeSlug, tracking, policyHref }: StoreTracking
     () => null,
   );
   const choice: ConsentChoice | null = enabled && askConsent ? stored : null;
+  // "Always allow external videos" (YouTube / Vimeo facade) is revoked from
+  // the same pill, so it also shows while only that grant is set.
+  const externalGranted = useSyncExternalStore(
+    subscribeConsent,
+    () => readExternalMediaConsent(storeSlug),
+    () => false,
+  );
 
   // Withdrawal: "granted" -> anything else while this document is open.
   const previous = useRef<ConsentChoice | null | undefined>(undefined);
@@ -113,7 +121,8 @@ export function StoreTracking({ storeSlug, tracking, policyHref }: StoreTracking
     return () => document.removeEventListener('click', onClick, true);
   }, [clarityId, choice]);
 
-  if (!enabled || !tracking || !hydrated) return null;
+  if (!hydrated) return null;
+  if (!enabled || !tracking) return externalGranted ? <ConsentManageLink storeSlug={storeSlug} /> : null;
 
   const vendorsAllowed = consentRequired ? choice === 'granted' : true;
   const clarityAllowed = Boolean(clarityId) && choice === 'granted' && routeAllowed;
@@ -131,7 +140,7 @@ export function StoreTracking({ storeSlug, tracking, policyHref }: StoreTracking
           onReject={() => writeConsent(storeSlug, 'denied')}
         />
       )}
-      {askConsent && choice !== null && <ConsentManageLink storeSlug={storeSlug} />}
+      {((askConsent && choice !== null) || externalGranted) && <ConsentManageLink storeSlug={storeSlug} />}
     </>
   );
 }

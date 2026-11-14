@@ -167,8 +167,10 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
 
   // Touch swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
-    // A video tile keeps its gestures (Play, scrubbing): no slide swipe.
-    touchInVideo.current = e.target instanceof Element && !!e.target.closest('[data-gallery-video]');
+    // A user-started player keeps its gestures (scrubbing, native controls):
+    // no slide swipe there. A poster or an autoplaying layer does not block
+    // the swipe, so a featured video never traps the visitor on slide 1.
+    touchInVideo.current = e.target instanceof Element && !!e.target.closest('[data-gallery-video="player"]');
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   }
@@ -235,12 +237,16 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
         {isVideoItem(currentImage) ? (
           // Video slide: poster + Play (server-rendered); the player mounts on
           // Play. Its tile stops clicks, so tapping it never opens the
-          // lightbox. Index 0 is always an image (D6): no preload here.
+          // lightbox. A featured video at index 0 takes the lead image's LCP
+          // rule (poster preload + high priority, same sizes; A2). Its
+          // controls sit bottom-left: the counter is bottom-right.
           <ProductVideoSlide
             key={`${currentImage.id}:${inlineGen}`}
             item={currentImage}
             storeSlug={storeSlug}
+            priority={selectedIndex === 0}
             sizes="(min-width: 768px) 50vw, 100vw"
+            controlsClassName="bottom-3 left-3"
             playerRef={playerRef}
             onPlayingChange={handleInlinePlaying}
           />

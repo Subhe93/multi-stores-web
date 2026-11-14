@@ -1,13 +1,16 @@
-import type { ReactNode, SyntheticEvent } from 'react';
+'use client';
+
+import { useRef, type ReactNode, type SyntheticEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Play } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { formatVideoDuration, type GalleryVideoItem } from '@/lib/productVideo';
 
-// Static poster + Play button of a product video. No state and no effects:
-// it renders on the server like an image slide, and nothing heavy (no
-// <video>, no iframe, no player chunk) exists until the visitor clicks Play.
+// Static poster + Play button of a product video. No state beyond a swipe
+// guard and no effects: it renders on the server like an image slide, and nothing heavy (no
+// <video>, no iframe, no player chunk) exists until the visitor clicks Play
+// (or a muted autoplay is granted, see ProductVideoSlide).
 
 export interface ProductVideoPosterProps {
   item: GalleryVideoItem;
@@ -19,13 +22,27 @@ export interface ProductVideoPosterProps {
   className?: string;
   /** Hide the Play button (e.g. while the player covers the poster, or after an error). */
   hidePlay?: boolean;
-  /** Extra layer over the poster (consent notice, "unavailable" chip). */
+  /** Extra layer over the poster (external-video facade, "unavailable" chip). */
   overlay?: ReactNode;
+  /** Hide the duration chip (while a muted autoplay runs over the poster). */
+  hideDuration?: boolean;
+  /** Optional corner badge (unused by default). */
+  badge?: ReactNode;
+  /**
+   * Loading of a non-priority poster: 'eager' (default, gallery slides) or
+   * 'lazy' (story cards, which may sit far off-screen).
+   */
+  loading?: 'eager' | 'lazy';
 }
 
-// Gallery containers handle swipe, click-to-lightbox and hover zoom; a video
-// tile keeps those gestures to itself so Play is never hijacked.
+// A click never reaches the gallery (no lightbox on tap). Touch and pointer
+// events do bubble, so a swipe that starts on a poster (e.g. a featured
+// video in slot 0) still moves the gallery; the Play button ignores the
+// click that ends such a swipe.
 const stop = (e: SyntheticEvent) => e.stopPropagation();
+
+/** A touch that moved further than this is a swipe, not a tap on Play. */
+const SWIPE_SLOP_PX = 10;
 
 export function ProductVideoPoster({
   item,
@@ -35,18 +52,41 @@ export function ProductVideoPoster({
   className = 'absolute inset-0',
   hidePlay = false,
   overlay,
+  hideDuration = false,
+  badge,
+  loading = 'eager',
 }: ProductVideoPosterProps) {
   const t = useTranslations();
-  const duration = formatVideoDuration(item.durationS);
+  const duration = hideDuration ? null : formatVideoDuration(item.durationS);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    const p = e.touches[0];
+    touchStart.current = p ? { x: p.clientX, y: p.clientY } : null;
+    swiped.current = false;
+  };
+  const onTouchMove = (e: ReactTouchEvent) => {
+    const start = touchStart.current;
+    const p = e.touches[0];
+    if (!start || !p) return;
+    if (Math.abs(p.clientX - start.x) > SWIPE_SLOP_PX || Math.abs(p.clientY - start.y) > SWIPE_SLOP_PX) {
+      swiped.current = true;
+    }
+  };
+  const handlePlay = () => {
+    if (swiped.current) {
+      swiped.current = false;
+      return;
+    }
+    onPlay();
+  };
   return (
     <div
-      data-gallery-video=""
+      data-gallery-video="poster"
       className={`${className} overflow-hidden bg-neutral-900`}
       onClick={stop}
-      onPointerDown={stop}
-      onPointerUp={stop}
-      onTouchStart={stop}
-      onTouchEnd={stop}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
     >
       {item.url ? (
         <StoreImage
@@ -56,7 +96,7 @@ export function ProductVideoPoster({
           sizes={sizes}
           preload={priority}
           fetchPriority={priority ? 'high' : undefined}
-          loading={priority ? undefined : 'eager'}
+          loading={priority ? undefined : loading}
           unoptimized={isSvgSrc(item.url)}
           className="object-cover"
           draggable={false}
@@ -66,7 +106,7 @@ export function ProductVideoPoster({
       {!hidePlay && (
         <button
           type="button"
-          onClick={onPlay}
+          onClick={handlePlay}
           aria-label={t('product.playVideoNamed', { alt: item.alt })}
           className="absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none group/play"
         >
@@ -86,6 +126,7 @@ export function ProductVideoPoster({
         </span>
       )}
 
+      {badge}
       {overlay}
     </div>
   );

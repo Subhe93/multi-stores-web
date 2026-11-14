@@ -258,6 +258,15 @@
     "videoConsentNotice": "Cette vidéo est hébergée sur {provider}. Acceptez les cookies pour la lire ici, ou regardez-la là-bas.",
     "watchOnYouTube": "Regarder sur YouTube",
     "watchOnVimeo": "Regarder sur Vimeo",
+    "externalVideoTitle": "Vidéo externe ({provider})",
+    "externalVideoNotice": "Cette vidéo est hébergée par {provider}. La lire charge du contenu depuis {company} et peut déposer des cookies.",
+    "externalVideoPlay": "Lire la vidéo",
+    "externalVideoAlwaysAllow": "Toujours autoriser les vidéos externes",
+    "externalVideoPrivacy": "Politique de confidentialité",
+    "videoMute": "Couper le son de la vidéo",
+    "videoUnmute": "Activer le son de la vidéo",
+    "videoPause": "Mettre la vidéo en pause",
+    "videoResume": "Lire la vidéo",
     "productVideos": "Vidéos du produit",
     "storiesHeading": "Témoignages clients",
     "storiesPrevious": "Témoignages précédents",
@@ -1146,7 +1155,8 @@
     "accept": "Tout accepter",
     "reject": "Refuser",
     "settings": "Lire notre politique de cookies",
-    "manage": "Paramètres des cookies"
+    "manage": "Paramètres des cookies",
+    "externalMediaOff": "Désactiver les vidéos externes"
   },
   "slider": {
     "goTo": "Aller à la diapositive {n}",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "Navigation principale",
     "mobileNavigation": "Navigation mobile",
     "wishlist": "Liste de souhaits"
+  },
+  "externalMap": {
+    "notice": "Cette carte est fournie par Google Maps. L'afficher charge du contenu depuis Google, qui reçoit votre adresse IP et peut déposer des cookies.",
+    "load": "Afficher la carte",
+    "privacy": "Politique de confidentialité"
   }
 }

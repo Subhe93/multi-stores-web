@@ -258,6 +258,15 @@
     "videoConsentNotice": "Dieses Video wird auf {provider} gehostet. Akzeptieren Sie Cookies, um es hier abzuspielen, oder sehen Sie es dort an.",
     "watchOnYouTube": "Auf YouTube ansehen",
     "watchOnVimeo": "Auf Vimeo ansehen",
+    "externalVideoTitle": "Externes Video ({provider})",
+    "externalVideoNotice": "Dieses Video wird von {provider} bereitgestellt. Beim Abspielen werden Inhalte von {company} geladen und möglicherweise Cookies gesetzt.",
+    "externalVideoPlay": "Video abspielen",
+    "externalVideoAlwaysAllow": "Externe Videos immer erlauben",
+    "externalVideoPrivacy": "Datenschutzerklärung",
+    "videoMute": "Video stummschalten",
+    "videoUnmute": "Ton einschalten",
+    "videoPause": "Video pausieren",
+    "videoResume": "Video abspielen",
     "productVideos": "Produktvideos",
     "storiesHeading": "Kundengeschichten",
     "storiesPrevious": "Vorherige Geschichten",
@@ -1146,7 +1155,8 @@
     "accept": "Alle akzeptieren",
     "reject": "Ablehnen",
     "settings": "Unsere Cookie-Richtlinie lesen",
-    "manage": "Cookie-Einstellungen"
+    "manage": "Cookie-Einstellungen",
+    "externalMediaOff": "Externe Videos deaktivieren"
   },
   "slider": {
     "goTo": "Zu Folie {n}",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "Hauptnavigation",
     "mobileNavigation": "Mobile Navigation",
     "wishlist": "Wunschliste"
+  },
+  "externalMap": {
+    "notice": "Diese Karte wird von Google Maps bereitgestellt. Beim Anzeigen werden Inhalte von Google geladen; Google erhält dabei Ihre IP-Adresse und kann Cookies setzen.",
+    "load": "Karte anzeigen",
+    "privacy": "Datenschutzerklärung"
   }
 }

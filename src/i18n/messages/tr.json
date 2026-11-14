@@ -258,6 +258,15 @@
     "videoConsentNotice": "Bu video {provider} üzerinde barındırılıyor. Burada oynatmak için çerezleri kabul edin veya videoyu orada izleyin.",
     "watchOnYouTube": "YouTube'da izle",
     "watchOnVimeo": "Vimeo'da izle",
+    "externalVideoTitle": "Harici video ({provider})",
+    "externalVideoNotice": "Bu video {provider} üzerinde barındırılıyor. Oynatıldığında {company} kaynağından içerik yüklenir ve çerezler yerleştirilebilir.",
+    "externalVideoPlay": "Videoyu oynat",
+    "externalVideoAlwaysAllow": "Harici videolara her zaman izin ver",
+    "externalVideoPrivacy": "Gizlilik politikası",
+    "videoMute": "Videonun sesini kapat",
+    "videoUnmute": "Videonun sesini aç",
+    "videoPause": "Videoyu duraklat",
+    "videoResume": "Videoyu oynat",
     "productVideos": "Ürün videoları",
     "storiesHeading": "Müşteri hikâyeleri",
     "storiesPrevious": "Önceki hikâyeler",
@@ -1146,7 +1155,8 @@
     "accept": "Tümünü kabul et",
     "reject": "Reddet",
     "settings": "Çerez politikamızı okuyun",
-    "manage": "Çerez ayarları"
+    "manage": "Çerez ayarları",
+    "externalMediaOff": "Harici videoları kapat"
   },
   "slider": {
     "goTo": "{n}. slayta git",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "Ana gezinme",
     "mobileNavigation": "Mobil gezinme",
     "wishlist": "İstek listesi"
+  },
+  "externalMap": {
+    "notice": "Bu harita Google Maps tarafından sağlanır. Haritayı göstermek Google'dan içerik yükler; Google IP adresinizi alır ve çerez yerleştirebilir.",
+    "load": "Haritayı göster",
+    "privacy": "Gizlilik politikası"
   }
 }

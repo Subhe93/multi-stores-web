@@ -8,9 +8,15 @@
 //   • Four layouts: full, split-left, split-right, floating overlay card.
 //   • Info card (solid or glassmorphism) with address, phone, email, hours and
 //     a one-tap "Get directions" button. Fully RTL-aware.
+//   • Privacy: the Google iframe is not requested until the visitor clicks
+//     "Show map" (two-click facade, same principle as external videos), so
+//     Google gets no IP address / cookies on a plain page view. The builder
+//     preview loads it directly so editors can check the location.
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Clock, Mail, MapPin, Navigation, Phone } from 'lucide-react';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import type { SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -47,7 +53,7 @@ function directionsUrl(loc: MapLocation): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(queryFor(loc))}`;
 }
 
-export function MapSection({ settings, content, locale }: SectionRenderProps) {
+export function MapSection({ settings, content, locale, builderPreview }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -64,6 +70,8 @@ export function MapSection({ settings, content, locale }: SectionRenderProps) {
   const showDirections = settings.show_directions !== false;
 
   const [active, setActive] = useState(0);
+  // Two-click: the Google iframe loads only after "Show map" (per page view).
+  const [mapLoaded, setMapLoaded] = useState(false);
   const ar = locale === 'ar';
 
   if (locations.length === 0) {
@@ -94,15 +102,19 @@ export function MapSection({ settings, content, locale }: SectionRenderProps) {
       className="relative w-full overflow-hidden card-lift"
       style={{ height, borderRadius: radius, boxShadow: 'var(--theme-shadow-md)' }}
     >
-      <iframe
-        key={queryFor(loc)}
-        title={loc.name || 'Map'}
-        src={embedUrl(loc, zoom)}
-        className="absolute inset-0 w-full h-full"
-        style={{ border: 0, filter: STYLE_FILTER[mapStyle] }}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+      {mapLoaded || builderPreview ? (
+        <iframe
+          key={queryFor(loc)}
+          title={loc.name || 'Map'}
+          src={embedUrl(loc, zoom)}
+          className="absolute inset-0 w-full h-full"
+          style={{ border: 0, filter: STYLE_FILTER[mapStyle] }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <MapFacade top={layout === 'overlay'} onLoad={() => setMapLoaded(true)} />
+      )}
       {/* Floating card for the overlay layout */}
       {layout === 'overlay' && (
         <div className="absolute inset-x-4 bottom-4 sm:inset-x-auto sm:bottom-6 sm:inset-s-6 sm:max-w-sm">
@@ -183,6 +195,36 @@ export function MapSection({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
     </section>
+  );
+}
+
+// ── Two-click facade ─────────────────────────────────────────
+
+function MapFacade({ top, onLoad }: { top: boolean; onLoad(): void }) {
+  const t = useTranslations('externalMap');
+  const lp = useLocalePath();
+  return (
+    <div
+      data-map-facade=""
+      className={`absolute inset-0 flex flex-col items-center gap-3 p-5 text-center ${top ? 'justify-start' : 'justify-center'}`}
+      style={{ backgroundColor: 'var(--theme-colors-surface)', color: 'var(--theme-colors-muted)' }}
+    >
+      <MapPin className="size-7 shrink-0" style={{ color: 'var(--theme-colors-primary)' }} aria-hidden="true" />
+      <p className="max-w-md text-sm leading-relaxed">{t('notice')}</p>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <button
+          type="button"
+          onClick={onLoad}
+          className="cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-90"
+          style={{ backgroundColor: 'var(--theme-colors-primary)', color: 'var(--theme-colors-primaryContrast, #fff)' }}
+        >
+          {t('load')}
+        </button>
+        <a href={lp('/legal/privacy')} className="text-xs underline underline-offset-2" style={{ color: 'inherit' }}>
+          {t('privacy')}
+        </a>
+      </div>
+    </div>
   );
 }
 

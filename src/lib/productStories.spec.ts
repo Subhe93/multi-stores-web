@@ -86,6 +86,20 @@ describe('toStoryMedia', () => {
   });
 });
 
+describe('toStoryMedia autoplay (CONTRACT-AUTOPLAY 6.7)', () => {
+  it('passes autoplay / loop of a video story into the media item', () => {
+    const m = toStoryMedia(story({ kind: 'file', url: '/uploads/products/a.mp4', autoplay: true, loop: true }), 'Anna');
+    expect(m).toMatchObject({ type: 'video', autoplay: true, loop: true });
+    const noLoop = toStoryMedia(story({ kind: 'file', url: '/uploads/products/a.mp4', autoplay: false, loop: true }), 'Anna');
+    expect(noLoop).toMatchObject({ autoplay: false, loop: false });
+  });
+
+  it('an older API without the fields -> false', () => {
+    const m = toStoryMedia(story({ kind: 'file', url: '/uploads/products/a.mp4' }), 'Anna');
+    expect(m).toMatchObject({ autoplay: false, loop: false });
+  });
+});
+
 describe('toStoryCards', () => {
   it('keeps order, drops invalid media, normalises rating', () => {
     const cards = toStoryCards(

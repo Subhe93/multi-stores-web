@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearConsent } from '@/lib/consent';
+import { clearConsent, clearExternalMediaConsent } from '@/lib/consent';
+import { __resetAutoplayForTests } from '@/lib/videoAutoplay';
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { StorefrontProductStory } from '@/lib/productStories';
 import type { ProductContext, SectionRenderProps } from '../../../../types';
@@ -87,11 +88,11 @@ vi.mock('next/dynamic', () => ({
 // The shared player chunk, stubbed so the test can see which story plays. A
 // file story renders a real <video> so media events (pause / ended) reach React.
 vi.mock('@/components/product/video/ProductVideoPlayer', () => ({
-  default: ({ item }: { item: { id: string; source: { type: string } } }) =>
+  default: ({ item, mode = 'user' }: { item: { id: string; source: { type: string } }; mode?: string }) =>
     item.source.type === 'file' ? (
-      <video data-testid="shared-player" data-id={item.id} data-source={item.source.type} />
+      <video data-testid="shared-player" data-id={item.id} data-source={item.source.type} data-mode={mode} />
     ) : (
-      <div data-testid="shared-player" data-id={item.id} data-source={item.source.type} />
+      <div data-testid="shared-player" data-id={item.id} data-source={item.source.type} data-mode={mode} />
     ),
 }));
 
@@ -171,6 +172,8 @@ const settings = (s: Record<string, unknown>) => ({ ...PRODUCT_STORIES_DEFAULTS,
 
 afterEach(() => {
   clearConsent('demo');
+  clearExternalMediaConsent('demo');
+  __resetAutoplayForTests();
   vi.restoreAllMocks();
 });
 
@@ -476,7 +479,7 @@ describe('media', () => {
     for (const img of imgs) expect(img.getAttribute('alt')).toBe('');
   });
 
-  it('YouTube without consent: focus stays in the card; overlay text yields to the notice', async () => {
+  it('YouTube without the external grant: focus stays in the card; overlay text yields to the facade', async () => {
     const yt = story('y', { kind: 'youtube', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', poster_url: null });
     const { container } = withState(makeProduct([yt]), <ProductStoriesBlock {...props({ settings: settings({ layout: 'overlay' }) })} />);
     const play = screen.getByRole('button', { name: /storyPlayNamed/ });
@@ -484,7 +487,7 @@ describe('media', () => {
     await act(async () => {
       fireEvent.click(play);
     });
-    await screen.findByText(/product\.videoConsentNotice/);
+    await screen.findByText(/product\.externalVideoNotice/);
     const media = container.querySelector('[data-story-card] > [tabindex="-1"]')!;
     expect(document.activeElement).toBe(media);
     // The notice and its link are the next stops inside the focused card.
@@ -501,7 +504,7 @@ describe('media', () => {
     expect(container.querySelector('figcaption')!.textContent).toContain('Name v1');
   });
 
-  it('YouTube without consent: no player, consent notice + link out', async () => {
+  it('YouTube without the external grant: no player, two-click facade + link out', async () => {
     const yt = story('y', { kind: 'youtube', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', poster_url: null });
     const { container } = withState(makeProduct([yt]), <ProductStoriesBlock {...props()} />);
     await act(async () => {
@@ -509,7 +512,9 @@ describe('media', () => {
     });
     expect(screen.queryByTestId('shared-player')).toBeNull();
     expect(container.querySelector('iframe')).toBeNull();
-    expect(container.textContent).toContain('product.videoConsentNotice');
+    expect(container.textContent).toContain('product.externalVideoNotice');
+    expect(screen.getByRole('button', { name: 'product.externalVideoPlay' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'product.externalVideoAlwaysAllow' })).toBeTruthy();
     const link = container.querySelector('a[href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]')!;
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     expect(link.getAttribute('target')).toBe('_blank');
@@ -622,5 +627,102 @@ describe('slider navigation and RTL', () => {
     expect(scrollBy).toHaveBeenCalledWith({ left: -900, behavior: 'smooth' });
     // Logical classes only (no physical left/right) in the block markup.
     expect(container.innerHTML).not.toMatch(/\b(?:ml|mr|pl|pr|left|right)-\d/);
+  });
+});
+
+describe('muted autoplay of story videos (CONTRACT-AUTOPLAY 6.7)', () => {
+  let ioCallback: ((entries: Array<Partial<IntersectionObserverEntry>>) => void) | null = null;
+  const observed: Element[] = [];
+  class FakeIO {
+    constructor(cb: typeof ioCallback) {
+      ioCallback = cb;
+    }
+    observe(el: Element) {
+      observed.push(el);
+    }
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  function showAll() {
+    act(() => {
+      ioCallback?.(observed.map((target) => ({ target, isIntersecting: true, intersectionRatio: 1 })));
+    });
+  }
+  function useIO() {
+    __resetAutoplayForTests();
+    ioCallback = null;
+    observed.length = 0;
+    vi.stubGlobal('IntersectionObserver', FakeIO);
+  }
+
+  it('an autoplay=false card renders exactly the pre-autoplay markup; SSR is identical with autoplay', () => {
+    const product = (extra: Partial<StorefrontProductStory>) =>
+      makeProduct([videoStory('v1', extra), story('i')]);
+    const base = renderToString(tree(makeProduct([videoStory('v1'), story('i')]), <ProductStoriesBlock {...props()} />));
+    const off = renderToString(tree(product({ autoplay: false, loop: false }), <ProductStoriesBlock {...props()} />));
+    const on = renderToString(tree(product({ autoplay: true, loop: true }), <ProductStoriesBlock {...props()} />));
+    expect(off).toBe(base);
+    expect(on).toBe(base);
+    expect(on).not.toContain('<video');
+  });
+
+  it('autoplay=false cards never register for autoplay after hydration', () => {
+    useIO();
+    const { container } = withState(makeProduct([videoStory('v1')]), <ProductStoriesBlock {...props()} />);
+    expect(observed).toHaveLength(0);
+    expect(container.querySelector('[data-video-autoplay]')).toBeNull();
+  });
+
+  it('a visible autoplay card plays muted; the overlay text stays; a tap opens the player and hides it', async () => {
+    useIO();
+    const { container } = withState(
+      makeProduct([videoStory('v1', { autoplay: true })]),
+      <ProductStoriesBlock {...props({ settings: settings({ layout: 'overlay' }) })} />,
+    );
+    await screen.findByRole('button', { name: /playVideoNamed/ });
+    showAll();
+    const auto = await screen.findByTestId('shared-player');
+    expect(auto.getAttribute('data-mode')).toBe('autoplay');
+    expect(container.querySelector('figcaption')!.textContent).toContain('Name v1');
+    expect(screen.getByRole('button', { name: 'product.videoPause' })).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /playVideoNamed/ }));
+    });
+    const player = await screen.findByTestId('shared-player');
+    expect(player.getAttribute('data-mode')).toBe('user');
+    expect(container.querySelector('figcaption')).toBeNull();
+  });
+
+  it('autoplay story layers keep every poster lazy (no eager download of off-screen cards)', async () => {
+    useIO();
+    const { container } = withState(
+      makeProduct([videoStory('v1', { autoplay: true }), videoStory('v2', { autoplay: true })]),
+      <ProductStoriesBlock {...props()} />,
+    );
+    await screen.findAllByRole('button', { name: /playVideoNamed/ });
+    const posters = Array.from(container.querySelectorAll('img')).filter((img) =>
+      img.getAttribute('src')!.includes('/uploads/video-posters/'),
+    );
+    // StoryVideoPoster + the autoplay slide's own poster for each card.
+    expect(posters).toHaveLength(4);
+    for (const img of posters) expect(img.getAttribute('data-loading')).toBe('lazy');
+  });
+
+  it('a YouTube autoplay story without the external grant keeps the click-to-play card', () => {
+    useIO();
+    const yt = story('y', {
+      kind: 'youtube',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      poster_url: '/uploads/video-posters/y.webp',
+      autoplay: true,
+    });
+    const { container } = withState(makeProduct([yt]), <ProductStoriesBlock {...props()} />);
+    expect(observed).toHaveLength(0);
+    expect(container.querySelector('[data-video-autoplay]')).toBeNull();
+    expect(screen.getByRole('button', { name: /storyPlayNamed/ })).toBeTruthy();
   });
 });

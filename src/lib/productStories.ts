@@ -31,6 +31,10 @@ export interface StorefrontProductStory {
   /** 1..5 or null. */
   rating: number | null;
   verified: boolean;
+  /** Muted autoplay of a video story while visible (CONTRACT-AUTOPLAY A3). Optional: an older API omits it. */
+  autoplay?: boolean;
+  /** Loop the autoplaying story video (ignored without autoplay). Optional. */
+  loop?: boolean;
   /** Sorted by locale asc. */
   translations: StorefrontProductStoryTranslation[];
 }
@@ -85,6 +89,8 @@ export function toStoryMedia(story: StorefrontProductStory, fallbackAlt: string)
       width: story.width,
       height: story.height,
       position: 1,
+      autoplay: story.autoplay === true,
+      loop: story.loop === true,
       alt: textOrNull(story.name),
       created_at: '',
     },

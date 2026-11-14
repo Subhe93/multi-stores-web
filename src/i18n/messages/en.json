@@ -258,6 +258,15 @@
     "videoConsentNotice": "This video is hosted on {provider}. Accept cookies to play it here, or watch it there.",
     "watchOnYouTube": "Watch on YouTube",
     "watchOnVimeo": "Watch on Vimeo",
+    "externalVideoTitle": "External video ({provider})",
+    "externalVideoNotice": "This video is hosted by {provider}. Playing it loads content from {company} and may set cookies.",
+    "externalVideoPlay": "Play video",
+    "externalVideoAlwaysAllow": "Always allow external videos",
+    "externalVideoPrivacy": "Privacy policy",
+    "videoMute": "Mute video",
+    "videoUnmute": "Unmute video",
+    "videoPause": "Pause video",
+    "videoResume": "Play video",
     "productVideos": "Product videos",
     "storiesHeading": "Customer stories",
     "storiesPrevious": "Previous stories",
@@ -1146,7 +1155,8 @@
     "accept": "Accept all",
     "reject": "Reject",
     "settings": "Read our cookie policy",
-    "manage": "Cookie settings"
+    "manage": "Cookie settings",
+    "externalMediaOff": "Turn off external videos"
   },
   "slider": {
     "goTo": "Go to slide {n}",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "Main navigation",
     "mobileNavigation": "Mobile navigation",
     "wishlist": "Wishlist"
+  },
+  "externalMap": {
+    "notice": "This map is provided by Google Maps. Showing it loads content from Google, which receives your IP address and may set cookies.",
+    "load": "Show map",
+    "privacy": "Privacy policy"
   }
 }

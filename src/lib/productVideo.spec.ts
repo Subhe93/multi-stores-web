@@ -90,6 +90,34 @@ describe('toEmbedUrl', () => {
       'https://player.vimeo.com/video/1?autoplay=1&dnt=1&h=abc123',
     );
   });
+
+  it('click mode: an empty options object keeps the URL unchanged', () => {
+    expect(toEmbedUrl({ kind: 'youtube', id: 'dQw4w9WgXcQ' }, {})).toBe(
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&playsinline=1&rel=0',
+    );
+  });
+
+  it('muted autoplay (YouTube): mute, JS API, encoded origin, optional loop playlist', () => {
+    expect(
+      toEmbedUrl({ kind: 'youtube', id: 'dQw4w9WgXcQ' }, { autoplayMuted: true, origin: 'https://namz.se' }),
+    ).toBe(
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fnamz.se',
+    );
+    expect(
+      toEmbedUrl({ kind: 'youtube', id: 'dQw4w9WgXcQ' }, { autoplayMuted: true, loop: true, origin: 'https://a.b' }),
+    ).toBe(
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fa.b&loop=1&playlist=dQw4w9WgXcQ',
+    );
+  });
+
+  it('muted autoplay (Vimeo): muted, dnt, loop and hash', () => {
+    expect(toEmbedUrl({ kind: 'vimeo', id: '1' }, { autoplayMuted: true })).toBe(
+      'https://player.vimeo.com/video/1?autoplay=1&muted=1&playsinline=1&dnt=1',
+    );
+    expect(toEmbedUrl({ kind: 'vimeo', id: '1', hash: 'abc123' }, { autoplayMuted: true, loop: true })).toBe(
+      'https://player.vimeo.com/video/1?autoplay=1&muted=1&playsinline=1&dnt=1&loop=1&h=abc123',
+    );
+  });
 });
 
 describe('toGalleryVideoItem', () => {
@@ -105,6 +133,22 @@ describe('toGalleryVideoItem', () => {
     });
     expect(item?.source.type === 'file' && item.source.src.endsWith('/uploads/products/a.mp4')).toBe(true);
     expect(item?.url.endsWith('/uploads/products/a.webp')).toBe(true);
+  });
+
+  it('maps autoplay / loop / featured position (CONTRACT-AUTOPLAY)', () => {
+    expect(toGalleryVideoItem(video({ position: 0, autoplay: true, loop: true }), 'Mug')).toMatchObject({
+      position: 0,
+      autoplay: true,
+      loop: true,
+    });
+    // Loop only applies to autoplay.
+    expect(toGalleryVideoItem(video({ autoplay: false, loop: true }), 'Mug')).toMatchObject({ autoplay: false, loop: false });
+    // An older API omits the fields: no autoplay, no loop.
+    expect(toGalleryVideoItem(video(), 'Mug')).toMatchObject({ autoplay: false, loop: false, position: 1 });
+    // Missing or negative positions.
+    expect(toGalleryVideoItem(video({ position: Number.NaN }), 'Mug')?.position).toBe(1);
+    expect(toGalleryVideoItem(video({ position: -3 }), 'Mug')?.position).toBe(0);
+    expect(toGalleryVideoItem(video({ position: 2.7 }), 'Mug')?.position).toBe(2);
   });
 
   it('uses an empty poster url when there is no poster', () => {
@@ -154,7 +198,8 @@ describe('buildGalleryMedia', () => {
 
   it('clamps the position to the product-level images (and keeps leading images first)', () => {
     const media = buildGalleryMedia([img('lead')], [img('a'), img('b')], [vItem('v9', 9), vItem('v0', 0)]);
-    expect(media.map((m) => m.id)).toEqual(['lead', 'a', 'v0', 'b', 'v9']);
+    // Position 0 is the featured slot (CONTRACT-AUTOPLAY A1): right after the leading block.
+    expect(media.map((m) => m.id)).toEqual(['lead', 'v0', 'a', 'b', 'v9']);
     expect(media[0].kind).toBe('image');
   });
 
@@ -191,6 +236,46 @@ describe('buildGalleryMedia', () => {
     // No dedupe: identical to the base-less result.
     expect(buildGalleryMedia([], base, [vItem('v', 2)], base)).toEqual(buildGalleryMedia([], base, [vItem('v', 2)]));
   });
+
+  // Featured video (CONTRACT-AUTOPLAY A1): position 0 takes slot 0.
+  it('puts a featured video (position 0) first when there is no leading block', () => {
+    const out = buildGalleryMedia([], [img('a'), img('b')], [vItem('f', 0), vItem('v', 1)]);
+    expect(out.map((m) => m.id)).toEqual(['f', 'a', 'v', 'b']);
+    expect(out[0].kind).toBe('video');
+  });
+
+  it('puts a featured video right after the leading images when a colour image leads', () => {
+    const out = buildGalleryMedia([img('x')], [img('a'), img('b')], [vItem('f', 0)]);
+    expect(out.map((m) => m.id)).toEqual(['x', 'f', 'a', 'b']);
+  });
+
+  it('keeps a featured video at slot 0 with base anchoring', () => {
+    const base = [img('a'), img('b'), img('c')];
+    // 'b' moved into the leading block; the featured video is not anchored to any image.
+    expect(buildGalleryMedia([img('b')], [img('a'), img('c')], [vItem('f', 0)], base).map((m) => m.id)).toEqual([
+      'b',
+      'f',
+      'a',
+      'c',
+    ]);
+    expect(buildGalleryMedia([], base, [vItem('f', 0)], base).map((m) => m.id)).toEqual(['f', 'a', 'b', 'c']);
+  });
+
+  it('a non-featured video never opens the list without a leading block, even with base anchoring', () => {
+    const base = [img('a'), img('b')];
+    // Position 1 anchored to 'a', which moved away from productLevel: still slot >= 1.
+    expect(buildGalleryMedia([], [img('b')], [vItem('v', 1)], base).map((m) => m.id)).toEqual(['b', 'v']);
+  });
+
+  it('keeps payload order when two videos claim position 0 (the API allows only one)', () => {
+    const out = buildGalleryMedia([], [img('a')], [vItem('f1', 0), vItem('f2', 0)]);
+    expect(out.map((m) => m.id)).toEqual(['f1', 'f2', 'a']);
+  });
+
+  it('drops a featured video when there are no images, and follows the leading block when n is 0', () => {
+    expect(buildGalleryMedia([], [], [vItem('f', 0)])).toEqual([]);
+    expect(buildGalleryMedia([img('x')], [], [vItem('f', 0)]).map((m) => m.id)).toEqual(['x', 'f']);
+  });
 });
 
 describe('embedAllowed', () => {
@@ -198,9 +283,12 @@ describe('embedAllowed', () => {
     vi.unstubAllGlobals();
   });
 
-  function stubConsent(stored: string | null, cookie = '') {
+  // `tracking`: the general banner choice; `external`: the separate
+  // "Always allow external videos" grant (CONTRACT-AUTOPLAY A4/A5).
+  function stubConsent(tracking: string | null, external: string | null = null, cookie = '') {
     const storage = new Map<string, string>();
-    if (stored !== null) storage.set('consent:shop', stored);
+    if (tracking !== null) storage.set('consent:shop', tracking);
+    if (external !== null) storage.set('consent:shop:external-media', external);
     vi.stubGlobal('window', {
       localStorage: { getItem: (k: string) => storage.get(k) ?? null },
     });
@@ -209,7 +297,7 @@ describe('embedAllowed', () => {
 
   it('is false on the server and without a store', () => {
     expect(embedAllowed('shop')).toBe(false);
-    stubConsent(JSON.stringify({ choice: 'granted', at: Date.now(), v: 2 }));
+    stubConsent(null, JSON.stringify({ choice: 'granted', at: Date.now(), v: 1 }));
     expect(embedAllowed('')).toBe(false);
   });
 
@@ -220,12 +308,19 @@ describe('embedAllowed', () => {
     expect(embedAllowed('shop')).toBe(false);
   });
 
-  it('is true for a granted choice of any version', () => {
+  it('a general "Accept all" alone no longer unlocks embeds (A5)', () => {
     stubConsent(JSON.stringify({ choice: 'granted', at: Date.now(), v: 2 }));
+    expect(embedAllowed('shop')).toBe(false);
+    stubConsent(null, null, 'consent_shop=granted.2');
+    expect(embedAllowed('shop')).toBe(false);
+  });
+
+  it('is true only with the external-media grant (storage or cookie)', () => {
+    stubConsent(null, JSON.stringify({ choice: 'granted', at: Date.now(), v: 1 }));
     expect(embedAllowed('shop')).toBe(true);
-    stubConsent(JSON.stringify({ choice: 'granted', at: Date.now() }));
+    stubConsent(JSON.stringify({ choice: 'denied', at: Date.now(), v: 2 }), JSON.stringify({ choice: 'granted', at: Date.now(), v: 1 }));
     expect(embedAllowed('shop')).toBe(true);
-    stubConsent(null, 'consent_shop=granted');
+    stubConsent(null, null, 'xmedia_shop=granted.1');
     expect(embedAllowed('shop')).toBe(true);
   });
 });

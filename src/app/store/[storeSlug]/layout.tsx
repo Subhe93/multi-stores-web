@@ -38,6 +38,7 @@ import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/theme
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
+import { ExternalMediaManageLink } from '@/components/tracking/ExternalMediaManageLink';
 import { COOKIE_POLICY_SLUGS, hasTrackingIds, type StoreTracking as StoreTrackingIds } from '@/lib/consent';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
@@ -616,6 +617,9 @@ export default async function StoreLayout({
           {hasTracking && (
             <StoreTracking storeSlug={storeSlug} tracking={store.tracking} policyHref={cookiePolicyHref} />
           )}
+          {/* Stores without tracking: a pill to revoke "Always allow external
+              videos" (renders nothing until that grant is set). */}
+          {!hasTracking && <ExternalMediaManageLink storeSlug={storeSlug} />}
           {/* Store-owner "Edit" button: renders nothing (and loads nothing)
               unless the dashboard handed this browser an owner token. */}
           <EditHintBoot storeSlug={storeSlug} />

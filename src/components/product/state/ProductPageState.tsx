@@ -200,8 +200,10 @@ function useProductPageStateValue({
   }, [product.images, product.variant_option_config, selectedVariant, optionSelections, translation]);
   const galleryImages = gallery.images;
 
-  // Product videos (decision D6: index 0 stays an image). Without videos the
-  // media list mirrors galleryImages one to one, so galleries render unchanged.
+  // Product videos. A featured video (position 0, CONTRACT-AUTOPLAY A1) may
+  // be galleryMedia[0]; galleryImages[0] stays the first IMAGE (cart, OG,
+  // designer thumbnail). Without videos the media list mirrors galleryImages
+  // one to one, so galleries render unchanged.
   const productVideos = useMemo<GalleryVideoItem[]>(
     () => toGalleryVideoItems(product.videos, translation?.title || ''),
     [product.videos, translation],
@@ -216,6 +218,8 @@ function useProductPageStateValue({
     );
   }, [gallery, productVideos]);
   const hasVideos = productVideos.length > 0 && galleryMedia.some((item) => item.kind === 'video');
+  // The first gallery slot is a (featured) video: its poster is the LCP image.
+  const leadIsVideo = hasVideos && galleryMedia[0]?.kind === 'video';
 
   // Jump back to the first image whenever the gallery's lead image changes
   // (variant picked or a value-level image surfaced).
@@ -224,7 +228,7 @@ function useProductPageStateValue({
     setActiveGalleryIndex(0);
   }, [leadImageUrl]);
   // Product video: a variant change also goes back to the first slide (an
-  // image, D6) when the lead image stays the same, so a playing video
+  // image, or the featured video's poster) when the lead image stays the same, so a playing video
   // unmounts. Without videos the key never changes (behaviour as before).
   const variantResetKey = hasVideos ? selectedVariantId ?? '' : '';
   useEffect(() => {
@@ -519,6 +523,7 @@ function useProductPageStateValue({
     galleryImages,
     galleryMedia,
     hasVideos,
+    leadIsVideo,
     productVideos,
     leadImageUrl,
     activeGalleryIndex,

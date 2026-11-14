@@ -16,19 +16,43 @@
 // while a video actually plays (or the consent notice occupies the card);
 // it returns on pause, and a video that ends goes back to its poster.
 //
+// Muted autoplay (CONTRACT-AUTOPLAY 6.7): a video story with `autoplay`
+// keeps today's markup until hydration; then, unless the visitor prefers
+// reduced motion / saves data, or it is a YouTube / Vimeo story without the
+// external-media consent, the shared slide mounts over the lazy poster and
+// autoplays muted while it is the page's most visible autoplay video (one at
+// a time page-wide; the slider never auto-advances). The overlay text stays
+// during muted autoplay; a tap switches to the full player with sound
+// through the same activeId flow. YouTube / Vimeo stories use the compact
+// two-click facade of the shared slide.
+//
 // Known reuse cost: once Play is clicked the shared ProductVideoSlide draws
 // its own poster (duration chip at bottom-end, alt = name as contract 7.1
 // requires, since the same alt names the <video> / iframe). The story Play
 // button uses the shared poster's look so the hand-off does not jump.
 
-import { createElement, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { BadgeCheck, ChevronLeft, ChevronRight, Play, Star } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
 import { useOptionalProductPageState } from '@/components/product/state/ProductPageState';
 import { isSvgSrc } from '@/lib/storeMedia';
+import { subscribeConsent } from '@/lib/consent';
 import { embedAllowed, formatVideoDuration } from '@/lib/productVideo';
+import { useAutoplayBlocked } from '@/lib/videoAutoplay';
 import {
   MOBILE_PEEK,
   readStoriesSettings,
@@ -44,9 +68,9 @@ import { headingText } from './b3Shared';
 import { headingTag } from '../../_shared/headingLevel';
 
 // The shared video slide (and, inside it, the player chunk) is requested
-// only after a Play click, so a product without story videos, or a visitor
-// who never clicks, downloads no video code. The lazy poster stays
-// underneath while it loads.
+// only after a Play click, or after hydration for an autoplay story, so a
+// product without story videos, or a visitor who never clicks, downloads no
+// video code. The lazy poster stays underneath while it loads.
 const ProductVideoSlide = dynamic(
   () => import('@/components/product/video/ProductVideoSlide').then((m) => m.ProductVideoSlide),
   { ssr: false, loading: () => null },
@@ -201,6 +225,10 @@ interface CardSharedProps {
 }
 
 type LabelAttrs = { 'aria-labelledby': string } | { 'aria-label': string };
+
+const noopSubscribe = () => () => {};
+/** Autoplay toggles sit top-start: the duration chip is top-end. */
+const STORY_CONTROLS = 'top-2 start-2';
 
 /**
  * Breakpoint classes of the prev / next buttons. Card widths are exact
@@ -382,6 +410,36 @@ function StoryCardView({
   const cardId = card.id;
   const handlePlayingChange = useCallback((p: boolean) => onPlayingChange(cardId, p), [onPlayingChange, cardId]);
 
+  // Muted autoplay layer: only after hydration, never when the visitor
+  // blocks motion / saves data, never for an external story without the
+  // external-media consent. Server snapshots keep today's markup.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const blocked = useAutoplayBlocked();
+  const externalAllowed = useSyncExternalStore(subscribeConsent, () => embedAllowed(storeSlug), () => false);
+  const autoLayer =
+    hydrated &&
+    !blocked &&
+    media.type === 'video' &&
+    media.autoplay === true &&
+    (media.source.type === 'file' || externalAllowed);
+  // Remounts the autoplay slide (back to muted autoplay) when its full
+  // player closes because another story started or the clip ended.
+  const [layerGen, setLayerGen] = useState(0);
+  const [prevActive, setPrevActive] = useState(active);
+  if (prevActive !== active) {
+    setPrevActive(active);
+    if (prevActive && !active && autoLayer) setLayerGen((g) => g + 1);
+  }
+  const handleLayerPlaying = useCallback(
+    (p: boolean) => {
+      // The tap on a muted story opened its full player: it becomes the
+      // block's active story (one at a time, overlay text hides).
+      if (p) onPlay(cardId);
+      onPlayingChange(cardId, p);
+    },
+    [onPlay, onPlayingChange, cardId],
+  );
+
   // A video that ended goes back to its poster; focus returns to its Play
   // button when it was inside the card.
   useEffect(() => {
@@ -439,6 +497,23 @@ function StoryCardView({
         className="object-cover"
         draggable={false}
       />
+    ) : autoLayer ? (
+      <>
+        {/* The shared slide on top owns Play, autoplay and the toggles. */}
+        <StoryVideoPoster card={card} sizes={sizes} label="" />
+        <div className="absolute inset-0 z-20">
+          <ProductVideoSlide
+            key={`${card.id}:${layerGen}`}
+            item={media}
+            storeSlug={storeSlug}
+            sizes={sizes}
+            controlsClassName={STORY_CONTROLS}
+            compactFacade
+            posterLoading="lazy"
+            onPlayingChange={handleLayerPlaying}
+          />
+        </div>
+      </>
     ) : active ? (
       <>
         <StoryVideoPoster card={card} sizes={sizes} label="" />
@@ -449,6 +524,9 @@ function StoryCardView({
             storeSlug={storeSlug}
             sizes={sizes}
             autoStart
+            controlsClassName={STORY_CONTROLS}
+            compactFacade
+            posterLoading="lazy"
             onPlayingChange={handlePlayingChange}
           />
         </div>

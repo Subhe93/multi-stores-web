@@ -6,7 +6,7 @@
 // returns the exact image items unchanged in that case.
 
 import { resolveMediaUrl } from '@/lib/api';
-import { LEGACY_CONSENT_VERSION, readConsent } from '@/lib/consent';
+import { readExternalMediaConsent } from '@/lib/consent';
 
 /** A product video as the storefront API sends it (= API `ProductVideoOut`). */
 export interface StorefrontProductVideo {
@@ -18,9 +18,13 @@ export interface StorefrontProductVideo {
   duration_s: number | null;
   width: number | null;
   height: number | null;
-  /** Number of product-level images shown before this video; >= 1. */
+  /** Number of product-level images shown before this video; >= 0; 0 = featured (first gallery slot). */
   position: number;
   alt: string | null;
+  /** Muted autoplay while visible (CONTRACT-AUTOPLAY A3). Optional: an older API omits it. */
+  autoplay?: boolean;
+  /** Loop the autoplaying video (ignored without autoplay). Optional: an older API omits it. */
+  loop?: boolean;
   /** ISO 8601 (JSON-LD uploadDate). */
   created_at: string;
 }
@@ -47,8 +51,12 @@ export interface GalleryVideoItem {
   durationS: number | null;
   width: number | null;
   height: number | null;
-  /** Requested gallery slot (see buildGalleryMedia); >= 1. */
+  /** Requested gallery slot (see buildGalleryMedia); >= 0; 0 = featured. */
   position: number;
+  /** Muted autoplay while visible (CONTRACT-AUTOPLAY A3). */
+  autoplay: boolean;
+  /** Loop the autoplaying video; always false when autoplay is false. */
+  loop: boolean;
 }
 
 export type GalleryItem = GalleryImageItem | GalleryVideoItem;
@@ -113,15 +121,38 @@ export function parseExternalVideoUrl(raw: string): ParsedExternalVideo | null {
   return null;
 }
 
+export interface EmbedUrlOptions {
+  /** Muted autoplay while visible (only with the external-media consent). */
+  autoplayMuted?: boolean;
+  /** Loop the muted autoplay. */
+  loop?: boolean;
+  /** Page origin, for the YouTube JS API (postMessage mute / pause). */
+  origin?: string;
+}
+
 /**
- * Privacy-enhanced embed URL, loaded only after a Play click (so autoplay=1
- * starts the clip the visitor asked for; nothing autoplays on page load).
+ * Privacy-enhanced embed URL. Without options (click mode) it is loaded only
+ * after a Play click, so autoplay=1 starts the clip the visitor asked for.
+ * With `autoplayMuted` it is the provider's muted inline autoplay, used only
+ * when the visitor allowed external videos (CONTRACT-AUTOPLAY 6.2).
  */
-export function toEmbedUrl(parsed: Pick<ParsedExternalVideo, 'kind' | 'id' | 'hash'>): string {
+export function toEmbedUrl(
+  parsed: Pick<ParsedExternalVideo, 'kind' | 'id' | 'hash'>,
+  opts?: EmbedUrlOptions,
+): string {
+  const hash = parsed.hash ? `&h=${parsed.hash}` : '';
+  if (opts?.autoplayMuted) {
+    if (parsed.kind === 'youtube') {
+      const origin = opts.origin ? `&origin=${encodeURIComponent(opts.origin)}` : '';
+      const loop = opts.loop ? `&loop=1&playlist=${parsed.id}` : '';
+      return `https://www.youtube-nocookie.com/embed/${parsed.id}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1${origin}${loop}`;
+    }
+    const loop = opts.loop ? '&loop=1' : '';
+    return `https://player.vimeo.com/video/${parsed.id}?autoplay=1&muted=1&playsinline=1&dnt=1${loop}${hash}`;
+  }
   if (parsed.kind === 'youtube') {
     return `https://www.youtube-nocookie.com/embed/${parsed.id}?autoplay=1&playsinline=1&rel=0`;
   }
-  const hash = parsed.hash ? `&h=${parsed.hash}` : '';
   return `https://player.vimeo.com/video/${parsed.id}?autoplay=1&dnt=1${hash}`;
 }
 
@@ -172,7 +203,9 @@ export function toGalleryVideoItem(v: StorefrontProductVideo, fallbackAlt: strin
     durationS: positiveIntOrNull(v.duration_s),
     width: positiveIntOrNull(v.width),
     height: positiveIntOrNull(v.height),
-    position: Number.isFinite(v.position) ? Math.trunc(v.position) : 1,
+    position: Number.isFinite(v.position) ? Math.max(0, Math.trunc(v.position)) : 1,
+    autoplay: v.autoplay === true,
+    loop: v.autoplay === true && v.loop === true,
   };
 }
 
@@ -214,8 +247,16 @@ function asImageItem(img: ImageLike): GalleryImageItem {
  * Let n be productLevel.length; the slot s = min(anchored p, n) and the video
  * is emitted right before product-level item s (0-based), or after the last
  * item when s === n. With n === 0 the videos follow the leading items; with
- * no images at all every video is dropped, so index 0 is always an image.
- * Videos keep their input order within a slot.
+ * no images at all every video is dropped. Videos keep their input order
+ * within a slot.
+ *
+ * Featured video (CONTRACT-AUTOPLAY A1): `position === 0` always takes slot
+ * 0, i.e. right before product-level item 0 (after the leading block, if
+ * any), regardless of `base` anchoring. With no leading images it is the
+ * gallery's first item; when a picked colour's own image leads, that image
+ * comes first and the featured video follows it. For `position >= 1` with no
+ * leading block the slot is at least 1, so only a featured video can open
+ * the list.
  */
 export function buildGalleryMedia(
   leading: ImageLike[],
@@ -232,6 +273,8 @@ export function buildGalleryMedia(
   // Product-level images still in productLevel among the first p base images.
   const kept = new Set(productLevel.map((img) => img.url));
   const slotOf = (position: number): number => {
+    // Featured video: slot 0 whatever the anchoring or the leading block.
+    if (position === 0) return 0;
     const p = Math.max(position, 1);
     if (!base) return Math.min(p, n);
     let slot = 0;
@@ -243,7 +286,7 @@ export function buildGalleryMedia(
       }
     }
     slot = Math.min(slot, n);
-    // Index 0 stays an image: with no leading block a video never opens the list.
+    // With no leading block a non-featured video never opens the list.
     return leading.length === 0 ? Math.max(slot, 1) : slot;
   };
 
@@ -267,13 +310,14 @@ export function buildGalleryMedia(
 }
 
 /**
- * Whether a YouTube / Vimeo embed may load for this store: only when the
- * visitor accepted cookies (any stored version counts, see consent.ts).
- * Always false on the server, so SSR never renders a third-party iframe.
+ * Whether a YouTube / Vimeo embed may load for this store without a click on
+ * the two-click facade: only when the visitor chose "Always allow external
+ * videos" (the separate external-media consent, CONTRACT-AUTOPLAY A4/A5).
+ * The general cookie banner choice does not unlock embeds. Always false on
+ * the server, so SSR never renders a third-party iframe.
  */
 export function embedAllowed(storeSlug: string | null | undefined): boolean {
-  if (!storeSlug) return false;
-  return readConsent(storeSlug, LEGACY_CONSENT_VERSION) === 'granted';
+  return !!storeSlug && readExternalMediaConsent(storeSlug);
 }
 
 /** "m:ss" for a duration chip, or null when unknown. */

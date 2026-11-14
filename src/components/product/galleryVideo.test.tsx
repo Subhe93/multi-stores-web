@@ -249,10 +249,11 @@ describe('monolith ProductGallery with videos', () => {
     expect(container.querySelector('[data-gallery-video]')).toBeNull();
   });
 
-  it('YouTube without consent: the link-out notice, no iframe', () => {
+  it('YouTube without the external grant: the two-click facade with a link out, no iframe', () => {
     const { container } = renderMonolith(makeProduct({ videos: [YT_VIDEO] }));
     fireEvent.click(container.querySelectorAll('button[aria-label^="product.viewImage"]')[2]);
-    fireEvent.click(playButton());
+    // The facade is shown up front (CONTRACT-AUTOPLAY 6.5); nothing loads before a click.
+    expect(screen.getByRole('button', { name: 'product.externalVideoPlay' })).toBeInTheDocument();
     expect(container.querySelector('iframe')).toBeNull();
     const link = screen.getByRole('link', { name: 'product.watchOnYouTube' });
     expect(link).toHaveAttribute('href', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');

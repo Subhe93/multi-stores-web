@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import type { GalleryItem } from '@/lib/productVideo';
+import { holdAutoplay } from '@/lib/videoAutoplay';
 import { ProductVideoSlide } from './video/ProductVideoSlide';
 
 // Full-screen product media viewer for products WITH videos: the monolith's
@@ -36,8 +37,9 @@ export interface ProductLightboxProps {
   startAt?: number;
 }
 
+/** A swipe that starts inside a started player (native controls) is the player's. */
 function inVideo(target: EventTarget | null): boolean {
-  return target instanceof Element && !!target.closest('[data-gallery-video]');
+  return target instanceof Element && !!target.closest('[data-gallery-video="player"]');
 }
 
 /** A playing video or embed has focus: arrow keys seek / belong to the player. */
@@ -73,6 +75,10 @@ export function ProductLightbox({
   function goNext() {
     if (index < count - 1) onIndexChange(index + 1);
   }
+
+  // Muted autoplay videos on the page pause while the viewer is open
+  // (nothing autoplays inside it).
+  useEffect(() => holdAutoplay(), []);
 
   // Lock body scroll while open.
   useEffect(() => {
@@ -160,7 +166,8 @@ export function ProductLightbox({
         >
           <ProductVideoSlide
             key={current.id}
-            item={current}
+            // Nothing autoplays in the viewer: always user-initiated.
+            item={current.autoplay ? { ...current, autoplay: false } : current}
             storeSlug={storeSlug}
             sizes="92vw"
             autoStart={current.id === autoStartId}

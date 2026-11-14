@@ -2,7 +2,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { renderToString } from 'react-dom/server';
 import { lazy, Suspense, type ComponentType } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { writeConsent, clearConsent } from '@/lib/consent';
+import {
+  clearConsent,
+  clearExternalMediaConsent,
+  grantExternalMediaConsent,
+  readExternalMediaConsent,
+  writeConsent,
+} from '@/lib/consent';
 import { toGalleryVideoItem, type GalleryVideoItem, type StorefrontProductVideo } from '@/lib/productVideo';
 
 const loads = vi.hoisted(() => ({ count: 0 }));
@@ -10,6 +16,7 @@ const loads = vi.hoisted(() => ({ count: 0 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => (k: string, p?: Record<string, unknown>) => (p ? `${k}:${JSON.stringify(p)}` : k),
 }));
+vi.mock('@/hooks/useLocalePath', () => ({ useLocalePath: () => (p: string) => p }));
 vi.mock('@/components/StoreImage', () => ({
   // eslint-disable-next-line @next/next/no-img-element
   StoreImage: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
@@ -68,6 +75,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   clearConsent('shop');
+  clearExternalMediaConsent('shop');
 });
 
 describe('ProductVideoSlide before play', () => {
@@ -88,7 +96,7 @@ describe('ProductVideoSlide before play', () => {
     expect(screen.getByRole('button')).toHaveAccessibleName('product.playVideoNamed:{"alt":"Mug demo"}');
   });
 
-  it('does not let a click on the tile bubble to the gallery (lightbox, swipe)', () => {
+  it('a click never bubbles to the gallery (lightbox); touches do (swipe)', () => {
     const parentClick = vi.fn();
     const parentTouch = vi.fn();
     render(
@@ -96,10 +104,20 @@ describe('ProductVideoSlide before play', () => {
         <ProductVideoSlide item={item()} storeSlug="shop" sizes="100vw" />
       </div>,
     );
-    fireEvent.touchStart(screen.getByRole('button'));
+    fireEvent.touchStart(screen.getByRole('button'), { touches: [{ clientX: 0, clientY: 0 }] });
     fireEvent.click(screen.getByRole('button'));
     expect(parentClick).not.toHaveBeenCalled();
-    expect(parentTouch).not.toHaveBeenCalled();
+    expect(parentTouch).toHaveBeenCalled();
+  });
+
+  it('the click that ends a swipe over the poster does not start the player', () => {
+    const { container } = render(<ProductVideoSlide item={item()} storeSlug="shop" sizes="100vw" />);
+    const btn = screen.getByRole('button');
+    fireEvent.touchStart(btn, { touches: [{ clientX: 100, clientY: 10 }] });
+    fireEvent.touchMove(btn, { touches: [{ clientX: 40, clientY: 12 }] });
+    fireEvent.click(btn);
+    expect(container.querySelector('[data-gallery-video="player"]')).toBeNull();
+    expect(container.querySelector('[data-gallery-video="poster"]')).not.toBeNull();
   });
 });
 
@@ -139,62 +157,92 @@ describe('ProductVideoSlide after play', () => {
     expect(container.querySelector('video')).toBeNull();
   });
 
-  it('without consent, an external video shows the link-out and never loads the iframe', () => {
+  it('without the external grant, an external video shows the two-click facade and no iframe', () => {
     const { container } = render(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />);
-    fireEvent.click(screen.getByRole('button'));
+    // Shown up front after hydration (not only after a click).
+    expect(screen.getByRole('group', { name: 'product.externalVideoTitle:{"provider":"YouTube"}' })).toBeInTheDocument();
+    expect(
+      screen.getByText('product.externalVideoNotice:{"provider":"YouTube","company":"YouTube/Google"}'),
+    ).toBeInTheDocument();
     expect(container.querySelector('iframe')).toBeNull();
     expect(loads.count).toBe(0);
-    expect(screen.getByText('product.videoConsentNotice:{"provider":"YouTube"}')).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'product.watchOnYouTube' });
     expect(link).toHaveAttribute('href', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByRole('link', { name: 'product.externalVideoPrivacy' })).toHaveAttribute('href', '/legal/privacy');
   });
 
-  it('a denied choice also gets the link-out (Vimeo)', () => {
-    writeConsent('shop', 'denied');
+  it('a general "Accept all" does not unlock embeds (Vimeo facade)', () => {
+    writeConsent('shop', 'granted');
     const { container } = render(<ProductVideoSlide item={vimeoItem()} storeSlug="shop" sizes="100vw" />);
-    fireEvent.click(screen.getByRole('button'));
     expect(container.querySelector('iframe')).toBeNull();
+    expect(screen.getByText('product.externalVideoNotice:{"provider":"Vimeo","company":"Vimeo"}')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'product.watchOnVimeo' })).toHaveAttribute('href', 'https://vimeo.com/76979871');
   });
 
-  it('with consent granted, an external video mounts the nocookie iframe', async () => {
-    writeConsent('shop', 'granted');
+  it('[Play video] loads this one nocookie embed and stores nothing', async () => {
     const { container } = render(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />);
-    expect(container.querySelector('iframe')).toBeNull();
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'product.externalVideoPlay' }));
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull());
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&playsinline=1&rel=0');
     expect(frame.getAttribute('title')).toBe('Mug demo');
     expect(frame.getAttribute('referrerpolicy')).toBe('strict-origin-when-cross-origin');
+    expect(readExternalMediaConsent('shop')).toBe(false);
   });
 
-  it('a Vimeo embed carries dnt=1', async () => {
-    writeConsent('shop', 'granted');
+  it('the poster Play on a facade is [Play video] (one click loads the embed)', async () => {
     const { container } = render(<ProductVideoSlide item={vimeoItem()} storeSlug="shop" sizes="100vw" />);
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'product.playVideoNamed:{"alt":"Mug demo"}' }));
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull());
     expect(container.querySelector('iframe')!.getAttribute('src')).toBe('https://player.vimeo.com/video/76979871?autoplay=1&dnt=1');
+    expect(readExternalMediaConsent('shop')).toBe(false);
   });
 
-  it('accepting cookies while the notice shows starts the embed', async () => {
+  it('[Always allow external videos] stores the grant and loads the embed; other facades disappear', async () => {
+    const { container } = render(
+      <>
+        <ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />
+        <ProductVideoSlide item={vimeoItem()} storeSlug="shop" sizes="100vw" />
+      </>,
+    );
+    expect(screen.getAllByRole('button', { name: 'product.externalVideoAlwaysAllow' })).toHaveLength(2);
+    fireEvent.click(screen.getAllByRole('button', { name: 'product.externalVideoAlwaysAllow' })[0]);
+    expect(readExternalMediaConsent('shop')).toBe(true);
+    await waitFor(() => expect(container.querySelectorAll('iframe')).toHaveLength(1));
+    expect(screen.queryByRole('group')).toBeNull();
+  });
+
+  it('with the external grant, Play mounts the nocookie iframe', async () => {
+    grantExternalMediaConsent('shop');
     const { container } = render(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />);
-    fireEvent.click(screen.getByRole('button'));
     expect(container.querySelector('iframe')).toBeNull();
-    act(() => writeConsent('shop', 'granted'));
+    expect(screen.queryByRole('group')).toBeNull();
+    fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull());
   });
 
-  it('withdrawing consent while the embed plays unmounts it (poster + link-out)', async () => {
-    writeConsent('shop', 'granted');
+  it('clearing the grant while the embed plays unmounts it (back to the facade)', async () => {
+    grantExternalMediaConsent('shop');
     const { container } = render(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />);
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull());
-    act(() => writeConsent('shop', 'denied'));
+    act(() => clearExternalMediaConsent('shop'));
     await waitFor(() => expect(container.querySelector('iframe')).toBeNull());
     expect(screen.getByRole('link', { name: 'product.watchOnYouTube' })).toBeTruthy();
+  });
+
+  it('autoStart of an external video without the grant shows the facade, not the iframe', () => {
+    const { container } = render(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" autoStart />);
+    expect(container.querySelector('iframe')).toBeNull();
+    expect(screen.getByRole('button', { name: 'product.externalVideoPlay' })).toBeInTheDocument();
+  });
+
+  it('server-renders only the poster for an external video (no facade before hydration)', () => {
+    const html = renderToString(<ProductVideoSlide item={youtubeItem()} storeSlug="shop" sizes="100vw" />);
+    expect(html).not.toContain('externalVideoNotice');
+    expect(html).not.toContain('<iframe');
   });
 
   it('autoStart (lightbox hand-off) mounts the player immediately and resumes', async () => {

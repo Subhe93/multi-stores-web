@@ -258,6 +258,15 @@
     "videoConsentNotice": "هذا الفيديو مستضاف على {provider}. اقبل ملفات تعريف الارتباط لتشغيله هنا، أو شاهده هناك.",
     "watchOnYouTube": "شاهد على YouTube",
     "watchOnVimeo": "شاهد على Vimeo",
+    "externalVideoTitle": "فيديو خارجي ({provider})",
+    "externalVideoNotice": "هذا الفيديو مستضاف على {provider}. تشغيله يحمّل محتوى من {company} وقد يضع ملفات تعريف الارتباط.",
+    "externalVideoPlay": "تشغيل الفيديو",
+    "externalVideoAlwaysAllow": "السماح دائماً بالفيديوهات الخارجية",
+    "externalVideoPrivacy": "سياسة الخصوصية",
+    "videoMute": "كتم صوت الفيديو",
+    "videoUnmute": "تشغيل صوت الفيديو",
+    "videoPause": "إيقاف الفيديو مؤقتاً",
+    "videoResume": "تشغيل الفيديو",
     "productVideos": "فيديوهات المنتج",
     "storiesHeading": "قصص العملاء",
     "storiesPrevious": "القصص السابقة",
@@ -1146,7 +1155,8 @@
     "accept": "قبول الكل",
     "reject": "رفض",
     "settings": "اقرأ سياسة ملفات تعريف الارتباط",
-    "manage": "إعدادات ملفات تعريف الارتباط"
+    "manage": "إعدادات ملفات تعريف الارتباط",
+    "externalMediaOff": "إيقاف الفيديوهات الخارجية"
   },
   "slider": {
     "goTo": "انتقل إلى الشريحة {n}",
@@ -1199,5 +1209,10 @@
     "mainNavigation": "التنقل الرئيسي",
     "mobileNavigation": "تنقل الجوال",
     "wishlist": "المفضّلة"
+  },
+  "externalMap": {
+    "notice": "هذه الخريطة مقدَّمة من Google Maps. عرضها يحمّل محتوى من Google، التي تتلقى عنوان IP الخاص بك وقد تضع ملفات تعريف الارتباط.",
+    "load": "عرض الخريطة",
+    "privacy": "سياسة الخصوصية"
   }
 }
