@@ -7,9 +7,11 @@
 //
 // The pending link code is previewed first; the applied coupon is the
 // fallback only when the pending code is invalid. Figures go to
-// POST /promotions/coupon-preview (debounced, stale requests aborted); a rate
-// limit, network or market error shows nothing, so the banner never shows a
-// price the order would not charge.
+// POST /promotions/coupon-preview (debounced, stale requests aborted). A
+// rate limit, 5xx or network error is retried after a short backoff
+// (COUPON_PREVIEW_RETRY_MS); once those fail, or on a market or other error,
+// the banner shows nothing, so it never shows a price the order would not
+// charge.
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
@@ -21,10 +23,12 @@ import { availableLines, sumLineTotals } from '@/lib/cartAvailability';
 import { formatPrice } from '@/lib/format';
 import {
   classifyPreviewError,
+  COUPON_PREVIEW_RETRY_MS,
   couponBannerView,
   couponPreviewBody,
   couponPreviewKey,
   couponPreviewSig,
+  isTransientPreviewError,
   parsePreviewStatic,
   readPreviewCache,
   writePreviewCache,
@@ -101,7 +105,8 @@ export function ProductCouponBanner({ className }: { className?: string }) {
     const body = couponPreviewBody(input);
     const requestLine = input.lineAmount;
     const controller = new AbortController();
-    const timer = setTimeout(() => {
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = (attempt: number) => {
       api<CouponPreview>('/promotions/coupon-preview', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -133,13 +138,21 @@ export function ProductCouponBanner({ className }: { className?: string }) {
           if (classifyPreviewError(err) === 'invalid') {
             writePreviewCache(key, null);
             setEntries((prev) => ({ ...prev, [key]: { invalid: true } }));
+          } else if (isTransientPreviewError(err) && attempt < COUPON_PREVIEW_RETRY_MS.length) {
+            // Rate limit / 5xx / network: retry after a backoff. The entry is
+            // left as is meanwhile, so known static fields (session cache or
+            // an earlier answer) keep showing; a pending-only code still gets
+            // no price until a server answer for these figures arrives.
+            retryTimer = setTimeout(() => run(attempt + 1), COUPON_PREVIEW_RETRY_MS[attempt]);
           } else {
             setEntries((prev) => ({ ...prev, [key]: { ...prev[key], error: true } }));
           }
         });
-    }, COUPON_PREVIEW_DEBOUNCE_MS);
+    };
+    const timer = setTimeout(() => run(0), COUPON_PREVIEW_DEBOUNCE_MS);
     return () => {
       clearTimeout(timer);
+      clearTimeout(retryTimer);
       controller.abort();
     };
     // `sig` captures every figure of `input`.

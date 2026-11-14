@@ -14,6 +14,9 @@ import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/ProductBlocksWarmup';
+import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
+import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { productAvailability } from '@/lib/productAvailability';
@@ -305,6 +308,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplFaqLd) }}
           />
         )}
+        {/* Start the product sections' code download before hydration
+            reaches them, from page-level chunks (render nothing). */}
+        {usesProductBlocks(templateSections) && <ProductBlocksWarmup />}
+        {usesProductPageMagic(templateSections) && <ProductPageMagicWarmup />}
         {/* Designer app (M5.5): one design session for the whole template, so a
             theme that splits gallery (canvas) and add-to-cart (form) into
             separate sections still edits one draft. */}

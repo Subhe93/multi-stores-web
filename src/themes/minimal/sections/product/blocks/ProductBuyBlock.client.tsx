@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { Check, Loader2, ShoppingCart } from 'lucide-react';
 import { QuantitySelector } from '@/components/product/QuantitySelector';
 import { useDesignerSession } from '@/components/designer/DesignerSession';
+import { useHydrated } from '@/hooks/useHydrated';
 import type { ProductPageState } from '@/components/product/state/ProductPageState';
 import type { SectionRenderProps } from '../../../../types';
 import {
@@ -45,6 +46,14 @@ export function StateAddToCartButton({
 }) {
   const t = useTranslations();
   const { addedToCart, isAddDisabled, addingToCart, handleAddToCart } = state;
+  // Until this boundary hydrates (its lazy chunk may still be loading) the
+  // server-rendered button has no click handler: show it busy (spinner,
+  // aria-disabled) in its normal colours. It is deliberately NOT natively
+  // `disabled` while busy: the browser fires no click on a disabled button,
+  // so React could not replay a tap that lands before the boundary hydrates.
+  // A click that does reach onClick means the code is loaded and the state
+  // is real, so it is handled normally (handleAddToCart validates itself).
+  const busy = !useHydrated();
   const style: CSSProperties | undefined =
     addedToCart || isAddDisabled
       ? undefined
@@ -60,6 +69,9 @@ export function StateAddToCartButton({
       type="button"
       onClick={handleAddToCart}
       disabled={isAddDisabled || addingToCart}
+      aria-disabled={busy && !isAddDisabled && !addingToCart ? true : undefined}
+      aria-busy={busy || addingToCart || undefined}
+      data-hydrating={busy ? '' : undefined}
       className={`${className} flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
         addedToCart
           ? 'bg-green-600 text-white scale-[1.02]'
@@ -67,12 +79,19 @@ export function StateAddToCartButton({
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : addingToCart
               ? 'opacity-80'
-              : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
+              : busy
+                ? 'opacity-80 cursor-progress'
+                : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
       }`}
       style={style}
       data-on-primary={addedToCart || isAddDisabled || buttonStyle === 'outline' ? undefined : ''}
     >
-      {addingToCart ? (
+      {busy && !isAddDisabled && !addedToCart && !addingToCart ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+          {label || t('common.addToCart')}
+        </>
+      ) : addingToCart ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
           {t('product.addingToCart')}

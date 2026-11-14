@@ -61,6 +61,7 @@ vi.mock('@/components/product/personalization/usePersonalizationApp', () => ({
 }));
 
 import { ProductCouponBanner, COUPON_PREVIEW_DEBOUNCE_MS } from './ProductCouponBanner';
+import { COUPON_PREVIEW_RETRY_MS } from '@/lib/couponPreview';
 import { ProductPageStateProvider, useProductPageState, type ProductPageState } from './state/ProductPageState';
 import { ProductPriceBlock } from '@/themes/minimal/sections/product/blocks/ProductPriceBlock.client';
 
@@ -117,6 +118,9 @@ function apiError(status: number, code?: string) {
 }
 
 const flush = () => act(async () => { await vi.advanceTimersByTimeAsync(COUPON_PREVIEW_DEBOUNCE_MS + 10); });
+/** Runs every transient-error retry of the banner. */
+const retryAll = () =>
+  act(async () => { await vi.advanceTimersByTimeAsync(COUPON_PREVIEW_RETRY_MS.reduce((a, b) => a + b, 0) + 100); });
 const lastBody = () => JSON.parse(String(apiMock.mock.calls[apiMock.mock.calls.length - 1][1]?.body)) as Record<string, unknown>;
 
 beforeEach(() => {
@@ -275,28 +279,76 @@ describe('ProductCouponBanner', () => {
     expect(removeCoupon).not.toHaveBeenCalled();
   });
 
-  it('rate limit / network error: shows nothing (never a guessed price), even with a cached preview', async () => {
+  it('rate limit / network error that outlasts the retries: shows nothing (never a guessed price), even with a cached preview', async () => {
     apiMock.mockResolvedValueOnce(preview());
     const first = renderBanner();
     await flush();
     expect(screen.getByTestId('coupon-banner')).toBeTruthy();
     first.unmount();
 
-    apiMock.mockRejectedValueOnce(apiError(429));
+    apiMock.mockRejectedValue(apiError(429));
     renderBanner();
     // The cached static fields render at once, but a pending code shows no
     // discounted price from the cache alone (no server answer yet)...
     expect(screen.getByTestId('coupon-banner')).toBeTruthy();
     expect(screen.queryByTestId('coupon-banner-price')).toBeNull();
     await flush();
-    // ...and the failed re-query hides the banner.
+    await retryAll();
+    // ...and once every retry failed too, the banner is hidden.
+    expect(apiMock).toHaveBeenCalledTimes(2 + COUPON_PREVIEW_RETRY_MS.length);
     expect(screen.queryByTestId('coupon-banner')).toBeNull();
 
     cleanup();
-    apiMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    apiMock.mockReset();
+    apiMock.mockRejectedValue(new TypeError('Failed to fetch'));
     sessionStorage.clear();
     const { container } = renderBanner();
     await flush();
+    await retryAll();
+    expect(apiMock).toHaveBeenCalledTimes(1 + COUPON_PREVIEW_RETRY_MS.length);
+    expect(container.textContent).toBe('');
+  });
+
+  it('a 429 followed by a successful retry shows the discounted price', async () => {
+    apiMock.mockRejectedValueOnce(apiError(429)).mockResolvedValueOnce(preview({ discount_amount: 20 }));
+    renderBanner();
+    await flush();
+    // Nothing known yet (no cache): nothing shown while the retry waits.
+    expect(apiMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('coupon-banner')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(COUPON_PREVIEW_RETRY_MS[0] + 10); });
+    expect(apiMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('coupon-banner').textContent).toContain('product.couponPendingCheckout SUMMER20');
+    expect(screen.getByTestId('coupon-banner-price').textContent).toContain(JSON.stringify({ price: SEK(80) }));
+  });
+
+  it('a cached static block plus a 429 keeps the code line, without a price, while retrying', async () => {
+    apiMock.mockResolvedValueOnce(preview());
+    const first = renderBanner();
+    await flush();
+    first.unmount();
+
+    apiMock.mockRejectedValueOnce(apiError(429)).mockRejectedValueOnce(apiError(503));
+    renderBanner();
+    await flush();
+    // First retry pending: the cached line stays, no price for a pending code.
+    expect(screen.getByTestId('coupon-banner').textContent).toContain('product.couponPendingCheckout SUMMER20');
+    expect(screen.queryByTestId('coupon-banner-price')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(COUPON_PREVIEW_RETRY_MS[0] + 10); });
+    // A 5xx is transient too: still the line, still no price.
+    expect(screen.getByTestId('coupon-banner').textContent).toContain('SUMMER20');
+    expect(screen.queryByTestId('coupon-banner-price')).toBeNull();
+    apiMock.mockResolvedValueOnce(preview({ discount_amount: 20 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(COUPON_PREVIEW_RETRY_MS[1] + 10); });
+    expect(screen.getByTestId('coupon-banner-price').textContent).toContain(JSON.stringify({ price: SEK(80) }));
+  });
+
+  it('a non-transient error (400 other than invalid) is not retried', async () => {
+    apiMock.mockRejectedValue(apiError(400, 'MARKET_NOT_AVAILABLE'));
+    const { container } = renderBanner();
+    await flush();
+    await retryAll();
+    expect(apiMock).toHaveBeenCalledTimes(1);
     expect(container.textContent).toBe('');
   });
 

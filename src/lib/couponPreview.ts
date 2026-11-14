@@ -172,6 +172,21 @@ export function classifyPreviewError(err: unknown): 'invalid' | 'error' {
   return e.code === 'PROMOTION_COUPON_INVALID' ? 'invalid' : 'error';
 }
 
+/**
+ * Backoff before each retry of a preview that failed transiently (rate limit
+ * 429, a 5xx or a network error without a status). After the last one the
+ * banner gives up and shows nothing, as before.
+ */
+export const COUPON_PREVIEW_RETRY_MS = [2_000, 6_000] as const;
+
+/** Whether a failed preview is worth retrying (see COUPON_PREVIEW_RETRY_MS). */
+export function isTransientPreviewError(err: unknown): boolean {
+  if (classifyPreviewError(err) === 'invalid') return false;
+  const status = (err as { status?: unknown } | null | undefined)?.status;
+  if (typeof status !== 'number') return true;
+  return status === 429 || status >= 500;
+}
+
 /** What the banner shows. Money is in the market currency, gross. */
 export type CouponBannerView =
   | { kind: 'none' }

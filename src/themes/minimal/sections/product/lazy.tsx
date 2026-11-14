@@ -13,11 +13,19 @@
 // module, whose `next/dynamic` imports load the renderer chunk
 // (`DesignerInline`) on designer products alone, so a product page without
 // a design template ships no renderer code.
+//
+// The split sections that sit beside the product blocks (gallery, details,
+// add-to-cart, tabs) load with the blocks' grouped module through its shared
+// loader (./blocks/productBlocksLoader.ts), so a blocks template fetches one
+// chunk group. The monolith `product-page` keeps its own chunk, loaded the
+// same way through ./productPageMagicLoader.ts.
 
 import dynamic from 'next/dynamic';
+import { loadProductBlocks } from './blocks/productBlocksLoader';
+import { loadProductPageMagic } from './productPageMagicLoader';
 
-export const AddToCartMagic = dynamic(() => import('./AddToCartMagic.client').then((m) => m.AddToCartMagic));
-export const ProductDetailsMagic = dynamic(() => import('./ProductDetailsMagic.client').then((m) => m.ProductDetailsMagic));
-export const ProductGalleryMagic = dynamic(() => import('./ProductGalleryMagic.client').then((m) => m.ProductGalleryMagic));
-export const ProductPageMagic = dynamic(() => import('./ProductPageMagic.client').then((m) => m.ProductPageMagic));
-export const ProductTabsMagic = dynamic(() => import('./ProductTabsMagic.client').then((m) => m.ProductTabsMagic));
+export const AddToCartMagic = dynamic(() => loadProductBlocks().then((m) => m.AddToCartMagic));
+export const ProductDetailsMagic = dynamic(() => loadProductBlocks().then((m) => m.ProductDetailsMagic));
+export const ProductGalleryMagic = dynamic(() => loadProductBlocks().then((m) => m.ProductGalleryMagic));
+export const ProductPageMagic = dynamic(() => loadProductPageMagic().then((m) => m.ProductPageMagic));
+export const ProductTabsMagic = dynamic(() => loadProductBlocks().then((m) => m.ProductTabsMagic));

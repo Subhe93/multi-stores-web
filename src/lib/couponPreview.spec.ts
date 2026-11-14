@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyPreviewError,
+  isTransientPreviewError,
   couponBannerView,
   couponPreviewBody,
   couponPreviewKey,
@@ -155,5 +156,16 @@ describe('couponBannerView', () => {
     expect(couponBannerView(PCT, { sig: c.sig, lineAmount: 0, minMet: true, discountAmount: 0 }, c)).toMatchObject({
       kind: 'percentage', discounted: null,
     });
+  });
+});
+
+describe('isTransientPreviewError', () => {
+  it('retries rate limits, 5xx and network errors only', () => {
+    expect(isTransientPreviewError({ status: 429 })).toBe(true);
+    expect(isTransientPreviewError({ status: 503 })).toBe(true);
+    expect(isTransientPreviewError(new TypeError('Failed to fetch'))).toBe(true);
+    expect(isTransientPreviewError({ status: 400, code: 'PROMOTION_COUPON_INVALID' })).toBe(false);
+    expect(isTransientPreviewError({ status: 404, code: 'MARKET_NOT_FOUND' })).toBe(false);
+    expect(isTransientPreviewError({ status: 400 })).toBe(false);
   });
 });
