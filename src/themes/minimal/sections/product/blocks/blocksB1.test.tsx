@@ -260,6 +260,24 @@ describe('B1 product blocks', () => {
     expect(screen.getByRole('button', { name: 'product.outOfStock' })).toBeDisabled();
   });
 
+  it('add-to-cart is disabled when no variant can be bought (all sold out, nothing selectable)', () => {
+    const product = makeProduct({
+      variants: [
+        { id: 'r', price: 80, stock: 0, options: { Color: 'Red' } },
+        { id: 'b', price: 80, stock: 0, options: { Color: 'Blue' } },
+      ],
+      bundles: [],
+    });
+    render(
+      <Provider product={product}>
+        <div data-testid="buy"><ProductBuyBlock {...props(product)} /></div>
+        <div data-testid="composite"><AddToCartMagic {...props(product)} /></div>
+      </Provider>,
+    );
+    expect(screen.getByRole('button', { name: 'common.addToCart' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'product.outOfStock' })).toBeDisabled();
+  });
+
   it('buy: adds the chosen variant with the shared quantity and shows the toast', async () => {
     const product = makeProduct();
     render(
@@ -269,10 +287,24 @@ describe('B1 product blocks', () => {
       </Provider>,
     );
     const add = screen.getByRole('button', { name: 'common.addToCart' });
-    expect(add).toBeDisabled();
+    // No option picked: the button stays active (store colour) and no hint
+    // shows until the shopper clicks.
+    expect(add).not.toBeDisabled();
+    expect(screen.queryByText('product.selectOptions')).toBeNull();
+    const calls = addItem.mock.calls.length;
+    await act(async () => {
+      fireEvent.click(add);
+    });
+    // The click adds nothing; it marks the missing option group and explains.
+    expect(addItem.mock.calls.length).toBe(calls);
     expect(screen.getByText('product.selectOptions')).toBeTruthy();
+    expect(screen.getByText('chooseOptionNamed:{"option":"Color"}')).toBeTruthy();
+    expect(document.querySelector('[data-variant-option="Color"][data-variant-missing]')).not.toBeNull();
     fireEvent.click(screen.getByTitle('Red'));
     expect(add).not.toBeDisabled();
+    // Picking the option clears both messages.
+    expect(screen.queryByText('product.selectOptions')).toBeNull();
+    expect(document.querySelector('[data-variant-missing]')).toBeNull();
     fireEvent.click(screen.getByLabelText('increaseQuantity'));
     await act(async () => {
       fireEvent.click(add);

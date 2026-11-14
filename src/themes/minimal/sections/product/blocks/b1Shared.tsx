@@ -122,6 +122,7 @@ export function StateVariantSelector({ state, pieceOne = false }: { state: Produ
             ? (k) => !pieceOptionKeys.includes(k)
             : undefined
       }
+      missingAttempt={state.variantAttempt}
       {...(pieceOne ? { showStatus: false } : {})}
     />
   );

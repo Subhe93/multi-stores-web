@@ -543,3 +543,17 @@ html[data-js] .sd-root [data-reveal="split"] { visibility: hidden; }
 .sd-image-reveal { overflow: hidden; }
 html[data-js] .sd-root .sd-image-reveal { clip-path: inset(100% 0 0 0); }
 .sd-image-reveal > * { display: block; transform-origin: center; }
+
+/* One short shake for an inline error that answers a click (missing option
+   on add to cart). Motion-sensitive visitors get the static message. */
+@keyframes ms-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+.ms-shake {
+  animation: ms-shake 0.4s ease-in-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ms-shake { animation: none; }
+}

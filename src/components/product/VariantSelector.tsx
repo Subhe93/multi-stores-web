@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { X, Check } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
@@ -121,6 +121,10 @@ interface VariantSelectorProps {
   // Stock pill under the picker (off for a secondary instance so it isn't
   // shown twice).
   showStatus?: boolean;
+  // Add attempts with options missing (ProductPageState.variantAttempt):
+  // > 0 marks every group without a pick with an inline error; a new value
+  // replays the error's shake.
+  missingAttempt?: number;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -138,8 +142,11 @@ export function VariantSelector({
   selections: controlledSelections,
   optionFilter,
   showStatus = true,
+  missingAttempt = 0,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
+  const tProduct = useTranslations('product');
+  const errorIdBase = useId();
 
   // What the variants actually offer, then arranged the way the seller set it
   // up. Neither source of order in the raw data is usable on its own: the
@@ -275,14 +282,28 @@ export function VariantSelector({
         const selectedValue = selections[key];
 
         return (
-          <div key={key}>
+          <div
+            key={key}
+            role="group"
+            aria-label={key}
+            tabIndex={-1}
+            className="outline-none"
+            aria-describedby={missingAttempt > 0 && !selectedValue ? `${errorIdBase}-${key}` : undefined}
+            data-variant-option={key}
+            data-variant-missing={missingAttempt > 0 && !selectedValue ? '' : undefined}
+          >
             {/* Label */}
-            <p className="text-sm font-semibold text-gray-900 mb-3">
+            <p className={`text-sm font-semibold mb-3 ${missingAttempt > 0 && !selectedValue ? 'text-red-600' : 'text-gray-900'}`}>
               {key}
               {selectedValue && (
                 <span className="font-normal text-gray-400 ms-1">— {selectedValue}</span>
               )}
             </p>
+            {missingAttempt > 0 && !selectedValue && (
+              <p key={missingAttempt} id={`${errorIdBase}-${key}`} className="ms-shake text-sm text-red-600 font-medium -mt-2 mb-3">
+                {tProduct('chooseOptionNamed', { option: key })}
+              </p>
+            )}
 
             {/* ── Color swatches ── */}
             {style === 'color' && (

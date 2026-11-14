@@ -351,7 +351,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     display,
     currentPrice,
     maxStock,
-    isAddDisabled,
+    isAddBlocked,
+    variantAttempt,
+    variantAttemptMessage,
     handleSelectBundle,
     handleQuantityChange,
     customFieldError,
@@ -698,6 +700,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 outOfStockText={t('product.outOfStock')}
                 optionConfigs={product.variant_option_config}
                 optionFilter={pieceOptionKeys.length > 0 ? (k) => !pieceOptionKeys.includes(k) : undefined}
+                missingAttempt={variantAttempt}
               />
             </div>
           )}
@@ -733,6 +736,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                       optionConfigs={product.variant_option_config}
                       optionFilter={(k) => pieceOptionKeys.includes(k)}
                       showStatus={false}
+                      missingAttempt={variantAttempt}
                     />
                   ) : undefined
                 }
@@ -842,13 +846,13 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={busy || isAddDisabled || addingToCart}
+                  disabled={busy || isAddBlocked || addingToCart}
                   aria-busy={busy || addingToCart || undefined}
                   data-hydrating={busy ? '' : undefined}
                   className={`flex-1 min-w-48 flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
                     addedToCart
                       ? 'bg-green-600 text-white scale-[1.02]'
-                      : isAddDisabled
+                      : isAddBlocked
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : addingToCart
                           ? 'opacity-80'
@@ -857,7 +861,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                             : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
                   }`}
                   style={
-                    addedToCart || isAddDisabled
+                    addedToCart || isAddBlocked
                       ? undefined
                       : buttonStyle === 'outline'
                         ? {
@@ -867,9 +871,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                           }
                         : { backgroundColor: 'var(--store-primary, #2563eb)' }
                   }
-                  data-on-primary={addedToCart || isAddDisabled || buttonStyle === 'outline' ? undefined : ''}
+                  data-on-primary={addedToCart || isAddBlocked || buttonStyle === 'outline' ? undefined : ''}
                 >
-                  {busy && !isAddDisabled && !addedToCart && !addingToCart ? (
+                  {busy && !isAddBlocked && !addedToCart && !addingToCart ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                       {t('common.addToCart')}
@@ -899,10 +903,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
               <p className="text-sm text-red-600 font-medium">{customFieldError}</p>
             )}
 
-            {/* Hint when variant not selected */}
-            {variants.length > 0 && !selectedVariantId && (
-              <p className="text-xs text-amber-600 text-center">
-                {t('product.selectOptions')}
+            {/* Only after a click with options missing (the button stays active). */}
+            {variantAttemptMessage && (
+              <p role="alert" data-variant-hint="" className="text-sm text-red-600 font-medium text-center">
+                {variantAttemptMessage}
               </p>
             )}
           </div>

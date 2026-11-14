@@ -291,9 +291,17 @@ function snapshot(root: HTMLElement, step: string): Snapshot {
     sku: priceLines.find((l) => l.startsWith('SKU:')) ?? null,
     leadImage: root.querySelector('img')?.getAttribute('src') ?? null,
     addEnabled: button ? !button.disabled : null,
-    selectOptionsHint: Array.from(root.querySelectorAll('p.text-amber-600')).some((p) => p.textContent?.includes('product.selectOptions')),
-    fieldError: text(root.querySelector('p.text-sm.text-red-600.font-medium')),
-    toastError: text(root.querySelector('[role="alert"]')),
+    selectOptionsHint: Array.from(root.querySelectorAll('[data-variant-hint]')).some((p) => p.textContent?.includes('product.selectOptions')),
+    // Field / toast errors only: not the option-group errors or the hint
+    // under the button (same classes / role).
+    fieldError: text(
+      Array.from(root.querySelectorAll('p.text-sm.text-red-600.font-medium')).find(
+        (p) => !p.closest('[data-variant-option]') && !p.hasAttribute('data-variant-hint'),
+      ) ?? null,
+    ),
+    toastError: text(
+      Array.from(root.querySelectorAll('[role="alert"]')).find((el) => !el.hasAttribute('data-variant-hint')) ?? null,
+    ),
     bundleChip: text(chip),
     bundleOffers: bundleOfferButtons(root).map(
       (b) => `${b.getAttribute('aria-pressed')}:${b.textContent?.trim()}`,
@@ -571,8 +579,9 @@ describe('product page parity: monolith vs Classic block composition', () => {
     const byStep = (s: string) => steps.find((x) => x.step.startsWith(s))!;
     expect(steps.every((s) => !s.step.includes('(missing)'))).toBe(true);
     expect(byStep('initial').leadImage).not.toBe(byStep('pick Djur').leadImage);
-    expect(byStep('initial').addEnabled).toBe(false);
-    expect(byStep('initial').selectOptionsHint).toBe(true);
+    // Nothing picked yet: the button stays active and no hint shows before a click.
+    expect(byStep('initial').addEnabled).toBe(true);
+    expect(byStep('initial').selectOptionsHint).toBe(false);
     const last = steps[steps.length - 1];
     expect(last.addedLines.length).toBeGreaterThan(0);
     const [productId, variantId, qty, , meta] = last.addedLines[last.addedLines.length - 1] as [string, string, number, unknown, Record<string, unknown>];

@@ -299,6 +299,7 @@
     "faq": "الأسئلة الشائعة",
     "addingToCart": "جارٍ الإضافة...",
     "selectOptions": "اختر الخيارات أعلاه",
+    "chooseOptionNamed": "اختر {option}",
     "savingsAmount": "وفّرت {amount}",
     "shippingAndDelivery": "الشحن والتوصيل",
     "shippingHeading": "الشحن",

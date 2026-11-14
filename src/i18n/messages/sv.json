@@ -299,6 +299,7 @@
     "faq": "Vanliga frågor",
     "addingToCart": "Lägger till...",
     "selectOptions": "Välj alternativ ovan",
+    "chooseOptionNamed": "Välj {option}",
     "savingsAmount": "Du sparar {amount}",
     "shippingAndDelivery": "Frakt och leverans",
     "shippingHeading": "Frakt",

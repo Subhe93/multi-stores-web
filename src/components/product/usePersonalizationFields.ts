@@ -77,6 +77,31 @@ export function focusPersonalizationField(fieldKey: string): boolean {
 }
 
 /**
+ * Add attempt with options missing: scrolls to and focuses whichever comes
+ * first on the page, the first visible option group without a pick
+ * (`[data-variant-option]`, VariantSelector) or the first invalid field.
+ */
+export function focusFirstMissing(missingOptions: string[], fieldKey?: string): void {
+  if (typeof document === 'undefined') return;
+  const missing = new Set(missingOptions);
+  const group = Array.from(document.querySelectorAll<HTMLElement>('[data-variant-option]')).find(
+    (el) => missing.has(el.dataset.variantOption ?? '') && el.getClientRects().length > 0,
+  );
+  const field = fieldKey ? document.getElementById(`field-${fieldKey}`) : null;
+  const groupFirst =
+    group && (!field || Boolean(group.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING));
+  if (!groupFirst) {
+    if (fieldKey) focusPersonalizationField(fieldKey);
+    return;
+  }
+  const target =
+    group.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ??
+    group;
+  target.focus({ preventScroll: true });
+  group.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+/**
  * Personalization state of one product form (M4.0 §2.2): shared by the
  * product page (`ProductDetailClient`) and the theme's `AddToCartMagic`, so
  * both send the same values and run the same rules as the API. With the

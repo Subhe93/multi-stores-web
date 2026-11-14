@@ -299,6 +299,7 @@
     "faq": "Questions fréquentes",
     "addingToCart": "Ajout en cours...",
     "selectOptions": "Sélectionnez les options ci-dessus",
+    "chooseOptionNamed": "Choisissez : {option}",
     "savingsAmount": "Vous économisez {amount}",
     "shippingAndDelivery": "Livraison & Expédition",
     "shippingHeading": "Livraison",

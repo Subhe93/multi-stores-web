@@ -45,7 +45,7 @@ export function StateAddToCartButton({
   className?: string;
 }) {
   const t = useTranslations();
-  const { addedToCart, isAddDisabled, addingToCart, handleAddToCart } = state;
+  const { addedToCart, isAddBlocked, addingToCart, handleAddToCart } = state;
   // Until this boundary hydrates (its lazy chunk may still be loading) the
   // server-rendered button has no click handler. React does not replay a
   // tap on a boundary whose chunk has not arrived (verified on prod, M106),
@@ -54,7 +54,7 @@ export function StateAddToCartButton({
   // the tap silently, and taps again once it turns active.
   const busy = !useHydrated();
   const style: CSSProperties | undefined =
-    addedToCart || isAddDisabled
+    addedToCart || isAddBlocked
       ? undefined
       : buttonStyle === 'outline'
         ? {
@@ -67,13 +67,13 @@ export function StateAddToCartButton({
     <button
       type="button"
       onClick={handleAddToCart}
-      disabled={busy || isAddDisabled || addingToCart}
+      disabled={busy || isAddBlocked || addingToCart}
       aria-busy={busy || addingToCart || undefined}
       data-hydrating={busy ? '' : undefined}
       className={`${className} flex items-center justify-center gap-2.5 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 ${
         addedToCart
           ? 'bg-green-600 text-white scale-[1.02]'
-          : isAddDisabled
+          : isAddBlocked
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : addingToCart
               ? 'opacity-80'
@@ -82,9 +82,9 @@ export function StateAddToCartButton({
                 : 'hover:opacity-90 hover:shadow-lg active:scale-[0.98]'
       }`}
       style={style}
-      data-on-primary={addedToCart || isAddDisabled || buttonStyle === 'outline' ? undefined : ''}
+      data-on-primary={addedToCart || isAddBlocked || buttonStyle === 'outline' ? undefined : ''}
     >
-      {busy && !isAddDisabled && !addedToCart && !addingToCart ? (
+      {busy && !isAddBlocked && !addedToCart && !addingToCart ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           {label || t('common.addToCart')}
@@ -111,7 +111,6 @@ export function StateAddToCartButton({
 
 export function ProductBuyBlock(props: SectionRenderProps) {
   const { settings, content, locale, primaryLocale } = props;
-  const t = useTranslations();
   const state = useBlockState(props);
   const designer = useDesignerSession();
   if (!state) {
@@ -122,7 +121,7 @@ export function ProductBuyBlock(props: SectionRenderProps) {
   const sticky = settings.sticky_on_mobile === true;
   const label = typeof content.button_label === 'string' ? content.button_label : undefined;
   const langPrefix = b1LangPrefix(locale, primaryLocale);
-  const { variants, selectedVariantId, customFieldError } = state;
+  const { customFieldError } = state;
 
   return (
     <>
@@ -147,10 +146,10 @@ export function ProductBuyBlock(props: SectionRenderProps) {
           <p className="text-sm text-red-600 font-medium">{customFieldError}</p>
         )}
 
-        {/* Hint when variant not selected */}
-        {variants.length > 0 && !selectedVariantId && (
-          <p className="text-xs text-amber-600 text-center">
-            {t('product.selectOptions')}
+        {/* Only after a click with options missing (the button stays active). */}
+        {state.variantAttemptMessage && (
+          <p role="alert" data-variant-hint="" className="text-sm text-red-600 font-medium text-center">
+            {state.variantAttemptMessage}
           </p>
         )}
       </B1Scope>

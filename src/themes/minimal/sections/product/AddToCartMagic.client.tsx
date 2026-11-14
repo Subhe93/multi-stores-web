@@ -62,9 +62,9 @@ export function AddToCartMagic(props: SectionRenderProps) {
   const showQuantity = settings.show_quantity !== false;
 
   const {
-    product, variants, selectedVariant, selectedVariantId, advanced, appSettings, app, personalization,
+    product, selectedVariant, advanced, appSettings, app, personalization,
     currency, taxRateBp, display, currentPrice, displayPrice, displayComparePrice, quantity, isDraftPreview,
-    isOutOfStock, isAddDisabled, addingToCart, addedToCart, customFieldError, addToCartError,
+    isOutOfStock, isAddBlocked, addingToCart, addedToCart, customFieldError, addToCartError,
   } = state;
   const money = (amount: number) => formatPrice(display(amount, taxRateBp, currency).amount, currency, state.locale);
   const stock = selectedVariant?.stock;
@@ -183,12 +183,12 @@ export function AddToCartMagic(props: SectionRenderProps) {
 
   // Busy only matters for a product that can be added; one that cannot keeps
   // its plain disabled look.
-  const hydrating = busy && !isAddDisabled && !addingToCart;
+  const hydrating = busy && !isAddBlocked && !addingToCart;
   const cta = addedToCart ? addedState : (
     <button
       type="button"
       onClick={state.handleAddToCart}
-      disabled={busy || addingToCart || isAddDisabled}
+      disabled={busy || addingToCart || isAddBlocked}
       aria-busy={busy || addingToCart || undefined}
       data-hydrating={busy ? '' : undefined}
       className={`inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 transition-all ${
@@ -322,9 +322,10 @@ export function AddToCartMagic(props: SectionRenderProps) {
         {addToCartError && addToCartError !== customFieldError && (
           <p role="alert" className="text-sm text-red-600">{addToCartError}</p>
         )}
-        {!designer && variants.length > 0 && !selectedVariantId && (
-          <p className="text-xs text-center" style={{ color: 'var(--theme-colors-muted)' }}>
-            {t('product.selectOptions')}
+        {/* Only after a click with options missing (the button stays active). */}
+        {!designer && state.variantAttemptMessage && (
+          <p role="alert" data-variant-hint="" className="text-sm text-red-600 text-center">
+            {state.variantAttemptMessage}
           </p>
         )}
       </section>

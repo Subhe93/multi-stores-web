@@ -205,6 +205,7 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
                   optionConfigs={product.variant_option_config}
                   optionFilter={(k) => pieceOptionKeys.includes(k)}
                   showStatus={false}
+                  missingAttempt={state.variantAttempt}
                 />
               ) : undefined
             }

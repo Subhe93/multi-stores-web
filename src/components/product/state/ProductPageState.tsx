@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useTranslations } from 'next-intl';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { pieceOneOptionKeys, pieceOneRepeater } from '@/components/product/personalization/model';
-import { focusPersonalizationField } from '@/components/product/usePersonalizationFields';
+import { focusFirstMissing, focusPersonalizationField } from '@/components/product/usePersonalizationFields';
 import { useAddToCartLine } from '@/components/product/useAddToCartLine';
 import type { POptionConfig } from '@multi-stores/core/personalization/types';
 import type { ProductData } from '@/components/product/ProductDetailClient';
@@ -297,13 +297,41 @@ function useProductPageStateValue({
   // refuse the quote / order anyway).
   const isDraftPreview = product.status === 'DRAFT';
   const needsVariantSelection = variants.length > 0 && !selectedVariantId;
-  const isOutOfStock = Boolean(selectedVariant && selectedVariant.stock <= 0);
+  // No variant can be bought at all (all sold out or inactive): the picker
+  // disables every value, so nothing would ever be selected; treat the
+  // product as sold out instead of asking for an impossible pick.
+  const noneBuyable =
+    variants.length > 0 &&
+    !variants.some(
+      (v) => (v as { is_active?: boolean | null }).is_active !== false && (typeof v.stock !== 'number' || v.stock > 0),
+    );
+  const isOutOfStock = Boolean(selectedVariant && selectedVariant.stock <= 0) || noneBuyable;
   const isAddDisabled = useMemo(() => {
     if (isDraftPreview) return true;
     if (variants.length > 0 && !selectedVariantId) return true;
     if (selectedVariant && selectedVariant.stock <= 0) return true;
     return false;
   }, [isDraftPreview, variants, selectedVariantId, selectedVariant]);
+  // The add button is only truly blocked (greyed, disabled) when nothing can
+  // be bought: a DRAFT preview or a sold-out variant. A missing option or
+  // required field keeps the button active in the store colour; a click then
+  // points at what is missing (variantAttempt + the field errors).
+  const isAddBlocked = isDraftPreview || isOutOfStock;
+  // Bumped on each add attempt while options are missing; > 0 shows the
+  // per-option errors (a new value re-runs their shake). Reset once a
+  // variant resolves.
+  const [variantAttempt, setVariantAttempt] = useState(0);
+  useEffect(() => {
+    if (selectedVariantId) setVariantAttempt(0);
+  }, [selectedVariantId]);
+  // The message under the button after such a click: options still to pick,
+  // or (all picked, no buyable variant matches) the combination is sold out.
+  const variantAttemptMessage =
+    variantAttempt > 0 && needsVariantSelection
+      ? variantOptionKeys.some((k) => !optionSelections[k])
+        ? t('product.selectOptions')
+        : t('product.outOfStock')
+      : '';
 
   // ── Handlers ──────────────────────────────────────────
 
@@ -371,11 +399,19 @@ function useProductPageStateValue({
   );
 
   const handleAddToCart = useCallback(async () => {
-    if (addingToCart || isAddDisabled || customerFileUploading) return;
+    if (addingToCart || isAddBlocked || customerFileUploading) return;
     setCustomFieldError('');
 
     // Same rules as the API (shared validator): show every field error inline.
     const check = validateAll();
+    if (needsVariantSelection) {
+      // Options missing: flag them (and any field error), then move to the
+      // first missing thing on the page, option group or field.
+      setVariantAttempt((n) => n + 1);
+      const missing = variantOptionKeys.filter((k) => !optionSelections[k]);
+      focusFirstMissing(missing, check.ok ? undefined : check.fieldId);
+      return;
+    }
     if (!check.ok) {
       setCustomFieldError(check.firstError || t('product.requiredFieldsMissing'));
       // Move to the first field with an error (M5 D20).
@@ -427,7 +463,8 @@ function useProductPageStateValue({
       setAddingToCart(false);
     }
   }, [
-    addingToCart, isAddDisabled, customerFileUploading, product.id, selectedVariantId, quantity, lineSource,
+    addingToCart, isAddBlocked, needsVariantSelection, variantOptionKeys, optionSelections,
+    customerFileUploading, product.id, selectedVariantId, quantity, lineSource,
     validateAll, buildPayload, applyServerError, addLine, selectedBundleOffer,
     apiError, t, advanced, storeSlug, locale, market]);
 
@@ -554,6 +591,9 @@ function useProductPageStateValue({
     needsVariantSelection,
     isOutOfStock,
     isAddDisabled,
+    isAddBlocked,
+    variantAttempt,
+    variantAttemptMessage,
     // Add to cart and toasts
     lineSource,
     addingToCart,
