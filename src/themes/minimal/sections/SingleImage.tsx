@@ -11,6 +11,14 @@ import {
 } from './_shared/dynamicSource';
 import { IMAGE_SOURCE_FIELDS, STATIC_IMAGE_SHOW_IF } from './_shared/dynamicSourceFields';
 import { DynamicProductImage } from './_shared/lazyDynamic';
+import { hasImageSize, type ImageSizeSettings } from '../../imageSizing';
+import {
+  SizedImage,
+  SizedImageStyle,
+  placeholderRatio,
+  sizedImageLayout,
+  useImageSizeScope,
+} from './_shared/SizedImage';
 
 // `single-image`: one image, nothing else. Fits anywhere in a layout
 // container. On a PRODUCT_TEMPLATE its image can come from the product
@@ -27,8 +35,124 @@ const ASPECT_CLASS: Record<Exclude<Aspect, 'auto'>, string> = {
 };
 
 const SIZES = '(min-width: 1024px) 50vw, 100vw';
+// The same slots as SIZES, as image_size container widths.
+const CONTAINER = { desktop: '50vw', tablet: '100vw' } as const;
 
-function SingleImage({ settings, content, product, locale, builderPreview }: SectionRenderProps) {
+function SingleImage(props: SectionRenderProps) {
+  // With `image_size` the sized renderer is used; without it the legacy
+  // markup below stays byte-identical (saved sections, live stores).
+  if (hasImageSize(props.settings.image_size)) return <SingleImageSized {...props} />;
+  return <SingleImageLegacy {...props} />;
+}
+
+/** `image_size` path (plans/image-sizing/SPEC.md); legacy aspect/fit are ignored. */
+function SingleImageSized({ settings, content, product, locale, builderPreview }: SectionRenderProps) {
+  const scope = useImageSizeScope();
+  const layout = sizedImageLayout(settings.image_size as ImageSizeSettings, scope, CONTAINER);
+  const { resolved } = layout;
+  const rounded = settings.rounded !== false;
+  const linkUrl = typeof settings.link_url === 'string' ? settings.link_url.trim() : '';
+  const altText = typeof content.alt === 'string' ? content.alt.trim() : '';
+  const source = dynamicImageSource(settings);
+  const preview = isDynamicPreview(builderPreview);
+  const frameStyle = {
+    borderRadius: rounded ? 'var(--theme-radius-lg)' : '0',
+    overflow: 'hidden' as const,
+  };
+  const link = linkUrl ? { href: linkUrl } : undefined;
+  const ratio = placeholderRatio(layout);
+
+  let image = null;
+  if (!source) {
+    const url = resolveMediaUrl((settings.image as string) || '');
+    if (url) {
+      // The frame is the link itself, so the clickable area is the image.
+      return <SizedImage layout={layout} src={url} alt={altText} frameStyle={frameStyle} link={link} />;
+    }
+    if (preview) {
+      // Builder only: an upload box. The live store renders nothing.
+      image = (
+        <div
+          className="flex items-center justify-center"
+          style={{
+            aspectRatio: ratio,
+            backgroundColor: 'var(--theme-colors-surface)',
+            border: '1px dashed var(--theme-colors-border)',
+            borderRadius: 'var(--theme-radius-lg)',
+          }}
+        >
+          <span className="text-xs" style={{ color: 'var(--theme-colors-muted)' }}>
+            {locale === 'ar' ? 'ارفع صورة' : 'Upload an image'}
+          </span>
+        </div>
+      );
+    }
+  } else {
+    const hint = preview ? (
+      <DynamicSourceHint
+        source={source}
+        locale={locale}
+        hasProduct={!!product}
+        className="flex flex-col items-center justify-center"
+        style={{ aspectRatio: ratio }}
+      />
+    ) : null;
+    const resolvedImg = product ? resolveDynamicImage(source, product, settings, locale) : null;
+    const dynamicAlt = (img: { alt: string } | null) => altText || img?.alt || '';
+    if (!product) {
+      image = hint;
+    } else if (source === 'variant_image') {
+      if (!productHasAnyImage(product)) {
+        image = hint;
+      } else {
+        // The frame is the link itself (as for the other sources), so the
+        // clickable area is the image box, not the whole row.
+        return (
+          <>
+            <SizedImageStyle css={resolved.css} />
+            <DynamicProductImage
+              mode={resolved.natural ? 'natural' : 'intrinsic'}
+              width={resolved.intrinsic.width}
+              height={resolved.intrinsic.height}
+              fallback={resolvedImg ? { url: resolvedImg.url, alt: dynamicAlt(resolvedImg) } : null}
+              altOverride={altText || undefined}
+              placeholder={hint}
+              frameClassName={scope}
+              frameStyle={frameStyle}
+              imgClassName={`${scope}-img`}
+              sizes={resolved.sizes}
+              link={link}
+            />
+          </>
+        );
+      }
+    } else if (resolvedImg) {
+      return (
+        <SizedImage
+          layout={layout}
+          src={resolvedImg.url}
+          alt={dynamicAlt(resolvedImg)}
+          frameStyle={frameStyle}
+          link={link}
+          dataDynamicImage={source}
+        />
+      );
+    } else {
+      image = hint;
+    }
+  }
+
+  if (!image) return null;
+  return linkUrl ? (
+    <a href={linkUrl} className="block">
+      {image}
+    </a>
+  ) : (
+    image
+  );
+}
+
+function SingleImageLegacy({ settings, content, product, locale, builderPreview }: SectionRenderProps) {
   const aspect = ((settings.aspect as Aspect) in ASPECT_CLASS ? settings.aspect : 'auto') as Aspect;
   const fit = settings.fit === 'contain' ? 'object-contain' : 'object-cover';
   const rounded = settings.rounded !== false;
@@ -149,29 +273,10 @@ export const singleImageSection: SectionDefinition = {
     schema: [
       { key: 'image', type: 'image', label: { en: 'Image', ar: 'الصورة' }, showIf: STATIC_IMAGE_SHOW_IF },
       ...IMAGE_SOURCE_FIELDS,
-      {
-        key: 'aspect',
-        type: 'select',
-        label: { en: 'Aspect ratio', ar: 'نسبة الصورة' },
-        defaultValue: 'auto',
-        options: [
-          { value: 'auto', label: { en: 'Original', ar: 'الأصلية' } },
-          { value: 'square', label: { en: 'Square', ar: 'مربّع' } },
-          { value: 'portrait', label: { en: 'Portrait', ar: 'طولي' } },
-          { value: 'landscape', label: { en: 'Landscape', ar: 'عرضي' } },
-          { value: 'wide', label: { en: 'Wide 16:9', ar: 'عريض 16:9' } },
-        ],
-      },
-      {
-        key: 'fit',
-        type: 'select',
-        label: { en: 'Fit', ar: 'ملاءمة الصورة' },
-        defaultValue: 'cover',
-        options: [
-          { value: 'cover', label: { en: 'Fill (crop)', ar: 'ملء (قص)' } },
-          { value: 'contain', label: { en: 'Fit (no crop)', ar: 'احتواء (بلا قص)' } },
-        ],
-      },
+      // Width / height / ratio / fit / alignment per breakpoint. Replaces the
+      // legacy `aspect` + `fit` fields; stored legacy values are still read
+      // by the legacy render path while `image_size` is empty.
+      { key: 'image_size', type: 'imageSize', label: { en: 'Image size', ar: 'حجم الصورة' } },
       { key: 'rounded', type: 'boolean', label: { en: 'Rounded corners', ar: 'زوايا مستديرة' }, defaultValue: true },
       { key: 'link_url', type: 'url', label: { en: 'Link', ar: 'الرابط' } },
       { key: 'alt', type: 'text', label: { en: 'Alt text', ar: 'النص البديل' } },

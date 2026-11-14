@@ -23,6 +23,8 @@ import {
   resolveSocialHref,
   type SocialPlatform,
 } from './_shared/socialIcons';
+import { hasImageSize, type ImageSizeSettings } from '../../imageSizing';
+import { SizedImage, sizedImageLayout, useImageSizeScope } from './_shared/SizedImage';
 
 type Mode = 'grid' | 'flex';
 type Align = 'start' | 'center' | 'end' | 'stretch';
@@ -69,7 +71,10 @@ interface Block {
   alt?: string;
   aspect?: 'auto' | 'square' | 'landscape' | 'portrait' | 'wide';
   rounded?: boolean;
+  // Legacy fixed width; ignored once `image_size` is set (form no longer shows it).
   width_px?: number;
+  // Per-breakpoint sizing (../../imageSizing.ts); wins over aspect / width_px.
+  image_size?: ImageSizeSettings;
   // images (a row of small images, e.g. payment or partner logos)
   images?: RowImage[];
   item_height_px?: number;
@@ -170,6 +175,25 @@ function BlockLink({
 
 // ── Block renderer ──────────────────────────────────────────────
 
+// The same slots as the legacy block's '(min-width: 768px) 50vw, 100vw'.
+const IMAGE_CONTAINER = { desktop: '50vw', mobile: '100vw' } as const;
+
+/** Image block with `image_size` (plans/image-sizing/SPEC.md). */
+function SizedImageBlock({ block }: { block: Block }) {
+  const scope = useImageSizeScope();
+  const layout = sizedImageLayout(block.image_size as ImageSizeSettings, scope, IMAGE_CONTAINER);
+  const src = resolveMediaUrl(block.image || '');
+  const frameStyle: React.CSSProperties | undefined = block.rounded
+    ? { borderRadius: 'var(--theme-radius-md)', overflow: 'hidden' }
+    : undefined;
+  let link: { href: string; target?: string; rel?: string } | undefined;
+  if (block.link) {
+    const href = storeHref(block.link);
+    link = /^https?:\/\//i.test(href) ? { href, target: '_blank', rel: 'noopener noreferrer' } : { href };
+  }
+  return <SizedImage layout={layout} src={src} alt={block.alt || ''} frameStyle={frameStyle} link={link} />;
+}
+
 function BlockView({ block }: { block: Block }) {
   const type = block.type || 'text';
   // The builder's shared alignment select stores left/right; blocks use
@@ -238,6 +262,9 @@ function BlockView({ block }: { block: Block }) {
       );
     case 'image': {
       if (!block.image) return null;
+      // `image_size` set: the sized renderer. Without it the legacy markup
+      // below stays byte-identical (saved sections, live stores).
+      if (hasImageSize(block.image_size)) return <SizedImageBlock block={block} />;
       const aspect = block.aspect || 'auto';
       const src = resolveMediaUrl(block.image);
       const radius = block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
@@ -541,7 +568,10 @@ const BLOCK_FIELDS = [
   // image
   { key: 'image', type: 'image' as const, label: { en: 'Image', ar: 'الصورة' }, showIf: { key: 'type', in: ['image'] } },
   { key: 'alt', type: 'text' as const, label: { en: 'Alt text', ar: 'نص بديل' }, showIf: { key: 'type', in: ['image'] } },
-  { key: 'width_px', type: 'number' as const, label: { en: 'Width (px, empty = full column)', ar: 'العرض (px، فارغ = عرض العمود)' }, min: 16, max: 1200, showIf: { key: 'type', in: ['image'] } },
+  // Width / height / ratio / alignment per breakpoint. Replaces the legacy
+  // `width_px` field; stored width_px / aspect still render via the legacy
+  // path while `image_size` is empty.
+  { key: 'image_size', type: 'imageSize' as const, label: { en: 'Image size', ar: 'حجم الصورة' }, showIf: { key: 'type', in: ['image'] } },
   // images (row of logos)
   {
     key: 'images',
@@ -584,20 +614,7 @@ const BLOCK_FIELDS = [
     ],
     showIf: { key: 'type', in: ['social'] },
   },
-  {
-    key: 'aspect',
-    type: 'select' as const,
-    label: { en: 'Aspect ratio', ar: 'نسبة الأبعاد' },
-    defaultValue: 'auto',
-    options: [
-      { value: 'auto', label: { en: 'Original', ar: 'الأصلي' } },
-      { value: 'square', label: { en: 'Square', ar: 'مربع' } },
-      { value: 'landscape', label: { en: 'Landscape', ar: 'عرضي' } },
-      { value: 'portrait', label: { en: 'Portrait', ar: 'طولي' } },
-      { value: 'wide', label: { en: 'Wide 16:9', ar: 'عريض 16:9' } },
-    ],
-    showIf: { key: 'type', in: ['image'] },
-  },
+  // (The legacy block `aspect` select moved into `image_size` above.)
   { key: 'rounded', type: 'boolean' as const, label: { en: 'Rounded corners', ar: 'حواف دائرية' }, defaultValue: true, showIf: { key: 'type', in: ['image'] } },
   // button
   { key: 'button_label', type: 'text' as const, label: { en: 'Button label', ar: 'نص الزر' }, showIf: { key: 'type', in: ['button'] } },
