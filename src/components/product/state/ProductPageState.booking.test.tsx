@@ -118,8 +118,19 @@ describe('ProductPageState booking bounds (B2/B3)', () => {
     expect(result.current.maxQuantity).toBeUndefined();
   });
 
-  it('a tracked simple product at 0 is sold out and cannot be added', async () => {
+  it('without max_per_order a tracked simple product keeps the previous behaviour (no stock bound, not sold out)', () => {
     const { result } = render(simple({ track_inventory: true, stock_quantity: 0 }));
+    expect(result.current.simpleSoldOut).toBe(false);
+    expect(result.current.isOutOfStock).toBe(false);
+    expect(result.current.isAddBlocked).toBe(false);
+    expect(result.current.maxStock).toBeUndefined();
+    expect(result.current.maxQuantity).toBeUndefined();
+    const { result: low } = render(simple({ track_inventory: true, stock_quantity: 2 }));
+    expect(low.current.maxQuantity).toBeUndefined();
+  });
+
+  it('a tracked simple product at 0 is sold out and cannot be added (booking product)', async () => {
+    const { result } = render(simple({ track_inventory: true, stock_quantity: 0, max_per_order: 2 }));
     expect(result.current.simpleSoldOut).toBe(true);
     expect(result.current.isOutOfStock).toBe(true);
     expect(result.current.isAddBlocked).toBe(true);
@@ -131,8 +142,8 @@ describe('ProductPageState booking bounds (B2/B3)', () => {
     expect(addItem).not.toHaveBeenCalled();
   });
 
-  it('a tracked simple product caps the selector at its stock', () => {
-    const { result } = render(simple({ track_inventory: true, stock_quantity: 4 }));
+  it('a tracked simple product caps the selector at its stock (booking product)', () => {
+    const { result } = render(simple({ track_inventory: true, stock_quantity: 4, max_per_order: 9 }));
     expect(result.current.maxStock).toBe(4);
     expect(result.current.maxQuantity).toBe(4);
     expect(result.current.isAddBlocked).toBe(false);
@@ -169,6 +180,15 @@ describe('ProductPageState booking bounds (B2/B3)', () => {
     expect(result.current.quantity).toBe(4);
     const { result: stock } = render(simple({ track_inventory: true, stock_quantity: 2, max_per_order: 4 }));
     expect(stock.current.quantity).toBe(2);
+  });
+
+  it('?qty then a bundle pick: the quantity becomes a multiple of the bundle', () => {
+    window.history.replaceState(null, '', '/en/products/course?qty=3');
+    const { result } = render(simple({ bundles: BUNDLES }));
+    expect(result.current.quantity).toBe(3);
+    act(() => result.current.handleSelectBundle('o2'));
+    expect(result.current.quantity % 2).toBe(0);
+    expect(result.current.quantity).toBe(2);
   });
 
   it('?qty=abc is ignored', () => {

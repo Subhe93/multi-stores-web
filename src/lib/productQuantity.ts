@@ -5,7 +5,8 @@
 //   custom-product lines never count (mirrors api `cart/max-per-order.ts`).
 // - A product without variants that tracks inventory is bounded by its
 //   `stock_quantity` (the same rule order creation enforces, see
-//   `productAvailability`).
+//   `productAvailability`). The product page applies this bound only to
+//   products with `max_per_order` set, so other products keep their pages.
 // - `?qty=N` on a product link pre-fills the quantity, clamped to the bounds.
 //
 // Pure helpers; products without a limit and without tracked stock get no

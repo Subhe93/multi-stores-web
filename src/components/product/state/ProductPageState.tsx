@@ -290,16 +290,21 @@ function useProductPageStateValue({
     return undefined;
   }, [selectedVariant, product.compare_at_price]);
 
+  // Per-order limit of the product (null = unlimited, every product before B2).
+  const maxPerOrder = readMaxPerOrder(product.max_per_order);
   // Stock of a product without variants that tracks inventory (null when
   // stock does not bound it): the same rule order creation enforces, so a
-  // sold-out simple product can no longer be added only to fail at checkout.
-  const simpleStock = useMemo(() => simpleProductStock(product), [product]);
+  // sold-out simple product cannot be added only to fail at checkout. Opt-in:
+  // it applies only to products with `max_per_order` set (booking products);
+  // every other product page keeps its previous behaviour.
+  const simpleStock = useMemo(
+    () => (maxPerOrder !== null ? simpleProductStock(product) : null),
+    [product, maxPerOrder],
+  );
   const simpleSoldOut = simpleStock !== null && simpleStock <= 0;
   const maxStock = useMemo(() => {
     return selectedVariant ? selectedVariant.stock : (simpleStock ?? undefined);
   }, [selectedVariant, simpleStock]);
-  // Per-order limit of the product (null = unlimited, every product before B2).
-  const maxPerOrder = readMaxPerOrder(product.max_per_order);
   const quantityMin = bundlePricing?.cartQuantity ?? 1;
   const quantityStep = bundlePricing?.cartQuantity ?? 1;
   // What the quantity selectors may reach: stock and the per-order limit,
@@ -333,7 +338,7 @@ function useProductPageStateValue({
     if (qtyFromLink.current === null) {
       const wanted = typeof window === 'undefined' ? null : readQtyParam(window.location.search);
       qtyFromLink.current = wanted !== null;
-      if (wanted !== null) setQuantity(clampQty(wanted, { min: 1, step: 1, max: maxQuantity }));
+      if (wanted !== null) setQuantity(clampQty(wanted, { min: quantityMin, step: quantityStep, max: maxQuantity }));
       return;
     }
     if (qtyFromLink.current && typeof maxQuantity === 'number' && maxQuantity >= 1) {
