@@ -45,7 +45,7 @@ export function StateAddToCartButton({
   className?: string;
 }) {
   const t = useTranslations();
-  const { addedToCart, isAddBlocked, addingToCart, handleAddToCart } = state;
+  const { addedToCart, isAddBlocked, addingToCart, handleAddToCart, simpleSoldOut, isDraftPreview } = state;
   // Until this boundary hydrates (its lazy chunk may still be loading) the
   // server-rendered button has no click handler. React does not replay a
   // tap on a boundary whose chunk has not arrived (verified on prod, M106),
@@ -99,6 +99,8 @@ export function StateAddToCartButton({
           <Check className="w-4 h-4" />
           {t('cart.itemAdded')}
         </>
+      ) : simpleSoldOut && !isDraftPreview ? (
+        t('product.outOfStock')
       ) : (
         <>
           <ShoppingCart className="w-4 h-4" />
@@ -134,7 +136,7 @@ export function ProductBuyBlock(props: SectionRenderProps) {
                 value={state.quantity}
                 onChange={state.handleQuantityChange}
                 min={state.quantityMin}
-                max={state.maxStock}
+                max={state.maxQuantity}
                 step={state.quantityStep}
               />
             )}

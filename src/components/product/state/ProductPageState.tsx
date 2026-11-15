@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { pieceOneOptionKeys, pieceOneRepeater } from '@/components/product/personalization/model';
@@ -15,6 +15,7 @@ import { uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
+import { clampQty, effectiveMax, readMaxPerOrder, readQtyParam, simpleProductStock } from '@/lib/productQuantity';
 import {
   buildGalleryMedia,
   toGalleryVideoItems,
@@ -289,9 +290,56 @@ function useProductPageStateValue({
     return undefined;
   }, [selectedVariant, product.compare_at_price]);
 
+  // Stock of a product without variants that tracks inventory (null when
+  // stock does not bound it): the same rule order creation enforces, so a
+  // sold-out simple product can no longer be added only to fail at checkout.
+  const simpleStock = useMemo(() => simpleProductStock(product), [product]);
+  const simpleSoldOut = simpleStock !== null && simpleStock <= 0;
   const maxStock = useMemo(() => {
-    return selectedVariant ? selectedVariant.stock : undefined;
-  }, [selectedVariant]);
+    return selectedVariant ? selectedVariant.stock : (simpleStock ?? undefined);
+  }, [selectedVariant, simpleStock]);
+  // Per-order limit of the product (null = unlimited, every product before B2).
+  const maxPerOrder = readMaxPerOrder(product.max_per_order);
+  const quantityMin = bundlePricing?.cartQuantity ?? 1;
+  const quantityStep = bundlePricing?.cartQuantity ?? 1;
+  // What the quantity selectors may reach: stock and the per-order limit,
+  // on multiples of the bundle size. Equals `maxStock` without a limit.
+  const maxQuantity = useMemo(() => {
+    if (maxPerOrder === null) return maxStock;
+    return effectiveMax(maxStock ?? null, maxPerOrder, quantityStep) ?? undefined;
+  }, [maxStock, maxPerOrder, quantityStep]);
+  // Bundle offers that fit in one order: an offer putting more units in the
+  // cart than `max_per_order` is hidden. Without a limit the product's own
+  // list (same reference) is returned.
+  const bundles = useMemo(() => {
+    const all = product.bundles;
+    if (maxPerOrder === null || !all?.length) return all;
+    return all
+      .map((b) => ({
+        ...b,
+        offers: b.offers.filter((o) => computeBundlePricing(0, o).cartQuantity <= maxPerOrder),
+      }))
+      .filter((b) => b.offers.length > 0);
+  }, [product.bundles, maxPerOrder]);
+
+  // Booking links (B3): `?qty=N` pre-fills the quantity once on mount,
+  // clamped to stock and the per-order limit. Runs in an effect after the
+  // bundle effect (the server and the first client render show 1) and never
+  // adds to the cart. Until a variant is picked its stock is unknown, so a
+  // link quantity is clamped again whenever the bound drops below it. Pages
+  // opened without `?qty` never run either clamp.
+  const qtyFromLink = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (qtyFromLink.current === null) {
+      const wanted = typeof window === 'undefined' ? null : readQtyParam(window.location.search);
+      qtyFromLink.current = wanted !== null;
+      if (wanted !== null) setQuantity(clampQty(wanted, { min: 1, step: 1, max: maxQuantity }));
+      return;
+    }
+    if (qtyFromLink.current && typeof maxQuantity === 'number' && maxQuantity >= 1) {
+      setQuantity((q) => (q > maxQuantity ? clampQty(q, { min: quantityMin, step: quantityStep, max: maxQuantity }) : q));
+    }
+  }, [maxQuantity, quantityMin, quantityStep]);
 
   // Owner preview of a DRAFT product: nothing can be added (the API would
   // refuse the quote / order anyway).
@@ -305,13 +353,14 @@ function useProductPageStateValue({
     !variants.some(
       (v) => (v as { is_active?: boolean | null }).is_active !== false && (typeof v.stock !== 'number' || v.stock > 0),
     );
-  const isOutOfStock = Boolean(selectedVariant && selectedVariant.stock <= 0) || noneBuyable;
+  const isOutOfStock = Boolean(selectedVariant && selectedVariant.stock <= 0) || noneBuyable || simpleSoldOut;
   const isAddDisabled = useMemo(() => {
     if (isDraftPreview) return true;
     if (variants.length > 0 && !selectedVariantId) return true;
     if (selectedVariant && selectedVariant.stock <= 0) return true;
+    if (simpleSoldOut) return true;
     return false;
-  }, [isDraftPreview, variants, selectedVariantId, selectedVariant]);
+  }, [isDraftPreview, variants, selectedVariantId, selectedVariant, simpleSoldOut]);
   // The add button is only truly blocked (greyed, disabled) when nothing can
   // be bought: a DRAFT preview or a sold-out variant. A missing option or
   // required field keeps the button active in the store colour; a click then
@@ -394,8 +443,10 @@ function useProductPageStateValue({
           }
         : null,
       customerFile: customerFileUrl ?? undefined,
+      // Kept on guest lines so the cart steppers respect it (B2).
+      ...(maxPerOrder !== null && product._type !== 'custom_product' ? { maxPerOrder } : {}),
     }),
-    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl],
+    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder],
   );
 
   const handleAddToCart = useCallback(async () => {
@@ -580,16 +631,22 @@ function useProductPageStateValue({
     selectedBundleOffer,
     bundlePricing,
     handleSelectBundle,
+    /** Bundles whose offers fit `max_per_order` (the product's list without a limit). */
+    bundles,
     // Quantity and stock
     quantity,
     setQuantity,
     handleQuantityChange,
     maxStock,
-    quantityMin: bundlePricing?.cartQuantity ?? 1,
-    quantityStep: bundlePricing?.cartQuantity ?? 1,
+    maxQuantity,
+    maxPerOrder,
+    quantityMin,
+    quantityStep,
     isDraftPreview,
     needsVariantSelection,
     isOutOfStock,
+    /** A product without variants whose tracked stock is 0: the add button reads "sold out". */
+    simpleSoldOut,
     isAddDisabled,
     isAddBlocked,
     variantAttempt,

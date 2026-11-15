@@ -289,3 +289,12 @@ describe('guest cart storage (M5 D1 / D12)', () => {
     expect(guestCartFromStorageEvent({ key: null, newValue: null })).toBeNull();
   });
 });
+
+describe('addGuestLine per-order limit (B2)', () => {
+  it('keeps maxPerOrder only on lines of a limited product', () => {
+    const limited = addGuestLine([], 'p1', null, 1, undefined, { price: 10, maxPerOrder: 2 }, fixedId);
+    expect(limited[0]!.maxPerOrder).toBe(2);
+    const plain = addGuestLine([], 'p1', null, 1, undefined, { price: 10 }, fixedId);
+    expect('maxPerOrder' in plain[0]!).toBe(false);
+  });
+});

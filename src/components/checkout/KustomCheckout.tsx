@@ -42,7 +42,13 @@ const VALIDATION_REASON_KEYS: Record<string, string> = {
   out_of_stock: 'checkout.kustomValidationReasons.outOfStock',
   coupon_invalid: 'checkout.kustomValidationReasons.couponInvalid',
   unavailable: 'checkout.kustomValidationReasons.unavailable',
+  // Headless booking B4: fixable in the cart.
+  max_per_order: 'checkout.kustomValidationReasons.maxPerOrder',
+  invalid_participant: 'checkout.kustomValidationReasons.invalidParticipant',
 };
+
+// Reasons the shopper fixes in the cart: their message links back to it.
+const CART_FIXABLE_REASONS = new Set(['max_per_order', 'invalid_participant']);
 
 const inputCls = (err?: boolean) =>
   `w-full border rounded-md px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 transition focus:outline-none focus:ring-2 ${
@@ -126,7 +132,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const [couponError, setCouponError] = useState('');
 
 
-  const { html, loading, updating, failed, unavailableBlocked, syncFailed, totals, totalsBuyer, session, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, unavailableBlocked, syncFailed, refusal, totals, totalsBuyer, session, retry } = useKustomCheckout({
     storeSlug,
     locale,
     marketKey: market?.key ?? null,
@@ -264,13 +270,33 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
       {callbackMessage && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{callbackMessage}</span>
+          <span>
+            {callbackMessage}
+            {errorParam === 'kustom_validation' && reasonParam && CART_FIXABLE_REASONS.has(reasonParam) && (
+              <>
+                {' '}
+                <Link href={lp('/cart')} className="font-medium underline underline-offset-2">
+                  {t('checkout.returnToCart')}
+                </Link>
+              </>
+            )}
+          </span>
         </div>
       )}
       {syncFailed && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{t('checkout.kustomSyncFailed')}</span>
+          <span>
+            {refusal ? t(VALIDATION_REASON_KEYS[refusal]) : t('checkout.kustomSyncFailed')}
+            {refusal && (
+              <>
+                {' '}
+                <Link href={lp('/cart')} className="font-medium underline underline-offset-2">
+                  {t('checkout.returnToCart')}
+                </Link>
+              </>
+            )}
+          </span>
         </div>
       )}
 
@@ -408,9 +434,15 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
               {/* A product of the cart is gone and could not be dropped
                   automatically: the cart is where it can be fixed. */}
-              <p>{unavailableBlocked ? t('checkout.itemsUnavailable') : t('checkout.kustomSessionFailed')}</p>
+              <p>
+                {unavailableBlocked
+                  ? t('checkout.itemsUnavailable')
+                  : refusal
+                    ? t(VALIDATION_REASON_KEYS[refusal])
+                    : t('checkout.kustomSessionFailed')}
+              </p>
               <div className="flex flex-wrap gap-4 mt-3">
-                {unavailableBlocked && (
+                {(unavailableBlocked || refusal) && (
                   <Link
                     href={lp('/cart')}
                     className="font-medium text-red-700 underline underline-offset-2 hover:text-red-800"

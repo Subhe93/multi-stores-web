@@ -119,7 +119,7 @@ export function AddToCartMagic(props: SectionRenderProps) {
   // its minimum and step (multiples of the bundle size).
   const min = state.quantityMin;
   const step = state.quantityStep;
-  const max = state.maxStock;
+  const max = state.maxQuantity;
   const canDecrement = quantity - step >= min;
   const canIncrement = max === undefined || quantity + step <= max;
   const quantityPicker = showQuantity ? (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { fieldMessage, insertAtCaret, truncateChars, type PFieldDef } from '@multi-stores/core/personalization';
+import { fieldMessage, insertAtCaret, readValidationRules, truncateChars, type PFieldDef } from '@multi-stores/core/personalization';
 import { filterAllowedChars } from '@/lib/personalization/form';
 import { displayLength, textLimits, type FieldText } from '../model';
 import { FieldShell } from './FieldShell';
@@ -56,6 +56,13 @@ export function TextField({
   const current = typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
   const count = displayLength(current);
   const multiline = def.type === 'TEXTAREA';
+  // Personnummer fields (B1): no browser autofill / spellcheck on an identity
+  // number. The error text itself comes from `errors.CUSTOM_FIELD_INVALID_PERSONNUMMER`
+  // (or the creator's `messages.format` override) like every other rule.
+  const identityInput =
+    readValidationRules(def.validation_rules).format === 'personnummer'
+      ? ({ autoComplete: 'off', spellCheck: false } as const)
+      : null;
 
   // Brief notice after characters were dropped by the allowed set.
   useEffect(() => {
@@ -133,6 +140,7 @@ export function TextField({
             type="text"
             value={current}
             placeholder={text.placeholder}
+            {...identityInput}
             aria-invalid={error ? true : undefined}
             onChange={(e) => handleInput(e.target.value, (e.nativeEvent as InputEvent).isComposing === true)}
             onCompositionEnd={(e) => handleInput(e.currentTarget.value, false)}

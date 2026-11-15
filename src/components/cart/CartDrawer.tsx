@@ -10,6 +10,7 @@ import { useCart } from '@/hooks/useCart';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
+import { lineMaxQty } from '@/lib/productQuantity';
 import { CartSummary } from './CartSummary';
 import { RemoveUnavailableHint } from './UnavailableInMarket';
 import { useCodedApiError } from '@/lib/useApiError';
@@ -170,6 +171,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}
                     locale={locale}
+                    maxQuantity={lineMaxQty(item, items)}
+                    maxPerOrder={item.maxPerOrder}
                   />
                 ))}
               </div>

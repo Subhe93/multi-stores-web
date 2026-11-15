@@ -35,6 +35,8 @@ export interface LineSource {
   bundle?: LineBundle | null;
   /** Legacy "customer upload" block: the uploaded file's preview URL. */
   customerFile?: string;
+  /** The product's per-order limit (B2); null/absent = unlimited. */
+  maxPerOrder?: number | null;
 }
 
 /** `"Color: Red / Size: M"` label of a variant's options ('' without options). */
@@ -70,6 +72,7 @@ export function buildLineMetadata(
     ...(src.taxRateBp !== null && src.taxRateBp !== undefined ? { taxRateBp: src.taxRateBp } : {}),
     ...(src.customProductId ? { customProductId: src.customProductId } : {}),
     ...(src.customerFile ? { customerFile: src.customerFile } : {}),
+    ...(typeof src.maxPerOrder === 'number' ? { maxPerOrder: src.maxPerOrder } : {}),
     ...(bundle
       ? {
           bundleOfferId: bundle.offerId,

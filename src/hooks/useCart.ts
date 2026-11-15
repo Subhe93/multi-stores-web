@@ -24,6 +24,7 @@ import {
   type TaxPricingMode,
 } from '@/lib/tax';
 import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
+import { assertGuestAdd, lineMaxQty, maxPerOrderError, readMaxPerOrder } from '@/lib/productQuantity';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { captureCouponFromSearch, pendingCouponStorageKey, type CouponAutoApplyNotice } from '@/lib/checkoutSettings';
 import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
@@ -117,6 +118,9 @@ export interface CartItem {
   /** Designer line details: server-enriched (`GET /cart` `design`) or
    *  captured at add time for guests. */
   design?: CartLineDesign;
+  /** Per-order limit of the line's product (`GET /cart` `max_per_order`, or
+   *  copied from the product at add time for guests). Absent = unlimited. */
+  maxPerOrder?: number;
 }
 
 /** Design of a designer cart line. */
@@ -198,6 +202,8 @@ export interface CartItemMetadata {
   /** Designer app (M4.2): add the line with this design instead of field
    *  values. `token` is the guest token (claims the design server-side). */
   design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number; doubleSided?: true; proofBackUrl?: string | null };
+  /** The product's per-order limit, kept on guest lines (absent = unlimited). */
+  maxPerOrder?: number;
 }
 
 /** Applied coupon (shape and discount rule live in `@/lib/couponDiscount`). */
@@ -464,6 +470,8 @@ interface RawCartItem {
   design?: unknown;
   design_id?: string | null;
   designId?: string | null;
+  max_per_order?: unknown;
+  maxPerOrder?: unknown;
 }
 
 /** `design` block of a designer line in `GET /cart` (M4.2-CONTRACTS). */
@@ -522,6 +530,7 @@ export function readCartLineDesign(raw: unknown): { design: CartLineDesign; disp
 export function normalizeCartItem(raw: RawCartItem): CartItem {
   const rawRate = raw.tax_rate_bp ?? raw.taxRateBp;
   const designBlock = readCartLineDesign(raw.design);
+  const maxPerOrder = readMaxPerOrder(raw.max_per_order ?? raw.maxPerOrder);
   const rawDisplay = Array.isArray(raw.customFieldDisplay)
     ? raw.customFieldDisplay
     : Array.isArray(raw.custom_field_display)
@@ -572,6 +581,8 @@ export function normalizeCartItem(raw: RawCartItem): CartItem {
     ...((raw.personalization_invalid ?? raw.personalizationInvalid) === true ? { personalizationInvalid: true } : {}),
     // Designer app: only on designer lines.
     ...(designBlock ? { designId: designBlock.design.id, design: designBlock.design } : {}),
+    // Per-order limit: only on lines of a limited product (B2).
+    ...(maxPerOrder !== null ? { maxPerOrder } : {}),
   };
 }
 
@@ -1011,6 +1022,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
     }
   }, [isAuthenticated, token, localeQuery, migrateLocalCart, adoptServerCart, restoreCoupon, commitCoupon]);
 
+  // Latest lines for async work: guest per-order limit checks (B2) and
+  // coupon validation (prices the cart as it is when the request goes out).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
   // ── Add item ───────────────────────────────────────
 
   const addItem = useCallback(
@@ -1048,6 +1064,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         const cart = normalizeCartResponse(data);
         adoptServerCart(cart);
       } else {
+        // Per-order limit (B2): the API enforces it for signed-in carts and at
+        // checkout; guests are told at once. Products without one skip this.
+        assertGuestAdd(productId, quantity, metadata?.maxPerOrder, itemsRef.current, isCustomProduct);
         let fields = customFields;
         let meta = metadata;
         if (metadata?.personalizationCheck && !design) {
@@ -1112,6 +1131,12 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         const cart = normalizeCartResponse(data);
         adoptServerCart(cart);
       } else {
+        // Per-order limit (B2): only a raise is checked, lowering always works.
+        const line = itemsRef.current.find((item) => item.id === itemId);
+        const lineMax = line && quantity > line.quantity ? lineMaxQty(line, itemsRef.current) : null;
+        if (line && lineMax !== null && quantity > lineMax) {
+          throw maxPerOrderError(line.productId, readMaxPerOrder(line.maxPerOrder) ?? lineMax);
+        }
         setItems((prev) => {
           return prev.map((item) => (item.id === itemId ? { ...item, quantity } : item));
         });
@@ -1285,11 +1310,6 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
   }, [couponAutoapply, storeId]);
 
   // ── Apply coupon ───────────────────────────────────
-
-  // Latest lines for async coupon work (validation always prices the cart
-  // as it is when the request goes out).
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
 
   /**
    * POST /promotions/validate-coupon for `lines`, the same inputs the order

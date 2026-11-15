@@ -25,6 +25,7 @@ import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import { couponDiscount } from '@/lib/couponDiscount';
+import { lineMaxQty } from '@/lib/productQuantity';
 import { useCartQuote } from '@/hooks/useCartQuote';
 import { quoteTotalBeforeTax } from '@/lib/cartQuote';
 import { countryName } from '@/lib/marketSwitch';
@@ -125,9 +126,13 @@ interface CartItemRowProps {
   onUpdateQuantity: (id: string, qty: number) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onClearBundle: (id: string) => Promise<void>;
+  /** Highest quantity this line may take (per-order limit, `lineMaxQty`); null = no limit. */
+  maxQuantity?: number | null;
+  /** The product's per-order limit, for the "max per order" hint. */
+  maxPerOrder?: number;
 }
 
-function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartItemRowProps) {
+function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuantity = null, maxPerOrder }: CartItemRowProps) {
   const t = useTranslations();
   const locale = useLocale();
   const { currency } = useCart();
@@ -149,6 +154,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
       : null;
   const originalLineTotal = originalUnit !== null ? originalUnit * item.quantity : null;
   const unavailable = item.unavailableInMarket === true;
+  // Per-order limit (B2): the + step stops at the line's share of it.
+  const atLimit = typeof maxQuantity === 'number' && item.quantity + 1 > maxQuantity;
 
   async function changeQty(qty: number) {
     if (qty < 1) return;
@@ -270,7 +277,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
             </span>
             <button
               onClick={() => changeQty(item.quantity + 1)}
-              disabled={updating || hasBundle}
+              disabled={updating || hasBundle || atLimit}
               className="size-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.increaseQuantity')}
             >
@@ -288,6 +295,9 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle }: CartIt
             {t('cart.remove')}
           </button>
         </div>
+        {!unavailable && atLimit && typeof maxPerOrder === 'number' && (
+          <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
+        )}
       </div>
 
       {/* Line price (hidden for a line unavailable in this market) */}
@@ -423,6 +433,8 @@ export default function StoreCartPage() {
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeItem}
                   onClearBundle={clearBundle}
+                  maxQuantity={lineMaxQty(item, items)}
+                  maxPerOrder={item.maxPerOrder}
                 />
               ))}
             </div>

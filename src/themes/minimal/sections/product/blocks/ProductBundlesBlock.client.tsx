@@ -16,7 +16,7 @@ import { blockLabel, ProductBlockPlaceholder, ProductBlockScope } from './b2Shar
 export function ProductBundlesBlock({ locale, product, builderPreview }: SectionRenderProps) {
   const t = useTranslations();
   const state = useOptionalProductPageState();
-  const bundles = state?.product.bundles ?? [];
+  const bundles = state?.bundles ?? [];
   if (!state || bundles.length === 0) {
     return (
       <ProductBlockPlaceholder

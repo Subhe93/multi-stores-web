@@ -429,7 +429,8 @@
     "couponNoticeDismiss": "Stäng",
     "unavailableRemoved": "{count, plural, one {En vara som inte längre finns har tagits bort från din varukorg} other {# varor som inte längre finns har tagits bort från din varukorg}}",
     "productFallback": "Produkt",
-    "bundleFallback": "Paket"
+    "bundleFallback": "Paket",
+    "maxPerOrder": "Max {max} per beställning"
   },
   "checkout": {
     "returnToStore": "Tillbaka till butiken",
@@ -546,7 +547,9 @@
       "amountChanged": "Beställningens totalsumma ändrades under betalningen. Kontrollera din varukorg och försök igen.",
       "outOfStock": "En eller flera varor i din varukorg finns inte längre i lager. Uppdatera din varukorg och försök igen.",
       "couponInvalid": "Rabattkoden är inte längre giltig. Ta bort den och försök igen.",
-      "unavailable": "En eller flera varor i din varukorg är inte längre tillgängliga. Uppdatera din varukorg och försök igen."
+      "unavailable": "En eller flera varor i din varukorg är inte längre tillgängliga. Uppdatera din varukorg och försök igen.",
+      "maxPerOrder": "Din varukorg innehåller fler av en produkt än en beställning tillåter. Minska antalet i varukorgen och försök igen.",
+      "invalidParticipant": "Ett personnummer för en deltagare är inte giltigt. Kontrollera deltagaruppgifterna i varukorgen och försök igen."
     },
     "personalizationInvalid": "Personaliseringen av {products} måste uppdateras innan du kan gå till kassan.",
     "personalizationInvalidGeneric": "Personaliseringen av en artikel i din varukorg måste uppdateras innan du kan gå till kassan.",
@@ -951,6 +954,7 @@
     "CART_BUNDLE_NOT_AVAILABLE_FOR_PRODUCT": "Paketet är inte tillgängligt för denna produkt",
     "CART_BUNDLE_NOT_PROFITABLE": "Detta paketerbjudande är inte längre lönsamt för denna produkt och kan inte tillämpas",
     "CART_ITEM_NOT_FOUND": "Varukorgsartikeln hittades inte",
+    "CART_MAX_PER_ORDER": "Du kan beställa högst {max} av den här produkten per beställning.",
     "PROVIDER_PROFILE_NOT_FOUND": "Leverantörsprofilen hittades inte",
     "PROVIDER_NOT_FOUND": "Leverantören hittades inte",
     "PROVIDER_STORE_NOT_FOUND": "Butiken hittades inte",
@@ -999,6 +1003,7 @@
     "CUSTOM_FIELD_NUMBER_TOO_SMALL": "{label} måste vara minst {min}.",
     "CUSTOM_FIELD_NUMBER_TOO_LARGE": "{label} får vara högst {max}.",
     "CUSTOM_FIELD_INVALID_FORMAT": "{label} har ett ogiltigt format.",
+    "CUSTOM_FIELD_INVALID_PERSONNUMMER": "Ange ett giltigt personnummer (ÅÅÅÅMMDD-XXXX).",
     "CUSTOM_FIELD_INVALID_CHARS": "{label} innehåller tecken som inte är tillåtna.",
     "CUSTOM_FIELD_LENGTH_MISMATCH": "{label} måste ha lika många tecken som det kopplade fältet ({length}).",
     "CUSTOM_FIELD_COMBINED_TOO_LONG": "{label} och det kopplade fältet får tillsammans ha högst {max} tecken.",

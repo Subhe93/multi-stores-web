@@ -72,3 +72,11 @@ describe('buildLineMetadata (shared by the product page and the theme section)',
     expect(buildLineMetadata({ title: 'A', unitPrice: 1 }, { design })).toMatchObject({ design });
   });
 });
+
+describe('buildLineMetadata per-order limit (B2)', () => {
+  it('carries maxPerOrder only when the product has one', () => {
+    expect(buildLineMetadata({ title: 'A', unitPrice: 1, maxPerOrder: 4 })).toMatchObject({ maxPerOrder: 4 });
+    expect('maxPerOrder' in buildLineMetadata({ title: 'A', unitPrice: 1, maxPerOrder: null })).toBe(false);
+    expect('maxPerOrder' in buildLineMetadata({ title: 'A', unitPrice: 1 })).toBe(false);
+  });
+});

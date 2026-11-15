@@ -48,6 +48,11 @@ export interface ProductData {
   /** b2b app only: estimated tax rate (2500 = 25 %) for the company net view. */
   tax_rate_bp?: number | null;
   allow_customer_upload?: boolean;
+  /** Stock of a product without variants (bounds it only when tracked). */
+  track_inventory?: boolean | null;
+  stock_quantity?: number | null;
+  /** Units of this product allowed per order; null/absent = unlimited. */
+  max_per_order?: number | null;
   product_type?: string;
   customization_type?: string;
   translations: {
@@ -350,8 +355,11 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     baseUnitPrice,
     display,
     currentPrice,
-    maxStock,
+    maxQuantity,
     isAddBlocked,
+    simpleSoldOut,
+    isDraftPreview,
+    bundles,
     variantAttempt,
     variantAttemptMessage,
     handleSelectBundle,
@@ -587,9 +595,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           )}
 
           {/* Bundles — quantity-tier offers */}
-          {product.bundles && product.bundles.length > 0 && (
+          {bundles && bundles.length > 0 && (
             <div className="space-y-3">
-              {product.bundles.map((bundle) => {
+              {bundles.map((bundle) => {
                 const sortedOffers = [...bundle.offers].sort(
                   (a, b) => a.sort_order - b.sort_order,
                 );
@@ -811,7 +819,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                     value={quantity}
                     onChange={handleQuantityChange}
                     min={bundlePricing?.cartQuantity ?? 1}
-                    max={maxStock}
+                    max={maxQuantity}
                     step={bundlePricing?.cartQuantity ?? 1}
                   />
                 }
@@ -838,7 +846,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 value={quantity}
                 onChange={handleQuantityChange}
                 min={bundlePricing?.cartQuantity ?? 1}
-                max={maxStock}
+                max={maxQuantity}
                 step={bundlePricing?.cartQuantity ?? 1}
               />
 
@@ -888,6 +896,8 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                       <Check className="w-4 h-4" />
                       {t('cart.itemAdded')}
                     </>
+                  ) : simpleSoldOut && !isDraftPreview ? (
+                    t('product.outOfStock')
                   ) : (
                     <>
                       <ShoppingCart className="w-4 h-4" />

@@ -88,7 +88,7 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
     handleQuantityChange,
     quantityMin,
     quantityStep,
-    maxStock,
+    maxQuantity,
     display,
     taxRateBp,
     currency,
@@ -134,7 +134,7 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
           totalLabel={formatPrice(display((currentPrice + designerAddons) * quantity, taxRateBp, currency).amount, currency, lang)}
           formatMoney={(amount) => formatPrice(display(amount, taxRateBp, currency).amount, currency, lang)}
           quantitySelector={
-            <QuantitySelector value={quantity} onChange={handleQuantityChange} min={quantityMin} max={maxStock} step={quantityStep} />
+            <QuantitySelector value={quantity} onChange={handleQuantityChange} min={quantityMin} max={maxQuantity} step={quantityStep} />
           }
           blockedReason={designerBlockedReason}
           addedContent={

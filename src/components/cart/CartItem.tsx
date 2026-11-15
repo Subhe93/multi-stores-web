@@ -83,15 +83,22 @@ interface CartItemProps {
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
   locale?: string;
+  /** Highest quantity this line may take (product `max_per_order` minus the
+   *  product's other lines, see `lineMaxQty`); null/absent = no limit. */
+  maxQuantity?: number | null;
+  /** The product's per-order limit, for the "max per order" hint. */
+  maxPerOrder?: number;
 }
 
-export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: CartItemProps) {
+export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQuantity = null, maxPerOrder }: CartItemProps) {
   const t = useTranslations();
   const [updating, setUpdating] = useState(false);
   const display = useDisplayPrice();
   const currency = item.currency || 'EUR';
   // Company view (b2b app) shows the net line total; persons the gross.
   const lineTotal = display(item.price, item.taxRateBp, currency).amount * item.quantity;
+  // Per-order limit (B2): the + step stops at the line's share of it.
+  const atLimit = typeof maxQuantity === 'number' && item.quantity + 1 > maxQuantity;
   // Designer lines: the proof replaces the product image once it exists.
   const design = item.design;
   const designInfo = useCartDesign(design, item.id.startsWith('local_'));
@@ -242,7 +249,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             </span>
             <button
               onClick={() => handleQuantity(item.quantity + 1)}
-              disabled={updating}
+              disabled={updating || atLimit}
               className="size-11 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.increaseQuantity')}
             >
@@ -258,6 +265,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en' }: Ca
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
+        )}
+        {atLimit && typeof maxPerOrder === 'number' && (
+          <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}
       </div>
     </div>

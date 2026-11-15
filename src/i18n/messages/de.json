@@ -429,7 +429,8 @@
     "couponNoticeDismiss": "Schließen",
     "unavailableRemoved": "{count, plural, one {Ein nicht mehr verfügbarer Artikel wurde aus deinem Warenkorb entfernt} other {# nicht mehr verfügbare Artikel wurden aus deinem Warenkorb entfernt}}",
     "productFallback": "Produkt",
-    "bundleFallback": "Paket"
+    "bundleFallback": "Paket",
+    "maxPerOrder": "Max. {max} pro Bestellung"
   },
   "checkout": {
     "returnToStore": "Zurück zum Shop",
@@ -546,7 +547,9 @@
       "amountChanged": "Der Bestellbetrag hat sich während der Zahlung geändert. Bitte prüfen Sie Ihren Warenkorb und versuchen Sie es erneut.",
       "outOfStock": "Ein oder mehrere Artikel in Ihrem Warenkorb sind nicht mehr auf Lager. Bitte aktualisieren Sie Ihren Warenkorb und versuchen Sie es erneut.",
       "couponInvalid": "Der Gutscheincode ist nicht mehr gültig. Bitte entfernen Sie ihn und versuchen Sie es erneut.",
-      "unavailable": "Ein oder mehrere Artikel in Ihrem Warenkorb sind nicht mehr verfügbar. Bitte aktualisieren Sie Ihren Warenkorb und versuchen Sie es erneut."
+      "unavailable": "Ein oder mehrere Artikel in Ihrem Warenkorb sind nicht mehr verfügbar. Bitte aktualisieren Sie Ihren Warenkorb und versuchen Sie es erneut.",
+      "maxPerOrder": "Ihr Warenkorb enthält mehr von einem Produkt, als eine Bestellung erlaubt. Bitte verringern Sie die Menge in Ihrem Warenkorb und versuchen Sie es erneut.",
+      "invalidParticipant": "Die Personennummer eines Teilnehmers ist ungültig. Bitte prüfen Sie die Teilnehmerangaben in Ihrem Warenkorb und versuchen Sie es erneut."
     },
     "personalizationInvalid": "Die Personalisierung von {products} muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
     "personalizationInvalidGeneric": "Die Personalisierung eines Artikels in Ihrem Warenkorb muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
@@ -951,6 +954,7 @@
     "CART_BUNDLE_NOT_AVAILABLE_FOR_PRODUCT": "Bundle ist für dieses Produkt nicht verfügbar",
     "CART_BUNDLE_NOT_PROFITABLE": "Dieses Bundle-Angebot ist für dieses Produkt nicht mehr rentabel und kann nicht angewendet werden",
     "CART_ITEM_NOT_FOUND": "Warenkorbartikel nicht gefunden",
+    "CART_MAX_PER_ORDER": "Sie können höchstens {max} Stück dieses Produkts pro Bestellung bestellen.",
     "PROVIDER_PROFILE_NOT_FOUND": "Anbieterprofil nicht gefunden",
     "PROVIDER_NOT_FOUND": "Anbieter nicht gefunden",
     "PROVIDER_STORE_NOT_FOUND": "Shop nicht gefunden",
@@ -999,6 +1003,7 @@
     "CUSTOM_FIELD_NUMBER_TOO_SMALL": "{label} muss mindestens {min} sein.",
     "CUSTOM_FIELD_NUMBER_TOO_LARGE": "{label} darf höchstens {max} sein.",
     "CUSTOM_FIELD_INVALID_FORMAT": "{label} hat ein ungültiges Format.",
+    "CUSTOM_FIELD_INVALID_PERSONNUMMER": "Bitte geben Sie eine gültige schwedische Personennummer ein (JJJJMMTT-XXXX).",
     "CUSTOM_FIELD_INVALID_CHARS": "{label} enthält Zeichen, die nicht erlaubt sind.",
     "CUSTOM_FIELD_LENGTH_MISMATCH": "{label} muss genauso viele Zeichen haben wie das verknüpfte Feld ({length}).",
     "CUSTOM_FIELD_COMBINED_TOO_LONG": "{label} und das verknüpfte Feld dürfen zusammen höchstens {max} Zeichen haben.",

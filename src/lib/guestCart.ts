@@ -143,6 +143,8 @@ export function addGuestLine(
     // b2b stores: keep the product's estimated rate on the guest line (L8);
     // omitted (not null) elsewhere so the stored shape stays identical.
     ...(isKnownRate(metadata?.taxRateBp) ? { taxRateBp: metadata!.taxRateBp } : {}),
+    // Per-order limit (B2): only on lines of a limited product.
+    ...(typeof metadata?.maxPerOrder === 'number' ? { maxPerOrder: metadata.maxPerOrder } : {}),
     // Designer app (M4.2): only on designer lines, so other lines keep their shape.
     ...(design
       ? {

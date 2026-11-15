@@ -42,13 +42,13 @@ const withoutMessage = (errors: Json[]): Json[] =>
   });
 
 describe('personalization evaluator cases', () => {
-  it('runs all 174 cases', () => {
+  it('runs all 178 cases', () => {
     const count = ['evaluate', 'conditions', 'optionCount', 'money', 'formatMoney', 'truncate', 'insertAtCaret', 'display', 'groupLabels'].reduce(
       (n, k) => n + (cases[k] as Json[]).length,
       0,
     );
     expect(cases.version).toBe(1);
-    expect(count).toBe(174);
+    expect(count).toBe(178);
   });
 
   it('has the price-guard cases', () => {
@@ -57,7 +57,7 @@ describe('personalization evaluator cases', () => {
 });
 
 describe('evaluatePersonalization cases', () => {
-  // `evaluateGuards`: the price-guard cases (same format; not in the 174 count).
+  // `evaluateGuards`: the price-guard cases (same format; not in the 178 count).
   it.each(
     [...(cases.evaluate as Json[]), ...((cases.evaluateGuards ?? []) as Json[])].map((c) => [c.name, c] as const),
   )('%s', (_n, c) => {

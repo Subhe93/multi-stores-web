@@ -429,7 +429,8 @@
     "couponNoticeDismiss": "Fermer",
     "unavailableRemoved": "{count, plural, one {Un article qui n’est plus disponible a été retiré de votre panier} other {# articles qui ne sont plus disponibles ont été retirés de votre panier}}",
     "productFallback": "Produit",
-    "bundleFallback": "Lot"
+    "bundleFallback": "Lot",
+    "maxPerOrder": "Max. {max} par commande"
   },
   "checkout": {
     "returnToStore": "Retour à la boutique",
@@ -546,7 +547,9 @@
       "amountChanged": "Le montant de votre commande a changé pendant le paiement. Veuillez vérifier votre panier et réessayer.",
       "outOfStock": "Un ou plusieurs articles de votre panier ne sont plus en stock. Veuillez mettre à jour votre panier et réessayer.",
       "couponInvalid": "Le code promo n’est plus valable. Veuillez le retirer et réessayer.",
-      "unavailable": "Un ou plusieurs articles de votre panier ne sont plus disponibles. Veuillez mettre à jour votre panier et réessayer."
+      "unavailable": "Un ou plusieurs articles de votre panier ne sont plus disponibles. Veuillez mettre à jour votre panier et réessayer.",
+      "maxPerOrder": "Votre panier contient plus d'un produit qu'une commande ne le permet. Veuillez réduire la quantité dans votre panier et réessayer.",
+      "invalidParticipant": "Le numéro d'identité personnel d'un participant n'est pas valide. Veuillez vérifier les informations des participants dans votre panier et réessayer."
     },
     "personalizationInvalid": "La personnalisation de {products} doit être mise à jour avant de passer commande.",
     "personalizationInvalidGeneric": "La personnalisation d’un article de votre panier doit être mise à jour avant de passer commande.",
@@ -951,6 +954,7 @@
     "CART_BUNDLE_NOT_AVAILABLE_FOR_PRODUCT": "Le lot n'est pas disponible pour ce produit",
     "CART_BUNDLE_NOT_PROFITABLE": "Cette offre de lot n'est plus rentable pour ce produit et ne peut pas être appliquée",
     "CART_ITEM_NOT_FOUND": "Article du panier introuvable",
+    "CART_MAX_PER_ORDER": "Vous pouvez commander au maximum {max} exemplaires de ce produit par commande.",
     "PROVIDER_PROFILE_NOT_FOUND": "Profil du fournisseur introuvable",
     "PROVIDER_NOT_FOUND": "Fournisseur introuvable",
     "PROVIDER_STORE_NOT_FOUND": "Boutique introuvable",
@@ -999,6 +1003,7 @@
     "CUSTOM_FIELD_NUMBER_TOO_SMALL": "{label} doit être au moins égal à {min}.",
     "CUSTOM_FIELD_NUMBER_TOO_LARGE": "{label} doit être au maximum égal à {max}.",
     "CUSTOM_FIELD_INVALID_FORMAT": "Le format de {label} n'est pas valide.",
+    "CUSTOM_FIELD_INVALID_PERSONNUMMER": "Saisissez un numéro d'identité personnel suédois valide (AAAAMMJJ-XXXX).",
     "CUSTOM_FIELD_INVALID_CHARS": "{label} contient des caractères non autorisés.",
     "CUSTOM_FIELD_LENGTH_MISMATCH": "{label} doit contenir autant de caractères que le champ lié ({length}).",
     "CUSTOM_FIELD_COMBINED_TOO_LONG": "{label} et le champ lié peuvent contenir au maximum {max} caractères au total.",

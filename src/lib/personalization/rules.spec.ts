@@ -38,7 +38,7 @@ describe('personalization vectors', () => {
       vectors.fileRef.length +
       vectors.validate.length +
       vectors.generated.length;
-    expect(count).toBe(182);
+    expect(count).toBe(190);
   });
 });
 

@@ -429,7 +429,8 @@
     "couponNoticeDismiss": "Dismiss",
     "unavailableRemoved": "{count, plural, one {An item that is no longer available was removed from your cart} other {# items that are no longer available were removed from your cart}}",
     "productFallback": "Product",
-    "bundleFallback": "Bundle"
+    "bundleFallback": "Bundle",
+    "maxPerOrder": "Max {max} per order"
   },
   "checkout": {
     "returnToStore": "Return to store",
@@ -546,7 +547,9 @@
       "amountChanged": "Your order total changed while you were paying. Please review your cart and try again.",
       "outOfStock": "One or more items in your cart are no longer in stock. Please update your cart and try again.",
       "couponInvalid": "The coupon code is no longer valid. Please remove it and try again.",
-      "unavailable": "One or more items in your cart are no longer available. Please update your cart and try again."
+      "unavailable": "One or more items in your cart are no longer available. Please update your cart and try again.",
+      "maxPerOrder": "Your cart has more of a product than one order allows. Please lower the quantity in your cart and try again.",
+      "invalidParticipant": "A participant's personal identity number is not valid. Please check the participant details in your cart and try again."
     },
     "personalizationInvalid": "The personalization of {products} needs to be updated before you can check out.",
     "personalizationInvalidGeneric": "The personalization of an item in your cart needs to be updated before you can check out.",
@@ -951,6 +954,7 @@
     "CART_BUNDLE_NOT_AVAILABLE_FOR_PRODUCT": "Bundle is not available for this product",
     "CART_BUNDLE_NOT_PROFITABLE": "This bundle offer is no longer profitable for this product and cannot be applied",
     "CART_ITEM_NOT_FOUND": "Cart item not found",
+    "CART_MAX_PER_ORDER": "You can order at most {max} of this product per order.",
     "PROVIDER_PROFILE_NOT_FOUND": "Provider profile not found",
     "PROVIDER_NOT_FOUND": "Provider not found",
     "PROVIDER_STORE_NOT_FOUND": "Store not found",
@@ -999,6 +1003,7 @@
     "CUSTOM_FIELD_NUMBER_TOO_SMALL": "{label} must be at least {min}.",
     "CUSTOM_FIELD_NUMBER_TOO_LARGE": "{label} can be at most {max}.",
     "CUSTOM_FIELD_INVALID_FORMAT": "{label} has an invalid format.",
+    "CUSTOM_FIELD_INVALID_PERSONNUMMER": "Enter a valid Swedish personal identity number (YYYYMMDD-XXXX).",
     "CUSTOM_FIELD_INVALID_CHARS": "{label} contains characters that are not allowed.",
     "CUSTOM_FIELD_LENGTH_MISMATCH": "{label} must have as many characters as the linked field ({length}).",
     "CUSTOM_FIELD_COMBINED_TOO_LONG": "{label} and the linked field can have at most {max} characters together.",
