@@ -13,6 +13,9 @@ import { TaxLineRows, useTaxLineLabel } from '@/components/cart/TaxLineRows';
 import { CompanyBlock, isCompanyOrder } from '@/components/checkout/CompanyBlock';
 import { OrderFieldValues } from '@/components/account/OrderFieldValues';
 import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
+import { continueShoppingLink, externalSiteUrl } from '@/lib/externalReturn';
+import { ExternalReturnPanel } from '@/components/checkout/ExternalReturnPanel';
 import type { OrderFieldValueRow } from '@/lib/customFields';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
@@ -103,11 +106,17 @@ interface OrderReceiptProps {
   orderId: string | null;
   /** Hide the "view order" link (guest-safe confirmation without a login). Defaults to shown. */
   showOrderLink?: boolean;
+  /**
+   * Final good state of the order (headless P3): when set and the store has
+   * an external site, the "back to <site>" panel replaces the shopping link.
+   * Ignored by stores without an external site.
+   */
+  externalReturn?: { orderNumber: string | null | undefined; orderId: string | null | undefined } | null;
 }
 
 // Shared receipt block for the checkout confirmation pages (Stripe/COD and
 // Kustom): line items, totals and the post-purchase action buttons.
-export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderReceiptProps) {
+export function OrderReceipt({ order, orderId, showOrderLink = true, externalReturn = null }: OrderReceiptProps) {
   const t = useTranslations();
   const locale = useLocale();
   // Label fallback of the snapshot rows (store primary locale).
@@ -115,6 +124,10 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
   // Tax row labels; the 0 % row of an exempt order reads "VAT 0 % — Reverse charge".
   const taxLabel = useTaxLineLabel();
   const lp = useLocalePath();
+  // Continue shopping goes to the store's external site when it has one (P3).
+  const checkoutSettings = useCheckoutSettings();
+  const shoppingLink = continueShoppingLink(checkoutSettings, lp('/products'));
+  const showReturnPanel = Boolean(externalReturn) && externalSiteUrl(checkoutSettings) !== null;
 
   const currency = order?.currency || 'EUR';
   // Money in the storefront locale (M5 D4): `1 234,00 kr`, not `SEK 1,234.00`.
@@ -273,14 +286,19 @@ export function OrderReceipt({ order, orderId, showOrderLink = true }: OrderRece
             {t('checkout.viewOrder')}
           </Link>
         )}
+        {!showReturnPanel && (
         <Link
-          href={lp('/products')}
+          {...shoppingLink}
           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
         >
           {t('checkout.backToShopping')}
           <ArrowRight className="w-4 h-4" />
         </Link>
+        )}
       </div>
+      {showReturnPanel && externalReturn && (
+        <ExternalReturnPanel orderNumber={externalReturn.orderNumber} orderId={externalReturn.orderId} />
+      )}
     </>
   );
 }

@@ -434,6 +434,9 @@
   },
   "checkout": {
     "returnToStore": "Mağazaya dön",
+    "returnToSite": "{site} sitesine dön",
+    "redirectingToSite": "{seconds} sn içinde {site} sitesine yönlendiriliyorsunuz…",
+    "stayOnPage": "Bu sayfada kal",
     "passwordPlaceholder": "En az 8 karakter",
     "title": "Ödeme",
     "shippingAddress": "Teslimat Adresi",

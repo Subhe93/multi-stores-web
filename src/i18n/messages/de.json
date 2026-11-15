@@ -434,6 +434,9 @@
   },
   "checkout": {
     "returnToStore": "Zurück zum Shop",
+    "returnToSite": "Zurück zu {site}",
+    "redirectingToSite": "Du wirst in {seconds} s zu {site} weitergeleitet…",
+    "stayOnPage": "Auf dieser Seite bleiben",
     "passwordPlaceholder": "Mind. 8 Zeichen",
     "title": "Kasse",
     "shippingAddress": "Lieferadresse",

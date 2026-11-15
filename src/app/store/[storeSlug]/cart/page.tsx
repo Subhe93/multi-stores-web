@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
+import { continueShoppingLink } from '@/lib/externalReturn';
 import { useCart, type CartLineDesign } from '@/hooks/useCart';
 import { useCartDesign } from '@/components/designer/useCartDesign';
 import { DesignLineExtras } from '@/components/cart/DesignLineExtras';
@@ -72,6 +74,8 @@ function CartSkeleton() {
 function CartEmpty() {
   const t = useTranslations();
   const lp = useLocalePath();
+  // Continue shopping leads to the external site when the store has one (P3).
+  const checkoutSettings = useCheckoutSettings();
 
   return (
     <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-24">
@@ -86,7 +90,7 @@ function CartEmpty() {
       <h1 className="text-2xl font-semibold text-gray-900 mb-2">{t('cart.empty')}</h1>
       <p className="text-gray-500 mb-8 text-center max-w-xs text-sm">{t('cart.emptyDescription')}</p>
       <Link
-        href={lp('/products')}
+        {...continueShoppingLink(checkoutSettings, lp('/products'))}
         className="px-8 py-3 text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
         style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
       >
@@ -323,6 +327,7 @@ export default function StoreCartPage() {
   const t = useTranslations();
   const locale = useLocale();
   const lp = useLocalePath();
+  const checkoutSettings = useCheckoutSettings();
   const {
     items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
     taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
@@ -442,7 +447,7 @@ export default function StoreCartPage() {
             {/* Continue shopping */}
             <div className="mt-6 pt-4 flex items-center justify-between">
               <Link
-                href={lp('/products')}
+                {...continueShoppingLink(checkoutSettings, lp('/products'))}
                 className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
               >
                 {/* Points back along the reading direction (mirrored in RTL). */}

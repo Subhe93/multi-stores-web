@@ -434,6 +434,9 @@
   },
   "checkout": {
     "returnToStore": "Retour à la boutique",
+    "returnToSite": "Retour sur {site}",
+    "redirectingToSite": "Retour vers {site} dans {seconds} s…",
+    "stayOnPage": "Rester sur cette page",
     "passwordPlaceholder": "8 caractères minimum",
     "title": "Paiement",
     "shippingAddress": "Adresse de livraison",

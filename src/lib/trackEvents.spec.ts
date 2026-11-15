@@ -15,6 +15,7 @@ import {
   trackInitiateCheckout,
   trackPurchase,
   trackingBody,
+  whenPurchaseSettled,
 } from './trackEvents';
 
 type Win = Window & {
@@ -321,5 +322,31 @@ describe('trackers that are not mounted for this store', () => {
     expect(fbq).toHaveBeenCalledTimes(1);
     expect(gtag).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
+  });
+});
+
+describe('whenPurchaseSettled (headless P3 auto return)', () => {
+  it('resolves shortly after the Purchase was handed to the tags', async () => {
+    mountVendors();
+    let done = false;
+    void whenPurchaseSettled(ORDER).then(() => { done = true; });
+    trackPurchase(purchase);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(done).toBe(true);
+  });
+
+  it('gives up after maxMs when no tag ever fires', async () => {
+    let done = false;
+    void whenPurchaseSettled(ORDER, 3000).then(() => { done = true; });
+    await vi.advanceTimersByTimeAsync(2900);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(done).toBe(true);
+  });
+
+  it('resolves at once without an order id', async () => {
+    await expect(whenPurchaseSettled(null)).resolves.toBeUndefined();
   });
 });

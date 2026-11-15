@@ -262,7 +262,14 @@ function KustomConfirmationContent() {
         {/* Line items, totals and post-purchase actions. When the confirmation
             call itself failed there is no order to render yet, but the order
             link is still offered to logged-in customers. */}
-        <OrderReceipt order={order} orderId={orderId} showOrderLink={Boolean(authToken)} />
+        {/* Back to the store's external site (P3): only once Kustom reports
+            the order paid, never while confirming or on a mismatch. */}
+        <OrderReceipt
+          order={order}
+          orderId={orderId}
+          showOrderLink={Boolean(authToken)}
+          externalReturn={paid ? { orderNumber, orderId } : null}
+        />
       </div>
     </div>
   );

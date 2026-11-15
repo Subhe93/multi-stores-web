@@ -161,6 +161,13 @@ export default function OrderConfirmationPage() {
   }
 
   const processing = paymentState === 'processing';
+  // Final good state for the external-site return: same rule as the Purchase.
+  const orderSettled =
+    !processing &&
+    purchaseConfirmed &&
+    order !== null &&
+    order.id === orderId &&
+    (order.payment_status === 'paid' || order.payment_method === 'COD');
 
   return (
     <div className="min-h-[60vh] flex items-start justify-center px-4 py-12">
@@ -201,7 +208,13 @@ export default function OrderConfirmationPage() {
         )}
 
         {/* Line items, totals and post-purchase actions */}
-        <OrderReceipt order={order} orderId={orderId} />
+        {/* Back to the store's external site (P3): only for a placed order
+            (paid, or cash on delivery) whose payment is not still processing. */}
+        <OrderReceipt
+          order={order}
+          orderId={orderId}
+          externalReturn={orderSettled ? { orderNumber: order.order_number, orderId: order.id } : null}
+        />
       </div>
     </div>
   );

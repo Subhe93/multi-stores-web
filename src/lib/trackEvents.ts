@@ -321,6 +321,35 @@ export function trackPurchase(event: PurchaseEvent): void {
   );
 }
 
+/**
+ * Resolves once the order's Purchase has been handed to the vendor tags, or
+ * after `maxMs` at the latest (no trackers, no consent, a slow tag). Used
+ * before leaving the confirmation page for the external site (headless P3
+ * R-D2), so an auto-redirect never cuts off the purchase tags. A short grace
+ * after the hand-off lets the tags send their beacons.
+ */
+export function whenPurchaseSettled(orderId: string | null | undefined, maxMs = 3000, graceMs = 300): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (typeof window === 'undefined' || !orderId) {
+      resolve();
+      return;
+    }
+    const started = Date.now();
+    const check = () => {
+      if (purchaseAlreadyTracked(orderId)) {
+        setTimeout(resolve, graceMs);
+        return;
+      }
+      if (Date.now() - started >= maxMs) {
+        resolve();
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
+  });
+}
+
 /** The parts of an order (`GET /orders/:id`) a Purchase is built from. */
 export interface TrackableOrder {
   id: string;

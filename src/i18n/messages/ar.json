@@ -434,6 +434,9 @@
   },
   "checkout": {
     "returnToStore": "العودة إلى المتجر",
+    "returnToSite": "العودة إلى {site}",
+    "redirectingToSite": "سيتم نقلك إلى {site} خلال {seconds} ث…",
+    "stayOnPage": "البقاء في هذه الصفحة",
     "passwordPlaceholder": "8 أحرف على الأقل",
     "title": "إتمام الشراء",
     "shippingAddress": "عنوان الشحن",

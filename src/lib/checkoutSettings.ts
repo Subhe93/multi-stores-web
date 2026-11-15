@@ -4,6 +4,8 @@
 // overrode a default; everything else (and every store that never touched the
 // setting) resolves to DEFAULT_CHECKOUT_SETTINGS, which is today's behaviour.
 
+import { normalizeExternalReturn } from './externalReturn';
+
 export const AFTER_ADD_TO_CART = ['stay', 'cart', 'checkout'] as const;
 export type AfterAddToCart = (typeof AFTER_ADD_TO_CART)[number];
 
@@ -18,6 +20,16 @@ export interface CheckoutSettings {
   coupon_param: string[];
   /** Apply a coupon found in the URL automatically. */
   coupon_autoapply: boolean;
+  // External site return (headless booking P3). Present only when the store
+  // has a valid external site; absent keys mean today's behaviour.
+  /** The store's own website (https, exact host). */
+  external_site_url?: string | null;
+  /** After-payment target on that site; may carry `{order_number}`. */
+  return_url?: string | null;
+  /** `button` (default) or `auto` (countdown redirect after a paid order). */
+  return_mode?: 'button' | 'auto';
+  /** "Back to site" label per locale; null = translated default. */
+  back_label?: Record<string, string> | null;
 }
 
 export const DEFAULT_CHECKOUT_SETTINGS: Readonly<CheckoutSettings> = Object.freeze({
@@ -60,6 +72,9 @@ export function normalizeCheckoutSettings(raw: unknown): CheckoutSettings {
     const keys = raw.coupon_param.filter((k): k is string => typeof k === 'string' && COUPON_PARAM_RE.test(k));
     if (keys.length) out.coupon_param = keys;
   }
+  // Re-checked here as well (R-D4): an invalid site drops all four keys.
+  const external = normalizeExternalReturn(raw);
+  if (external) Object.assign(out, external);
   return out;
 }
 

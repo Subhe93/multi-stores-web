@@ -434,6 +434,9 @@
   },
   "checkout": {
     "returnToStore": "Tillbaka till butiken",
+    "returnToSite": "Tillbaka till {site}",
+    "redirectingToSite": "Du skickas tillbaka till {site} om {seconds} s…",
+    "stayOnPage": "Stanna på sidan",
     "passwordPlaceholder": "Minst 8 tecken",
     "title": "Kassa",
     "shippingAddress": "Leveransadress",

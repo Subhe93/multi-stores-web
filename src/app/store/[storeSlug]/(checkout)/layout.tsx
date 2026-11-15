@@ -10,6 +10,7 @@ import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
+import { externalSiteHost, externalSiteUrl, resolveBackLabel } from '@/lib/externalReturn';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
@@ -85,9 +86,20 @@ export default async function CheckoutLayout({
   const messages = await getMessages();
   const t = await getTranslations({ locale: currentLang });
 
+  const checkoutSettings = normalizeCheckoutSettings(store.checkout);
+  // Store with its own website (headless P3): the logo and the footer link
+  // lead back there. Without one both stay exactly as before.
+  const externalSite = externalSiteUrl(checkoutSettings);
+  const externalHost = externalSiteHost(checkoutSettings);
+  const homeHref = externalSite ?? `/`;
+  const homeRel = externalSite ? 'noreferrer' : undefined;
+  const returnLabel = externalSite && externalHost
+    ? resolveBackLabel(checkoutSettings, currentLang) || t('checkout.returnToSite', { site: externalHost })
+    : t('checkout.returnToStore');
+
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.
@@ -126,7 +138,8 @@ export default async function CheckoutLayout({
             <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
               {/* Store logo + name */}
               <Link
-                href={`/`}
+                href={homeHref}
+                rel={homeRel}
                 className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
               >
                 {store.logo_url ? (
@@ -181,8 +194,8 @@ export default async function CheckoutLayout({
             <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
               <span>&copy; {new Date().getFullYear()} {storeName}</span>
               <div className="flex items-center gap-4">
-                <Link href={`/`} className="hover:text-gray-600 transition-colors">
-                  {t('checkout.returnToStore')}
+                <Link href={homeHref} rel={homeRel} className="hover:text-gray-600 transition-colors">
+                  {returnLabel}
                 </Link>
                 {/* The store footer is hidden here: the cookie settings stay reachable (consent v2 D4a). */}
                 <CookieSettingsLink variant="inline" />
