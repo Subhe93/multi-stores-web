@@ -300,6 +300,7 @@
     "addingToCart": "Adding...",
     "selectOptions": "Select options above",
     "chooseOptionNamed": "Choose {option}",
+    "maxQuantityReached": "Maximum quantity reached: {max} per order",
     "savingsAmount": "You save {amount}",
     "shippingAndDelivery": "Shipping & Delivery",
     "shippingHeading": "Shipping",

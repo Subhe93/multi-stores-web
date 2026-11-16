@@ -300,6 +300,7 @@
     "addingToCart": "Ekleniyor...",
     "selectOptions": "Yukarıdan seçenekleri belirleyin",
     "chooseOptionNamed": "{option} seçin",
+    "maxQuantityReached": "En fazla adede ulaştınız: sipariş başına {max}",
     "savingsAmount": "{amount} tasarruf",
     "shippingAndDelivery": "Kargo ve Teslimat",
     "shippingHeading": "Kargo",

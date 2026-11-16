@@ -226,3 +226,25 @@ describe('ProductPageState booking bounds (B2/B3)', () => {
     expect(html).toContain('data-q="1"');
   });
 });
+
+describe('quantity limit message', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/en/products/course');
+  });
+
+  it('appears only when the picker reaches the per-order limit', () => {
+    const { result } = render(simple({ max_per_order: 2 }));
+    expect(result.current.quantityLimitMessage).toBeNull();
+    act(() => result.current.handleQuantityChange(2));
+    expect(result.current.quantityLimitMessage).toBe('product.maxQuantityReached');
+    act(() => result.current.handleQuantityChange(1));
+    expect(result.current.quantityLimitMessage).toBeNull();
+  });
+
+  it('is never set for a product without a limit or for a sold-out one', () => {
+    const plain = render(simple({ track_inventory: true, stock_quantity: 1 }));
+    expect(plain.result.current.quantityLimitMessage).toBeNull();
+    const soldOut = render(simple({ max_per_order: 2, track_inventory: true, stock_quantity: 0 }));
+    expect(soldOut.result.current.quantityLimitMessage).toBeNull();
+  });
+});

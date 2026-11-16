@@ -300,6 +300,7 @@
     "addingToCart": "Lägger till...",
     "selectOptions": "Välj alternativ ovan",
     "chooseOptionNamed": "Välj {option}",
+    "maxQuantityReached": "Maxantal uppnått: {max} per beställning",
     "savingsAmount": "Du sparar {amount}",
     "shippingAndDelivery": "Frakt och leverans",
     "shippingHeading": "Frakt",

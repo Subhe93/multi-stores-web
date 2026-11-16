@@ -316,6 +316,11 @@ export function AddToCartMagic(props: SectionRenderProps) {
             {cta}
           </>
         )}
+        {!designer && showQuantity && state.quantityLimitMessage && (
+          <p role="status" data-quantity-limit="" className="text-xs text-gray-500">
+            {state.quantityLimitMessage}
+          </p>
+        )}
         {customFieldError && (
           <p className="text-sm text-red-600">{customFieldError}</p>
         )}

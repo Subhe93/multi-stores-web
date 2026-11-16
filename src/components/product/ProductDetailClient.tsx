@@ -362,6 +362,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     bundles,
     variantAttempt,
     variantAttemptMessage,
+    quantityLimitMessage,
     handleSelectBundle,
     handleQuantityChange,
     customFieldError,
@@ -909,6 +910,11 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             </div>
             )}
 
+            {!designer && quantityLimitMessage && (
+              <p role="status" data-quantity-limit="" className="text-xs text-gray-500">
+                {quantityLimitMessage}
+              </p>
+            )}
             {customFieldError && (
               <p className="text-sm text-red-600 font-medium">{customFieldError}</p>
             )}

@@ -380,6 +380,12 @@ function useProductPageStateValue({
   }, [selectedVariantId]);
   // The message under the button after such a click: options still to pick,
   // or (all picked, no buyable variant matches) the combination is sold out.
+  // Shown under the quantity picker once it reaches its top value. Only for
+  // products with a per-order limit, so other product pages are unchanged.
+  const quantityLimitMessage =
+    maxPerOrder !== null && typeof maxQuantity === 'number' && maxQuantity >= 1 && quantity + quantityStep > maxQuantity
+      ? t('product.maxQuantityReached', { max: maxQuantity })
+      : null;
   const variantAttemptMessage =
     variantAttempt > 0 && needsVariantSelection
       ? variantOptionKeys.some((k) => !optionSelections[k])
@@ -656,6 +662,7 @@ function useProductPageStateValue({
     isAddBlocked,
     variantAttempt,
     variantAttemptMessage,
+    quantityLimitMessage,
     // Add to cart and toasts
     lineSource,
     addingToCart,

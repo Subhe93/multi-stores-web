@@ -300,6 +300,7 @@
     "addingToCart": "جارٍ الإضافة...",
     "selectOptions": "اختر الخيارات أعلاه",
     "chooseOptionNamed": "اختر {option}",
+    "maxQuantityReached": "وصلت إلى الحد الأقصى: {max} لكل طلب",
     "savingsAmount": "وفّرت {amount}",
     "shippingAndDelivery": "الشحن والتوصيل",
     "shippingHeading": "الشحن",
