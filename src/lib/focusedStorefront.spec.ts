@@ -215,9 +215,13 @@ describe('focusRedirectTarget', () => {
   });
 
   it('keeps the content pages the store payload names (cookie page, legal page_slug)', () => {
-    expect(focusRedirectTarget({ ...base, path: '/villkor' })).toBe(SITE);
-    expect(focusRedirectTarget({ ...base, path: '/villkor', keepSlugs: ['villkor'] })).toBeNull();
-    expect(focusRedirectTarget({ ...base, path: '/om-kakor', keepSlugs: [null, 'om-kakor'] })).toBeNull();
+    expect(focusRedirectTarget({ ...base, path: '/bokningsregler' })).toBe(SITE);
+    expect(focusRedirectTarget({ ...base, path: '/bokningsregler', keepSlugs: ['bokningsregler'] })).toBeNull();
+    expect(focusRedirectTarget({ ...base, path: '/om-oss-sidan', keepSlugs: [null, 'om-oss-sidan'] })).toBeNull();
+    // Swedish policy words keep a page in the store even when it is not registered.
+    for (const slug of ['villkor', 'kopvillkor', 'integritetspolicy', 'angerratt', 'returer', 'leveransvillkor', 'om-kakor']) {
+      expect(focusRedirectTarget({ ...base, path: `/${slug}` })).toBeNull();
+    }
     // An encoded slug is compared decoded.
     expect(focusRedirectTarget({ ...base, path: `/${encodeURIComponent('köpvillkor')}`, keepSlugs: ['köpvillkor'] })).toBeNull();
   });

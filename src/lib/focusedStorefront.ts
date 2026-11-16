@@ -114,7 +114,9 @@ const KEPT_SEGMENTS = new Set([
 
 // Same keywords as the store footer's legal-page heuristic, plus the cookie
 // page: a content page whose slug carries one of them is never redirected.
-const LEGAL_SLUG_KEYWORDS = ['privacy', 'terms', 'return', 'refund', 'shipping', 'cookie'];
+// English and Swedish words: a policy page that is not registered as a legal
+// page must still not leave the store.
+const LEGAL_SLUG_KEYWORDS = ['privacy', 'terms', 'return', 'refund', 'shipping', 'cookie', 'integritet', 'villkor', 'angerratt', 'retur', 'leverans', 'kakor'];
 
 /** Classifies a locale-free store path (`/`, `/collections/a/b`, `/om-oss`). */
 export function focusRouteKind(path: string): FocusRouteKind {
