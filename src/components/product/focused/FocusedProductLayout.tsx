@@ -128,7 +128,10 @@ export function FocusedProductLayout({ storeSlug, sellerPhone }: FocusedProductL
   const pieceOne = state.pieceOptionKeys.length > 0 ? <StateVariantSelector state={state} pieceOne /> : undefined;
   // The picker only shows when more than one unit can be bought at all (a
   // product limited to one per order, or with one unit left, has nothing to pick).
-  const showQuantity = typeof maxQuantity !== 'number' || maxQuantity >= quantityMin + quantityStep;
+  // A quantity already above the minimum keeps the picker visible, so the
+  // buyer can always lower it (a variant with less stock picked afterwards).
+  const showQuantity =
+    state.quantity > quantityMin || typeof maxQuantity !== 'number' || maxQuantity >= quantityMin + quantityStep;
 
   const attributes = product.attributes ?? [];
   const faqs = product.faqs ?? [];
