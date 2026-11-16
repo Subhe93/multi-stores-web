@@ -28,6 +28,7 @@ import {
 } from '@/components/designer/DesignerSession';
 import { TRUST_BADGE_ICONS, type TrustBadgeItem } from '@/lib/trustBadgeIcons';
 import { useHydrated } from '@/hooks/useHydrated';
+import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
@@ -315,6 +316,9 @@ export function ProductDetailClient(props: ProductDetailClientProps) {
 
 function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', currency = 'EUR', langPrefix = '', options }: ProductDetailClientProps) {
   const t = useTranslations();
+  // Focused storefront: collection pages redirect to the external site, so
+  // the collection label above the title is plain text, not a link.
+  const focused = useFocusedStorefront();
   const {
     variants,
     variantOptionKeys,
@@ -480,6 +484,16 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             const collection = path[path.length - 1];
             if (!collection) return null;
             const collectionName = collectionDisplayName(collection, locale);
+            if (focused) {
+              return (
+                <span
+                  className="-order-2 text-xs font-medium uppercase tracking-widest w-fit md:order-0"
+                  style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
+                >
+                  {collectionName}
+                </span>
+              );
+            }
             return (
               <Link
                 href={`${langPrefix}${collectionHref({ path: collectionPathInChain(path, path.length - 1), slug: collection.slug })}`}

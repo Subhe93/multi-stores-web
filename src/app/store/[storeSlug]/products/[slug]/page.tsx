@@ -7,6 +7,8 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { focusedProductSections } from '@/lib/focusedStorefront';
+import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { ProductPreviewBanner } from '@/components/layout/ProductPreview';
@@ -48,6 +50,8 @@ interface StoreRecord {
   /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Checkout behaviour overrides: absent for stores on the defaults. */
+  checkout?: unknown;
 }
 
 // Translated product slugs per locale — hreflang alternates point at the
@@ -231,7 +235,14 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
   // the active theme using its sections + this product as the magic context.
   // The default layout below stays as the fallback for stores without one.
-  const templateSections = template?.snapshot?.sections;
+  // Focused storefront (src/lib/focusedStorefront.ts): the page keeps its
+  // content but loses every path into a listing: no breadcrumb (visible or
+  // JSON-LD) and no product listing sections of the template. Null for every
+  // other store.
+  const focus = await requestFocusedStorefront(storeData?.checkout);
+  const publishedSections = template?.snapshot?.sections;
+  const templateSections =
+    focus && publishedSections ? focusedProductSections(publishedSections) : publishedSections;
   if (templateSections && templateSections.length > 0) {
     const theme = resolveTheme(storeData?.theme_key);
     // M6.4: collection-products sections render their list from the server.
@@ -298,10 +309,12 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplProductLd) }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplBreadcrumbLd) }}
-        />
+        {!focus && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplBreadcrumbLd) }}
+          />
+        )}
         {tplFaqLd && (
           <script
             type="application/ld+json"
@@ -411,17 +424,21 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJsonSafe(productLd) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: ldJsonSafe(breadcrumbLd) }}
-      />
+      {!focus && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: ldJsonSafe(breadcrumbLd) }}
+        />
+      )}
       {faqLd && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(faqLd) }}
         />
       )}
-      {/* Breadcrumb */}
+      {/* Breadcrumb (not in a focused storefront: its crumbs lead to pages
+          that redirect to the external site). */}
+      {!focus && (
       <nav className="mb-6 lg:mb-8 flex items-center flex-wrap gap-1 text-sm" aria-label="Breadcrumb">
         <Link href={`${lp}/`} className="text-gray-400 hover:text-gray-700 transition-colors">
           {t('common.home')}
@@ -453,6 +470,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
           {translation?.title || 'Product'}
         </span>
       </nav>
+      )}
 
       <ProductDetailClient
         product={projectProductForClient(product, locale, ldPrimary)}

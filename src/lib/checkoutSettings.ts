@@ -30,6 +30,9 @@ export interface CheckoutSettings {
   return_mode?: 'button' | 'auto';
   /** "Back to site" label per locale; null = translated default. */
   back_label?: Record<string, string> | null;
+  /** Focused storefront (src/lib/focusedStorefront.ts): present (true) only
+   *  when the store turned it on and has a valid external site. */
+  external_focus?: boolean;
 }
 
 export const DEFAULT_CHECKOUT_SETTINGS: Readonly<CheckoutSettings> = Object.freeze({
@@ -74,7 +77,12 @@ export function normalizeCheckoutSettings(raw: unknown): CheckoutSettings {
   }
   // Re-checked here as well (R-D4): an invalid site drops all four keys.
   const external = normalizeExternalReturn(raw);
-  if (external) Object.assign(out, external);
+  if (external) {
+    Object.assign(out, external);
+    // Focused storefront: only next to a valid site, and only when true, so
+    // every other store keeps the exact previous shape.
+    if (raw.external_focus === true) out.external_focus = true;
+  }
   return out;
 }
 

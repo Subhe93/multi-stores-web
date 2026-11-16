@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { routeSlug } from '@/lib/slugRoute';
+import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { buildStorePageMetadata, fetchStorePage, StorePageView } from '@/components/store/StorePageView';
 
 // Static / landing store pages served at the store root. Rendering (v2
@@ -39,6 +40,14 @@ export default async function StoreStaticPage({ params, searchParams }: PageProp
   if (RESERVED_SLUGS.has(pageSlug)) notFound();
 
   const data = await fetchStorePage(storeSlug, pageSlug);
+
+  // Focused storefront: an existing content page leads to the external site
+  // (307); legal and cookie pages are kept (decided from the store payload).
+  // An unknown slug still answers the 404 below.
+  if (data.v2 || data.legacy?.status === 'PUBLISHED') {
+    await redirectFocusedBrowsing(storeSlug, `/${encodeURIComponent(pageSlug)}`);
+  }
+
   return <StorePageView storeSlug={storeSlug} pageSlug={pageSlug} lang={lang} data={data} />;
 }
 

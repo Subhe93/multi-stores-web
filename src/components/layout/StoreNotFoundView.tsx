@@ -4,6 +4,12 @@ import { getTranslations } from 'next-intl/server';
 interface StoreNotFoundViewProps {
   /** Locale path prefix: '' for the primary locale, '/sv' etc. otherwise. */
   lp: string;
+  /**
+   * Focused storefront only (src/lib/focusedStorefront.ts): the store home
+   * and the product listing redirect to the external site, so the two links
+   * are replaced by one "back to site" link. Omitted everywhere else.
+   */
+  backToSite?: { href: string; label: string } | null;
 }
 
 /**
@@ -13,13 +19,24 @@ interface StoreNotFoundViewProps {
  * the proxy maps the store host to `/store/{slug}`, so `/store/...` must
  * never appear here.
  */
-export async function StoreNotFoundView({ lp }: StoreNotFoundViewProps) {
+export async function StoreNotFoundView({ lp, backToSite }: StoreNotFoundViewProps) {
   const t = await getTranslations('errors');
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center px-4 py-20 text-center">
       <p className="text-sm font-medium store-muted mb-2">404</p>
       <h1 className="text-2xl sm:text-3xl font-semibold mb-3">{t('notFoundTitle')}</h1>
       <p className="store-muted max-w-md mb-8">{t('notFoundDescription')}</p>
+      {backToSite ? (
+        <a
+          href={backToSite.href}
+          rel="noreferrer"
+          className="px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
+          data-focused-back=""
+        >
+          {backToSite.label}
+        </a>
+      ) : (
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Link
           href={`${lp}/`}
@@ -35,6 +52,7 @@ export async function StoreNotFoundView({ lp }: StoreNotFoundViewProps) {
           {t('browseProducts')}
         </Link>
       </div>
+      )}
     </div>
   );
 }

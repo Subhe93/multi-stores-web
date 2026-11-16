@@ -11,12 +11,16 @@ import {
   collectionPathInChain,
   resolvePrimaryCollectionPath,
 } from '@/lib/collectionPath';
+import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
 import type { SectionRenderProps } from '../../../../types';
 import { B1Placeholder, B1Scope, b1LangPrefix, isBlockPreview, useBlockState } from './b1Shared';
 
 export function ProductTitleBlock(props: SectionRenderProps) {
   const { settings, locale, primaryLocale } = props;
   const t = useTranslations();
+  // Focused storefront: the collection label is plain text (collection pages
+  // redirect to the external site).
+  const focused = useFocusedStorefront();
   const state = useBlockState(props);
   if (!state) {
     return <B1Placeholder preview={isBlockPreview(props)} locale={locale} label={{ en: 'Product title', ar: 'عنوان المنتج' }} />;
@@ -33,7 +37,15 @@ export function ProductTitleBlock(props: SectionRenderProps) {
 
   return (
     <B1Scope className="flex flex-col gap-5 min-w-0">
-      {collection && (
+      {collection && focused && (
+        <span
+          className="text-xs font-medium uppercase tracking-widest w-fit"
+          style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
+        >
+          {collectionDisplayName(collection, locale)}
+        </span>
+      )}
+      {collection && !focused && (
         <Link
           href={`${langPrefix}${collectionHref({ path: collectionPathInChain(path, path.length - 1), slug: collection.slug })}`}
           className="text-xs font-medium uppercase tracking-widest hover:underline w-fit"

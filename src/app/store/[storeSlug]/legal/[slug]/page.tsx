@@ -6,6 +6,7 @@ import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { routeSlug } from '@/lib/slugRoute';
+import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { isRtl } from '@/i18n/config';
 import { ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd } from '@/lib/pageJsonLd';
@@ -32,6 +33,8 @@ interface StoreLite {
   custom_domain?: string | null;
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Checkout behaviour overrides: absent for stores on the defaults. */
+  checkout?: unknown;
 }
 
 interface StoreLegalPageProps {
@@ -154,7 +157,10 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
   const contentLocale = page.locale || locale;
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const t = await getTranslations();
-  const homeHref = localePrefix(locale, store) || '/';
+  // Focused storefront: the store home redirects to the external site, so
+  // the breadcrumb's first crumb links there directly.
+  const focus = await requestFocusedStorefront(store?.checkout);
+  const homeHref = focus?.siteUrl ?? (localePrefix(locale, store) || '/');
   // JSON-LD WebPage + Home › page breadcrumb, as for a store page.
   const ld = buildLandingJsonLd({
     origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),

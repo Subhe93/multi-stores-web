@@ -15,6 +15,7 @@ import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { isUsableSlug } from '@/lib/slugRoute';
 
 interface Product {
@@ -175,6 +176,8 @@ interface CreatorCategory {
 
 export default async function StoreHomePage({ params, searchParams }: HomeProps) {
   const { storeSlug } = await params;
+  // Focused storefront: browsing pages lead to the external site (307).
+  await redirectFocusedBrowsing(storeSlug, '/');
   const { lang } = await searchParams;
   const t = await getTranslations();
 

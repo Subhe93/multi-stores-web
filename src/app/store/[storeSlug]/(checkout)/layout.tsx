@@ -11,6 +11,7 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { externalSiteHost, externalSiteUrl, resolveBackLabel } from '@/lib/externalReturn';
+import { resolveFocusForHost } from '@/lib/focusedStorefront';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
@@ -86,7 +87,12 @@ export default async function CheckoutLayout({
   const messages = await getMessages();
   const t = await getTranslations({ locale: currentLang });
 
-  const checkoutSettings = normalizeCheckoutSettings(store.checkout);
+  // Same host rule as the store layout (focused storefront loop guard), so
+  // both provider trees carry the same settings.
+  const checkoutSettings = resolveFocusForHost(
+    normalizeCheckoutSettings(store.checkout),
+    requestHeaders.get('host'),
+  );
   // Store with its own website (headless P3): the logo and the footer link
   // lead back there. Without one both stay exactly as before.
   const externalSite = externalSiteUrl(checkoutSettings);

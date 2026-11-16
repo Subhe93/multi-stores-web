@@ -7,6 +7,7 @@ import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
+import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 
 // /collections — index of the store's collections. The header's "Store
@@ -95,6 +96,8 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
 
 export default async function CollectionsIndexPage({ params, searchParams }: CollectionsIndexProps) {
   const { storeSlug } = await params;
+  // Focused storefront: browsing pages lead to the external site (307).
+  await redirectFocusedBrowsing(storeSlug, '/collections');
   const { lang } = await searchParams;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';

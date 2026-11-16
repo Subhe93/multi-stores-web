@@ -14,6 +14,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
+import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { isUsableSlug } from '@/lib/slugRoute';
 
 interface ProductPromotion {
@@ -121,6 +122,8 @@ export async function generateMetadata({
 
 export default async function StoreProductsPage({ params, searchParams }: StoreProductsProps) {
   const { storeSlug } = await params;
+  // Focused storefront: browsing pages lead to the external site (307).
+  await redirectFocusedBrowsing(storeSlug, '/products');
   const { search, category, creator_category, lang, sort } = await searchParams;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';

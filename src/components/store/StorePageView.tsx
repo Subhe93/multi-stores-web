@@ -15,6 +15,7 @@ import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
 import { sellerDetailsOf, substituteTraderPlaceholders, type TraderDetails } from '@/lib/traderDetails';
 import { isRtl } from '@/i18n/config';
+import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 
 // A store page (static or landing) rendered from either backend:
 // - v2 Page (with sections, versions, SEO panel) — preferred when published
@@ -66,6 +67,8 @@ interface StoreLite {
   custom_domain?: string | null;
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Checkout behaviour overrides: absent for stores on the defaults. */
+  checkout?: unknown;
 }
 
 export interface StorePageData {
@@ -218,7 +221,11 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
   const locale = lang || store?.language_config?.primary_locale || 'en';
 
   // Home link of the visible breadcrumb: no prefix for the primary locale.
-  const homeHref = locale !== (store?.language_config?.primary_locale || 'en') ? `/${locale}` : '/';
+  // Focused storefront (only legal / cookie pages are served then): the store
+  // home redirects to the external site, so the first crumb links there.
+  const focus = await requestFocusedStorefront(store?.checkout);
+  const homeHref =
+    focus?.siteUrl ?? (locale !== (store?.language_config?.primary_locale || 'en') ? `/${locale}` : '/');
 
   // JSON-LD: WebPage (CollectionPage when the page lists products) and a
   // Home › page breadcrumb. The origin and locale URL follow the same rules

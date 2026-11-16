@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart, type CartCustomFieldDisplay } from '@/hooks/useCart';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { useLocalePath } from '@/hooks/useLocalePath';
+import { afterAddDestination } from '@/lib/focusedStorefront';
 import { buildLineMetadata, type LineSource } from '@/lib/cartLine';
 import type { GuestPersonalizationCheck } from '@/components/product/personalization/validateApi';
 import type { DesignedLine } from '@/components/designer/DesignerInline';
@@ -32,8 +33,9 @@ export function useAddToCartLine() {
   const router = useRouter();
   const lp = useLocalePath();
   // Store checkout settings (M5.1): where the shopper goes after adding.
-  // `stay` (the default) keeps today's confirmation toast.
-  const { after_add_to_cart: afterAdd } = useCheckoutSettings();
+  // `stay` (the default) keeps today's confirmation toast. A focused
+  // storefront goes to the cart page unless the store chose `checkout`.
+  const afterAdd = afterAddDestination(useCheckoutSettings());
   const [justAdded, setJustAdded] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

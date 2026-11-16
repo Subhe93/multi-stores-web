@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
+import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
 import { useAuth, isNotCustomerAccountError, isStoreMismatchError } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
 
@@ -14,6 +15,9 @@ export default function StoreLoginPage() {
   const router = useRouter();
   const lp = useLocalePath();
   const { login } = useAuth();
+  // Focused storefront: the store home redirects to the external site, so a
+  // signed-in buyer lands on the account page instead.
+  const focused = useFocusedStorefront();
   const apiError = useApiError();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +32,7 @@ export default function StoreLoginPage() {
 
     try {
       await login(email, password);
-      router.push(lp('/'));
+      router.push(lp(focused ? '/account' : '/'));
     } catch (err: unknown) {
       // Dashboard accounts and other stores' customers get a dedicated
       // message; every other failure (wrong password, network, ...) keeps the

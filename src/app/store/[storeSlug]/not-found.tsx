@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { StoreNotFoundView } from '@/components/layout/StoreNotFoundView';
 import { ProductPreviewUnlock } from '@/components/layout/ProductPreview';
+import { focusedBackToSite } from '@/lib/focusedStorefront.server';
 
 // Store 404: rendered inside the store layout (header/footer chrome stays)
 // whenever a storefront route calls `notFound()` — unknown product,
@@ -15,10 +16,13 @@ export default async function StoreNotFound() {
   // The proxy forwards the store slug of the host; the owner's draft-product
   // preview unlock needs it (nothing happens for other visitors).
   const storeSlug = h.get('x-store-slug');
+  // Focused storefront: one "back to site" link instead of home / products
+  // (both redirect there). Null for every other store.
+  const backToSite = storeSlug ? await focusedBackToSite(storeSlug, urlLocale) : null;
   return (
     <>
       {storeSlug && <ProductPreviewUnlock storeSlug={storeSlug} />}
-      <StoreNotFoundView lp={lp} />
+      <StoreNotFoundView lp={lp} backToSite={backToSite} />
     </>
   );
 }

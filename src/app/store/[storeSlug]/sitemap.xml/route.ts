@@ -2,6 +2,8 @@ import { storefront } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/storeUrl';
 import { requestMarketRef, requestNoindex, type MarketRoute } from '@/lib/market';
 import { collectionHref } from '@/lib/collectionPath';
+import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
+import { focusedSitemapData, focusedStorefront } from '@/lib/focusedStorefront';
 
 interface SitemapPage {
   slug: string;
@@ -77,12 +79,21 @@ export async function GET(req: Request, ctx: RouteCtx) {
   // internal `/store/{slug}` path is a routing detail and must never appear
   // in the sitemap, otherwise Google crawls the proxy redirect instead.
   let customDomain: string | null = null;
+  // Focused storefront (src/lib/focusedStorefront.ts): home, content pages,
+  // collections and the product listing redirect to the external site, so
+  // only product pages are listed. False for every other store.
+  let focused = false;
   try {
-    const store = (await storefront.getStore(storeSlug, marketKey)) as { custom_domain?: string | null };
+    const store = (await storefront.getStore(storeSlug, marketKey)) as {
+      custom_domain?: string | null;
+      checkout?: unknown;
+    };
     customDomain = store?.custom_domain || null;
+    focused = focusedStorefront(normalizeCheckoutSettings(store?.checkout), req.headers.get('host')) !== null;
   } catch {
     customDomain = null;
   }
+  if (focused) data = focusedSitemapData(data);
 
   // Request the proxy flagged noindex (M6.1 `x-store-noindex`: NEVER, or
   // AUTO on the platform subdomain): nothing to advertise. robots.txt still
@@ -90,8 +101,8 @@ export async function GET(req: Request, ctx: RouteCtx) {
   const xml = requestNoindex(req.headers)
     ? wrapUrlset([])
     : marketKey && data.market
-      ? buildMarketSitemap(storeSlug, data, data.market, customDomain)
-      : buildLegacySitemap(storeSlug, data, customDomain);
+      ? buildMarketSitemap(storeSlug, data, data.market, customDomain, !focused)
+      : buildLegacySitemap(storeSlug, data, customDomain, !focused);
 
   return new Response(xml, {
     headers: {
@@ -114,7 +125,14 @@ function wrapUrlset(entries: string[]): string {
 
 // Stores without the markets app: one <url> per page (primary slug), one
 // origin, language-only alternates — exactly the previous output.
-function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: string | null): string {
+// `withListing` = the `/products` listing entry (left out by a focused
+// storefront, where the listing redirects).
+function buildLegacySitemap(
+  storeSlug: string,
+  data: SitemapData,
+  customDomain: string | null,
+  withListing = true,
+): string {
   const base = buildStoreOrigin(storeSlug, customDomain);
 
   const allLocales = data.locales.length ? data.locales : [data.primaryLocale];
@@ -153,7 +171,7 @@ function buildLegacySitemap(storeSlug: string, data: SitemapData, customDomain: 
   // at them. The listing page is included too — it is the catalogue entry point.
   for (const c of data.collections ?? []) entries.push(urlEntry(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(urlEntry(`/legal/${p.slug}`, p.lastmod));
-  entries.push(urlEntry('/products', data.home?.lastmod ?? new Date()));
+  if (withListing) entries.push(urlEntry('/products', data.home?.lastmod ?? new Date()));
 
   return wrapUrlset(entries);
 }
@@ -167,6 +185,7 @@ function buildMarketSitemap(
   data: SitemapData,
   market: MarketRoute,
   customDomain: string | null,
+  withListing = true,
 ): string {
   const base = buildStoreOrigin(storeSlug, customDomain, market);
   const primary = market.default_locale;
@@ -212,7 +231,7 @@ function buildMarketSitemap(
   }
   for (const c of data.collections ?? []) entries.push(...urlEntries(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(...urlEntries(`/legal/${p.slug}`, p.lastmod));
-  entries.push(...urlEntries('/products', data.home?.lastmod ?? new Date()));
+  if (withListing) entries.push(...urlEntries('/products', data.home?.lastmod ?? new Date()));
 
   return wrapUrlset(entries);
 }

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useOptionalProductPageState } from '@/components/product/state/ProductPageState';
+import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import type { SectionRenderProps } from '../../../../types';
 import { blockLabel, langPrefixFor, ProductBlockPlaceholder, ProductBlockScope } from './b2Shared';
@@ -15,6 +16,10 @@ import { blockLabel, langPrefixFor, ProductBlockPlaceholder, ProductBlockScope }
 export function ProductBreadcrumbBlock({ settings, locale, product: productContext, builderPreview }: SectionRenderProps) {
   const t = useTranslations();
   const state = useOptionalProductPageState();
+  // Focused storefront: every crumb leads to a page that redirects to the
+  // external site, so the trail is not rendered at all.
+  const focused = useFocusedStorefront();
+  if (focused) return null;
   if (!state) {
     return <ProductBlockPlaceholder builderPreview={builderPreview ?? !productContext} label={blockLabel(locale, 'Breadcrumb', 'مسار التنقل')} />;
   }

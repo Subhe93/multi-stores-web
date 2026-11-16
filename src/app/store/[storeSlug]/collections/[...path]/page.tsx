@@ -18,6 +18,7 @@ import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
 import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
+import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
 
 interface ProductPromotion {
@@ -103,6 +104,8 @@ export default async function CollectionPage({
   searchParams,
 }: CollectionPageProps) {
   const { storeSlug, path: pathSegments } = await params;
+  // Focused storefront: browsing pages lead to the external site (307).
+  await redirectFocusedBrowsing(storeSlug, '/collections');
   const query = await searchParams;
   const { search, lang, sort } = query;
   const t = await getTranslations();

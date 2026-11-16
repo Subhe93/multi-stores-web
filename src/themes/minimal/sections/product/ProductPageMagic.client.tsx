@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
+import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
 import { normalizeTrustBadges } from '@/lib/trustBadgeIcons';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import type { SectionRenderProps } from '../../../types';
@@ -21,6 +22,7 @@ type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
 
 export function ProductPageMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
   const t = useTranslations();
+  const focused = useFocusedStorefront();
   // No product in context (e.g. builder preview before a sample loads) — show a
   // recognisable placeholder rather than crashing.
   if (!product) {
@@ -81,7 +83,9 @@ export function ProductPageMagic({ settings, content, locale, primaryLocale, pro
   // other section), so only vertical breathing room is added here.
   return (
     <section className="py-8 lg:py-10" style={scopeStyle}>
-      {/* Breadcrumb */}
+      {/* Breadcrumb (not in a focused storefront: every crumb would lead to
+          a page that redirects to the external site). */}
+      {!focused && (
       <nav className="mb-6 lg:mb-8 flex items-center flex-wrap gap-1 text-sm" aria-label="Breadcrumb">
         <Link href={`${langPrefix}/`} className="text-gray-400 hover:text-gray-700 transition-colors">
           {t('common.home')}
@@ -111,6 +115,7 @@ export function ProductPageMagic({ settings, content, locale, primaryLocale, pro
         <Crumb className="w-3.5 h-3.5 text-gray-300 shrink-0" />
         <span className="text-gray-700 font-medium truncate max-w-50">{productTitle}</span>
       </nav>
+      )}
 
       <ProductDetailClient
         product={product as unknown as ProductInput}

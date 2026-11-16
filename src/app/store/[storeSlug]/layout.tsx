@@ -15,6 +15,9 @@ import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
+import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront';
+import { FocusedHeader } from '@/components/layout/FocusedHeader';
+import { FocusedFooter } from '@/components/layout/FocusedFooter';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
@@ -304,6 +307,20 @@ export default async function StoreLayout({
     );
   }
 
+  // Focused storefront (src/lib/focusedStorefront.ts): the store is a
+  // purchase step of the owner's external site. THE gate for the whole chrome:
+  // when `focus` is set, the header and footer slots below render the focused
+  // pair instead of the built-in or the published builder chrome, and the
+  // menu / collection / published-chrome reads are skipped. The settings are
+  // resolved for the request host first (loop guard) and the same object goes
+  // to the client providers, so server and client always agree. Null for
+  // every store without the flag: nothing below changes for them.
+  const checkoutSettings = resolveFocusForHost(
+    normalizeCheckoutSettings(store.checkout),
+    requestHeaders.get('host'),
+  );
+  const focus = focusedStorefront(checkoutSettings);
+
   // Published HEADER / FOOTER chrome. Either can be null — that means the
   // creator hasn't published the chrome yet, so we fall back to the built-in
   // <StoreHeader> / <StoreFooter> components below. Failing soft so a
@@ -317,15 +334,17 @@ export default async function StoreLayout({
   }
   let publishedHeader: PublishedChrome | null = null;
   let publishedFooter: PublishedChrome | null = null;
-  try {
-    publishedHeader = (await storefront.getPublishedHeader(storeSlug)) as PublishedChrome | null;
-  } catch {
-    publishedHeader = null;
-  }
-  try {
-    publishedFooter = (await storefront.getPublishedFooter(storeSlug)) as PublishedChrome | null;
-  } catch {
-    publishedFooter = null;
+  if (!focus) {
+    try {
+      publishedHeader = (await storefront.getPublishedHeader(storeSlug)) as PublishedChrome | null;
+    } catch {
+      publishedHeader = null;
+    }
+    try {
+      publishedFooter = (await storefront.getPublishedFooter(storeSlug)) as PublishedChrome | null;
+    } catch {
+      publishedFooter = null;
+    }
   }
 
   // Enabled store apps — `{}` for stores without any (D2 keeps output identical).
@@ -344,10 +363,12 @@ export default async function StoreLayout({
   // Navigation menus the creator built — chrome sections resolve a menu key
   // to its items via storeContext.menus. Soft-fail to an empty list.
   let storeMenus: StoreContext['menus'] = [];
-  try {
-    storeMenus = (await storefront.getMenus(storeSlug)) as StoreContext['menus'];
-  } catch {
-    storeMenus = [];
+  if (!focus) {
+    try {
+      storeMenus = (await storefront.getMenus(storeSlug)) as StoreContext['menus'];
+    } catch {
+      storeMenus = [];
+    }
   }
 
   // Creator collections power the desktop dropdown + mobile section in the header.
@@ -362,12 +383,14 @@ export default async function StoreLayout({
     children?: RawCreatorCategory[];
   }
   let creatorCategoriesRaw: RawCreatorCategory[] = [];
-  try {
-    creatorCategoriesRaw = (await storefront.getCreatorCategories(
-      storeSlug,
-    )) as RawCreatorCategory[];
-  } catch {
-    creatorCategoriesRaw = [];
+  if (!focus) {
+    try {
+      creatorCategoriesRaw = (await storefront.getCreatorCategories(
+        storeSlug,
+      )) as RawCreatorCategory[];
+    } catch {
+      creatorCategoriesRaw = [];
+    }
   }
 
   // Resolve the active theme up front so brand colours can fall back to its
@@ -559,7 +582,9 @@ export default async function StoreLayout({
   const websiteLd = buildWebSite({
     name: storeName,
     url: storeUrl,
-    searchUrlTemplate: `${storeUrl}/products?search={search_term_string}`,
+    // The product listing redirects to the external site in focused mode:
+    // no search action is advertised then.
+    searchUrlTemplate: focus ? undefined : `${storeUrl}/products?search={search_term_string}`,
   });
 
   // Load i18n messages for store pages (locale resolved via request.ts fallback)
@@ -567,7 +592,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={normalizeCheckoutSettings(store.checkout)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
         ) : fontsHref && (
@@ -665,13 +690,25 @@ export default async function StoreLayout({
             // "You seem to be in {country} — switch market?" strip under the
             // header. Only market stores receive the proxy's suggestion, and
             // <IfApp> keeps it out of the tree for everyone else.
-            const marketBanner = suggestedMarket ? (
+            const marketBanner = suggestedMarket && !focus ? (
               <IfApp app="markets">
                 <MarketSuggestBanner storeSlug={storeSlug} suggestedKey={suggestedMarket.key} country={suggestedMarket.country} />
               </IfApp>
             ) : null;
 
-            const headerSlot =
+            const headerSlot = focus ? (
+              // Focused storefront: logo + back to site + cart, whichever
+              // header the store uses (built-in or published HEADER page).
+              // Same wrapper id, so the checkout layout still hides it.
+              <div id="store-nav-header" style={{ display: 'contents' }}>
+                <FocusedHeader
+                  storeName={storeName}
+                  logoUrl={store.logo_url}
+                  primaryColor={primaryColor}
+                  logoSize={logoSize}
+                />
+              </div>
+            ) :
               headerSections && headerSections.length > 0 ? (
                 <div id="store-nav-header" style={{ display: 'contents' }}>
                   <SectionRenderer
@@ -720,7 +757,20 @@ export default async function StoreLayout({
                 </div>
               );
 
-            const footerSlot =
+            const footerSlot = focus ? (
+              // Focused storefront: legal links, back to site, seller details
+              // and the platform line; the cookie settings link stays.
+              <div id="store-nav-footer">
+                <FocusedFooter
+                  storeName={storeName}
+                  legalPages={platformLegalPages}
+                  cookiePolicyHref={cookiePolicyHref}
+                  traderDetails={sellerDetails}
+                  platformName={platformName}
+                />
+                <CookieSettingsLink variant="footer-row" />
+              </div>
+            ) :
               footerSections && footerSections.length > 0 ? (
                 // The page's footer landmark. The legacy branch below stays a
                 // div: StoreFooter renders its own <footer>.
