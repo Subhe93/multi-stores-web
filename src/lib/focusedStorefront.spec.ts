@@ -10,6 +10,7 @@ import {
   isProtectedPageSlug,
   normalizeRequestHost,
   resolveFocusForHost,
+  focusedStep,
 } from './focusedStorefront';
 
 // Focused storefront (`checkout_settings.external_focus`): the gate, the
@@ -283,5 +284,44 @@ describe('focusedSitemapData', () => {
       collections: [],
       legal_pages: [],
     });
+  });
+});
+
+describe('focusedStep', () => {
+  it.each([
+    ['/products/riskettan', 'details'],
+    ['/sv/products/riskettan', 'details'],
+    ['/store/demo/products/riskettan', 'details'],
+    ['/products/riskettan?qty=2&back=%2Fa', 'details'],
+    ['/products/riskettan/', 'details'],
+    ['/cart', 'cart'],
+    ['/sv/cart', 'cart'],
+    ['/store/demo/cart', 'cart'],
+    ['/checkout', 'payment'],
+    ['/CHECKOUT', 'payment'],
+    ['/checkout/kustom', 'payment'],
+    ['/sv/checkout/kustom', 'payment'],
+  ] as const)('%s is the %s step', (path, step) => {
+    expect(focusedStep(path)).toBe(step);
+  });
+
+  it.each([
+    ['/'],
+    [''],
+    ['/products'],
+    ['/sv/products'],
+    ['/legal/privacy'],
+    ['/checkout/confirmation'],
+    ['/checkout/kustom/confirmation'],
+    ['/account/orders'],
+    ['/kustom'],
+    ['/om-cookies'],
+  ])('%s has no step', (path) => {
+    expect(focusedStep(path)).toBeNull();
+  });
+
+  it('has no step without a path', () => {
+    expect(focusedStep(null)).toBeNull();
+    expect(focusedStep(undefined)).toBeNull();
   });
 });

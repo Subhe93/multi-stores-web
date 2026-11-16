@@ -11,7 +11,8 @@ import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { externalSiteHost, externalSiteUrl, resolveBackLabel } from '@/lib/externalReturn';
-import { resolveFocusForHost } from '@/lib/focusedStorefront';
+import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront';
+import { FocusedHeader } from '@/components/layout/FocusedHeader';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
@@ -95,6 +96,9 @@ export default async function CheckoutLayout({
   );
   // Store with its own website (headless P3): the logo and the footer link
   // lead back there. Without one both stay exactly as before.
+  // Focused storefront: the checkout is step 3 of the purchase and keeps the
+  // focused header (logo, back link, cart, step indicator) of steps 1 and 2.
+  const focus = focusedStorefront(checkoutSettings);
   const externalSite = externalSiteUrl(checkoutSettings);
   const externalHost = externalSiteHost(checkoutSettings);
   const homeHref = externalSite ?? `/`;
@@ -139,7 +143,10 @@ export default async function CheckoutLayout({
           } as React.CSSProperties}
         >
           <MarketPreviewBanner />
-          {/* ── Shopify-style minimal checkout header ── */}
+          {focus ? (
+            <FocusedHeader storeName={storeName} logoUrl={store.logo_url} primaryColor={primaryColor} />
+          ) : (
+          /* ── Shopify-style minimal checkout header ── */
           <header className="store-surface store-bd border-b">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
               {/* Store logo + name */}
@@ -189,6 +196,7 @@ export default async function CheckoutLayout({
               </div>
             </div>
           </header>
+          )}
 
           {/* ── Page content ── */}
           <main className="flex-1">
@@ -200,9 +208,13 @@ export default async function CheckoutLayout({
             <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
               <span>&copy; {new Date().getFullYear()} {storeName}</span>
               <div className="flex items-center gap-4">
-                <Link href={homeHref} rel={homeRel} className="hover:text-gray-600 transition-colors">
-                  {returnLabel}
-                </Link>
+                {/* Focused storefront: the header above carries the back link
+                    (to the page the buyer came from). */}
+                {!focus && (
+                  <Link href={homeHref} rel={homeRel} className="hover:text-gray-600 transition-colors">
+                    {returnLabel}
+                  </Link>
+                )}
                 {/* The store footer is hidden here: the cookie settings stay reachable (consent v2 D4a). */}
                 <CookieSettingsLink variant="inline" />
               </div>

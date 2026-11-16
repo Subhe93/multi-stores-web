@@ -1231,6 +1231,17 @@
     "legalLinks": "Documents légaux",
     "backHome": "Retour à l'accueil"
   },
+  "focused": {
+    "stepDetails": "Vos coordonnées",
+    "stepCart": "Panier",
+    "stepPayment": "Paiement",
+    "stepsLabel": "Étapes de l'achat",
+    "backShort": "Retour",
+    "moreInformation": "Plus d'informations",
+    "information": "Informations",
+    "contact": "Contact",
+    "questionsCall": "Des questions ? Appelez-nous :"
+  },
   "footer": {
     "companyDetailsTitle": "Informations légales",
     "companyDetailsSoldBy": "Vendu par {company} sur {brand}",

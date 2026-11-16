@@ -316,6 +316,29 @@ html, body {
   color: var(--theme-colors-muted);
 }
 
+/* Focused storefront footer (FocusedFooter): a dark brand band derived from
+   the store primary colour, so every store gets a coherent dark footer
+   without a dedicated token. Mixed 30% into black the band stays dark enough
+   for white text (WCAG AA) whatever the primary is; the flat colour is the
+   fallback for browsers without color-mix(). */
+.store-root .focused-footer {
+  background-color: #14181f;
+  background-color: color-mix(in srgb, var(--store-primary, #111827) 30%, #000);
+  color: #fff;
+}
+/* Theme-muted text (the cookie settings link) would be dark on dark. */
+.store-root .focused-footer .store-muted {
+  color: rgb(255 255 255 / 0.72);
+}
+.store-root .focused-footer :is(a, button):focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+/* White silhouette of a vector logo on the dark band. */
+.store-root .focused-footer .focused-footer-light {
+  filter: brightness(0) invert(1);
+}
+
 /* Logo marquee: an infinite, auto-scrolling row. The track holds two copies of
    the logos and slides by exactly half its width for a seamless loop. Pauses on
    hover; under reduced motion it stops and wraps onto multiple centered rows. */

@@ -1231,6 +1231,17 @@
     "legalLinks": "Legal documents",
     "backHome": "Back to home"
   },
+  "focused": {
+    "stepDetails": "Your details",
+    "stepCart": "Cart",
+    "stepPayment": "Payment",
+    "stepsLabel": "Purchase steps",
+    "backShort": "Back",
+    "moreInformation": "More information",
+    "information": "Information",
+    "contact": "Contact",
+    "questionsCall": "Questions? Call us:"
+  },
   "footer": {
     "companyDetailsTitle": "Company details",
     "companyDetailsSoldBy": "Sold by {company} on {brand}",

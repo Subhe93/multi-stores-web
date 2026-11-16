@@ -1231,6 +1231,17 @@
     "legalLinks": "الوثائق القانونية",
     "backHome": "العودة إلى الرئيسية"
   },
+  "focused": {
+    "stepDetails": "بياناتك",
+    "stepCart": "السلة",
+    "stepPayment": "الدفع",
+    "stepsLabel": "خطوات الشراء",
+    "backShort": "رجوع",
+    "moreInformation": "معلومات إضافية",
+    "information": "معلومات",
+    "contact": "اتصل بنا",
+    "questionsCall": "لديك سؤال؟ اتصل بنا:"
+  },
   "footer": {
     "companyDetailsTitle": "بيانات الشركة",
     "companyDetailsSoldBy": "البائع: {company} عبر {brand}",

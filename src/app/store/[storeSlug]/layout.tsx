@@ -37,7 +37,7 @@ import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buy
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, tokensToCssVars, tokenFonts, storePrimaryContrast } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
-import type { ThemeCustomizations, SectionInstance, StoreContext } from '@/themes/types';
+import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
@@ -362,13 +362,13 @@ export default async function StoreLayout({
 
   // Navigation menus the creator built — chrome sections resolve a menu key
   // to its items via storeContext.menus. Soft-fail to an empty list.
+  // Focused storefront: only the `footer` menu is used (the links column of
+  // FocusedFooter); the read is the same cached one.
   let storeMenus: StoreContext['menus'] = [];
-  if (!focus) {
-    try {
-      storeMenus = (await storefront.getMenus(storeSlug)) as StoreContext['menus'];
-    } catch {
-      storeMenus = [];
-    }
+  try {
+    storeMenus = (await storefront.getMenus(storeSlug)) as StoreContext['menus'];
+  } catch {
+    storeMenus = [];
   }
 
   // Creator collections power the desktop dropdown + mobile section in the header.
@@ -758,17 +758,19 @@ export default async function StoreLayout({
               );
 
             const footerSlot = focus ? (
-              // Focused storefront: legal links, back to site, seller details
-              // and the platform line; the cookie settings link stays.
+              // Focused storefront: brand band with the seller's contact
+              // block, the `footer` menu (else the legal pages), back to
+              // site and the legal line with the cookie settings link.
               <div id="store-nav-footer">
                 <FocusedFooter
                   storeName={storeName}
+                  logoUrl={store.logo_url}
+                  menuLinks={resolveMenuItems({ menus: storeMenus } as StoreContext, 'footer', currentLang)}
                   legalPages={platformLegalPages}
                   cookiePolicyHref={cookiePolicyHref}
                   traderDetails={sellerDetails}
                   platformName={platformName}
                 />
-                <CookieSettingsLink variant="footer-row" />
               </div>
             ) :
               footerSections && footerSections.length > 0 ? (

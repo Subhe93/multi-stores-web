@@ -7,11 +7,14 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
-import { focusedProductSections } from '@/lib/focusedStorefront';
+import { focusedProductLayoutSupports, focusedProductSections } from '@/lib/focusedStorefront';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
 import { ProductDetailClient, type ProductData } from '@/components/product/ProductDetailClient';
 import { ProductPreviewBanner } from '@/components/layout/ProductPreview';
+import { FocusedBackCapture } from '@/components/layout/FocusedBackCapture';
+import { FocusedProductLayout } from '@/components/product/focused/FocusedProductLayout';
+import { sellerDetailsOf, type TraderDetails } from '@/lib/traderDetails';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
 import { resolveTheme } from '@/themes/registry';
@@ -52,6 +55,9 @@ interface StoreRecord {
   markets?: MarketRoute[];
   /** Checkout behaviour overrides: absent for stores on the defaults. */
   checkout?: unknown;
+  /** Seller identity (focused product page: the phone under the price). */
+  seller_details?: TraderDetails | null;
+  trader_details?: TraderDetails | null;
 }
 
 // Translated product slugs per locale — hreflang alternates point at the
@@ -240,6 +246,62 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // JSON-LD) and no product listing sections of the template. Null for every
   // other store.
   const focus = await requestFocusedStorefront(storeData?.checkout);
+
+  // Focused storefront: the product page is step 1 of a purchase that began
+  // on the external site. It is presented by FocusedProductLayout (same
+  // product state, fields and add-to-cart as below, another presentation)
+  // whatever the store uses otherwise (the built-in page or a published
+  // PRODUCT_TEMPLATE). Products that layout does not cover (designer
+  // products, custom products) fall through to the regular rendering.
+  if (focus && focusedProductLayoutSupports(product)) {
+    const primaryLocale = storeData?.language_config?.primary_locale || 'en';
+    const tr =
+      product.translations?.find((x) => x.locale === locale) ||
+      product.translations?.find((x) => x.locale === primaryLocale) ||
+      product.translations?.[0];
+    const focusedBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
+    // Same Product / FAQPage markup as the regular page; no breadcrumb (its
+    // crumbs lead to pages that redirect to the external site).
+    const focusedProductLd = buildProduct({
+      name: tr?.title || 'Product',
+      description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
+      url: storeLocalePath(focusedBase, locale, primaryLocale, `/products/${canonicalSlug}`),
+      sku: product.sku || undefined,
+      brand: storeData?.name || undefined,
+      images: (product.images || [])
+        .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
+        .filter((u: string) => !!u),
+      price: Number(product.base_price),
+      priceCurrency: storeCurrency,
+      availability: productAvailability(product),
+      videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
+    });
+    const focusedFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
+    return (
+      <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
+        {/* Markets app: translated slugs for the country switcher / banner. */}
+        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(focusedProductLd) }} />
+        {focusedFaqLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(focusedFaqLd) }} />
+        )}
+        {/* `?back=<path>`: the site page the buyer came from (tab memory). */}
+        <FocusedBackCapture />
+        <DesignerSessionProvider designer={product.designer} productId={product.id} locale={locale}>
+          <ProductPageStateProvider
+            product={projectProductForClient(product, locale, primaryLocale) as unknown as ProductData}
+            locale={locale}
+            primaryLocale={primaryLocale}
+            currency={storeCurrency}
+          >
+            <FocusedProductLayout storeSlug={storeSlug} sellerPhone={sellerDetailsOf(storeData)?.phone ?? null} />
+          </ProductPageStateProvider>
+        </DesignerSessionProvider>
+      </div>
+    );
+  }
+
   const publishedSections = template?.snapshot?.sections;
   const templateSections =
     focus && publishedSections ? focusedProductSections(publishedSections) : publishedSections;
@@ -303,6 +365,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
+        {focus && <FocusedBackCapture />}
         {/* Markets app: translated slugs for the country switcher / banner. */}
         {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
         <script
@@ -418,6 +481,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   return (
     <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
+      {focus && <FocusedBackCapture />}
       {/* Markets app: translated slugs for the country switcher / banner. */}
       {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
       <script

@@ -218,3 +218,49 @@ interface SitemapShape {
 export function focusedSitemapData<T extends SitemapShape>(data: T): T {
   return { ...data, home: null, static_pages: [], landing_pages: [], collections: [], legal_pages: [] };
 }
+
+// ── Purchase steps ───────────────────────────────────────────────────────────
+
+/** Steps of a purchase in a focused storefront, in order. */
+export const FOCUSED_STEPS = ['details', 'cart', 'payment'] as const;
+export type FocusedStep = (typeof FOCUSED_STEPS)[number];
+
+/**
+ * The purchase step a path stands for, or null (no step indicator): a product
+ * page is step 1 (the buyer's details), the cart step 2, the checkout step 3.
+ * Works on any form of the path (locale prefix, `/store/{slug}` prefix):
+ * only the last segments are read. Order confirmation and every other page
+ * have no step.
+ */
+export function focusedStep(pathname: string | null | undefined): FocusedStep | null {
+  const segments = (pathname ?? '').split(/[?#]/, 1)[0]!.split('/').filter(Boolean).map((s) => s.toLowerCase());
+  const last = segments[segments.length - 1];
+  if (!last) return null;
+  if (last === 'cart') return 'cart';
+  if (last === 'checkout') return 'payment';
+  // The Kustom checkout page (`/checkout/kustom`) is the payment step too.
+  if (last === 'kustom' && segments[segments.length - 2] === 'checkout') return 'payment';
+  if (segments.length >= 2 && segments[segments.length - 2] === 'products') return 'details';
+  return null;
+}
+
+// ── Product page layout ──────────────────────────────────────────────────────
+
+/**
+ * Whether the focused product layout (the "booking step" page,
+ * `FocusedProductLayout`) can present a product. Products it does not cover
+ * keep the regular product rendering, still inside the focused chrome:
+ *   - designer products (the inline designer owns the gallery column, the
+ *     form and its own call to action);
+ *   - creator "custom products" (their own add-to-cart shape).
+ * Everything else (simple products, variants, bundles, custom fields, the
+ * personalization app, customer upload, draft preview) is presented.
+ */
+export function focusedProductLayoutSupports(
+  product: { designer?: unknown; _type?: string | null } | null | undefined,
+): boolean {
+  if (!product) return false;
+  if (product.designer !== undefined && product.designer !== null) return false;
+  if (product._type === 'custom_product') return false;
+  return true;
+}

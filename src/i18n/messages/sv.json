@@ -1231,6 +1231,17 @@
     "legalLinks": "Juridiska dokument",
     "backHome": "Tillbaka till startsidan"
   },
+  "focused": {
+    "stepDetails": "Dina uppgifter",
+    "stepCart": "Varukorg",
+    "stepPayment": "Betalning",
+    "stepsLabel": "Steg i köpet",
+    "backShort": "Tillbaka",
+    "moreInformation": "Mer information",
+    "information": "Information",
+    "contact": "Kontakt",
+    "questionsCall": "Frågor? Ring oss:"
+  },
   "footer": {
     "companyDetailsTitle": "Företagsuppgifter",
     "companyDetailsSoldBy": "Säljs av {company} på {brand}",

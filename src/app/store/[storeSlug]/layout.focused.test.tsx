@@ -25,7 +25,7 @@ const state = {
 const api = {
   getPublishedHeader: vi.fn(async () => state.publishedHeader),
   getPublishedFooter: vi.fn(async () => state.publishedFooter),
-  getMenus: vi.fn(async () => [{ key: 'main', items: [] }]),
+  getMenus: vi.fn(async (): Promise<unknown[]> => [{ key: 'main', items: [] }]),
   getCreatorCategories: vi.fn(async () => [
     { slug: 'kurser', is_active: true, translations: [{ locale: 'sv', name: 'Kurser' }], children: [] },
   ]),
@@ -100,11 +100,18 @@ vi.mock('@/components/layout/FocusedHeader', () => ({
   FocusedHeader: (p: { storeName: string }) => <div data-testid="focused-header" data-name={p.storeName} />,
 }));
 vi.mock('@/components/layout/FocusedFooter', () => ({
-  FocusedFooter: (p: { legalPages?: { slug: string }[]; cookiePolicyHref?: string | null }) => (
+  FocusedFooter: (p: {
+    legalPages?: { slug: string }[];
+    cookiePolicyHref?: string | null;
+    logoUrl?: string;
+    menuLinks?: { label: string; url: string }[];
+  }) => (
     <div
       data-testid="focused-footer"
       data-legal={(p.legalPages ?? []).map((l) => l.slug).join(',')}
       data-cookie={p.cookiePolicyHref ?? ''}
+      data-logo={p.logoUrl ?? ''}
+      data-menu={(p.menuLinks ?? []).map((l) => `${l.label}=${l.url}`).join('|')}
     />
   ),
 }));
@@ -225,11 +232,15 @@ describe('store layout: chrome gate of the focused storefront', () => {
     expect(header?.children).toHaveLength(1);
     expect(q(container, 'builtin-header')).toBeNull();
     expect(q(container, 'builtin-footer')).toBeNull();
-    // Footer: legal links + cookie page, and the cookie settings link stays.
+    // Footer: legal links + cookie page; the cookie settings link is part of
+    // the focused footer itself (no separate row after it). No `footer` menu
+    // in this store: no menu links.
     const focusedFooter = footer?.querySelector('[data-testid="focused-footer"]');
     expect(focusedFooter?.getAttribute('data-legal')).toBe('privacy,terms');
     expect(focusedFooter?.getAttribute('data-cookie')).toBe('/om-cookies');
-    expect(footer?.querySelector('[data-testid="cookie-settings"]')).not.toBeNull();
+    expect(focusedFooter?.getAttribute('data-menu')).toBe('');
+    expect(footer?.children).toHaveLength(1);
+    expect(footer?.querySelector('[data-testid="cookie-settings"]')).toBeNull();
     expect(q(container, 'page')).not.toBeNull();
     expect(lastProviderCheckout()).toMatchObject({ external_site_url: SITE, external_focus: true });
   });
@@ -242,11 +253,40 @@ describe('store layout: chrome gate of the focused storefront', () => {
     expect(q(container, 'published-chrome')).toBeNull();
     expect(q(container, 'focused-header')).not.toBeNull();
     expect(q(container, 'focused-footer')).not.toBeNull();
-    // The navigation data is not even read.
+    // The published chrome and the collections are not even read; the menus
+    // are (the `footer` menu feeds the focused footer's links).
     expect(api.getPublishedHeader).not.toHaveBeenCalled();
     expect(api.getPublishedFooter).not.toHaveBeenCalled();
-    expect(api.getMenus).not.toHaveBeenCalled();
     expect(api.getCreatorCategories).not.toHaveBeenCalled();
+  });
+
+  it('focused: the store\'s `footer` menu (labels for the locale) and the logo go to the focused footer', async () => {
+    state.store = { ...baseStore({ external_site_url: SITE, external_focus: true }), logo_url: '/uploads/logo.svg' };
+    api.getMenus.mockResolvedValueOnce([
+      { key: 'header', items: [{ id: 'h1', label: 'Kurser', url: '/collections/kurser' }] },
+      {
+        key: 'footer',
+        items: [
+          { id: 'f1', label: 'Terms', label_i18n: { sv: 'Köpvillkor' }, url: 'https://mollstrands.example/kopvillkor/' },
+          { id: 'f2', label: 'Kontakt', url: 'https://mollstrands.example/kontakt/' },
+        ],
+      },
+    ]);
+    const { container } = await renderLayout();
+    const focusedFooter = q(container, 'focused-footer');
+    expect(focusedFooter?.getAttribute('data-menu')).toBe(
+      'Köpvillkor=https://mollstrands.example/kopvillkor/|Kontakt=https://mollstrands.example/kontakt/',
+    );
+    expect(focusedFooter?.getAttribute('data-logo')).toBe('/uploads/logo.svg');
+  });
+
+  it('focused: an unreadable menu list falls back to the legal pages (no menu links)', async () => {
+    state.store = baseStore({ external_site_url: SITE, external_focus: true });
+    api.getMenus.mockRejectedValueOnce(new Error('down'));
+    const { container } = await renderLayout();
+    const focusedFooter = q(container, 'focused-footer');
+    expect(focusedFooter?.getAttribute('data-menu')).toBe('');
+    expect(focusedFooter?.getAttribute('data-legal')).toBe('privacy,terms');
   });
 
   it('focused: no market suggestion banner, country switcher or buyer toggle', async () => {

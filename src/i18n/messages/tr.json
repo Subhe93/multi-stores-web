@@ -1231,6 +1231,17 @@
     "legalLinks": "Yasal belgeler",
     "backHome": "Ana sayfaya dön"
   },
+  "focused": {
+    "stepDetails": "Bilgileriniz",
+    "stepCart": "Sepet",
+    "stepPayment": "Ödeme",
+    "stepsLabel": "Satın alma adımları",
+    "backShort": "Geri",
+    "moreInformation": "Daha fazla bilgi",
+    "information": "Bilgi",
+    "contact": "İletişim",
+    "questionsCall": "Sorunuz mu var? Bizi arayın:"
+  },
   "footer": {
     "companyDetailsTitle": "Şirket bilgileri",
     "companyDetailsSoldBy": "{brand} üzerinde {company} tarafından satılır",

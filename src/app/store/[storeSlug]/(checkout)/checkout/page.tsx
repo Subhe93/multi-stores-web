@@ -50,7 +50,7 @@ import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { resolvePayButtonLabel } from '@/lib/checkoutSettings';
-import { continueShoppingLink } from '@/lib/externalReturn';
+import { useContinueShoppingLink } from '@/hooks/useFocusedStorefront';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import {
   normalizeOrgNumber,
@@ -395,6 +395,8 @@ function CheckoutForm({
   // Store checkout settings (M5.1): phone requirement + pay button label.
   // Defaults (today's behaviour) for stores that never set the card.
   const checkoutSettings = useCheckoutSettings();
+  // Empty-cart link: the external site (focused storefront: the page the buyer came from).
+  const shoppingLink = useContinueShoppingLink(lp('/products'));
   // M2.5: the VAT field validates live and the quote / order carry the
   // number only on stores with reverse charge on (off = M2 bodies).
   const rcEnabled = isCompany && b2bSettings.reverse_charge_enabled;
@@ -1465,7 +1467,7 @@ function CheckoutForm({
         <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
-          {...continueShoppingLink(checkoutSettings, lp('/products'))}
+          {...shoppingLink}
           className="inline-block rounded-md px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
           style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >

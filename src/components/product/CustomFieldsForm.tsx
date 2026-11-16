@@ -26,7 +26,17 @@ interface CustomFieldsFormProps {
   /** Fields that can be fixed with "Fill with <char>" now: field id → fill char. */
   fillable?: Record<string, string>;
   onFill?: (fieldId: string) => void;
+  /**
+   * 'stack' (default): one field per row, the markup every product page has
+   * always had. 'grid' (focused storefront): two columns from md up, one on
+   * phones; long fields (text area, uploads, checkbox) span both columns,
+   * and each caption is a real <label> bound to its control.
+   */
+  layout?: 'stack' | 'grid';
 }
+
+/** Field types that take the full row in the grid layout. */
+const WIDE_FIELD_TYPES = new Set(['TEXTAREA', 'IMAGE', 'FILE', 'MULTI_IMAGE', 'BOOLEAN']);
 
 const COMMON_FONTS = [
   'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana',
@@ -151,8 +161,9 @@ function FileInput({ accept, images = false, multiple, value, onChange }: {
 }
 
 export function CustomFieldsForm({
-  fields, values, onChange, errors = {}, showAllErrors = false, fillable = {}, onFill,
+  fields, values, onChange, errors = {}, showAllErrors = false, fillable = {}, onFill, layout = 'stack',
 }: CustomFieldsFormProps) {
+  const grid = layout === 'grid';
   const t = useTranslations();
   // `allowed_chars` per field, compiled once (null = no rule / invalid body).
   const allowed = useMemo(() => {
@@ -189,7 +200,7 @@ export function CustomFieldsForm({
   // data-clarity-mask: customer-entered values and upload previews are
   // masked in Clarity session recordings.
   return (
-    <div className="flex flex-col gap-5" data-clarity-mask="True">
+    <div className={grid ? 'grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2' : 'flex flex-col gap-5'} data-clarity-mask="True">
       {fields.map((field) => {
         const error = errors[field.id];
         // Values are stored as `unknown`; each control below only ever receives
@@ -198,20 +209,28 @@ export function CustomFieldsForm({
         const hasValue = value !== undefined && value !== null && value !== '';
         const showError = !!error && (hasValue || showAllErrors);
         const fillChar = fillable[field.id];
+        // Grid layout only: the star is decorative there, the control says it.
+        const req = grid && field.required ? { 'aria-required': true as const } : {};
 
         return (
-          <div key={field.id}>
+          <div key={field.id} className={grid ? `min-w-0${WIDE_FIELD_TYPES.has(field.type) ? ' md:col-span-2' : ''}` : undefined}>
             {/* Label */}
-            {field.type !== 'BOOLEAN' && (
+            {field.type !== 'BOOLEAN' && !grid && (
               <p className="text-sm font-semibold text-gray-900 mb-2">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-0.5">*</span>}
               </p>
             )}
+            {field.type !== 'BOOLEAN' && grid && (
+              <label htmlFor={`field-${field.id}`} className="mb-2 block text-sm font-semibold text-gray-900">
+                {field.label}
+                {field.required && <span className="text-red-500 ms-0.5" aria-hidden="true">*</span>}
+              </label>
+            )}
 
             {/* TEXT */}
             {field.type === 'TEXT' && (
-              <input id={`field-${field.id}`} type="text" value={value ?? ''} placeholder={field.placeholder}
+              <input id={`field-${field.id}`} type="text" {...req} value={value ?? ''} placeholder={field.placeholder}
                 aria-invalid={showError || undefined}
                 onChange={(e) => onTextChange(field, e.target.value, (e.nativeEvent as InputEvent).isComposing === true)}
                 onCompositionEnd={(e) => onTextChange(field, e.currentTarget.value, false)}
@@ -220,7 +239,7 @@ export function CustomFieldsForm({
 
             {/* NUMBER */}
             {field.type === 'NUMBER' && (
-              <input id={`field-${field.id}`} type="number" value={value ?? ''} placeholder={field.placeholder}
+              <input id={`field-${field.id}`} type="number" {...req} value={value ?? ''} placeholder={field.placeholder}
                 min={field.validation?.min} max={field.validation?.max}
                 onChange={(e) => onChange(field.id, e.target.value === '' ? '' : Number(e.target.value))}
                 className={inputClass(showError)} />
@@ -229,7 +248,7 @@ export function CustomFieldsForm({
             {/* SELECT */}
             {field.type === 'SELECT' && (
               <div className="relative">
-                <select id={`field-${field.id}`} value={value ?? ''}
+                <select id={`field-${field.id}`} {...req} value={value ?? ''}
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className={`${inputClass(showError)} appearance-none pr-10`}>
                   <option value="">{field.placeholder || t('product.chooseOption')}</option>
@@ -256,7 +275,7 @@ export function CustomFieldsForm({
 
             {/* TEXTAREA */}
             {field.type === 'TEXTAREA' && (
-              <textarea id={`field-${field.id}`} value={value ?? ''} placeholder={field.placeholder} rows={4}
+              <textarea id={`field-${field.id}`} {...req} value={value ?? ''} placeholder={field.placeholder} rows={4}
                 aria-invalid={showError || undefined}
                 onChange={(e) => onTextChange(field, e.target.value, (e.nativeEvent as InputEvent).isComposing === true)}
                 onCompositionEnd={(e) => onTextChange(field, e.currentTarget.value, false)}
@@ -278,14 +297,14 @@ export function CustomFieldsForm({
 
             {/* DATE */}
             {field.type === 'DATE' && (
-              <input id={`field-${field.id}`} type="date" value={value ?? ''}
+              <input id={`field-${field.id}`} type="date" {...req} value={value ?? ''}
                 onChange={(e) => onChange(field.id, e.target.value)} className={inputClass(showError)} />
             )}
 
             {/* FONT */}
             {field.type === 'FONT' && (
               <div className="relative">
-                <select id={`field-${field.id}`} value={value ?? ''}
+                <select id={`field-${field.id}`} {...req} value={value ?? ''}
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className={`${inputClass(showError)} appearance-none pr-10`}>
                   <option value="">{field.placeholder || t('product.selectFont')}</option>

@@ -6,8 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, ChevronRight, Loader2, Lock, ShoppingBag } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
-import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
-import { continueShoppingLink } from '@/lib/externalReturn';
+import { useContinueShoppingLink } from '@/hooks/useFocusedStorefront';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
@@ -73,7 +72,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const locale = useLocale();
   const lp = useLocalePath();
   // Continue shopping leads to the external site when the store has one (P3).
-  const checkoutSettings = useCheckoutSettings();
+  const shoppingLink = useContinueShoppingLink(lp('/products'));
   const searchParams = useSearchParams();
   const { token, user, loading: authLoading, refresh: refreshAuth } = useAuth();
   const {
@@ -246,7 +245,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
         <p className="text-gray-500 mb-4 text-sm">{t('cart.empty')}</p>
         <Link
-          {...continueShoppingLink(checkoutSettings, lp('/products'))}
+          {...shoppingLink}
           className="inline-block rounded-md px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
           style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
         >
