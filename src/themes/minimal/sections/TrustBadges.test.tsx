@@ -70,9 +70,9 @@ describe('trust-badges strip layout', () => {
   });
 
   it('draws a rule between neighbours of a row and never before the first item of a row', () => {
-    // Four items: two per row on mobile, four across from 768px.
+    // Four items: two per row below 1024px, four across from there.
     expect(
-      liClasses(strip(ITEMS)).map((c) => [c.includes('max-md:border-s'), c.includes('md:border-s')]),
+      liClasses(strip(ITEMS)).map((c) => [c.includes('max-lg:border-s'), c.includes('lg:border-s')]),
     ).toEqual([
       [false, false],
       [true, true],
@@ -81,16 +81,26 @@ describe('trust-badges strip layout', () => {
     ]);
     // A fifth item starts a new row at both widths.
     const five = liClasses(strip([...ITEMS, { icon: 'star', label: 'Rated' }]));
-    expect(five[4].includes('max-md:border-s')).toBe(false);
-    expect(five[4].includes('md:border-s')).toBe(false);
+    expect(five[4].includes('max-lg:border-s')).toBe(false);
+    expect(five[4].includes('lg:border-s')).toBe(false);
     expect(strip([...ITEMS, { icon: 'star', label: 'Rated' }])).toContain('--tb-n:4');
+  });
+
+  it('stays two per row on a tablet: four across only from 1024px', () => {
+    const tokens = classTokens(strip(ITEMS));
+    expect(tokens).toContain('grid-cols-2');
+    expect(tokens).toContain('lg:grid-cols-[repeat(var(--tb-n),minmax(0,1fr))]');
+    expect(tokens).toContain('lg:justify-center');
+    // Nothing switches at 768px.
+    expect(tokens.filter((c) => c.startsWith('md:grid-cols-') || c === 'md:border-s' || c === 'md:justify-center')).toEqual([]);
   });
 
   it('one item is one cell', () => {
     const out = strip([{ icon: 'gem', label: 'Quality' }]);
     expect(out.match(/<li\b/g)).toHaveLength(1);
     expect(out).toContain('--tb-n:1');
-    expect(classTokens(out)).not.toContain('md:border-s');
+    expect(classTokens(out)).not.toContain('lg:border-s');
+    expect(classTokens(out)).not.toContain('max-lg:border-s');
   });
 
   it('uses logical borders only', () => {
@@ -101,7 +111,7 @@ describe('trust-badges strip layout', () => {
 
   it('icon colour: the text colour by default, overridable', () => {
     expect(strip(ITEMS)).toContain('color:var(--theme-colors-text)');
-    expect(strip(ITEMS, { icon_color: '#a38250' })).toContain('color:#a38250');
+    expect(strip(ITEMS, { icon_color: '#445566' })).toContain('color:#445566');
   });
 
   it('resolves each new icon key and falls back to the shield for an unknown one', () => {
@@ -119,6 +129,13 @@ describe('trust-badges strip layout', () => {
     }
     expect(classTokens(strip([{ icon: 'no-such-icon', label: 'x' }]))).toContain('lucide-shield-check');
     expect(classTokens(strip([{ label: 'x' }]))).toContain('lucide-shield-check');
+    // A key that names an inherited object property is unknown too, in every layout.
+    for (const layout of ['strip', 'inline', 'cards']) {
+      for (const key of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+        const out = html({ settings: { layout }, content: { items: [{ icon: key, label: 'x' }] } });
+        expect(classTokens(out), `${layout} ${key}`).toContain('lucide-shield-check');
+      }
+    }
     // The six are offered after the existing eight, in the agreed order.
     expect(TRUST_BADGE_ICON_OPTIONS.map((o) => o.value)).toEqual([
       'truck', 'refresh', 'shield', 'card', 'award', 'star', 'headphones', 'leaf',

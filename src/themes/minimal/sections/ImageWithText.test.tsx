@@ -283,6 +283,29 @@ describe('image-with-text new keys', () => {
     expect(html({ settings: { image_style: 'bleed' }, content: {} })).toBe(html({ settings: {}, content: {} }));
   });
 
+  it('bleed without an image in the builder: the image half stays as a placeholder box', () => {
+    const out = html({ settings: { image_style: 'bleed' }, content: CONTENT, builderPreview: true });
+    expect(out).toContain('data-bleed-split="bleed"');
+    expect(out).toContain('data-bleed-placeholder');
+    expect(out).not.toContain('<img');
+    // Never on the live store, and never once an image is set.
+    expect(html({ settings: { image_style: 'bleed' }, content: CONTENT, builderPreview: false })).not.toContain('data-bleed-placeholder');
+    expect(html({ settings: BLEED_SETTINGS, content: CONTENT, builderPreview: true })).not.toContain('data-bleed-placeholder');
+    // The framed style ignores the flag for a static image.
+    for (const [, settings, content] of STATIC_CASES) {
+      expect(html({ settings, content, builderPreview: true })).toBe(html({ settings, content }));
+      expect(html({ settings, content, builderPreview: false })).toBe(html({ settings, content }));
+    }
+    expect(imageWithTextSection.needsBuilderPreview).toBe(true);
+  });
+
+  it('bleed eyebrow: letter-spacing is dropped in right-to-left; framed is untouched', () => {
+    const tokens = classTokens(html({ settings: BLEED_SETTINGS, content: CONTENT }));
+    expect(tokens).toContain('tracking-[0.2em]');
+    expect(tokens).toContain('rtl:tracking-normal');
+    expect(classTokens(html({ settings: { image: '/uploads/pages/a.jpg' }, content: CONTENT }))).not.toContain('rtl:tracking-normal');
+  });
+
   it('schema: translatable keys, defaults and the new fields', () => {
     expect(imageWithTextSection.schema.translatable).toEqual(['eyebrow', 'heading', 'body', 'cta_text', 'cta_secondary_text', 'alt']);
     expect(imageWithTextSection.defaultSettings).toEqual({ image_position: 'left', aspect: 'square' });

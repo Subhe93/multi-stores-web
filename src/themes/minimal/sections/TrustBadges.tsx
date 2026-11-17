@@ -1,7 +1,6 @@
-import { ShieldCheck } from 'lucide-react';
 import {
-  TRUST_BADGE_ICONS as ICONS,
   TRUST_BADGE_ICON_OPTIONS as ICON_OPTIONS,
+  trustBadgeIcon,
   type TrustBadgeItem as BadgeItem,
 } from '@/lib/trustBadgeIcons';
 import type { CSSProperties } from 'react';
@@ -41,25 +40,26 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
 
   if (layout === 'strip') {
     // One quiet row of icon + label + description, separated by thin rules.
-    // Two per row below 768px, up to four across from there.
+    // Two per row below 1024px, up to four across from there (four across on
+    // a tablet leaves under 90px for the text of each cell).
     const perRow = Math.min(visible.length, 4);
     const iconColor = colorOr(settings.icon_color, 'var(--theme-colors-text)');
     return (
       <section className={padClass}>
         <ul
           role="list"
-          className="grid grid-cols-2 gap-y-6 md:grid-cols-[repeat(var(--tb-n),minmax(0,1fr))]"
+          className="grid grid-cols-2 gap-y-6 lg:grid-cols-[repeat(var(--tb-n),minmax(0,1fr))]"
           style={{ '--tb-n': perRow } as CSSProperties}
         >
           {visible.map((b, i) => {
-            const Icon = b.icon ? ICONS[b.icon] || ShieldCheck : ShieldCheck;
+            const Icon = trustBadgeIcon(b.icon);
             // A rule between neighbours of the same row, never before the
             // first item of a row.
-            const divider = `${i % 2 === 1 ? 'max-md:border-s' : ''} ${i % perRow !== 0 ? 'md:border-s' : ''}`.trim();
+            const divider = `${i % 2 === 1 ? 'max-lg:border-s' : ''} ${i % perRow !== 0 ? 'lg:border-s' : ''}`.trim();
             return (
               <li
                 key={i}
-                className={`flex items-center gap-3 px-3 md:justify-center md:px-6 ${divider}`.trim()}
+                className={`flex items-center gap-3 px-3 md:px-6 lg:justify-center ${divider}`.trim()}
                 style={{ borderColor: 'var(--theme-colors-border)' }}
               >
                 <Icon
@@ -91,7 +91,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
       <section className={padClass}>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
           {visible.map((b, i) => {
-            const Icon = b.icon ? ICONS[b.icon] || ShieldCheck : ShieldCheck;
+            const Icon = trustBadgeIcon(b.icon);
             return (
               <div key={i} className="flex items-center gap-2.5">
                 <Icon
@@ -126,7 +126,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
         }}
       >
         {visible.map((b, i) => {
-          const Icon = b.icon ? ICONS[b.icon] || ShieldCheck : ShieldCheck;
+          const Icon = trustBadgeIcon(b.icon);
           return (
             <div
               key={i}

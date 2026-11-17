@@ -35,7 +35,9 @@ const ASPECT_CLASS: Record<Aspect, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-const IMAGE_CLASS =
+// The hover zoom is a link affordance: a tile without a link stays still.
+const IMAGE_CLASS = 'object-cover';
+const IMAGE_ZOOM_CLASS =
   'object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]';
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
@@ -105,7 +107,9 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
       <StaggerGroup
         className={`${GRID_COLS_CLASS} gap-3 md:gap-4${
           mobileScroll
-            ? ' max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:-mx-4 max-md:px-4 max-md:py-1'
+            ? // The row runs to the screen edges: it cancels the page gutter
+              // (16px, 24px from 640px) and pads itself by the same amount.
+              ' [--g:1rem] sm:[--g:1.5rem] max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:mx-[calc(var(--g)*-1)] max-md:px-[var(--g)] max-md:py-1'
             : ''
         }`}
         style={gridColsStyle(columns, columnsTablet, columnsMobile)}
@@ -116,7 +120,12 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
           const url = str(tile.url);
           const img = str(tile.image) ? resolveMediaUrl(str(tile.image)) : '';
           const Wrapper = url ? 'a' : 'div';
-          const linkProps = url ? { href: sectionHref(url, locale, primaryLocale) } : {};
+          // A linked tile with no title, subtitle or alt text would be a link
+          // without a name: give it a generic one.
+          const unnamed = !title && !subtitle && !str(tile.alt);
+          const linkProps = url
+            ? { href: sectionHref(url, locale, primaryLocale), ...(unnamed ? { 'aria-label': t('viewDetails') } : {}) }
+            : {};
           const image = img ? (
             <StoreImage
               src={img}
@@ -124,7 +133,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
               fill
               sizes={sizes}
               unoptimized={isSvgSrc(img)}
-              className={IMAGE_CLASS}
+              className={url ? IMAGE_ZOOM_CLASS : IMAGE_CLASS}
             />
           ) : null;
           const arrow =

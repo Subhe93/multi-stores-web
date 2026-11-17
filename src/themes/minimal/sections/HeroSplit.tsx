@@ -13,7 +13,7 @@ import { Heading } from './_shared/Heading';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { ArrowRight } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
-import { BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
+import { BleedMediaPlaceholder, BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
@@ -221,7 +221,7 @@ function HeroSplit(props: SectionRenderProps) {
  * no radius or shadow, the text lines up with the page container. Rendered
  * only when there is something to show (the caller keeps the empty state).
  */
-function HeroSplitBleed({ settings, content, locale, primaryLocale }: SectionRenderProps) {
+function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -239,9 +239,13 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale }: SectionRen
   const ctaText = (content.cta_text as string) || '';
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
   const alt = (content.alt as string) || heading || '';
-  const ctaHref = sectionHref(content.cta_url || settings.cta_url, locale, primaryLocale);
+  // The inspector writes both URLs to settings, so settings win here. A URL
+  // left in the content (the palette's sample content, or an older page) is
+  // used only while the setting is empty. The framed variant above keeps its
+  // historical order (content first).
+  const ctaHref = sectionHref(settings.cta_url || content.cta_url, locale, primaryLocale);
   const ctaSecondaryHref = sectionHref(
-    content.cta_secondary_url || settings.cta_secondary_url,
+    settings.cta_secondary_url || content.cta_secondary_url,
     locale,
     primaryLocale,
   );
@@ -300,6 +304,9 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale }: SectionRen
             className="object-cover"
             style={{ objectPosition: focusPosition(settings.image_focus) }}
           />
+        ) : builderPreview ? (
+          // Builder only: keep the image half visible until one is uploaded.
+          <BleedMediaPlaceholder />
         ) : null
       }
     >
@@ -307,7 +314,7 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale }: SectionRen
         {eyebrow && (
           <StaggerItem>
             <Heading level={eyebrowTag} original="span" look="body"
-              className="text-xs font-semibold uppercase tracking-[0.2em]"
+              className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
               style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
             >
               {eyebrow}
@@ -533,6 +540,8 @@ export const heroSplitSection: SectionDefinition = {
     ],
   },
   Component: HeroSplit,
+  // Only the edge-to-edge variant reads the flag (image placeholder in the builder).
+  needsBuilderPreview: true,
   defaultSettings: { image_side: 'start', height: 'md' },
   defaultContent: {
     heading: 'Crafted for the way you live',

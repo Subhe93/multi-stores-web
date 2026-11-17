@@ -36,6 +36,17 @@ export const TRUST_BADGE_ICONS: Record<string, typeof Truck> = {
   sparkles: Sparkles,
 };
 
+/**
+ * Icon of a stored key; the shield for a missing or unknown one. Own keys
+ * only, so a hand-written value such as `constructor` cannot reach an
+ * inherited property and break the render.
+ */
+export function trustBadgeIcon(key: unknown): typeof Truck {
+  return typeof key === 'string' && Object.prototype.hasOwnProperty.call(TRUST_BADGE_ICONS, key)
+    ? TRUST_BADGE_ICONS[key]
+    : ShieldCheck;
+}
+
 export const TRUST_BADGE_ICON_OPTIONS = [
   { value: 'truck', label: { en: 'Truck (shipping)', ar: 'شاحنة (شحن)' } },
   { value: 'refresh', label: { en: 'Refresh (returns)', ar: 'تحديث (إرجاع)' } },

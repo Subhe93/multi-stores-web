@@ -16,7 +16,7 @@ import {
   type DynamicImageSource,
 } from './_shared/dynamicSource';
 import { DynamicProductImage } from './_shared/lazyDynamic';
-import { BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
+import { BleedMediaPlaceholder, BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
@@ -172,13 +172,16 @@ function ImageWithText(props: SectionRenderProps) {
               className="object-cover"
               style={{ objectPosition: focusPosition(settings.image_focus) }}
             />
+          ) : props.builderPreview === true ? (
+            // Builder only: keep the image half visible until one is uploaded.
+            <BleedMediaPlaceholder />
           ) : null
         }
       >
         <div className="flex flex-col gap-4">
           {eyebrow && (
             <Heading level={eyebrowTag} look="body"
-              className="text-xs font-semibold uppercase tracking-[0.2em]"
+              className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
               style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
             >
               {eyebrow}
@@ -524,5 +527,8 @@ export const imageWithTextSection: SectionDefinition = {
     ],
   },
   Component: ImageWithText,
+  // Read by the edge-to-edge style (image placeholder in the builder); a
+  // dynamic image source already got the flag from the renderer.
+  needsBuilderPreview: true,
   defaultSettings: { image_position: 'left', aspect: 'square' },
 };

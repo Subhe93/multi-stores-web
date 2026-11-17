@@ -18,6 +18,33 @@ describe('computeProgress', () => {
     expect(run(100, 0).percent).toBe(0);
   });
 
+  it('is exact for whole numbers (no floating-point loss before the floor)', () => {
+    // 29 / 100 * 100 is 28.999999999999996 in floating point.
+    expect(run(100, 29).percent).toBe(29);
+    expect(run(100, 57).percent).toBe(57);
+    expect(run(100, 58).percent).toBe(58);
+    for (let reached = 0; reached <= 100; reached++) {
+      expect(run(100, reached).percent, `${reached} of 100`).toBe(reached);
+    }
+    // Every whole pair up to 1000 equals integer division.
+    for (let goal = 1; goal <= 1000; goal++) {
+      for (let reached = 0; reached <= goal; reached++) {
+        const exact = (reached * 100 - ((reached * 100) % goal)) / goal;
+        if (run(goal, reached).percent !== exact) {
+          throw new Error(`${reached} of ${goal}: got ${run(goal, reached).percent}, expected ${exact}`);
+        }
+      }
+    }
+  });
+
+  it('is exact for decimals and never rounds an unmet goal up to 100', () => {
+    expect(run(1, 0.29).percent).toBe(29);
+    expect(run(1, 0.57).percent).toBe(57);
+    expect(run(2.5, 1).percent).toBe(40);
+    expect(run(1, 0.9999999999999).percent).toBe(99);
+    expect(run(1e12, 1e12 - 1).percent).toBe(99);
+  });
+
   it('shows 100 only once the goal is met', () => {
     expect(run(1000, 996).percent).toBe(99);
     expect(run(1000, 999.9).percent).toBe(99);

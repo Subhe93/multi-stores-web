@@ -14,7 +14,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Heading } from './_shared/Heading';
 import { headingTag, textTag } from './_shared/headingLevel';
-import { BleedSplit, focusPosition } from './_shared/BleedSplit';
+import { BleedMediaPlaceholder, BleedSplit, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { computeProgress, statusValue } from './_shared/progress';
@@ -130,7 +130,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
             level={textTag(settings.eyebrow_tag, 'span')}
             original="span"
             look="body"
-            className="text-xs font-semibold uppercase tracking-[0.2em]"
+            className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
             style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
           >
             {eyebrow}
@@ -250,13 +250,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
       style={{ objectPosition: focusPosition(settings.image_focus) }}
     />
   ) : builderPreview ? (
-    <div
-      className="absolute inset-0"
-      style={{
-        backgroundColor: 'var(--theme-colors-surface)',
-        border: '1px dashed var(--theme-colors-border)',
-      }}
-    />
+    <BleedMediaPlaceholder />
   ) : null;
 
   return (

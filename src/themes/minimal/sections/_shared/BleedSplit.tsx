@@ -36,6 +36,24 @@ const INNER_VARS = '[--bs-in:var(--g)] md:[--bs-in:clamp(1.5rem,4vw,4rem)]';
 
 const cx = (...parts: Array<string | false>) => parts.filter(Boolean).join(' ');
 
+/**
+ * Stand-in for a missing image, passed as `media` in the builder preview
+ * only: the image half stays visible so the creator sees the layout. On the
+ * live store a section without an image passes `null` instead.
+ */
+export function BleedMediaPlaceholder() {
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundColor: 'var(--theme-colors-surface)',
+        border: '1px dashed var(--theme-colors-border)',
+      }}
+      data-bleed-placeholder=""
+    />
+  );
+}
+
 interface BleedSplitProps {
   imageSide: ImageSide;
   /** The image (or a builder placeholder). Null renders one contained text column. */
@@ -90,11 +108,12 @@ export function BleedSplit({
 
   const atEnd = imageSide === 'end';
   // The media box is first in the DOM; the track sizes are mirrored so the
-  // wide track is always the one the image lands in.
+  // wide track is always the one the image lands in. `minmax(0, …)` pins the
+  // ratio: a long unbroken heading word cannot widen the text track.
   const tracks = wide
     ? atEnd
-      ? 'md:grid-cols-[42fr_58fr]'
-      : 'md:grid-cols-[58fr_42fr]'
+      ? 'md:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]'
+      : 'md:grid-cols-[minmax(0,58fr)_minmax(0,42fr)]'
     : 'md:grid-cols-2';
   // The gradient is written left-to-right (blend, then transparent) and
   // mirrored so the blend colour always sits on the edge next to the text.

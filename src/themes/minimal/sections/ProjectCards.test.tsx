@@ -93,6 +93,18 @@ describe('project-cards', () => {
     expect(third).toMatch(/<h3[^>]*>Third project<\/h3>/);
   });
 
+  it('the image zooms on hover only when the card is a link', () => {
+    const zoom = 'motion-safe:group-hover:scale-[1.03]';
+    // ITEMS: two linked cards with an image, then one image without a link.
+    expect(imgTags(html({ content: CONTENT })).map((img) => img.includes(zoom))).toEqual([true, true, false]);
+  });
+
+  it('meta line: letter-spacing is dropped in right-to-left (joined scripts)', () => {
+    const tokens = classTokens(html({ content: CONTENT }));
+    expect(tokens).toContain('tracking-[0.14em]');
+    expect(tokens).toContain('rtl:tracking-normal');
+  });
+
   it('prefixes internal links on a secondary locale and leaves external ones alone', () => {
     const out = html({
       settings: { ...DEFAULTS, link_url: '/projects' },

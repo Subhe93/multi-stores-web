@@ -44,8 +44,16 @@ export function computeProgress({ goal, reached, status, show }: ProgressInput):
   const validGoal = g !== null && g > 0 ? g : null;
   const r = toNumber(reached);
   const validReached = r !== null && r >= 0 ? r : 0;
-  // Floor: 100 appears only once the goal is really met.
-  const percent = validGoal ? Math.min(100, Math.floor((validReached / validGoal) * 100)) : null;
+  // Floor: 100 appears only once the goal is really met. Multiply before
+  // dividing: `29 / 100 * 100` is 28.999999999999996 and would floor to 28,
+  // while `29 * 100 / 100` is exact for whole numbers. The tiny epsilon does
+  // the same for decimals (0.29 of 1), and the cap keeps it from ever
+  // rounding an unmet goal up to 100.
+  const percent = validGoal
+    ? validReached >= validGoal
+      ? 100
+      : Math.min(99, Math.floor((validReached * 100) / validGoal + 1e-9))
+    : null;
   return {
     goal: validGoal,
     reached: validReached,

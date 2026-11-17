@@ -94,7 +94,7 @@ describe('progress-spotlight numbers', () => {
 
   it('bar colour: the accent by default, overridable', () => {
     expect(withNumbers(100, 60)).toContain('background:var(--theme-colors-accent)');
-    expect(withNumbers(100, 60, { bar_color: '#b60018' })).toContain('background:#b60018');
+    expect(withNumbers(100, 60, { bar_color: '#123456' })).toContain('background:#123456');
   });
 });
 
@@ -198,9 +198,9 @@ describe('progress-spotlight layout', () => {
   });
 
   it('button: localized link, tone, radius default and optional arrow', () => {
-    const settings = { ...DEFAULTS, cta_url: '/our-impact' };
-    expect(hrefs(html({ settings }))).toEqual(['/our-impact']);
-    expect(hrefs(html({ settings, locale: 'ar', primaryLocale: 'en' }))).toEqual(['/ar/our-impact']);
+    const settings = { ...DEFAULTS, cta_url: '/learn-more' };
+    expect(hrefs(html({ settings }))).toEqual(['/learn-more']);
+    expect(hrefs(html({ settings, locale: 'ar', primaryLocale: 'en' }))).toEqual(['/ar/learn-more']);
     expect(hrefs(html({ settings: { ...DEFAULTS, cta_url: 'https://example.org/report' }, locale: 'ar', primaryLocale: 'en' }))).toEqual([
       'https://example.org/report',
     ]);
@@ -213,6 +213,21 @@ describe('progress-spotlight layout', () => {
     expect(accent).toContain('border-radius:4px');
     expect(classTokens(accent)).toEqual(expect.arrayContaining(['lucide-arrow-right', 'rtl:-scale-x-100']));
     expect(html({ settings, content: { ...CONTENT, cta_text: '' } })).not.toContain('<a');
+  });
+
+  it('shows the entered number beside the same percent (29 of 100 is 29%)', () => {
+    for (const reached of [29, 57, 58]) {
+      const out = withNumbers(100, reached);
+      expect(out, String(reached)).toContain(`aria-valuenow="${reached}"`);
+      expect(out, String(reached)).toContain(`>${reached}%<`);
+      expect(out, String(reached)).toContain(`width:${reached}%`);
+    }
+  });
+
+  it('eyebrow: letter-spacing is dropped in right-to-left (joined scripts)', () => {
+    const tokens = classTokens(html({}));
+    expect(tokens).toContain('tracking-[0.2em]');
+    expect(tokens).toContain('rtl:tracking-normal');
   });
 
   it('heading level and eyebrow tag', () => {

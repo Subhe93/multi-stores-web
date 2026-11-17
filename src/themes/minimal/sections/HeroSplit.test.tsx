@@ -135,8 +135,9 @@ describe('hero-split bleed variant', () => {
   it('wide image: mirrored 58 / 42 tracks and a matching sizes hint', () => {
     const start = html({ settings: { ...BLEED, image_width: 'wide' }, content: CONTENT });
     const end = html({ settings: { ...BLEED, image_width: 'wide', image_side: 'end' }, content: CONTENT });
-    expect(classTokens(start)).toContain('md:grid-cols-[58fr_42fr]');
-    expect(classTokens(end)).toContain('md:grid-cols-[42fr_58fr]');
+    // minmax(0, …) pins the ratio against a long unbroken heading word.
+    expect(classTokens(start)).toContain('md:grid-cols-[minmax(0,58fr)_minmax(0,42fr)]');
+    expect(classTokens(end)).toContain('md:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]');
     expect(imgTags(start)[0]).toContain('(min-width: 768px) 58vw, 100vw');
     expect(classTokens(html({ settings: BLEED, content: CONTENT }))).toContain('md:grid-cols-2');
   });
@@ -180,6 +181,32 @@ describe('hero-split bleed variant', () => {
     ).toEqual(['https://example.org/x', '#']);
   });
 
+  it('button links: the inspector value (settings) wins over a URL left in the content', () => {
+    // A section added from the palette carries sample URLs in its content,
+    // while the inspector writes to settings.
+    const sample = { ...CONTENT, cta_url: '/products', cta_secondary_url: '/pages/about' };
+    expect(
+      hrefs(html({ settings: { ...BLEED, cta_url: '/sale', cta_secondary_url: '/our-story' }, content: sample })),
+    ).toEqual(['/sale', '/our-story']);
+    // No setting: the content URL is still used.
+    expect(hrefs(html({ settings: { variant: 'bleed', image: '/uploads/pages/hero.jpg' }, content: sample }))).toEqual([
+      '/products',
+      '/pages/about',
+    ]);
+    // The framed variant keeps its historical order (content first).
+    expect(
+      hrefs(html({ settings: { image: '/uploads/pages/hero.jpg', cta_url: '/sale', cta_secondary_url: '/our-story' }, content: sample })),
+    ).toEqual(['/products', '/pages/about']);
+  });
+
+  it('eyebrow: letter-spacing is dropped in right-to-left (joined scripts)', () => {
+    const tokens = classTokens(html({ settings: BLEED, content: CONTENT }));
+    expect(tokens).toContain('tracking-[0.2em]');
+    expect(tokens).toContain('rtl:tracking-normal');
+    // The framed variant is untouched.
+    expect(classTokens(html({ settings: { image: '/uploads/pages/hero.jpg' }, content: CONTENT }))).not.toContain('rtl:tracking-normal');
+  });
+
   it('h1 by default; heading_level is honoured', () => {
     expect(html({ settings: BLEED, content: CONTENT })).toMatch(/<h1[^>]*>Made to last<\/h1>/);
     expect(html({ settings: { ...BLEED, heading_level: 'h2' }, content: CONTENT })).toMatch(/<h2[^>]*>Made to last<\/h2>/);
@@ -191,9 +218,9 @@ describe('hero-split bleed variant', () => {
     const onPrimary = html({ settings: { ...BLEED, tone: 'primary' }, content: CONTENT });
     // Primary button on a primary band: colours swapped so it stays visible.
     expect(onPrimary).toContain('background-color:var(--theme-colors-primaryContrast, #fff);color:var(--theme-colors-primary)');
-    const custom = html({ settings: { ...BLEED, bg_color: '#f7f4ef', cta_border_radius: 4 }, content: CONTENT });
-    expect(custom).toContain('background-color:#f7f4ef');
-    expect(custom).toContain('linear-gradient(to right, #f7f4ef, transparent)');
+    const custom = html({ settings: { ...BLEED, bg_color: '#eeeeee', cta_border_radius: 4 }, content: CONTENT });
+    expect(custom).toContain('background-color:#eeeeee');
+    expect(custom).toContain('linear-gradient(to right, #eeeeee, transparent)');
     expect(custom).toContain('border-radius:4px');
   });
 
@@ -211,6 +238,23 @@ describe('hero-split bleed variant', () => {
     expect(out).not.toContain('100vw');
     expect(out).not.toContain('<img');
     expect(out).toContain('Made to last');
+  });
+
+  it('without an image in the builder: the image half stays as a placeholder box', () => {
+    const out = html({ settings: { variant: 'bleed' }, content: CONTENT, builderPreview: true });
+    expect(out).toContain('data-bleed-split="bleed"');
+    expect(out).toContain('data-bleed-placeholder');
+    expect(out).toContain('1px dashed var(--theme-colors-border)');
+    expect(out).not.toContain('<img');
+    // Never on the live store, and never once an image is set.
+    expect(html({ settings: { variant: 'bleed' }, content: CONTENT, builderPreview: false })).not.toContain('data-bleed-placeholder');
+    expect(html({ settings: BLEED, content: CONTENT, builderPreview: true })).not.toContain('data-bleed-placeholder');
+    // The framed variant ignores the flag.
+    for (const [, settings, content] of FRAMED_CASES) {
+      expect(html({ settings, content, builderPreview: true })).toBe(html({ settings, content }));
+      expect(html({ settings, content, builderPreview: false })).toBe(html({ settings, content }));
+    }
+    expect(heroSplitSection.needsBuilderPreview).toBe(true);
   });
 
   it('nothing at all: the same placeholder as the framed variant', () => {

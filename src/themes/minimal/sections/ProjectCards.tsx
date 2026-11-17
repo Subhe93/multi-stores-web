@@ -138,7 +138,12 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
                       fill
                       sizes={sizes}
                       unoptimized={isSvgSrc(img)}
-                      className="object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]"
+                      // The hover zoom is a link affordance: a card without a link stays still.
+                      className={
+                        url
+                          ? 'object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]'
+                          : 'object-cover'
+                      }
                     />
                     {badge && (
                       <span className="absolute top-3 start-3">
@@ -155,7 +160,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
                     </span>
                   )}
                   {meta && (
-                    <p className="text-xs uppercase tracking-[0.14em]" style={{ color: bodyColor }}>
+                    <p className="text-xs uppercase tracking-[0.14em] rtl:tracking-normal" style={{ color: bodyColor }}>
                       {meta}
                     </p>
                   )}

@@ -113,11 +113,11 @@ describe('category-tiles', () => {
 
   it('colour overrides', () => {
     const out = html({
-      settings: { ...DEFAULTS, title_color: '#101010', subtitle_color: '#202020', arrow_bg_color: '#a38250', arrow_color: '#000000', heading_color: '#303030' },
+      settings: { ...DEFAULTS, title_color: '#101010', subtitle_color: '#202020', arrow_bg_color: '#445566', arrow_color: '#000000', heading_color: '#303030' },
       content: CONTENT,
     });
     for (const c of ['#101010', '#202020', '#303030']) expect(out).toContain(`color:${c}`);
-    expect(out).toContain('background-color:#a38250;color:#000000');
+    expect(out).toContain('background-color:#445566;color:#000000');
   });
 
   it('heading: centred by default, optional rules, start alignment', () => {
@@ -140,6 +140,32 @@ describe('category-tiles', () => {
     );
     expect(imgTags(out)[0]).toContain('(max-width: 767px) 62vw');
     expect(classTokens(html({ content: CONTENT }))).not.toContain('max-md:flex');
+    // The row cancels the page gutter at both mobile widths (16px, 24px from 640px).
+    expect(classTokens(out)).toEqual(
+      expect.arrayContaining(['[--g:1rem]', 'sm:[--g:1.5rem]', 'max-md:mx-[calc(var(--g)*-1)]', 'max-md:px-[var(--g)]']),
+    );
+    expect(classTokens(out)).not.toContain('max-md:-mx-4');
+  });
+
+  it('a linked tile with no title, subtitle or alt text still has a name', () => {
+    const out = html({ content: { items: [{ image: '/uploads/pages/one.jpg', url: '/collections/a' }] } });
+    expect(out).toMatch(/<a\b[^>]*aria-label="sections\.viewDetails"/);
+    // A title, a subtitle or an alt text names the link: no generic label.
+    for (const extra of [{ title: 'Clothing' }, { subtitle: 'Everyday pieces' }, { alt: 'A folded shirt' }]) {
+      const named = html({ content: { items: [{ image: '/uploads/pages/one.jpg', url: '/collections/a', ...extra }] } });
+      expect(named, JSON.stringify(extra)).not.toContain('aria-label');
+    }
+    // No link, no label.
+    expect(html({ content: { items: [{ image: '/uploads/pages/one.jpg' }] } })).not.toContain('aria-label');
+  });
+
+  it('the image zooms on hover only when the tile is a link', () => {
+    const zoom = 'motion-safe:group-hover:scale-[1.03]';
+    const imgs = imgTags(html({ content: CONTENT }));
+    // ITEMS: two linked tiles with an image, then one image without a link.
+    expect(imgs.map((img) => img.includes(zoom))).toEqual([true, true, false]);
+    const overlay = imgTags(html({ settings: { ...DEFAULTS, card_style: 'overlay' }, content: CONTENT }));
+    expect(overlay.map((img) => img.includes(zoom))).toEqual([true, true, false]);
   });
 
   it('every link has a visible focus ring', () => {
