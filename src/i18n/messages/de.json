@@ -1270,5 +1270,23 @@
     "load": "Karte anzeigen",
     "privacy": "Datenschutzerklärung",
     "alwaysAllow": "Externe Medien immer erlauben"
+  },
+  "sections": {
+    "status": {
+      "planned": "Geplant",
+      "inProgress": "In Arbeit",
+      "completed": "Abgeschlossen"
+    },
+    "progress": {
+      "label": "Fortschritt",
+      "reachedOfGoal": "{reached} von {goal}",
+      "goal": "Ziel: {goal}"
+    },
+    "viewDetails": "Details ansehen",
+    "empty": {
+      "categoryTiles": "Noch keine Kacheln. Füge im Seiten-Editor Einträge hinzu.",
+      "projectCards": "Noch keine Karten. Füge im Seiten-Editor Einträge hinzu.",
+      "progressSpotlight": "Dieser Abschnitt ist leer. Füge im Seiten-Editor eine Überschrift, ein Bild oder ein Ziel hinzu."
+    }
   }
 }

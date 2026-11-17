@@ -1270,5 +1270,23 @@
     "load": "عرض الخريطة",
     "privacy": "سياسة الخصوصية",
     "alwaysAllow": "السماح دائماً بالوسائط الخارجية"
+  },
+  "sections": {
+    "status": {
+      "planned": "مخطَّط",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "progress": {
+      "label": "التقدّم",
+      "reachedOfGoal": "{reached} من {goal}",
+      "goal": "الهدف: {goal}"
+    },
+    "viewDetails": "عرض التفاصيل",
+    "empty": {
+      "categoryTiles": "لا توجد بطاقات بعد. أضف عناصر من أداة بناء الصفحات.",
+      "projectCards": "لا توجد بطاقات بعد. أضف عناصر من أداة بناء الصفحات.",
+      "progressSpotlight": "هذا القسم فارغ. أضف عنواناً أو صورة أو هدفاً من أداة بناء الصفحات."
+    }
   }
 }

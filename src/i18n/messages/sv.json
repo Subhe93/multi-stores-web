@@ -1270,5 +1270,23 @@
     "load": "Visa karta",
     "privacy": "Integritetspolicy",
     "alwaysAllow": "Tillåt alltid externa medier"
+  },
+  "sections": {
+    "status": {
+      "planned": "Planerat",
+      "inProgress": "Pågår",
+      "completed": "Slutfört"
+    },
+    "progress": {
+      "label": "Framsteg",
+      "reachedOfGoal": "{reached} av {goal}",
+      "goal": "Mål: {goal}"
+    },
+    "viewDetails": "Visa detaljer",
+    "empty": {
+      "categoryTiles": "Inga rutor ännu. Lägg till objekt i sidbyggaren.",
+      "projectCards": "Inga kort ännu. Lägg till objekt i sidbyggaren.",
+      "progressSpotlight": "Den här sektionen är tom. Lägg till en rubrik, en bild eller ett mål i sidbyggaren."
+    }
   }
 }

@@ -1270,5 +1270,23 @@
     "load": "Show map",
     "privacy": "Privacy policy",
     "alwaysAllow": "Always allow external media"
+  },
+  "sections": {
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed"
+    },
+    "progress": {
+      "label": "Progress",
+      "reachedOfGoal": "{reached} of {goal}",
+      "goal": "Goal: {goal}"
+    },
+    "viewDetails": "View details",
+    "empty": {
+      "categoryTiles": "No tiles yet. Add items in the builder.",
+      "projectCards": "No cards yet. Add items in the builder.",
+      "progressSpotlight": "This section is empty. Add a heading, an image or a goal in the builder."
+    }
   }
 }

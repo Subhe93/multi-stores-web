@@ -51,6 +51,9 @@ import { mapSection } from './sections/MapSection';
 import { featuredProductsSection } from './sections/FeaturedProducts';
 import { productSliderSection } from './sections/ProductSlider';
 import { collectionProductsSection } from './sections/CollectionProducts';
+import { categoryTilesSection } from './sections/CategoryTiles';
+import { progressSpotlightSection } from './sections/ProgressSpotlight';
+import { projectCardsSection } from './sections/ProjectCards';
 import { productPageMagicSection } from './sections/product/ProductPageMagic';
 import { registryB1 } from './sections/product/blocks/registryB1';
 import { productBlocksB2 } from './sections/product/blocks/registryB2';
@@ -80,6 +83,7 @@ export const minimalTheme: Theme = {
     'image-hotspots': imageHotspotsSection,
     'masonry-gallery': masonryGallerySection,
     'bento-grid': bentoGridSection,
+    'category-tiles': categoryTilesSection,
     'animated-features': animatedFeaturesSection,
     'marquee-text': marqueeTextSection,
     'rich-text': richTextSection,
@@ -94,6 +98,8 @@ export const minimalTheme: Theme = {
     'hero-split': heroSplitSection,
     'testimonial-carousel': testimonialCarouselSection,
     'team-grid': teamGridSection,
+    'progress-spotlight': progressSpotlightSection,
+    'project-cards': projectCardsSection,
     'timeline': timelineSection,
     'pricing-table': pricingTableSection,
     'quote-banner': quoteBannerSection,

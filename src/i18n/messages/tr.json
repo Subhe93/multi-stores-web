@@ -1270,5 +1270,23 @@
     "load": "Haritayı göster",
     "privacy": "Gizlilik politikası",
     "alwaysAllow": "Harici medyaya her zaman izin ver"
+  },
+  "sections": {
+    "status": {
+      "planned": "Planlandı",
+      "inProgress": "Devam ediyor",
+      "completed": "Tamamlandı"
+    },
+    "progress": {
+      "label": "İlerleme",
+      "reachedOfGoal": "{reached} / {goal}",
+      "goal": "Hedef: {goal}"
+    },
+    "viewDetails": "Detayları gör",
+    "empty": {
+      "categoryTiles": "Henüz kutucuk yok. Sayfa düzenleyicide öğe ekleyin.",
+      "projectCards": "Henüz kart yok. Sayfa düzenleyicide öğe ekleyin.",
+      "progressSpotlight": "Bu bölüm boş. Sayfa düzenleyicide bir başlık, görsel veya hedef ekleyin."
+    }
   }
 }
