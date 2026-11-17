@@ -15,6 +15,16 @@ import { storeTag } from '@/lib/api';
 // Platform-wide tags the API may purge; anything else is rejected so the
 // endpoint cannot be used to flush arbitrary cache entries.
 const PLATFORM_TAG = /^legal(?::[a-z0-9-]{1,80})?$/;
+
+// Expire the tagged entries at once. The "max" profile only marks them stale:
+// the old body keeps being served while Next refetches in the background, and
+// a refetch that fails (a deleted product answers 404, which is never written
+// to the cache) leaves the old 200 entry in place forever. With an immediate
+// expiry the next request is a blocking miss, so a deleted or unpublished
+// resource becomes a real 404 and a renamed one follows its redirect. This is
+// the form the Next documentation gives for route handlers called by an
+// external system.
+const EXPIRE_NOW = { expire: 0 } as const;
 export async function POST(req: NextRequest) {
   const secret = process.env.REVALIDATE_SECRET;
   if (!secret) {
@@ -49,7 +59,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    revalidateTag(tag, 'max');
+    revalidateTag(tag, EXPIRE_NOW);
     return NextResponse.json({ revalidated: true, tag, now: Date.now() });
   }
 
@@ -60,9 +70,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Next 16 requires a cache-life profile as the second arg; "max" purges the
-  // tagged entries on the next request.
-  revalidateTag(storeTag(slug), 'max');
+  revalidateTag(storeTag(slug), EXPIRE_NOW);
 
   return NextResponse.json({ revalidated: true, slug, now: Date.now() });
 }
