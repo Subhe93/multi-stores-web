@@ -276,7 +276,8 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {orderId && showOrderLink && (
+        {/* A store without customer accounts shows no "view order" link. */}
+        {orderId && showOrderLink && !checkoutSettings.no_customer_accounts && (
           <Link
             href={lp(`/account/orders/${orderId}`)}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"

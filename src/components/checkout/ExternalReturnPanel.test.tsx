@@ -121,3 +121,46 @@ describe('OrderReceipt shopping link', () => {
     expect(screen.getByRole('link', { name: /checkout.returnToSite/ })).toHaveAttribute('href', SITE);
   });
 });
+
+describe('ExternalReturnPanel return_label', () => {
+  it('wins over back_label for the locale', () => {
+    const settings = normalizeCheckoutSettings({
+      external_site_url: SITE,
+      back_label: { sv: 'Tillbaka till skolan' },
+      return_label: { sv: 'Till bokningsbekräftelsen' },
+    });
+    render(withSettings(settings, <ExternalReturnPanel orderNumber="ORD-1" orderId="o1" />));
+    expect(screen.getByRole('link', { name: /Till bokningsbekräftelsen/ })).toHaveAttribute('href', SITE);
+    expect(screen.queryByRole('link', { name: /Tillbaka till skolan/ })).toBeNull();
+  });
+
+  it('falls back to back_label when it has no entry for the locale', () => {
+    const settings = normalizeCheckoutSettings({
+      external_site_url: SITE,
+      back_label: { sv: 'Tillbaka till skolan' },
+      return_label: { en: 'To your booking' },
+    });
+    render(withSettings(settings, <ExternalReturnPanel orderNumber="ORD-1" orderId="o1" />));
+    expect(screen.getByRole('link', { name: /Tillbaka till skolan/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /To your booking/ })).toBeNull();
+  });
+
+  it('falls back to the translated default without any label for the locale', () => {
+    const settings = normalizeCheckoutSettings({ external_site_url: SITE, return_label: { en: 'To your booking' } });
+    render(withSettings(settings, <ExternalReturnPanel orderNumber="ORD-1" orderId="o1" />));
+    expect(screen.getByRole('link', { name: /checkout.returnToSite:primatrafikskola.se/ })).toBeInTheDocument();
+  });
+
+  it('the countdown text is unchanged by the label', () => {
+    const settings = normalizeCheckoutSettings({ external_site_url: SITE, return_mode: 'auto', return_label: { sv: 'Till bokningen' } });
+    render(withSettings(settings, <ExternalReturnPanel orderNumber="ORD-1" orderId="o1" />));
+    expect(screen.getByRole('status')).toHaveTextContent('checkout.redirectingToSite:primatrafikskola.se|8');
+  });
+
+  it('the receipt shopping link keeps using its own text', () => {
+    const settings = normalizeCheckoutSettings({ external_site_url: SITE, return_label: { sv: 'Till bokningen' } });
+    render(withSettings(settings, <OrderReceipt order={null} orderId="o1" />));
+    expect(screen.getByRole('link', { name: /checkout.backToShopping/ })).toHaveAttribute('href', SITE);
+    expect(screen.queryByRole('link', { name: /Till bokningen/ })).toBeNull();
+  });
+});

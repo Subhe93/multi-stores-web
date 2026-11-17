@@ -72,3 +72,29 @@ describe('captureCouponFromSearch', () => {
     expect(captureCouponFromSearch('?other=1', on)).toBeNull();
   });
 });
+
+describe('no_customer_accounts', () => {
+  it('is present only when literally true', () => {
+    expect(normalizeCheckoutSettings({ no_customer_accounts: true }).no_customer_accounts).toBe(true);
+    for (const value of [false, null, undefined, 'true', 1, {}]) {
+      expect(normalizeCheckoutSettings({ no_customer_accounts: value })).not.toHaveProperty('no_customer_accounts');
+    }
+    expect(normalizeCheckoutSettings(null)).not.toHaveProperty('no_customer_accounts');
+  });
+
+  it('works without an external site and changes nothing else', () => {
+    expect(normalizeCheckoutSettings({ no_customer_accounts: true })).toStrictEqual({
+      ...DEFAULT_CHECKOUT_SETTINGS,
+      no_customer_accounts: true,
+    });
+    const withSite = normalizeCheckoutSettings({ external_site_url: 'https://example.se/', no_customer_accounts: true });
+    expect(withSite.no_customer_accounts).toBe(true);
+    expect(withSite.external_site_url).toBe('https://example.se/');
+  });
+
+  it('the defaults carry neither new key', () => {
+    expect(DEFAULT_CHECKOUT_SETTINGS).not.toHaveProperty('no_customer_accounts');
+    expect(DEFAULT_CHECKOUT_SETTINGS).not.toHaveProperty('return_label');
+    expect(normalizeCheckoutSettings({})).toStrictEqual({ ...DEFAULT_CHECKOUT_SETTINGS });
+  });
+});

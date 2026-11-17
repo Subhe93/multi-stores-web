@@ -8,6 +8,7 @@ import { AlertTriangle, CheckCircle2, Clock, Loader2, UserRound } from 'lucide-r
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { clearKustomCheckoutSession } from '@/hooks/useKustomCheckout';
 import { api } from '@/lib/api';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
@@ -66,6 +67,9 @@ function KustomConfirmationContent() {
   const sessionMode = Boolean(sessionId && sessionToken);
   const { token: authToken, loading: authLoading } = useAuth();
   const { clearCart } = useCart();
+  // Store without customer accounts: no password email is sent, so the note
+  // that announces it is not shown either.
+  const noAccounts = useCheckoutSettings().no_customer_accounts === true;
 
   const [confirmation, setConfirmation] = useState<KustomConfirmationResponse | null>(null);
   const [order, setOrder] = useState<OrderReceiptOrder | null>(null);
@@ -243,7 +247,7 @@ function KustomConfirmationContent() {
         {/* Guest checkout: an account was created from the email Kustom
             collected; its password and a one-click login link were emailed.
             The forgot-password flow stays offered to choose a new password. */}
-        {accountCreated && (
+        {accountCreated && !noAccounts && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-gray-700">
             <UserRound className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
             <div>

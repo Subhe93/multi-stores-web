@@ -8,6 +8,7 @@ import { useAuth, readStoredAccessToken } from '@/hooks/useAuth';
 import { readEditHintToken } from '@/components/edit-hint/editHintStorage';
 import { checkoutViewerToken, storefrontViewerHeaders } from '@/lib/storePreview';
 import { useCart } from '@/hooks/useCart';
+import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
 import { readStripeReturn, type StripeReturnState } from '@/lib/stripeElements';
@@ -50,6 +51,9 @@ export default function OrderConfirmationPage() {
   const unverifiedReturn = (urlPaymentState !== null && !authLoading && !token) || serverUnverified;
   const paymentState = unverifiedReturn ? null : (serverPaymentState ?? urlPaymentState);
   const cartClearedRef = useRef(false);
+  // Store without customer accounts: no password email is sent, so the note
+  // that announces it is not shown either.
+  const noAccounts = useCheckoutSettings().no_customer_accounts === true;
   // Email of the guest account created for this order (set by checkout).
   // Read on the client only; the server snapshot renders no note.
   const guestEmail = useSyncExternalStore(
@@ -197,7 +201,7 @@ export default function OrderConfirmationPage() {
 
         {/* Guest checkout: the server created the account and emailed the
             password with a one-click login link. */}
-        {guestEmail && (
+        {guestEmail && !noAccounts && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-gray-700">
             <UserRound className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
             <div>

@@ -33,6 +33,13 @@ export interface CheckoutSettings {
   /** Focused storefront (src/lib/focusedStorefront.ts): present (true) only
    *  when the store turned it on and has a valid external site. */
   external_focus?: boolean;
+  /** Return button label per locale, used only by the "back to the site"
+   *  button of the paid confirmation; absent = `back_label`, then the
+   *  translated default. Present only next to a valid external site. */
+  return_label?: Record<string, string> | null;
+  /** Store without customer accounts: present (true) only when the store
+   *  turned it on. Independent of the external site. */
+  no_customer_accounts?: boolean;
 }
 
 export const DEFAULT_CHECKOUT_SETTINGS: Readonly<CheckoutSettings> = Object.freeze({
@@ -75,6 +82,9 @@ export function normalizeCheckoutSettings(raw: unknown): CheckoutSettings {
     const keys = raw.coupon_param.filter((k): k is string => typeof k === 'string' && COUPON_PARAM_RE.test(k));
     if (keys.length) out.coupon_param = keys;
   }
+  // Store without customer accounts: only when literally true, so every other
+  // store keeps the exact previous shape. Works without an external site.
+  if (raw.no_customer_accounts === true) out.no_customer_accounts = true;
   // Re-checked here as well (R-D4): an invalid site drops all four keys.
   const external = normalizeExternalReturn(raw);
   if (external) {

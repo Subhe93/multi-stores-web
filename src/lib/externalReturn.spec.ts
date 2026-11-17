@@ -6,6 +6,7 @@ import {
   isExternalHostAllowed,
   parseExternalUrl,
   resolveBackLabel,
+  resolveReturnLabel,
   resolveReturnMode,
 } from './externalReturn';
 import { DEFAULT_CHECKOUT_SETTINGS, normalizeCheckoutSettings } from './checkoutSettings';
@@ -135,5 +136,51 @@ describe('labels, mode and links', () => {
   it('continue shopping link is unchanged without a site', () => {
     expect(continueShoppingLink(DEFAULT_CHECKOUT_SETTINGS, '/products')).toStrictEqual({ href: '/products' });
     expect(continueShoppingLink(site(), '/products')).toStrictEqual({ href: SITE, rel: 'noreferrer' });
+  });
+});
+
+describe('return_label', () => {
+  it('is kept only when it has entries, and only next to a valid site', () => {
+    expect(site({ return_label: { sv: '  Till bokningen ', en: ' ', de: 5 } }).return_label).toStrictEqual({ sv: 'Till bokningen' });
+    for (const value of [null, {}, { sv: '  ' }, 'text', ['a']]) {
+      expect(site({ return_label: value })).not.toHaveProperty('return_label');
+    }
+    // A store with a site but without the key keeps the previous shape.
+    expect(site({ back_label: { sv: 'Till skolan' } })).toStrictEqual({
+      ...DEFAULT_CHECKOUT_SETTINGS,
+      external_site_url: SITE,
+      return_url: null,
+      return_mode: 'button',
+      back_label: { sv: 'Till skolan' },
+    });
+    expect(normalizeCheckoutSettings({ return_label: { sv: 'X' } })).not.toHaveProperty('return_label');
+    expect(normalizeCheckoutSettings({ external_site_url: 'http://bad.se', return_label: { sv: 'X' } })).not.toHaveProperty('return_label');
+  });
+
+  it('resolves exact locale, then language, then back_label, then null', () => {
+    const s = site({ return_label: { 'sv-SE': 'Exakt', sv: 'Till bokningen' }, back_label: { sv: 'Till skolan', en: 'To the school' } });
+    expect(resolveReturnLabel(s, 'sv-SE')).toBe('Exakt');
+    expect(resolveReturnLabel(s, 'sv')).toBe('Till bokningen');
+    expect(resolveReturnLabel(s, 'sv-FI')).toBe('Till bokningen');
+    // Never another language of return_label: back_label of the locale wins.
+    expect(resolveReturnLabel(s, 'en')).toBe('To the school');
+    expect(resolveReturnLabel(s, 'de')).toBeNull();
+    // back_label resolution itself is untouched.
+    expect(resolveBackLabel(s, 'sv')).toBe('Till skolan');
+  });
+
+  it('without return_label it equals the back label resolution', () => {
+    const s = site({ back_label: { sv: 'Till skolan' } });
+    for (const locale of ['sv', 'sv-SE', 'en']) {
+      expect(resolveReturnLabel(s, locale)).toBe(resolveBackLabel(s, locale));
+    }
+    expect(resolveReturnLabel(site(), 'sv')).toBeNull();
+  });
+
+  it('is ignored without a valid external site', () => {
+    expect(resolveReturnLabel({ ...DEFAULT_CHECKOUT_SETTINGS, return_label: { sv: 'X' } }, 'sv')).toBeNull();
+    expect(resolveReturnLabel({ ...DEFAULT_CHECKOUT_SETTINGS, external_site_url: 'http://bad.se', return_label: { sv: 'X' } }, 'sv')).toBeNull();
+    expect(resolveReturnLabel(DEFAULT_CHECKOUT_SETTINGS, 'sv')).toBeNull();
+    expect(resolveReturnLabel(null, 'sv')).toBeNull();
   });
 });

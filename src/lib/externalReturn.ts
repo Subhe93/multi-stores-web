@@ -89,7 +89,7 @@ export function isExternalHostAllowed(url: string, siteUrl: string | null | unde
   return host !== null && externalSiteHosts(siteUrl).includes(host);
 }
 
-type ExternalSettings = Pick<CheckoutSettings, 'external_site_url' | 'return_url' | 'return_mode' | 'back_label'>;
+type ExternalSettings = Pick<CheckoutSettings, 'external_site_url' | 'return_url' | 'return_mode' | 'back_label' | 'return_label'>;
 
 /** The validated external site URL of the store, or null (no external site). */
 export function externalSiteUrl(settings: ExternalSettings | null | undefined): string | null {
@@ -143,6 +143,22 @@ export function resolveBackLabel(settings: ExternalSettings | null | undefined, 
   return labels[locale.split('-')[0]!] || null;
 }
 
+/**
+ * The label of the "return to the site after payment" button for `locale`:
+ * the merchant's `return_label` (regional tag falls back to its language,
+ * never to another language), else the `back_label` resolution. Null = the
+ * translated default; always null without a valid external site.
+ */
+export function resolveReturnLabel(settings: ExternalSettings | null | undefined, locale: string): string | null {
+  if (!externalSiteUrl(settings)) return null;
+  const labels = settings?.return_label;
+  if (labels) {
+    const own = labels[locale] || labels[locale.split('-')[0]!];
+    if (own) return own;
+  }
+  return resolveBackLabel(settings, locale);
+}
+
 /** `auto` only when an external site is set; `button` otherwise. */
 export function resolveReturnMode(settings: ExternalSettings | null | undefined): ReturnMode {
   return externalSiteUrl(settings) && settings?.return_mode === 'auto' ? 'auto' : 'button';
@@ -161,23 +177,29 @@ export function continueShoppingLink(
   return site ? { href: site, rel: 'noreferrer' } : { href: fallback };
 }
 
+/** A per-locale label map with its empty entries dropped; null when none is left. */
+function normalizeLabels(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const labels: Record<string, string> = {};
+  for (const [locale, label] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof label === 'string' && label.trim()) labels[locale] = label.trim();
+  }
+  return Object.keys(labels).length ? labels : null;
+}
+
 /** Normalizes the external-site keys of a storefront `checkout` block. */
 export function normalizeExternalReturn(raw: Record<string, unknown>): ExternalSettings | null {
   const site = parseExternalUrl(raw.external_site_url);
   if (!site) return null;
   const ret = parseExternalUrl(raw.return_url, true);
-  let backLabel: Record<string, string> | null = null;
-  if (raw.back_label && typeof raw.back_label === 'object' && !Array.isArray(raw.back_label)) {
-    const labels: Record<string, string> = {};
-    for (const [locale, label] of Object.entries(raw.back_label as Record<string, unknown>)) {
-      if (typeof label === 'string' && label.trim()) labels[locale] = label.trim();
-    }
-    if (Object.keys(labels).length) backLabel = labels;
-  }
-  return {
+  const out: ExternalSettings = {
     external_site_url: site,
     return_url: ret && isExternalHostAllowed(ret, site) ? ret : null,
     return_mode: raw.return_mode === 'auto' ? 'auto' : 'button',
-    back_label: backLabel,
+    back_label: normalizeLabels(raw.back_label),
   };
+  // Added only when set, so a store without it keeps the exact previous shape.
+  const returnLabel = normalizeLabels(raw.return_label);
+  if (returnLabel) out.return_label = returnLabel;
+  return out;
 }

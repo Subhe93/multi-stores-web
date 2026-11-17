@@ -8,7 +8,7 @@ import {
   AUTO_RETURN_SECONDS,
   buildExternalReturnUrl,
   externalSiteHost,
-  resolveBackLabel,
+  resolveReturnLabel,
   resolveReturnMode,
 } from '@/lib/externalReturn';
 import { whenPurchaseSettled } from '@/lib/trackEvents';
@@ -59,7 +59,7 @@ export function ExternalReturnPanel({ orderNumber, orderId }: ExternalReturnPane
   }, [counting, secondsLeft, href, orderId]);
 
   if (!href || !site) return null;
-  const label = resolveBackLabel(settings, locale) || t('checkout.returnToSite', { site });
+  const label = resolveReturnLabel(settings, locale) || t('checkout.returnToSite', { site });
 
   return (
     <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-center">
