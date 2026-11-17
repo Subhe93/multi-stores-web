@@ -151,6 +151,9 @@ export interface FieldDefinition {
   max?: number;
   options?: { value: string; label: LocalizedString }[]; // for `select`
   fields?: FieldDefinition[]; // for `repeater`
+  // Most rows a repeater accepts (unset = unlimited). Mirrors the dashboard
+  // FieldDefinition; the section renders at most this many items.
+  maxItems?: number;
   // Conditional visibility inside a repeater — show only when sibling `key`'s
   // value is in `in`. Mirrors the dashboard FieldDefinition.
   showIf?: { key: string; in: string[] };

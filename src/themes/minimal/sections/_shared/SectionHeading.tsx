@@ -8,12 +8,15 @@ import { colorOr } from '../../../elementStyles';
 import type { TextTag } from './headingLevel';
 import { Heading } from './Heading';
 
-type Align = 'left' | 'center' | 'right';
+// 'start' is the logical (direction-aware) alignment; 'left' / 'right' are
+// kept for the sections that already use them.
+type Align = 'left' | 'center' | 'right' | 'start';
 
 const ALIGN_CLASS: Record<Align, string> = {
   left: 'text-left items-start',
   center: 'text-center items-center mx-auto',
   right: 'text-right items-end ms-auto',
+  start: 'text-start items-start',
 };
 
 interface SectionHeadingProps {
@@ -32,6 +35,8 @@ interface SectionHeadingProps {
   subheadingColor?: unknown;
   eyebrowColor?: unknown;
   className?: string;
+  /** A thin rule on each side of the heading. Only with `align: 'center'`. */
+  ruled?: boolean;
 }
 
 export function SectionHeading({
@@ -47,6 +52,7 @@ export function SectionHeading({
   subheadingColor,
   eyebrowColor,
   className,
+  ruled = false,
 }: SectionHeadingProps) {
   if (!eyebrow && !heading && !subheading) return null;
   const headingStyle: CSSProperties = {
@@ -71,11 +77,19 @@ export function SectionHeading({
           {eyebrow}
         </Heading>
       )}
-      {heading && (
+      {heading && ruled && align === 'center' ? (
+        <div className="flex w-full items-center justify-center gap-4 md:gap-6">
+          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} />
+          <Heading level={tag ?? as} style={headingStyle}>
+            {heading}
+          </Heading>
+          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} />
+        </div>
+      ) : heading ? (
         <Heading level={tag ?? as} style={headingStyle}>
           {heading}
         </Heading>
-      )}
+      ) : null}
       {subheading && (
         <Heading
           level={subheadingTag}
