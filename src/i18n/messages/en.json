@@ -632,6 +632,8 @@
     "magicForgot": "Forgot password?",
     "wrongStoreAccount": "This account belongs to another store. Sign in with your account for this store, or create one.",
     "emailExistsInStore": "This email already has an account in this store — log in.",
+    "emailExistsChoosePassword": "This email address has already been used for an order in this store. Choose a password for it, sign in, and then place your order.",
+    "emailExistsChoosePasswordLink": "Choose a password",
     "platformStaffOnly": "This sign-in is for store owners and partners.",
     "platformCustomerSignIn": "Shopping as a customer? Sign in on the store where you shopped.",
     "platformForgotHint": "Shopped in a store? Reset your password on that store's site.",

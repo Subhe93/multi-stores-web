@@ -632,6 +632,8 @@
     "magicForgot": "Glömt lösenordet?",
     "wrongStoreAccount": "Det här kontot hör till en annan butik. Logga in med ditt konto för den här butiken eller skapa ett.",
     "emailExistsInStore": "Den här e-postadressen har redan ett konto i den här butiken — logga in.",
+    "emailExistsChoosePassword": "Den här e-postadressen har redan använts för en beställning i den här butiken. Välj ett lösenord för den, logga in och lägg sedan din beställning.",
+    "emailExistsChoosePasswordLink": "Välj ett lösenord",
     "platformStaffOnly": "Den här inloggningen är för butiksägare och partner.",
     "platformCustomerSignIn": "Handlar du som kund? Logga in i butiken där du handlade.",
     "platformForgotHint": "Har du handlat i en butik? Återställ lösenordet på butikens webbplats.",

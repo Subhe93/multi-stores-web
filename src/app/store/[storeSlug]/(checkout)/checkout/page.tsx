@@ -49,7 +49,7 @@ import { isLineErrorCode } from '@/lib/checkoutLineErrors';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
-import { resolvePayButtonLabel } from '@/lib/checkoutSettings';
+import { guestEmailExistsNeedsPasswordSetup, resolvePayButtonLabel } from '@/lib/checkoutSettings';
 import { useContinueShoppingLink } from '@/hooks/useFocusedStorefront';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import {
@@ -498,6 +498,9 @@ function CheckoutForm({
   const [error, setError] = useState('');
   // The error concerns a cart line (personalization): the box links to the cart.
   const [errorCartLink, setErrorCartLink] = useState(false);
+  // Store without customer accounts: the email already has an account the
+  // buyer never got a password for, so the box links to "choose a password".
+  const [errorPasswordLink, setErrorPasswordLink] = useState(false);
   // `loading` only disables the button on the next render, so a fast double
   // click (or Enter + click) can enter handleSubmit twice and place two orders
   // — two charges on the same card. This ref rejects re-entry synchronously.
@@ -1061,6 +1064,7 @@ function CheckoutForm({
     if (!validate()) return;
     setError('');
     setErrorCartLink(false);
+    setErrorPasswordLink(false);
     setRcNotConfirmed(false);
     submittingRef.current = true;
     setLoading(true);
@@ -1150,9 +1154,15 @@ function CheckoutForm({
           if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
           // Accounts are per store: "email exists" means it exists in this
           // store, so the shopper is asked to log in here.
-          const regMessage = (regErr as { code?: string } | null)?.code === 'AUTH_EMAIL_EXISTS'
-            ? t('auth.emailExistsInStore')
-            : apiError(regErr);
+          const regCode = (regErr as { code?: string } | null)?.code;
+          // Store without customer accounts: no password was ever emailed, so
+          // the buyer is sent to "choose a password" instead of "log in".
+          const needsPassword = guestEmailExistsNeedsPasswordSetup(regCode, checkoutSettings);
+          const regMessage = needsPassword
+            ? t('auth.emailExistsChoosePassword')
+            : regCode === 'AUTH_EMAIL_EXISTS'
+              ? t('auth.emailExistsInStore')
+              : apiError(regErr);
           if (wantAccount && accountPassword) {
             try {
               // Same store context as the register call (useAuth adds it).
@@ -1160,11 +1170,13 @@ function CheckoutForm({
               activeToken = readStoredAccessToken();
             } catch {
               setError(regMessage);
+              setErrorPasswordLink(needsPassword);
               setLoading(false);
               return;
             }
           } else {
             setError(regMessage);
+            setErrorPasswordLink(needsPassword);
             setLoading(false);
             return;
           }
@@ -1512,8 +1524,13 @@ function CheckoutForm({
     ) : (
       <div role="alert" tabIndex={-1} data-checkout-error=""
         className={`rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 focus:outline-none ${spacing}`}>
-        {errorCartLink ? <p>{error}</p> : error}
+        {errorCartLink || errorPasswordLink ? <p>{error}</p> : error}
         {errorCartLink && cartLink}
+        {errorPasswordLink && (
+          <Link href={lp('/auth/forgot-password')} className="mt-1 block font-medium underline underline-offset-2 hover:opacity-80">
+            {t('auth.emailExistsChoosePasswordLink')}
+          </Link>
+        )}
       </div>
     );
   };

@@ -149,3 +149,16 @@ export interface CouponAutoApplyNotice {
   /** `pending` = captured, waiting for a cart line to validate against. */
   status: 'pending' | 'applied' | 'invalid';
 }
+
+/**
+ * Store without customer accounts: the guest checkout found an account for
+ * the email (AUTH_EMAIL_EXISTS) that the buyer never received a password
+ * for, so "log in" is a dead end and the checkout offers "choose a password"
+ * instead. False for every store without the option.
+ */
+export function guestEmailExistsNeedsPasswordSetup(
+  code: string | null | undefined,
+  settings: Pick<CheckoutSettings, 'no_customer_accounts'>,
+): boolean {
+  return code === 'AUTH_EMAIL_EXISTS' && settings.no_customer_accounts === true;
+}

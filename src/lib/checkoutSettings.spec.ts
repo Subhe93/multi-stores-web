@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CHECKOUT_SETTINGS,
   captureCouponFromSearch,
+  guestEmailExistsNeedsPasswordSetup,
   normalizeCheckoutSettings,
   resolvePayButtonLabel,
 } from './checkoutSettings';
@@ -96,5 +97,23 @@ describe('no_customer_accounts', () => {
     expect(DEFAULT_CHECKOUT_SETTINGS).not.toHaveProperty('no_customer_accounts');
     expect(DEFAULT_CHECKOUT_SETTINGS).not.toHaveProperty('return_label');
     expect(normalizeCheckoutSettings({})).toStrictEqual({ ...DEFAULT_CHECKOUT_SETTINGS });
+  });
+});
+
+describe('guestEmailExistsNeedsPasswordSetup', () => {
+  it('is true only for AUTH_EMAIL_EXISTS on a store without customer accounts', () => {
+    const on = normalizeCheckoutSettings({ no_customer_accounts: true });
+    expect(guestEmailExistsNeedsPasswordSetup('AUTH_EMAIL_EXISTS', on)).toBe(true);
+    expect(guestEmailExistsNeedsPasswordSetup('AUTH_CAPTCHA_FAILED', on)).toBe(false);
+    expect(guestEmailExistsNeedsPasswordSetup(undefined, on)).toBe(false);
+    expect(guestEmailExistsNeedsPasswordSetup(null, on)).toBe(false);
+  });
+
+  it('stays false for stores without the option (former "log in" message)', () => {
+    expect(guestEmailExistsNeedsPasswordSetup('AUTH_EMAIL_EXISTS', normalizeCheckoutSettings(null))).toBe(false);
+    expect(guestEmailExistsNeedsPasswordSetup('AUTH_EMAIL_EXISTS', { ...DEFAULT_CHECKOUT_SETTINGS })).toBe(false);
+    expect(
+      guestEmailExistsNeedsPasswordSetup('AUTH_EMAIL_EXISTS', normalizeCheckoutSettings({ no_customer_accounts: false })),
+    ).toBe(false);
   });
 });

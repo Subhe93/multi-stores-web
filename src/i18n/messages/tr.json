@@ -632,6 +632,8 @@
     "magicForgot": "Şifrenizi mi unuttunuz?",
     "wrongStoreAccount": "Bu hesap başka bir mağazaya ait. Bu mağazadaki hesabınızla giriş yapın veya yeni bir hesap oluşturun.",
     "emailExistsInStore": "Bu e-postanın bu mağazada zaten bir hesabı var — giriş yapın.",
+    "emailExistsChoosePassword": "Bu e-posta adresi bu mağazada daha önce bir siparişte kullanıldı. Bunun için bir şifre belirleyin, giriş yapın ve ardından siparişinizi verin.",
+    "emailExistsChoosePasswordLink": "Şifre belirle",
     "platformStaffOnly": "Bu giriş mağaza sahipleri ve iş ortakları içindir.",
     "platformCustomerSignIn": "Müşteri olarak mı alışveriş yapıyorsunuz? Alışveriş yaptığınız mağazada giriş yapın.",
     "platformForgotHint": "Bir mağazadan mı alışveriş yaptınız? Şifrenizi o mağazanın sitesinden sıfırlayın.",

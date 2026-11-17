@@ -632,6 +632,8 @@
     "magicForgot": "Mot de passe oublié ?",
     "wrongStoreAccount": "Ce compte appartient à une autre boutique. Connectez-vous avec votre compte de cette boutique ou créez-en un.",
     "emailExistsInStore": "Cet e-mail a déjà un compte dans cette boutique — connectez-vous.",
+    "emailExistsChoosePassword": "Cette adresse e-mail a déjà servi pour une commande dans cette boutique. Choisissez un mot de passe, connectez-vous, puis passez votre commande.",
+    "emailExistsChoosePasswordLink": "Choisir un mot de passe",
     "platformStaffOnly": "Cette connexion est réservée aux propriétaires de boutique et aux partenaires.",
     "platformCustomerSignIn": "Vous êtes client ? Connectez-vous sur la boutique où vous avez fait vos achats.",
     "platformForgotHint": "Vous avez acheté dans une boutique ? Réinitialisez votre mot de passe sur le site de cette boutique.",

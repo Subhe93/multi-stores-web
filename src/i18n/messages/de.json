@@ -632,6 +632,8 @@
     "magicForgot": "Passwort vergessen?",
     "wrongStoreAccount": "Dieses Konto gehört zu einem anderen Shop. Melden Sie sich mit Ihrem Konto für diesen Shop an oder erstellen Sie eines.",
     "emailExistsInStore": "Für diese E-Mail-Adresse gibt es in diesem Shop bereits ein Konto — bitte melden Sie sich an.",
+    "emailExistsChoosePassword": "Diese E-Mail-Adresse wurde in diesem Shop bereits für eine Bestellung verwendet. Legen Sie ein Passwort dafür fest, melden Sie sich an und bestellen Sie dann.",
+    "emailExistsChoosePasswordLink": "Passwort festlegen",
     "platformStaffOnly": "Diese Anmeldung ist für Shop-Inhaber und Partner.",
     "platformCustomerSignIn": "Sie kaufen als Kunde ein? Melden Sie sich in dem Shop an, in dem Sie eingekauft haben.",
     "platformForgotHint": "In einem Shop eingekauft? Setzen Sie Ihr Passwort auf der Website dieses Shops zurück.",
