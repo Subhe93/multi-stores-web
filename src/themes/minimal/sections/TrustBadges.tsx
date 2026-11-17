@@ -4,11 +4,13 @@ import {
   TRUST_BADGE_ICON_OPTIONS as ICON_OPTIONS,
   type TrustBadgeItem as BadgeItem,
 } from '@/lib/trustBadgeIcons';
+import type { CSSProperties } from 'react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { colorOr } from '../../elementStyles';
 
 function TrustBadges({ settings, content, locale }: SectionRenderProps) {
   const items = (content.items as BadgeItem[]) || [];
-  const layout = (settings.layout as 'cards' | 'inline') || 'cards';
+  const layout = (settings.layout as 'cards' | 'inline' | 'strip') || 'cards';
   const padding = (settings.padding as 'compact' | 'comfortable') || 'comfortable';
 
   const visible = items.filter((b) => b.label || b.icon);
@@ -33,6 +35,53 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
               : 'No badges yet. Add some from the builder.'}
           </p>
         </div>
+      </section>
+    );
+  }
+
+  if (layout === 'strip') {
+    // One quiet row of icon + label + description, separated by thin rules.
+    // Two per row below 768px, up to four across from there.
+    const perRow = Math.min(visible.length, 4);
+    const iconColor = colorOr(settings.icon_color, 'var(--theme-colors-text)');
+    return (
+      <section className={padClass}>
+        <ul
+          role="list"
+          className="grid grid-cols-2 gap-y-6 md:grid-cols-[repeat(var(--tb-n),minmax(0,1fr))]"
+          style={{ '--tb-n': perRow } as CSSProperties}
+        >
+          {visible.map((b, i) => {
+            const Icon = b.icon ? ICONS[b.icon] || ShieldCheck : ShieldCheck;
+            // A rule between neighbours of the same row, never before the
+            // first item of a row.
+            const divider = `${i % 2 === 1 ? 'max-md:border-s' : ''} ${i % perRow !== 0 ? 'md:border-s' : ''}`.trim();
+            return (
+              <li
+                key={i}
+                className={`flex items-center gap-3 px-3 md:justify-center md:px-6 ${divider}`.trim()}
+                style={{ borderColor: 'var(--theme-colors-border)' }}
+              >
+                <Icon
+                  className="size-7 md:size-8 shrink-0"
+                  strokeWidth={1.25}
+                  aria-hidden
+                  style={{ color: iconColor }}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold leading-tight" style={{ color: 'var(--theme-colors-text)' }}>
+                    {b.label}
+                  </div>
+                  {b.description && (
+                    <div className="text-xs md:text-sm leading-snug" style={{ color: 'var(--theme-colors-muted)' }}>
+                      {b.description}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </section>
     );
   }
@@ -141,7 +190,14 @@ export const trustBadgesSection: SectionDefinition = {
         options: [
           { value: 'cards', label: { en: 'Cards', ar: 'بطاقات' } },
           { value: 'inline', label: { en: 'Inline row', ar: 'سطر واحد' } },
+          { value: 'strip', label: { en: 'Strip', ar: 'شريط' } },
         ],
+      },
+      {
+        key: 'icon_color',
+        type: 'color',
+        label: { en: 'Icon colour', ar: 'لون الأيقونة' },
+        showIf: { key: 'layout', in: ['strip'] },
       },
       {
         key: 'padding',

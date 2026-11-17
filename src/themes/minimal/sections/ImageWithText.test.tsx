@@ -13,6 +13,7 @@ vi.mock('./_shared/lazyDynamic', async () => import('./_shared/DynamicProductIma
 
 import { imageWithTextSection } from './ImageWithText';
 import { singleImageSection } from './SingleImage';
+import { classTokens, hrefs, physicalClasses } from './_shared/testHelpers';
 
 const ImageWithText = imageWithTextSection.Component;
 
@@ -176,5 +177,127 @@ describe('image-with-text schema', () => {
     }
     expect(fields.find((x) => x.key === 'image')?.showIf).toEqual({ key: 'image_source', in: ['', 'static'] });
     expect(imageWithTextSection.defaultSettings).not.toHaveProperty('image_source');
+  });
+});
+
+// ── Edge-to-edge style, second button, alt text ──────────────────────────
+
+const BLEED_SETTINGS = { image_style: 'bleed', image: '/uploads/pages/a.jpg', cta_url: '/products' };
+
+describe('image-with-text new keys', () => {
+  it('image_style framed and cta_tone primary equal unset', () => {
+    for (const [, settings, content] of STATIC_CASES) {
+      const base = html({ settings, content });
+      expect(html({ settings: { ...settings, image_style: 'framed' }, content })).toBe(base);
+      expect(html({ settings: { ...settings, cta_tone: 'primary' }, content })).toBe(base);
+    }
+  });
+
+  it('second button only when it has a text', () => {
+    const settings = { image: '/uploads/pages/a.jpg', cta_url: '/products', cta_secondary_url: '/about' };
+    const one = html({ settings, content: CONTENT });
+    expect(hrefs(one)).toEqual(['/products']);
+    expect(one).not.toContain('flex flex-wrap gap-3');
+    const two = html({ settings, content: { ...CONTENT, cta_secondary_text: 'Om oss' } });
+    expect(hrefs(two)).toEqual(['/products', '/about']);
+    expect(two).toContain('flex flex-wrap gap-3');
+    expect(two).toContain('Om oss');
+    // Alone, without a first button.
+    const only = html({ settings, content: { heading: 'Gravyr', cta_secondary_text: 'Om oss' } });
+    expect(hrefs(only)).toEqual(['/about']);
+  });
+
+  it('second button: outlined by default, overridable, localized on a secondary locale', () => {
+    const settings = { image: '/uploads/pages/a.jpg', cta_secondary_url: '/about', cta_secondary_bg_color: '#00ff00' };
+    const out = html({ settings, content: { ...CONTENT, cta_secondary_text: 'Om oss' }, locale: 'ar' });
+    expect(hrefs(out)).toEqual(['#', '/ar/about']);
+    expect(out).toContain('background-color:#00ff00');
+    expect(out).toContain('border:1.5px solid var(--theme-colors-border)');
+  });
+
+  it('accent button colour', () => {
+    const out = html({ settings: { image: '/uploads/pages/a.jpg', cta_tone: 'accent' }, content: CONTENT });
+    expect(out).toContain('background-color:var(--theme-colors-accent);color:var(--theme-colors-accentContrast, #fff)');
+  });
+
+  it('alt text of the static image in both styles; empty by default', () => {
+    expect(imgAlts(html({ settings: { image: '/uploads/pages/a.jpg' }, content: CONTENT }))).toEqual(['']);
+    expect(imgAlts(html({ settings: { image: '/uploads/pages/a.jpg' }, content: { ...CONTENT, alt: 'Graverad ring' } }))).toEqual(['Graverad ring']);
+    expect(imgAlts(html({ settings: BLEED_SETTINGS, content: { ...CONTENT, alt: 'Graverad ring' } }))).toEqual(['Graverad ring']);
+    expect(imgAlts(html({ settings: BLEED_SETTINGS, content: CONTENT }))).toEqual(['']);
+  });
+
+  it('bleed: escapes to the viewport, no radius or shadow on the image', () => {
+    const out = html({ settings: BLEED_SETTINGS, content: CONTENT });
+    expect(out).toContain('data-bleed-split="bleed"');
+    expect(out).toContain('width:100vw');
+    expect(out).not.toContain('var(--theme-radius-lg)');
+    expect(out).not.toContain('var(--theme-shadow-md)');
+    expect(out).not.toContain('data-reveal');
+    expect(out).toMatch(/<h2[^>]*>Gravyr<\/h2>/);
+    // Hard edge and no tone by default.
+    expect(out).not.toContain('linear-gradient');
+    expect(out).toContain('background-color:transparent');
+    expect(classTokens(out)).toEqual(expect.arrayContaining(['aspect-square', 'md:min-h-[480px]']));
+    expect(physicalClasses(out)).toEqual([]);
+  });
+
+  it('bleed: position, min height, tone, soft edge and focus', () => {
+    const out = html({
+      settings: {
+        ...BLEED_SETTINGS, image_position: 'right', aspect: 'landscape', min_height: 'lg',
+        tone: 'surface', edge: 'soft', image_focus: 'top',
+      },
+      content: CONTENT,
+    });
+    expect(classTokens(out)).toEqual(expect.arrayContaining(['md:order-2', 'aspect-[4/3]', 'md:min-h-[600px]']));
+    expect(out).toContain('background-color:var(--theme-colors-surface)');
+    expect(out).toContain('linear-gradient(to right, var(--theme-colors-surface), transparent)');
+    expect(out).toContain('object-position:center top');
+    expect(classTokens(html({ settings: { ...BLEED_SETTINGS, min_height: 'sm' }, content: CONTENT }))).toContain('md:min-h-[360px]');
+    expect(classTokens(html({ settings: BLEED_SETTINGS, content: CONTENT }))).not.toContain('md:order-2');
+  });
+
+  it('bleed: one or two buttons with localized links', () => {
+    const settings = { ...BLEED_SETTINGS, cta_secondary_url: '/' };
+    const content = { ...CONTENT, cta_secondary_text: 'Om oss' };
+    expect(hrefs(html({ settings, content, locale: 'ar' }))).toEqual(['/ar/products', '/ar']);
+    expect(hrefs(html({ settings, content }))).toEqual(['/products', '/']);
+    expect(hrefs(html({ settings, content: CONTENT }))).toEqual(['/products']);
+  });
+
+  it('bleed is ignored with a dynamic image source', () => {
+    const settings = { image_source: 'product_featured', image: '/uploads/pages/static.jpg' };
+    const framed = html({ settings, content: CONTENT, product: PRODUCT, builderPreview: false });
+    const bleed = html({ settings: { ...settings, image_style: 'bleed' }, content: CONTENT, product: PRODUCT, builderPreview: false });
+    expect(bleed).toBe(framed);
+    expect(bleed).not.toContain('data-bleed-split');
+    expect(bleed).not.toContain('width:100vw');
+  });
+
+  it('bleed without an image: one contained text column; with nothing at all the framed upload box', () => {
+    const out = html({ settings: { image_style: 'bleed' }, content: CONTENT });
+    expect(out).toContain('data-bleed-split="contained"');
+    expect(out).not.toContain('100vw');
+    expect(out).not.toContain('Upload an image');
+    expect(html({ settings: { image_style: 'bleed' }, content: {} })).toBe(html({ settings: {}, content: {} }));
+  });
+
+  it('schema: translatable keys, defaults and the new fields', () => {
+    expect(imageWithTextSection.schema.translatable).toEqual(['eyebrow', 'heading', 'body', 'cta_text', 'cta_secondary_text', 'alt']);
+    expect(imageWithTextSection.defaultSettings).toEqual({ image_position: 'left', aspect: 'square' });
+    const fields = imageWithTextSection.schema.schema;
+    const keys = fields.map((f) => f.key);
+    expect(keys.indexOf('alt')).toBe(keys.indexOf('image') + 1);
+    expect(keys.indexOf('image_style')).toBe(keys.indexOf('image_position') + 1);
+    expect(keys.slice(-5)).toEqual([
+      'cta_secondary_bg_color', 'cta_secondary_text_color', 'cta_secondary_border_color',
+      'cta_secondary_border_width', 'cta_secondary_border_radius',
+    ]);
+    for (const key of ['min_height', 'image_focus', 'tone', 'bg_color', 'edge']) {
+      expect(fields.find((f) => f.key === key)?.showIf, key).toEqual({ key: 'image_style', in: ['bleed'] });
+    }
+    // Stored values of the position are kept.
+    expect(fields.find((f) => f.key === 'image_position')?.options?.map((o) => o.value)).toEqual(['left', 'right']);
   });
 });

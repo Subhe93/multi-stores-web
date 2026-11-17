@@ -16,6 +16,10 @@ import {
   type DynamicImageSource,
 } from './_shared/dynamicSource';
 import { DynamicProductImage } from './_shared/lazyDynamic';
+import { BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
+import { ctaDefaults, ctaToneValue } from './_shared/cta';
+import { FOCUS_RING, sectionHref } from './_shared/links';
+import { toneColors, toneValue } from './_shared/tone';
 
 type Position = 'left' | 'right';
 type Aspect = 'square' | 'portrait' | 'landscape' | 'wide';
@@ -28,6 +32,14 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 };
 
 const IMAGE_SIZES = '(min-width: 768px) 50vw, 100vw';
+
+// Edge-to-edge style: min-height of the image column from 768px.
+type MinHeight = 'sm' | 'md' | 'lg';
+const MIN_HEIGHT_CLASS: Record<MinHeight, string> = {
+  sm: 'md:min-h-[360px]',
+  md: 'md:min-h-[480px]',
+  lg: 'md:min-h-[600px]',
+};
 
 /**
  * Image block for a dynamic `image_source` (product image). Null when there
@@ -84,7 +96,7 @@ function dynamicImageBlock(
 }
 
 function ImageWithText(props: SectionRenderProps) {
-  const { settings, content } = props;
+  const { settings, content, locale, primaryLocale } = props;
   // A missing / 'static' / unknown image_source keeps the uploaded image.
   const imageSource = dynamicImageSource(settings);
   const headingLevel = headingTag(settings.heading_level, 'h2');
@@ -98,6 +110,128 @@ function ImageWithText(props: SectionRenderProps) {
   const body = (content.body as string) || '';
   const ctaText = (content.cta_text as string) || '';
   const ctaUrl = (settings.cta_url as string) || '#';
+  // Optional second button: rendered only when it has a text.
+  const ctaSecondaryText = (content.cta_secondary_text as string) || '';
+  const ctaSecondaryHref = sectionHref(settings.cta_secondary_url, locale, primaryLocale);
+  const altText = (content.alt as string) || '';
+  const ctaTone = ctaToneValue(settings.cta_tone);
+  const secondaryOverrides = {
+    bg: settings.cta_secondary_bg_color,
+    text: settings.cta_secondary_text_color,
+    borderColor: settings.cta_secondary_border_color,
+    borderWidth: settings.cta_secondary_border_width,
+    borderRadius: settings.cta_secondary_border_radius,
+  };
+
+  // Edge-to-edge style. Honoured for a static image only: a dynamic product
+  // image keeps the framed layout. With nothing at all to show the framed
+  // path below keeps its upload box.
+  if (
+    settings.image_style === 'bleed' &&
+    !imageSource &&
+    (resolvedImage || eyebrow || heading || body || ctaText || ctaSecondaryText)
+  ) {
+    const tone = toneValue(settings.tone, 'none');
+    const colors = toneColors(tone, settings.bg_color);
+    const minHeight = MIN_HEIGHT_CLASS[settings.min_height as MinHeight] || MIN_HEIGHT_CLASS.md;
+    const buttonClass = `inline-flex items-center px-6 py-2.5 motion-safe:transition-opacity hover:opacity-90 ${FOCUS_RING}`;
+    const primaryStyle = buttonStyles(
+      {
+        bg: settings.cta_bg_color,
+        text: settings.cta_text_color,
+        borderColor: settings.cta_border_color,
+        borderWidth: settings.cta_border_width,
+        borderRadius: settings.cta_border_radius,
+      },
+      ctaDefaults(ctaTone, tone, 'var(--theme-radius-full)'),
+    );
+    const secondaryStyle = buttonStyles(secondaryOverrides, {
+      bg: 'transparent',
+      text: colors.text,
+      border: colors.text,
+      borderWidth: '1.5px',
+      radius: 'var(--theme-radius-full)',
+    });
+    return (
+      <BleedSplit
+        imageSide={position === 'right' ? 'end' : 'start'}
+        edge={edgeValue(settings.edge, 'hard')}
+        minHeightClass={minHeight}
+        mobileAspectClass={ASPECT_CLASS[aspect] || ASPECT_CLASS.square}
+        bg={colors.bg}
+        color={colors.text}
+        blend={colors.blend}
+        media={
+          resolvedImage ? (
+            <StoreImage
+              src={resolvedImage}
+              alt={altText}
+              fill
+              sizes={IMAGE_SIZES}
+              unoptimized={isSvgSrc(resolvedImage)}
+              className="object-cover"
+              style={{ objectPosition: focusPosition(settings.image_focus) }}
+            />
+          ) : null
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {eyebrow && (
+            <Heading level={eyebrowTag} look="body"
+              className="text-xs font-semibold uppercase tracking-[0.2em]"
+              style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
+            >
+              {eyebrow}
+            </Heading>
+          )}
+          {heading && (
+            <Heading level={headingLevel}
+              style={{
+                fontFamily: 'var(--theme-font-heading)',
+                fontSize: 'calc(var(--theme-scale-h2) * 1.12)',
+                fontWeight: 'var(--theme-weight-heading)',
+                lineHeight: 'var(--theme-line-heading)',
+                letterSpacing: 'var(--theme-tracking-heading)',
+                color: colorOr(settings.heading_color, colors.text),
+              }}
+            >
+              {heading}
+            </Heading>
+          )}
+          {body && (
+            <p
+              className="max-w-prose"
+              style={{ color: colorOr(settings.body_color, colors.muted), lineHeight: 'var(--theme-line-body)' }}
+            >
+              {body}
+            </p>
+          )}
+          {(ctaText || ctaSecondaryText) && (
+            <div className="flex flex-wrap gap-3 mt-2">
+              {ctaText && (
+                <a
+                  href={sectionHref(settings.cta_url, locale, primaryLocale)}
+                  className={buttonClass}
+                  style={{ ...primaryStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                >
+                  {ctaText}
+                </a>
+              )}
+              {ctaSecondaryText && (
+                <a
+                  href={ctaSecondaryHref}
+                  className={buttonClass}
+                  style={{ ...secondaryStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                >
+                  {ctaSecondaryText}
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </BleedSplit>
+    );
+  }
 
   const ctaStyle = buttonStyles(
     {
@@ -107,13 +241,17 @@ function ImageWithText(props: SectionRenderProps) {
       borderWidth: settings.cta_border_width,
       borderRadius: settings.cta_border_radius,
     },
-    {
-      bg: 'var(--theme-colors-primary)',
-      text: 'var(--theme-colors-primaryContrast, #fff)',
-      // Soft & Rounded: pill CTA by default.
-      radius: 'var(--theme-radius-full)',
-    },
+    // Soft & Rounded: pill CTA by default. Unset or 'primary' gives the
+    // defaults this button always had.
+    ctaDefaults(ctaTone, 'none', 'var(--theme-radius-full)'),
   );
+  const ctaSecondaryStyle = buttonStyles(secondaryOverrides, {
+    bg: 'transparent',
+    text: 'var(--theme-colors-text)',
+    border: 'var(--theme-colors-border)',
+    borderWidth: '1.5px',
+    radius: 'var(--theme-radius-full)',
+  });
 
   const text = (
     <div className="flex flex-col justify-center gap-4 py-8 md:py-12">
@@ -147,7 +285,28 @@ function ImageWithText(props: SectionRenderProps) {
           {body}
         </p>
       )}
-      {ctaText && (
+      {ctaSecondaryText ? (
+        // Two buttons side by side; the single-button markup below is left
+        // exactly as it was.
+        <div className="flex flex-wrap gap-3">
+          {ctaText && (
+            <a
+              href={ctaUrl}
+              className="inline-flex items-center px-6 py-2.5 mt-2 transition hover:opacity-90"
+              style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)' }}
+            >
+              {ctaText}
+            </a>
+          )}
+          <a
+            href={ctaSecondaryHref}
+            className={`inline-flex items-center px-6 py-2.5 mt-2 motion-safe:transition-opacity hover:opacity-80 ${FOCUS_RING}`}
+            style={{ ...ctaSecondaryStyle, fontWeight: 'var(--theme-weight-bold)' }}
+          >
+            {ctaSecondaryText}
+          </a>
+        </div>
+      ) : ctaText ? (
         <div>
           <a
             href={ctaUrl}
@@ -157,7 +316,7 @@ function ImageWithText(props: SectionRenderProps) {
             {ctaText}
           </a>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
@@ -165,7 +324,7 @@ function ImageWithText(props: SectionRenderProps) {
     <div className={`relative ${ASPECT_CLASS[aspect]}`} style={mediaFx()}>
       <StoreImage
         src={resolvedImage}
-        alt=""
+        alt={altText}
         fill
         sizes="(min-width: 768px) 50vw, 100vw"
         unoptimized={isSvgSrc(resolvedImage)}
@@ -189,7 +348,7 @@ function ImageWithText(props: SectionRenderProps) {
 
   if (imageSource && !imageBlock) {
     // Live store, product without that image: text only, no empty box.
-    if (!eyebrow && !heading && !body && !ctaText) return null;
+    if (!eyebrow && !heading && !body && !ctaText && !ctaSecondaryText) return null;
     return (
       <section className="my-12">
         <Reveal direction="up">{text}</Reveal>
@@ -214,6 +373,9 @@ function ImageWithText(props: SectionRenderProps) {
   );
 }
 
+// Fields of the edge-to-edge style only.
+const BLEED_ONLY = { key: 'image_style', in: ['bleed'] };
+
 export const imageWithTextSection: SectionDefinition = {
   schema: {
     id: 'image-with-text',
@@ -224,9 +386,20 @@ export const imageWithTextSection: SectionDefinition = {
       en: '50/50 image and text. Common for "About", "Story", or feature spotlights.',
       ar: 'صورة 50/50 مع نص. مناسب لـ "من نحن"، "قصتنا"، أو تسليط الضوء على ميزة.',
     },
-    translatable: ['eyebrow', 'heading', 'body', 'cta_text'],
+    translatable: ['eyebrow', 'heading', 'body', 'cta_text', 'cta_secondary_text', 'alt'],
     schema: [
       { key: 'image', type: 'image', label: { en: 'Image', ar: 'الصورة' }, showIf: STATIC_IMAGE_SHOW_IF },
+      {
+        key: 'alt',
+        type: 'text',
+        label: { en: 'Image description (alt text)', ar: 'وصف الصورة (النص البديل)' },
+        description: {
+          en: 'Read by screen readers and search engines. Leave empty for a purely decorative image.',
+          ar: 'يقرؤه قارئ الشاشة ومحركات البحث. اتركه فارغاً إن كانت الصورة للزينة فقط.',
+        },
+        maxLength: 160,
+        showIf: STATIC_IMAGE_SHOW_IF,
+      },
       ...IMAGE_SOURCE_FIELDS,
       {
         key: 'image_position',
@@ -234,8 +407,76 @@ export const imageWithTextSection: SectionDefinition = {
         label: { en: 'Image position', ar: 'موقع الصورة' },
         defaultValue: 'left',
         options: [
-          { value: 'left', label: { en: 'Left', ar: 'يسار' } },
-          { value: 'right', label: { en: 'Right', ar: 'يمين' } },
+          // Stored values are kept; they follow the reading direction.
+          { value: 'left', label: { en: 'Start', ar: 'البداية' } },
+          { value: 'right', label: { en: 'End', ar: 'النهاية' } },
+        ],
+      },
+      {
+        key: 'image_style',
+        type: 'select',
+        label: { en: 'Image style', ar: 'نمط الصورة' },
+        description: {
+          en: 'Edge to edge applies to an uploaded image, not to a product image source.',
+          ar: 'نمط «من الحافة إلى الحافة» يعمل مع الصورة المرفوعة فقط، لا مع صورة المنتج.',
+        },
+        defaultValue: 'framed',
+        options: [
+          { value: 'framed', label: { en: 'Framed', ar: 'داخل إطار' } },
+          { value: 'bleed', label: { en: 'Edge to edge', ar: 'من الحافة إلى الحافة' } },
+        ],
+      },
+      {
+        key: 'min_height',
+        type: 'select',
+        label: { en: 'Minimum height', ar: 'أدنى ارتفاع' },
+        defaultValue: 'md',
+        showIf: BLEED_ONLY,
+        options: [
+          { value: 'sm', label: { en: 'Small', ar: 'صغير' } },
+          { value: 'md', label: { en: 'Medium', ar: 'متوسط' } },
+          { value: 'lg', label: { en: 'Large', ar: 'كبير' } },
+        ],
+      },
+      {
+        key: 'image_focus',
+        type: 'select',
+        label: { en: 'Image focus', ar: 'نقطة تركيز الصورة' },
+        description: {
+          en: 'The part of the image kept in view when it is cropped.',
+          ar: 'الجزء الذي يبقى ظاهراً من الصورة عند اقتصاصها.',
+        },
+        defaultValue: 'center',
+        showIf: BLEED_ONLY,
+        options: [
+          { value: 'center', label: { en: 'Centre', ar: 'الوسط' } },
+          { value: 'top', label: { en: 'Top', ar: 'الأعلى' } },
+          { value: 'bottom', label: { en: 'Bottom', ar: 'الأسفل' } },
+        ],
+      },
+      {
+        key: 'tone',
+        type: 'select',
+        label: { en: 'Background', ar: 'الخلفية' },
+        defaultValue: 'none',
+        showIf: BLEED_ONLY,
+        options: [
+          { value: 'none', label: { en: 'None', ar: 'بدون' } },
+          { value: 'surface', label: { en: 'Surface', ar: 'لون السطح' } },
+          { value: 'primary', label: { en: 'Primary colour', ar: 'اللون الأساسي' } },
+          { value: 'accent', label: { en: 'Accent colour', ar: 'لون التمييز' } },
+        ],
+      },
+      { key: 'bg_color', type: 'color', label: { en: 'Background colour', ar: 'لون الخلفية' }, showIf: BLEED_ONLY },
+      {
+        key: 'edge',
+        type: 'select',
+        label: { en: 'Image edge', ar: 'حافة الصورة' },
+        defaultValue: 'hard',
+        showIf: BLEED_ONLY,
+        options: [
+          { value: 'soft', label: { en: 'Soft (fades into the background)', ar: 'ناعمة (تتلاشى في الخلفية)' } },
+          { value: 'hard', label: { en: 'Hard', ar: 'حادّة' } },
         ],
       },
       {
@@ -255,6 +496,18 @@ export const imageWithTextSection: SectionDefinition = {
       { key: 'body', type: 'textarea', label: { en: 'Body text', ar: 'النص' } },
       { key: 'cta_text', type: 'text', label: { en: 'Button text', ar: 'نص الزر' } },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },
+      { key: 'cta_secondary_text', type: 'text', label: { en: 'Second button text', ar: 'نص الزر الثاني' }, maxLength: 40 },
+      { key: 'cta_secondary_url', type: 'url', label: { en: 'Second button URL', ar: 'رابط الزر الثاني' } },
+      {
+        key: 'cta_tone',
+        type: 'select',
+        label: { en: 'Button colour', ar: 'لون الزر' },
+        defaultValue: 'primary',
+        options: [
+          { value: 'primary', label: { en: 'Primary colour', ar: 'اللون الأساسي' } },
+          { value: 'accent', label: { en: 'Accent colour', ar: 'لون التمييز' } },
+        ],
+      },
       { key: 'eyebrow_color', type: 'color', label: { en: 'Eyebrow color', ar: 'لون التسمية الصغيرة' } },
       { key: 'heading_color', type: 'color', label: { en: 'Heading color', ar: 'لون العنوان' } },
       { key: 'body_color', type: 'color', label: { en: 'Body color', ar: 'لون النص' } },
@@ -263,6 +516,11 @@ export const imageWithTextSection: SectionDefinition = {
       { key: 'cta_border_color', type: 'color', label: { en: 'Button border color', ar: 'لون حدود الزر' } },
       { key: 'cta_border_width', type: 'number', label: { en: 'Button border width (px)', ar: 'سماكة حدود الزر (px)' }, min: 0, max: 8, defaultValue: 0 },
       { key: 'cta_border_radius', type: 'number', label: { en: 'Button corner radius (px)', ar: 'انحناء زوايا الزر (px)' }, min: 0, max: 100 },
+      { key: 'cta_secondary_bg_color', type: 'color', label: { en: 'Button background (second)', ar: 'خلفية الزر (الثاني)' } },
+      { key: 'cta_secondary_text_color', type: 'color', label: { en: 'Button text color (second)', ar: 'لون نص الزر (الثاني)' } },
+      { key: 'cta_secondary_border_color', type: 'color', label: { en: 'Button border color (second)', ar: 'لون حدود الزر (الثاني)' } },
+      { key: 'cta_secondary_border_width', type: 'number', label: { en: 'Button border width (px) (second)', ar: 'سماكة حدود الزر (px) (الثاني)' }, min: 0, max: 8, defaultValue: 0 },
+      { key: 'cta_secondary_border_radius', type: 'number', label: { en: 'Button corner radius (px) (second)', ar: 'انحناء زوايا الزر (px) (الثاني)' }, min: 0, max: 100 },
     ],
   },
   Component: ImageWithText,

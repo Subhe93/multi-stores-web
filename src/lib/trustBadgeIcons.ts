@@ -1,4 +1,19 @@
-import { Award, CreditCard, HeadphonesIcon, Leaf, RefreshCw, ShieldCheck, Star, Truck } from 'lucide-react';
+import {
+  Award,
+  BookOpen,
+  CreditCard,
+  Gem,
+  Globe,
+  GraduationCap,
+  HeadphonesIcon,
+  Heart,
+  Leaf,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Truck,
+} from 'lucide-react';
 
 // Shared icon vocabulary for owner-authored trust badges. Used by the home
 // `trust-badges` section and the product page's `trust_badges` repeater so
@@ -13,6 +28,12 @@ export const TRUST_BADGE_ICONS: Record<string, typeof Truck> = {
   star: Star,
   headphones: HeadphonesIcon,
   leaf: Leaf,
+  graduation: GraduationCap,
+  gem: Gem,
+  globe: Globe,
+  book: BookOpen,
+  heart: Heart,
+  sparkles: Sparkles,
 };
 
 export const TRUST_BADGE_ICON_OPTIONS = [
@@ -24,6 +45,12 @@ export const TRUST_BADGE_ICON_OPTIONS = [
   { value: 'star', label: { en: 'Star (rated)', ar: 'نجمة (مقيّم)' } },
   { value: 'headphones', label: { en: 'Headphones (support)', ar: 'سماعات (دعم)' } },
   { value: 'leaf', label: { en: 'Leaf (eco)', ar: 'ورقة (بيئي)' } },
+  { value: 'graduation', label: { en: 'Graduation cap (education)', ar: 'قبعة تخرّج (تعليم)' } },
+  { value: 'gem', label: { en: 'Gem (quality)', ar: 'جوهرة (جودة)' } },
+  { value: 'globe', label: { en: 'Globe (worldwide)', ar: 'كرة أرضية (عالمي)' } },
+  { value: 'book', label: { en: 'Book (learning)', ar: 'كتاب (تعلّم)' } },
+  { value: 'heart', label: { en: 'Heart (care)', ar: 'قلب (عناية)' } },
+  { value: 'sparkles', label: { en: 'Sparkles (new)', ar: 'بريق (جديد)' } },
 ];
 
 // One badge row as stored in section content. `description` is an optional
