@@ -17,6 +17,7 @@ import {
   type TaxPricingMode,
 } from '@/lib/tax';
 import { normalizeQuoteTaxExemption, type QuoteTaxExemption } from '@/lib/taxExemption';
+import { readRequiresShippingFlag } from '@/lib/requiresShipping';
 
 // ── Kustom-first checkout session ─────────────────────────────────────────────
 // Talks to /payments/kustom/checkout/session (plans/kustom-integration/
@@ -64,6 +65,9 @@ export interface KustomSessionTotals {
   tax_exemption?: QuoteTaxExemption | null;
   /** Per-line amounts when the API sends them (quote-shaped `items`). */
   items?: unknown;
+  /** Present (false) only when no line of the session needs shipping
+   *  (services / digital products); read through `lib/requiresShipping`. */
+  requires_shipping?: false;
 }
 
 /** Company prefill sent with the session (M2-DESIGN §3.5 / §6); Kustom
@@ -82,8 +86,9 @@ export interface KustomCheckoutSessionResponse {
   html_snippet: string;
   status: string;
   /** Optional on older API builds. */
-  totals?: (Partial<Omit<KustomSessionTotals, 'b2b' | 'tax_exempt_reason' | 'tax_exemption' | 'items'>> & {
+  totals?: (Partial<Omit<KustomSessionTotals, 'b2b' | 'tax_exempt_reason' | 'tax_exemption' | 'items' | 'requires_shipping'>> & {
     items?: unknown;
+    requires_shipping?: unknown;
     tax_lines?: unknown;
     pricing_mode?: string;
     b2b?: unknown;
@@ -113,6 +118,8 @@ export function normalizeKustomTotals(raw: KustomCheckoutSessionResponse['totals
     b2b: normalizeB2bNetTotals(raw.b2b),
     ...exemptionOfTotals(raw, lines),
     ...(Array.isArray(raw.items) ? { items: raw.items } : {}),
+    // Kept only when false, so every other session normalises as before.
+    ...(readRequiresShippingFlag(raw.requires_shipping) ? {} : { requires_shipping: false as const }),
   };
 }
 

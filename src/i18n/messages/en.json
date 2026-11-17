@@ -441,6 +441,7 @@
     "passwordPlaceholder": "Min 8 characters",
     "title": "Checkout",
     "shippingAddress": "Shipping Address",
+    "billingAddress": "Billing address",
     "shippingMethod": "Shipping Method",
     "payment": "Payment",
     "orderSummary": "Order Summary",
@@ -758,7 +759,8 @@
     "DELIVERED": "Delivered",
     "CANCELLED": "Cancelled",
     "REFUNDED": "Refunded",
-    "RETURNED": "Returned"
+    "RETURNED": "Returned",
+    "FULFILLED": "Completed"
   },
   "store": {
     "noContentYet": "No content yet.",

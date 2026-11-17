@@ -77,6 +77,9 @@ export interface OrderSummaryProps {
   /** Name of the chosen shipping method, shown as "Shipping (Standard shipping)".
    *  Kustom mode passes nothing: the options live inside its iframe. */
   shippingMethodName?: string;
+  /** False when no line of the cart needs shipping (services / digital
+   *  products): no shipping row, note, estimate or error. Defaults to true. */
+  requiresShipping?: boolean;
   /** Itemized tax lines (from POST /orders/quote, the Kustom session or GET /cart). */
   taxLines?: TaxLine[];
   /** Sum of `taxLines`; kept for callers that only have the total. */
@@ -182,6 +185,7 @@ export function OrderSummary({
   onApplyCoupon, onRemoveCoupon,
   shippingCost, shippingEstimate, shippingLoading, shippingError,
   onUpdateQuantity, onRemoveItem, onRemoveUnavailable, shippingNote, shippingMethodName,
+  requiresShipping = true,
   taxLines = [], pricingMode = 'INCLUSIVE', taxEstimated = false, taxPending = false,
   b2bNet = null, netItems = null,
   exemptReason = null, exemptPrices = null,
@@ -369,6 +373,7 @@ export function OrderSummary({
           <span className="text-gray-600">{companyNet ? t('b2b.subtotalExclVat') : t('cart.subtotal')}</span>
           <span className="text-gray-900 font-medium">{fmt(shownSubtotal)}</span>
         </div>
+        {requiresShipping && (<>
         <div className="flex justify-between text-sm py-1">
           <span className="text-gray-600">
             {t('cart.shipping')}
@@ -391,6 +396,7 @@ export function OrderSummary({
         {shippingError && (
           <p className="text-xs text-red-500 mt-1">{shippingError}</p>
         )}
+        </>)}
         {discount > 0 && (
           companyNet ? (
             // Net subtotal is already post-discount (L4): informational only.

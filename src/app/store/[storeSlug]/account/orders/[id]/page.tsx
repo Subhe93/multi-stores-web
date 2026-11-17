@@ -17,6 +17,7 @@ import { OrderInvoices } from '@/components/account/OrderInvoices';
 import type { OrderFieldValueRow } from '@/lib/customFields';
 import { OrderFieldValues } from '@/components/account/OrderFieldValues';
 import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
+import { orderRequiresShipping, orderStatusLabelKey, orderTrackerIndex, orderTrackerSteps } from '@/lib/requiresShipping';
 import { ArrowLeft, Check } from 'lucide-react';
 
 // ── Types matching backend Prisma response ──────────────────────────────────
@@ -114,6 +115,9 @@ interface OrderDetail {
   shipping_method_name?: string | null;
   /** DELIVERY vs in-store PICKUP; drives the label of the shipping row. */
   shipping_method_type?: 'DELIVERY' | 'PICKUP' | null;
+  /** False when no line needed shipping at purchase time (snapshot); absent
+   *  on an older API. Read through `lib/requiresShipping`. */
+  requires_shipping?: boolean | null;
   discount_amount: number;
   total: number;
   currency?: string;
@@ -156,18 +160,8 @@ function buildVariantLabel(options?: Record<string, string>): string {
     .join(' / ');
 }
 
-// Mirrors the OrderStatus progression on the API. Manufacturing and quality
-// check are real stages a fulfiller can set — leaving them out made the tracker
-// go blank (indexOf returned -1) for every custom-made order.
-const STATUS_STEPS = [
-  'PENDING',
-  'CONFIRMED',
-  'PROCESSING',
-  'MANUFACTURING',
-  'QUALITY_CHECK',
-  'SHIPPED',
-  'DELIVERED',
-];
+// The tracker steps live in lib/requiresShipping (`orderTrackerSteps`): the
+// full OrderStatus progression, or the short one of an order without shipping.
 
 function statusStyle(status: string): string {
   switch (status?.toUpperCase()) {
@@ -250,9 +244,12 @@ export default function StoreOrderDetailPage() {
   const address = order.address;
   const status = order.status?.toUpperCase();
   const isCancelled = status === 'CANCELLED' || status === 'REFUNDED' || status === 'RETURNED';
-  // -1 for an unknown status would silently blank the whole tracker, so fall
-  // back to the first step instead.
-  const currentIdx = Math.max(0, STATUS_STEPS.indexOf(status));
+  // An order of services / digital products only: short tracker, DELIVERED
+  // reads "Completed", no shipping row and a billing (not shipping) address.
+  const needsShipping = orderRequiresShipping(order);
+  const statusSteps = orderTrackerSteps(order);
+  // An unknown status falls back to the first step (never a blank tracker).
+  const currentIdx = orderTrackerIndex(status, order);
 
   // Money and dates in the storefront locale (M5 D4).
   const fmt = (v: number) => formatPrice(v, currency, locale);
@@ -274,7 +271,7 @@ export default function StoreOrderDetailPage() {
             )}
           </div>
           <span className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full ${statusStyle(status)}`}>
-            {t(`orderStatus.${order.status}`) || order.status}
+            {t(orderStatusLabelKey(order.status, order)) || order.status}
           </span>
         </div>
       </div>
@@ -283,7 +280,7 @@ export default function StoreOrderDetailPage() {
       {!isCancelled && (
         <div className="store-surface store-bd rounded-2xl border p-5">
           <div className="flex items-start justify-between">
-            {STATUS_STEPS.map((step, idx) => (
+            {statusSteps.map((step, idx) => (
               <div key={step} className="flex-1 flex flex-col items-center relative min-w-0">
                 {idx > 0 && (
                   <div className={`absolute top-3 inset-e-1/2 w-full h-0.5 z-0 ${idx <= currentIdx ? 'bg-gray-900' : 'bg-gray-200'}`} />
@@ -299,7 +296,7 @@ export default function StoreOrderDetailPage() {
                 {/* Seven steps have to fit a phone, so the labels stay narrow
                     and wrap rather than pushing the row into a scroll. */}
                 <span className="mt-2 px-0.5 text-[9px] sm:text-[10px] leading-tight text-center text-gray-500 hyphens-auto">
-                  {t(`orderStatus.${step}`)}
+                  {t(orderStatusLabelKey(step, order))}
                 </span>
               </div>
             ))}
@@ -397,6 +394,7 @@ export default function StoreOrderDetailPage() {
               <span className="text-gray-500">{t('b2b.subtotalExclVat')}</span>
               <span className="text-gray-900">{fmt(net.net_items)}</span>
             </div>
+            {needsShipping && (
             <div className="flex justify-between">
               <span className="text-gray-500">
                 {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
@@ -404,6 +402,7 @@ export default function StoreOrderDetailPage() {
               </span>
               <span className="text-gray-900">{fmt(net.net_shipping)}</span>
             </div>
+            )}
             {discount > 0 && (
               <p className="text-xs text-gray-500">{t('b2b.includesDiscount', { amount: fmt(discount) })}</p>
             )}
@@ -431,6 +430,7 @@ export default function StoreOrderDetailPage() {
             <span className="text-gray-500">{t('cart.subtotal')}</span>
             <span className="text-gray-900">{fmt(subtotal)}</span>
           </div>
+          {needsShipping && (
           <div className="flex justify-between">
             <span className="text-gray-500">
               {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
@@ -438,6 +438,7 @@ export default function StoreOrderDetailPage() {
             </span>
             <span className="text-gray-900">{fmt(shipping)}</span>
           </div>
+          )}
           {discount > 0 && (
             <div className="flex justify-between">
               <span className="text-green-600">{t('cart.discount')}</span>
@@ -473,7 +474,7 @@ export default function StoreOrderDetailPage() {
       {/* Shipping address */}
       {address && (
         <div className="store-surface store-bd rounded-2xl border p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">{t('checkout.shippingAddress')}</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-2">{needsShipping ? t('checkout.shippingAddress') : t('checkout.billingAddress')}</h2>
           <div className="text-sm text-gray-600 space-y-0.5">
             {address.full_name && <p className="font-medium text-gray-800">{address.full_name}</p>}
             {address.line1 && <p>{address.line1}</p>}

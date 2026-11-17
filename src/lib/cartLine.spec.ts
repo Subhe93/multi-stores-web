@@ -80,3 +80,11 @@ describe('buildLineMetadata per-order limit (B2)', () => {
     expect('maxPerOrder' in buildLineMetadata({ title: 'A', unitPrice: 1 })).toBe(false);
   });
 });
+
+// Service / digital product: the guest line needs no shipping.
+describe('buildLineMetadata requiresShipping', () => {
+  it('is on the metadata only when the product needs no shipping', () => {
+    expect(buildLineMetadata({ title: 'Lesson', unitPrice: 10, requiresShipping: false }).requiresShipping).toBe(false);
+    expect('requiresShipping' in buildLineMetadata({ title: 'Mug', unitPrice: 10 })).toBe(false);
+  });
+});

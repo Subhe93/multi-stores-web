@@ -298,3 +298,13 @@ describe('addGuestLine per-order limit (B2)', () => {
     expect('maxPerOrder' in plain[0]!).toBe(false);
   });
 });
+
+// Service / digital product: the stored guest line carries the flag.
+describe('addGuestLine requiresShipping', () => {
+  it('is stored only when the metadata says the product needs no shipping', () => {
+    const service = addGuestLine([], 'svc', null, 1, undefined, { title: 'Lesson', price: 10, requiresShipping: false }, () => 'local_1');
+    expect(service[0]!.requiresShipping).toBe(false);
+    const mug = addGuestLine([], 'mug', null, 1, undefined, { title: 'Mug', price: 10 }, () => 'local_2');
+    expect('requiresShipping' in mug[0]!).toBe(false);
+  });
+});

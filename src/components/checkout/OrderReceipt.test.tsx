@@ -81,3 +81,40 @@ describe('OrderReceipt "view order" link', () => {
     expect(flagged).toBe(plain);
   });
 });
+
+// Order of services / digital products only: no shipping row on the receipt.
+describe('OrderReceipt shipping row', () => {
+  it('an order that ships (or from an older API) keeps the row', () => {
+    render(withSettings(null, <OrderReceipt order={ORDER} orderId="o1" />));
+    expect(screen.getByText('cart.shipping')).toBeInTheDocument();
+  });
+
+  it('requires_shipping true or null renders the same markup as no key', () => {
+    const plain = render(withSettings(null, <OrderReceipt order={ORDER} orderId="o1" />)).container.innerHTML;
+    for (const value of [true, null]) {
+      const flagged = render(
+        withSettings(null, <OrderReceipt order={{ ...ORDER, requires_shipping: value }} orderId="o1" />),
+      ).container.innerHTML;
+      expect(flagged).toBe(plain);
+    }
+  });
+
+  it('requires_shipping false: no shipping row, the totals stay', () => {
+    render(withSettings(null, <OrderReceipt order={{ ...ORDER, requires_shipping: false }} orderId="o1" />));
+    expect(screen.queryByText('cart.shipping')).toBeNull();
+    expect(screen.queryByText('checkout.pickUpInStore')).toBeNull();
+    expect(screen.getByText('cart.subtotal')).toBeInTheDocument();
+    expect(screen.getByText('cart.total')).toBeInTheDocument();
+    expect(screen.getByText('Riskettan')).toBeInTheDocument();
+  });
+
+  it('requires_shipping false on a company order: no net shipping row either', () => {
+    const company: OrderReceiptOrder = {
+      ...ORDER, requires_shipping: false, customer_type: 'COMPANY', company_name: 'Acme AB',
+      tax_pricing_mode: 'INCLUSIVE', tax_amount: 20,
+    };
+    render(withSettings(null, <OrderReceipt order={company} orderId="o1" />));
+    expect(screen.getByText('b2b.subtotalExclVat')).toBeInTheDocument();
+    expect(screen.queryByText('cart.shipping')).toBeNull();
+  });
+});

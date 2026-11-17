@@ -441,6 +441,7 @@
     "passwordPlaceholder": "8 caractères minimum",
     "title": "Paiement",
     "shippingAddress": "Adresse de livraison",
+    "billingAddress": "Adresse de facturation",
     "shippingMethod": "Mode de livraison",
     "payment": "Paiement",
     "orderSummary": "Récapitulatif de la commande",
@@ -758,7 +759,8 @@
     "DELIVERED": "Livrée",
     "CANCELLED": "Annulée",
     "REFUNDED": "Remboursée",
-    "RETURNED": "Retournée"
+    "RETURNED": "Retournée",
+    "FULFILLED": "Terminée"
   },
   "store": {
     "noContentYet": "Pas encore de contenu.",

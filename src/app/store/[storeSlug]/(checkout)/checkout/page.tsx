@@ -43,6 +43,7 @@ import { clientCouponFigures, couponBelowCostCode, quotedSummaryFigures } from '
 import { navigateRespectingClarity } from '@/components/tracking/clarity';
 import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
+import { cartRequiresShipping, orderRequiresShipping, shippingQuoteLines } from '@/lib/requiresShipping';
 // Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
 import { QUOTE_DEBOUNCE_MS } from '@/lib/cartQuote';
 import { isLineErrorCode } from '@/lib/checkoutLineErrors';
@@ -210,6 +211,8 @@ interface ShippingEstimateResponse {
   available: boolean;
   message?: string;
   methods?: ShippingMethod[];
+  /** Present (false) only when none of the products needs shipping. */
+  requires_shipping?: boolean;
   cost?: number;
   estimated_days?: { min: number; max: number } | null;
   free_shipping?: boolean;
@@ -229,6 +232,9 @@ interface OrderQuoteResponse {
   tax_pricing_mode?: string;
   tax_basis_country?: string | null;
   shipping_method_id?: string | null;
+  /** Present (false) only when no line needs shipping (services / digital
+   *  products); read through `lib/requiresShipping`. */
+  requires_shipping?: boolean;
   /** b2b app, company quote: net figures (M2-DESIGN D3); absent otherwise. */
   b2b?: unknown;
   /** Quoted lines; with an exemption their `unit_price` is what is paid. */
@@ -425,14 +431,32 @@ function CheckoutForm({
   // Markets app: the market's countries (the default market also serves
   // every country no other market claims); the legacy list otherwise.
   const markets = useMarkets();
+  // Server order quote (totals + tax lines) for the current destination /
+  // method / coupon; null until a country is known or when the request failed,
+  // in which case the summary falls back to the client-side figures.
+  const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
+  // Services / digital products only (Shopify "Physical product" off): the
+  // checkout has no shipping step. No shipping call is made, no method is
+  // sent and the form below collects the billing details only. The quote
+  // decides once there is one (a guest line can carry a stale flag); the
+  // cart lines until then. Every cart that ships behaves exactly as before.
+  const purchasableLines = availableLines(items);
+  const needsShipping = cartRequiresShipping(purchasableLines, quote);
+  // Lines shipping is quoted for: a mixed cart leaves its services out.
+  const shippingLines = shippingQuoteLines(purchasableLines, quote);
+  const shippingLinesKey = JSON.stringify(
+    shippingLines.map((i) => [i.customProductId || i.productId || '', i.quantity]),
+  );
   // Countries the cart's products can ship to (POST /shipping/countries).
   // `settled` once answered or failed; a failure (or an API without the
   // route) keeps the full list and the shipping quote explains per country.
+  // A cart without shipping is settled at once with no restriction.
   const shippableProductsKey = JSON.stringify(
-    [...new Set(availableLines(items).map((i) => i.customProductId || i.productId).filter(Boolean))].sort(),
+    [...new Set(shippingLines.map((i) => i.customProductId || i.productId).filter(Boolean))].sort(),
   );
   const [shippable, setShippable] = useState<{ key: string; value: ShippableCountries | null } | null>(null);
   useEffect(() => {
+    if (!needsShipping) return;
     const productIds = JSON.parse(shippableProductsKey) as string[];
     if (productIds.length === 0) return;
     let cancelled = false;
@@ -443,9 +467,9 @@ function CheckoutForm({
       .then((res) => { if (!cancelled) setShippable({ key: shippableProductsKey, value: normalizeShippableCountries(res) }); })
       .catch(() => { if (!cancelled) setShippable({ key: shippableProductsKey, value: null }); });
     return () => { cancelled = true; };
-  }, [shippableProductsKey]);
-  const shippableNow = shippable?.key === shippableProductsKey ? shippable.value : null;
-  const shippableSettled = shippable?.key === shippableProductsKey;
+  }, [shippableProductsKey, needsShipping]);
+  const shippableNow = needsShipping && shippable?.key === shippableProductsKey ? shippable.value : null;
+  const shippableSettled = !needsShipping || shippable?.key === shippableProductsKey;
   const countryOptions = useMemo(
     () => restrictToShippable(
       checkoutCountryOptions(COUNTRIES, market, markets, locale, form.country_code),
@@ -526,10 +550,6 @@ function CheckoutForm({
   // Bumped to force a fresh shipping quote (e.g. after the API rejected the
   // selected method); the quote effect below lists it as a dependency.
   const [requoteTick, setRequoteTick] = useState(0);
-  // Server order quote (totals + tax lines) for the current destination /
-  // method / coupon; null until a country is known or when the request failed,
-  // in which case the summary falls back to the client-side figures.
-  const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   // M4.0: a personalization rejection of the quote (`CUSTOM_FIELD_*` /
   // `CUSTOMER_UPLOAD_*`) is shown instead of silently dropping the quote.
@@ -552,8 +572,12 @@ function CheckoutForm({
   // targeted lines only for a targeted coupon, fixed amounts capped.
   // Fall back to the first method so a stale selection can never leave the
   // order without a shipping cost.
-  const selectedShippingMethod =
-    shippingMethods.find((m) => m.id === selectedShippingMethodId) ?? shippingMethods[0] ?? null;
+  // A cart without shipping has no method (a stale list is ignored at once).
+  const selectedShippingMethod = needsShipping
+    ? shippingMethods.find((m) => m.id === selectedShippingMethodId) ?? shippingMethods[0] ?? null
+    : null;
+  // Shipping can only block the pay button of a cart that ships.
+  const shippingBlocksPay = needsShipping && (Boolean(shippingError) || shippingLoading);
   const shippingCost = selectedShippingMethod ? selectedShippingMethod.cost : null;
   // Pickup has no transit time, so the summary shows no day range for it;
   // neither does a method whose name already states a delivery time.
@@ -704,16 +728,18 @@ function CheckoutForm({
   // Quote shipping methods whenever the country (or the cart) changes.
   useEffect(() => {
     const countryCode = shippingCountryCode;
-    if (!countryCode || items.length === 0) {
+    // No shipping needed: no request, no methods, no error, no spinner.
+    if (!countryCode || items.length === 0 || !needsShipping) {
       setShippingMethods([]);
       setShippingError('');
       // An in-flight quote was cancelled by the cleanup; clear its spinner too.
       setShippingLoading(false);
       return;
     }
-    // Lines unavailable in the market are not part of the order.
-    const purchasable = availableLines(items);
-    const productIds = purchasable.map((i) => i.customProductId || i.productId).filter(Boolean);
+    // Lines unavailable in the market are not part of the order; neither are
+    // lines that need no shipping (`shippingLines`, as [product id, quantity]).
+    const purchasable = JSON.parse(shippingLinesKey) as [string, number][];
+    const productIds = purchasable.map(([id]) => id).filter(Boolean);
     if (productIds.length === 0) return;
 
     // Ignore a slow response that lands after the country changed again.
@@ -725,7 +751,7 @@ function CheckoutForm({
       body: JSON.stringify({
         product_ids: productIds,
         country_code: countryCode,
-        item_count: purchasable.reduce((s, i) => s + i.quantity, 0),
+        item_count: purchasable.reduce((s, [, quantity]) => s + quantity, 0),
         subtotal,
         locale,
         // Markets app: costs and the free threshold in the market currency
@@ -735,6 +761,13 @@ function CheckoutForm({
     })
       .then((res) => {
         if (cancelled) return;
+        // The API says none of the products ships (the cart lines did not
+        // know yet): no methods, never the legacy "Standard shipping" row.
+        if (!orderRequiresShipping(res)) {
+          setShippingMethods([]);
+          setShippingError('');
+          return;
+        }
         if (!res.available) {
           setShippingError(res.message || t('checkout.shippingNotAvailable'));
           setShippingMethods([]);
@@ -768,7 +801,7 @@ function CheckoutForm({
       })
       .finally(() => { if (!cancelled) setShippingLoading(false); });
     return () => { cancelled = true; };
-  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick, storeId, market?.key]);
+  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick, storeId, market?.key, needsShipping, shippingLinesKey]);
 
   // Quote the order (totals + itemized tax) once the destination country is
   // known, and again whenever the postcode, shipping method, coupon, cart or
@@ -1642,6 +1675,7 @@ function CheckoutForm({
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
               shippingMethodName={selectedShippingMethod?.name}
+              requiresShipping={needsShipping}
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
               b2bNet={b2bNet} netItems={netItems}
@@ -1933,7 +1967,7 @@ function CheckoutForm({
               {/* The form column is shared by the desktop and mobile layouts,
                   so a single list serves both. Rendered once a country is
                   known; each row shows name, transit time and price. */}
-              {shippingCountryCode && (
+              {shippingCountryCode && needsShipping && (
                 <>
                   <SectionHeading>{t('checkout.shippingMethod')}</SectionHeading>
                   <div className="mb-5">
@@ -2015,6 +2049,7 @@ function CheckoutForm({
               shippingLoading={shippingLoading} shippingError={shippingError}
               effectiveShipping={effectiveShipping}
               shippingMethodName={selectedShippingMethod?.name}
+              requiresShipping={needsShipping}
               taxLines={taxLines} pricingMode={pricingMode}
               taxEstimated={taxEstimated} taxPending={taxPending}
               b2bNet={b2bNet} netItems={netItems}
@@ -2080,7 +2115,7 @@ function CheckoutForm({
             {/* Submit */}
             <button
               type="submit"
-              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || shippingBlocksPay || (rcNotConfirmed && quoteLoading)}
               className="w-full mt-5 py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
@@ -2152,7 +2187,7 @@ function CheckoutForm({
             {errorBox('mb-4')}
             <button
               type="submit"
-              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || !!shippingError || shippingLoading || (rcNotConfirmed && quoteLoading)}
+              disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || shippingBlocksPay || (rcNotConfirmed && quoteLoading)}
               className="w-full py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >

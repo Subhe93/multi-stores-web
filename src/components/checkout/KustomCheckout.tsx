@@ -23,6 +23,7 @@ import { vatCheckMessageKey, vatComparable, type VatCheckResult } from '@/lib/va
 import { exemptLinePrices } from '@/lib/taxExemption';
 import { rememberPurchaseSnapshot } from '@/lib/trackEvents';
 import { availableLines } from '@/lib/cartAvailability';
+import { cartRequiresShipping } from '@/lib/requiresShipping';
 
 // ── Kustom-first checkout ─────────────────────────────────────────────────────
 // Address, shipping and payment all happen inside Kustom's iframe; this page
@@ -162,6 +163,9 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   // A priced destination makes 0 a real "free shipping" (e.g. the free
   // threshold is met); without one, 0 only means "not known yet".
   const summaryShipping = totals && (totals.shipping_quoted || totals.shipping_cost > 0) ? totals.shipping_cost : null;
+  // Services / digital products only: no shipping row or note. The session
+  // totals decide once there are any; the cart lines until then.
+  const needsShipping = cartRequiresShipping(availableLines(items), totals);
   const summaryTotal = totals ? totals.total : total;
   const summaryPricingMode = totals ? totals.pricing_mode : taxPricingMode;
   const summaryTaxLines = totals
@@ -322,7 +326,8 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
               shippingCost={summaryShipping} shippingEstimate={null}
               shippingLoading={false} shippingError=""
               effectiveShipping={summaryShipping ?? 0}
-              shippingNote={summaryShipping === null ? t('checkout.shippingCalculatedInKustom') : undefined}
+              shippingNote={needsShipping && summaryShipping === null ? t('checkout.shippingCalculatedInKustom') : undefined}
+              requiresShipping={needsShipping}
               taxLines={summaryTaxLines} pricingMode={summaryPricingMode}
               taxEstimated={summaryTaxEstimated} taxPending={!totals && updating}
               b2bNet={summaryB2bNet} netItems={netItems}

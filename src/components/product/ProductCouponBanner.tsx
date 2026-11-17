@@ -21,6 +21,7 @@ import { useOptionalProductPageState } from '@/components/product/state/ProductP
 import { api } from '@/lib/api';
 import { availableLines, sumLineTotals } from '@/lib/cartAvailability';
 import { formatPrice } from '@/lib/format';
+import { productRequiresShipping } from '@/lib/requiresShipping';
 import {
   classifyPreviewError,
   COUPON_PREVIEW_RETRY_MS,
@@ -202,7 +203,8 @@ export function ProductCouponBanner({ className }: { className?: string }) {
     if (isApplied) void cart.removeCoupon();
   };
 
-  const freeShipping = view.kind === 'free_shipping' || view.freeShipping;
+  // A product without shipping (service / digital) is never promised free shipping.
+  const freeShipping = productRequiresShipping(state?.product) && (view.kind === 'free_shipping' || view.freeShipping);
 
   return (
     <div

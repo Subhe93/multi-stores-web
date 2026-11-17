@@ -85,3 +85,39 @@ describe('OrderSummary money format', () => {
     expect(screen.getAllByText(/SEK\s*300\.00/).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// Cart of services / digital products only (Shopify "Physical product" off):
+// the summary has no shipping row, note, estimate or error.
+describe('OrderSummary without shipping', () => {
+  it('requiresShipping={false} renders no shipping row, note, estimate or error', () => {
+    render(
+      <OrderSummary
+        {...props({
+          requiresShipping: false,
+          shippingCost: 0,
+          shippingNote: 'note-under-shipping',
+          shippingEstimate: { min: 2, max: 4 },
+          shippingError: 'shipping-error',
+          shippingMethodName: 'Standard',
+        })}
+      />,
+    );
+    expect(screen.queryByTestId('summary-shipping')).toBeNull();
+    expect(screen.queryByText(/cart\.shipping/)).toBeNull();
+    expect(screen.queryByText('note-under-shipping')).toBeNull();
+    expect(screen.queryByText('shipping-error')).toBeNull();
+    expect(screen.queryByText(/checkout\.businessDays/)).toBeNull();
+    // Subtotal and total stay.
+    expect(screen.getByText('cart.subtotal')).toBeTruthy();
+    expect(screen.getByText('cart.total')).toBeTruthy();
+  });
+
+  it('the default (and an explicit true) render exactly the same markup as before', () => {
+    const base = render(<OrderSummary {...props({ shippingCost: 49, effectiveShipping: 49 })} />);
+    const html = base.container.innerHTML;
+    base.unmount();
+    const explicit = render(<OrderSummary {...props({ shippingCost: 49, effectiveShipping: 49, requiresShipping: true })} />);
+    expect(explicit.container.innerHTML).toBe(html);
+    expect(screen.getByTestId('summary-shipping')).toBeTruthy();
+  });
+});

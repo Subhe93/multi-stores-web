@@ -8,13 +8,15 @@ import { useTranslations } from 'next-intl';
 import { Gift, Percent, Tag, Truck, Zap } from 'lucide-react';
 import { useOptionalProductPageState } from '@/components/product/state/ProductPageState';
 import { formatPrice } from '@/lib/format';
+import { promotionsForProduct } from '@/lib/requiresShipping';
 import type { SectionRenderProps } from '../../../../types';
 import { blockLabel, formatPromoDate, ProductBlockPlaceholder, ProductBlockScope } from './b2Shared';
 
 export function ProductPromotionsBlock({ settings, locale, product, builderPreview }: SectionRenderProps) {
   const t = useTranslations();
   const state = useOptionalProductPageState();
-  const promotions = state?.product.promotions ?? [];
+  // A product without shipping (service / digital) shows no free-shipping card.
+  const promotions = promotionsForProduct(state?.product, state?.product.promotions);
   if (!state || promotions.length === 0) {
     return (
       <ProductBlockPlaceholder

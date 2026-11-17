@@ -118,3 +118,17 @@ describe('quotedSummaryFigures', () => {
     });
   });
 });
+
+// Cart of services / digital products only: the quote carries
+// `requires_shipping: false` and the cart hides its shipping row.
+describe('normalizeCartQuote requires_shipping', () => {
+  const ok = { subtotal: 300, shipping_cost: 0, discount_amount: 0, total: 300, currency: 'SEK', tax_lines: [], shipping: { available: true, cost: 0, methods: [] } };
+  it('keeps the flag only for the literal false', () => {
+    expect(normalizeCartQuote({ ...ok, requires_shipping: false }, 'SEK')).toMatchObject({ requiresShipping: false, shippingCost: 0, total: 300 });
+  });
+  it('a quote that ships (or from an older API) has no key at all', () => {
+    for (const quote of [ok, { ...ok, requires_shipping: true }, { ...ok, requires_shipping: null }]) {
+      expect(normalizeCartQuote(quote, 'SEK')).not.toHaveProperty('requiresShipping');
+    }
+  });
+});

@@ -10,6 +10,7 @@
 // does not pull the M4.1 evaluator along (M5 D24).
 import { lineKey, normalizeFieldValues } from '@multi-stores/core/personalization/rules';
 import { isKnownRate } from '@/lib/b2bPrice';
+import { lineRequiresShipping } from '@/lib/requiresShipping';
 import type { CartItem, CartItemMetadata, DesignLinePatch, DesignLineReplacement } from '@/hooks/useCart';
 
 // ── Guest cart storage (localStorage) ────────────────────────────────────
@@ -145,6 +146,8 @@ export function addGuestLine(
     ...(isKnownRate(metadata?.taxRateBp) ? { taxRateBp: metadata!.taxRateBp } : {}),
     // Per-order limit (B2): only on lines of a limited product.
     ...(typeof metadata?.maxPerOrder === 'number' ? { maxPerOrder: metadata.maxPerOrder } : {}),
+    // No shipping (service / digital product): only on such lines.
+    ...(lineRequiresShipping(metadata) ? {} : { requiresShipping: false as const }),
     // Designer app (M4.2): only on designer lines, so other lines keep their shape.
     ...(design
       ? {

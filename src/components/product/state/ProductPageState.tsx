@@ -11,6 +11,7 @@ import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { DesignedLine } from '@/components/designer/DesignerInline';
 import { resolveMediaUrl } from '@/lib/api';
 import type { LineSource } from '@/lib/cartLine';
+import { productRequiresShipping } from '@/lib/requiresShipping';
 import { uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
@@ -433,6 +434,7 @@ function useProductPageStateValue({
 
   const [customFieldError, setCustomFieldError] = useState('');
 
+  const needsShipping = productRequiresShipping(product);
   // What both add paths (fields / design) know about the line (M5 D31).
   const lineSource = useMemo<LineSource>(
     () => ({
@@ -456,8 +458,11 @@ function useProductPageStateValue({
       customerFile: customerFileUrl ?? undefined,
       // Kept on guest lines so the cart steppers respect it (B2).
       ...(maxPerOrder !== null && product._type !== 'custom_product' ? { maxPerOrder } : {}),
+      // Service / digital product: the guest line needs no shipping. A later
+      // per-variant override reads the selected variant here.
+      ...(needsShipping ? {} : { requiresShipping: false as const }),
     }),
-    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder],
+    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder, needsShipping],
   );
 
   const handleAddToCart = useCallback(async () => {

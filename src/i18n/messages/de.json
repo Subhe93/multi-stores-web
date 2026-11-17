@@ -441,6 +441,7 @@
     "passwordPlaceholder": "Mind. 8 Zeichen",
     "title": "Kasse",
     "shippingAddress": "Lieferadresse",
+    "billingAddress": "Rechnungsadresse",
     "shippingMethod": "Versandart",
     "payment": "Zahlung",
     "orderSummary": "Bestellübersicht",
@@ -758,7 +759,8 @@
     "DELIVERED": "Zugestellt",
     "CANCELLED": "Storniert",
     "REFUNDED": "Erstattet",
-    "RETURNED": "Zurückgesendet"
+    "RETURNED": "Zurückgesendet",
+    "FULFILLED": "Abgeschlossen"
   },
   "store": {
     "noContentYet": "Noch kein Inhalt.",

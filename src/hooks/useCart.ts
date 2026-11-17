@@ -24,6 +24,7 @@ import {
   type TaxPricingMode,
 } from '@/lib/tax';
 import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
+import { lineRequiresShipping, orderLineRequiresShipping, readRequiresShippingFlag } from '@/lib/requiresShipping';
 import { assertGuestAdd, lineMaxQty, maxPerOrderError, readMaxPerOrder } from '@/lib/productQuantity';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { captureCouponFromSearch, pendingCouponStorageKey, type CouponAutoApplyNotice } from '@/lib/checkoutSettings';
@@ -121,6 +122,10 @@ export interface CartItem {
   /** Per-order limit of the line's product (`GET /cart` `max_per_order`, or
    *  copied from the product at add time for guests). Absent = unlimited. */
   maxPerOrder?: number;
+  /** The line needs no shipping (service / digital product): `GET /cart`
+   *  `requires_shipping: false`, or copied from the product at add time for
+   *  guests. Present only when false; read through `lib/requiresShipping`. */
+  requiresShipping?: false;
 }
 
 /** Design of a designer cart line. */
@@ -204,6 +209,9 @@ export interface CartItemMetadata {
   design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number; doubleSided?: true; proofBackUrl?: string | null };
   /** The product's per-order limit, kept on guest lines (absent = unlimited). */
   maxPerOrder?: number;
+  /** The product needs no shipping; kept on guest lines (absent = ships).
+   *  Never sent to the server, which reads the product itself. */
+  requiresShipping?: false;
 }
 
 /** Applied coupon (shape and discount rule live in `@/lib/couponDiscount`). */
@@ -472,6 +480,8 @@ interface RawCartItem {
   designId?: string | null;
   max_per_order?: unknown;
   maxPerOrder?: unknown;
+  requires_shipping?: unknown;
+  requiresShipping?: unknown;
 }
 
 /** `design` block of a designer line in `GET /cart` (M4.2-CONTRACTS). */
@@ -583,6 +593,8 @@ export function normalizeCartItem(raw: RawCartItem): CartItem {
     ...(designBlock ? { designId: designBlock.design.id, design: designBlock.design } : {}),
     // Per-order limit: only on lines of a limited product (B2).
     ...(maxPerOrder !== null ? { maxPerOrder } : {}),
+    // No shipping: only on lines of a service / digital product.
+    ...(readRequiresShippingFlag(raw.requires_shipping ?? raw.requiresShipping) ? {} : { requiresShipping: false as const }),
   };
 }
 
@@ -887,7 +899,17 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         ...(l.b ? { bundle_offer_id: l.b } : {}),
         ...(l.f ? { custom_fields: l.f } : {}),
       });
-      type Quote = { items?: { unit_price?: number; tax_rate_bp?: number }[]; currency?: string };
+      type Quote = { items?: { unit_price?: number; tax_rate_bp?: number; requires_shipping?: boolean }[]; currency?: string };
+      // The quoted line as the guest line keeps it (no-shipping flag only when false).
+      const pricedLine = (item: NonNullable<Quote['items']>[number] | undefined, currency: string | undefined) =>
+        typeof item?.unit_price === 'number'
+          ? {
+              price: item.unit_price,
+              currency,
+              ...(typeof item.tax_rate_bp === 'number' ? { taxRateBp: item.tax_rate_bp } : {}),
+              ...(orderLineRequiresShipping(item) ? {} : { requiresShipping: false as const }),
+            }
+          : undefined;
       const quote = (qLines: HandoffLine[]) =>
         api<Quote>('/orders/quote', {
           method: 'POST',
@@ -901,13 +923,11 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         });
 
       // price per line index; undefined = rejected
-      const priced: ({ price: number; currency?: string; taxRateBp?: number } | undefined)[] = new Array(lines.length);
+      const priced: ({ price: number; currency?: string; taxRateBp?: number; requiresShipping?: false } | undefined)[] = new Array(lines.length);
       try {
         const res = await quote(lines);
         lines.forEach((_, i) => {
-          const unit = res.items?.[i]?.unit_price;
-          const rate = res.items?.[i]?.tax_rate_bp;
-          if (typeof unit === 'number') priced[i] = { price: unit, currency: res.currency, ...(typeof rate === 'number' ? { taxRateBp: rate } : {}) };
+          priced[i] = pricedLine(res.items?.[i], res.currency);
         });
       } catch {
         // Batch rejected (e.g. one product hidden in this market): re-quote
@@ -916,9 +936,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           lines.map(async (l, i) => {
             try {
               const res = await quote([l]);
-              const unit = res.items?.[0]?.unit_price;
-              const rate = res.items?.[0]?.tax_rate_bp;
-              if (typeof unit === 'number') priced[i] = { price: unit, currency: res.currency, ...(typeof rate === 'number' ? { taxRateBp: rate } : {}) };
+              priced[i] = pricedLine(res.items?.[0], res.currency);
             } catch {
               priced[i] = undefined;
             }
@@ -946,6 +964,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           customFields: l.f,
           bundleOfferId: l.b ?? null,
           ...(p.taxRateBp !== undefined ? { taxRateBp: p.taxRateBp } : {}),
+          ...(lineRequiresShipping(p) ? {} : { requiresShipping: false as const }),
         });
       });
 

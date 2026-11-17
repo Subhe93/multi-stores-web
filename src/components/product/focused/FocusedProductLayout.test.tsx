@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { CheckoutSettingsProvider } from '@/hooks/useCheckoutSettings';
@@ -269,5 +269,32 @@ describe('focusedProductLayoutSupports', () => {
     expect(focusedProductLayoutSupports({ _type: 'custom_product' })).toBe(false);
     expect(focusedProductLayoutSupports(null)).toBe(false);
     expect(focusedProductLayoutSupports(undefined)).toBe(false);
+  });
+});
+
+// Service / digital product ("Physical product" off): the add-to-cart
+// metadata carries the no-shipping flag; every other product adds as before.
+describe('FocusedProductLayout add metadata (requires_shipping)', () => {
+  const simple = { ...base, custom_fields: [] } as unknown as ProductData;
+  const clickAdd = (container: HTMLElement) =>
+    fireEvent.click(within(container.querySelector('[data-focused-buy]') as HTMLElement).getAllByRole('button').pop()!);
+  const lastMeta = () => (addItem.mock.calls.at(-1) as unknown as unknown[])[4] as Record<string, unknown>;
+
+  it('requires_shipping false goes on the line', async () => {
+    const { container } = renderLayout({ ...simple, requires_shipping: false } as ProductData);
+    clickAdd(container);
+    await waitFor(() => expect(addItem).toHaveBeenCalledTimes(1));
+    expect(lastMeta().requiresShipping).toBe(false);
+  });
+
+  it('a product that ships (true, or no key from an older API) adds no key', async () => {
+    for (const product of [simple, { ...simple, requires_shipping: true } as ProductData]) {
+      const { container, unmount } = renderLayout(product);
+      clickAdd(container);
+      await waitFor(() => expect(addItem).toHaveBeenCalledTimes(1));
+      expect('requiresShipping' in lastMeta()).toBe(false);
+      unmount();
+      addItem.mockClear();
+    }
   });
 });

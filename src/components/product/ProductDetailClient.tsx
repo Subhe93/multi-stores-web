@@ -14,6 +14,7 @@ import { PersonalizationForm } from '@/components/product/personalization/Person
 import { visibleFieldsAt } from '@/components/product/personalization/model';
 import { ProductPageStateProvider, useProductPageState, type ProductTabId } from '@/components/product/state/ProductPageState';
 import { formatPrice } from '@/lib/format';
+import { promotionsForProduct } from '@/lib/requiresShipping';
 import { computeBundlePricing } from '@/lib/bundle';
 import type { CustomFieldTranslationLike } from '@/lib/customFields';
 import type { StorefrontProductVideo } from '@/lib/productVideo';
@@ -54,6 +55,9 @@ export interface ProductData {
   stock_quantity?: number | null;
   /** Units of this product allowed per order; null/absent = unlimited. */
   max_per_order?: number | null;
+  /** False = service / digital product (no shipping). Absent on an older API
+   *  and on custom products that ship; read through `lib/requiresShipping`. */
+  requires_shipping?: boolean | null;
   product_type?: string;
   customization_type?: string;
   translations: {
@@ -380,6 +384,8 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
     displayComparePrice,
     savings,
   } = useProductPageState();
+  // A product without shipping (service / digital) shows no free-shipping card.
+  const shownPromotions = promotionsForProduct(product, product.promotions);
   const {
     fields: mappedCustomFields,
     values: customFieldValues,
@@ -554,9 +560,9 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           )}
 
           {/* Active Promotions */}
-          {product.promotions && product.promotions.length > 0 && (
+          {shownPromotions.length > 0 && (
             <div className="space-y-2">
-              {product.promotions.map((promo) => {
+              {shownPromotions.map((promo) => {
                 const promoTitle = promo.translations?.find((pt) => pt.locale === locale)?.title
                   || promo.translations?.[0]?.title || '';
                 const promoDesc = promo.translations?.find((pt) => pt.locale === locale)?.description

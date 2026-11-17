@@ -29,6 +29,8 @@ import { couponDiscount } from '@/lib/couponDiscount';
 import { lineMaxQty } from '@/lib/productQuantity';
 import { useCartQuote } from '@/hooks/useCartQuote';
 import { quoteTotalBeforeTax } from '@/lib/cartQuote';
+import { cartRequiresShipping } from '@/lib/requiresShipping';
+import { availableLines } from '@/lib/cartAvailability';
 import { countryName } from '@/lib/marketSwitch';
 import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components/cart/UnavailableRemovedNotice';
 
@@ -364,7 +366,14 @@ export default function StoreCartPage() {
   // without the coupon, and the shopper is offered to remove the code.
   const couponRejected = Boolean(coupon?.code && quoteState.couponRejected);
   const couponFreeShipping = Boolean(coupon?.freeShipping) && !couponRejected;
-  const shippingUnknown = quoteState.status === 'unknown' && !couponFreeShipping;
+  // Services / digital products only: no shipping row and no "shipping is
+  // added at checkout" note. The quote decides once it is known (a guest
+  // line can carry a stale flag); the cart lines until then.
+  const needsShipping = cartRequiresShipping(
+    availableLines(items),
+    quote ? { requires_shipping: quote.requiresShipping } : null,
+  );
+  const shippingUnknown = needsShipping && quoteState.status === 'unknown' && !couponFreeShipping;
   // Every row of the box comes from one source: the quote once it is known.
   const shownSubtotal = quote ? quote.subtotal : subtotal;
   const shownDiscount = couponRejected ? 0 : quote ? quote.discount : discount;
@@ -582,6 +591,7 @@ export default function StoreCartPage() {
                   <span className="font-medium text-gray-900" data-testid="cart-subtotal">{formatPrice(companyNet ? shownNetItems ?? shownSubtotal : shownSubtotal, currency, locale)}</span>
                 </div>
 
+                {needsShipping && (
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-gray-600">{t('cart.shipping')}</span>
                   {/* Quoted for the default destination; "free" from the quote
@@ -600,7 +610,8 @@ export default function StoreCartPage() {
                     <span className="text-gray-500" data-testid="cart-shipping">{t('cart.calculatedAtCheckout')}</span>
                   )}
                 </div>
-                {quoteShipping !== null && quotedCountry && (
+                )}
+                {needsShipping && quoteShipping !== null && quotedCountry && (
                   <p className="text-xs text-gray-500 text-end -mt-1 pb-1" data-testid="cart-shipping-estimated">
                     {t('cart.shippingEstimatedFor', { country: countryName(quotedCountry, locale) })}
                   </p>

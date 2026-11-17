@@ -441,6 +441,7 @@
     "passwordPlaceholder": "En az 8 karakter",
     "title": "Ödeme",
     "shippingAddress": "Teslimat Adresi",
+    "billingAddress": "Fatura Adresi",
     "shippingMethod": "Teslimat Yöntemi",
     "payment": "Ödeme",
     "orderSummary": "Sipariş Özeti",
@@ -758,7 +759,8 @@
     "DELIVERED": "Teslim Edildi",
     "CANCELLED": "İptal Edildi",
     "REFUNDED": "İade Edildi",
-    "RETURNED": "İade Alındı"
+    "RETURNED": "İade Alındı",
+    "FULFILLED": "Tamamlandı"
   },
   "store": {
     "noContentYet": "Henüz içerik yok.",

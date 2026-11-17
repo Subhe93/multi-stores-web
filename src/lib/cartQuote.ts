@@ -8,6 +8,7 @@
 import { marketBody } from './market';
 import { normalizeB2bNetTotals, normalizeTaxLines, normalizeTaxPricingMode, sumTaxLines, type B2bNetTotals, type TaxLine, type TaxPricingMode } from './tax';
 import type { KustomCartLine } from '@/hooks/useKustomCheckout';
+import { orderRequiresShipping } from './requiresShipping';
 
 /** Typing a postcode / switching methods / stepping quantities re-quotes; coalesce bursts. */
 export const QUOTE_DEBOUNCE_MS = 400;
@@ -133,6 +134,9 @@ export interface CartQuote {
   /** b2b app, company quote: net block; null otherwise. */
   b2b: B2bNetTotals | null;
   currency: string;
+  /** Present (false) only when no line of the quote needs shipping (services
+   *  / digital products); read through `lib/requiresShipping`. */
+  requiresShipping?: false;
 }
 
 function money(v: unknown): number | null {
@@ -168,6 +172,8 @@ export function normalizeCartQuote(raw: unknown, cartCurrency: string | null | u
     taxPricingMode: normalizeTaxPricingMode(r.tax_pricing_mode) ?? 'INCLUSIVE',
     b2b: normalizeB2bNetTotals(r.b2b),
     currency,
+    // Kept only when false, so every other quote normalises as before.
+    ...(orderRequiresShipping(r) ? {} : { requiresShipping: false as const }),
   };
 }
 

@@ -12,6 +12,8 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
 import { lineMaxQty } from '@/lib/productQuantity';
 import { CartSummary } from './CartSummary';
+import { availableLines } from '@/lib/cartAvailability';
+import { cartRequiresShipping } from '@/lib/requiresShipping';
 import { RemoveUnavailableHint } from './UnavailableInMarket';
 import { useCodedApiError } from '@/lib/useApiError';
 
@@ -201,6 +203,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   totalWithTax={totalWithTax}
                   b2bNet={b2bNet}
                   netItems={netItems}
+                  requiresShipping={cartRequiresShipping(availableLines(items))}
                 />
                 {hasUnavailableItems ? (
                   // Lines hidden in this market block checkout until removed.

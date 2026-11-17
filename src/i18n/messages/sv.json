@@ -441,6 +441,7 @@
     "passwordPlaceholder": "Minst 8 tecken",
     "title": "Kassa",
     "shippingAddress": "Leveransadress",
+    "billingAddress": "Faktureringsadress",
     "shippingMethod": "Fraktsätt",
     "payment": "Betalning",
     "orderSummary": "Ordersammanfattning",
@@ -758,7 +759,8 @@
     "DELIVERED": "Levererad",
     "CANCELLED": "Avbruten",
     "REFUNDED": "Återbetald",
-    "RETURNED": "Returnerad"
+    "RETURNED": "Returnerad",
+    "FULFILLED": "Slutförd"
   },
   "store": {
     "noContentYet": "Inget innehåll ännu.",

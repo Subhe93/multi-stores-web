@@ -17,3 +17,16 @@ describe('normalizeKustomTotals shipping_quoted', () => {
     expect(normalizeKustomTotals(base as never)).not.toHaveProperty('shipping_quoted');
   });
 });
+
+// Session of services / digital products only: `totals.requires_shipping`.
+describe('normalizeKustomTotals requires_shipping', () => {
+  const totals = { subtotal: 100, shipping_cost: 0, discount_amount: 0, tax_lines: [], tax_total: 0, total: 100 };
+  it('keeps the flag only for the literal false', () => {
+    expect(normalizeKustomTotals({ ...totals, requires_shipping: false } as never)).toMatchObject({ requires_shipping: false });
+  });
+  it('a session that ships (or from an older API) has no key at all', () => {
+    expect(normalizeKustomTotals(totals as never)).not.toHaveProperty('requires_shipping');
+    expect(normalizeKustomTotals({ ...totals, requires_shipping: true } as never)).not.toHaveProperty('requires_shipping');
+    expect(normalizeKustomTotals({ ...totals, requires_shipping: null } as never)).not.toHaveProperty('requires_shipping');
+  });
+});

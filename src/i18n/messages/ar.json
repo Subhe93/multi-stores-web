@@ -441,6 +441,7 @@
     "passwordPlaceholder": "8 أحرف على الأقل",
     "title": "إتمام الشراء",
     "shippingAddress": "عنوان الشحن",
+    "billingAddress": "عنوان الفوترة",
     "shippingMethod": "طريقة الشحن",
     "payment": "الدفع",
     "orderSummary": "ملخص الطلب",
@@ -758,7 +759,8 @@
     "DELIVERED": "تم التوصيل",
     "CANCELLED": "ملغي",
     "REFUNDED": "مسترد",
-    "RETURNED": "مرتجع"
+    "RETURNED": "مرتجع",
+    "FULFILLED": "مكتمل"
   },
   "store": {
     "noContentYet": "لا يوجد محتوى بعد.",

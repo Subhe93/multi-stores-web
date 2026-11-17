@@ -27,6 +27,9 @@ interface CartSummaryProps {
   /** b2b app, company view: net item subtotal (server, else client estimate);
    *  null falls back to the gross `subtotal`. */
   netItems?: number | null;
+  /** False when no line of the cart needs shipping (services / digital
+   *  products): the shipping row is not rendered. Defaults to true. */
+  requiresShipping?: boolean;
 }
 
 export function CartSummary({
@@ -43,6 +46,7 @@ export function CartSummary({
   totalWithTax = null,
   b2bNet = null,
   netItems = null,
+  requiresShipping = true,
 }: CartSummaryProps) {
   const t = useTranslations('cart');
   const tB2b = useTranslations('b2b');
@@ -66,6 +70,7 @@ export function CartSummary({
           <span>{tB2b('subtotalExclVat')}</span>
           <span>{fmt(netSubtotal)}</span>
         </div>
+        {requiresShipping && (
         <div className="flex justify-between text-sm text-gray-600">
           <span>{t('shipping')}</span>
           <span>
@@ -74,6 +79,7 @@ export function CartSummary({
               : t('calculatedAtCheckout')}
           </span>
         </div>
+        )}
         {/* The net subtotal is already post-discount (L4), so the discount is
             informational here and the rows add up. */}
         {discount !== undefined && discount > 0 && (
@@ -114,7 +120,8 @@ export function CartSummary({
         <span>{fmt(subtotal)}</span>
       </div>
 
-      {/* Shipping */}
+      {/* Shipping (not for a cart of services / digital products only) */}
+      {requiresShipping && (
       <div className="flex justify-between text-sm text-gray-600">
         <span>{t('shipping')}</span>
         <span>
@@ -125,6 +132,7 @@ export function CartSummary({
             : t('calculatedAtCheckout')}
         </span>
       </div>
+      )}
 
       {/* Discount */}
       {discount !== undefined && discount > 0 && (

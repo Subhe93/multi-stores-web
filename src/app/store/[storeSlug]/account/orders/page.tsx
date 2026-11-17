@@ -7,6 +7,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/format';
+import { orderStatusLabelKey } from '@/lib/requiresShipping';
 import { Package, ChevronRight } from 'lucide-react';
 
 interface Order {
@@ -14,6 +15,8 @@ interface Order {
   orderNumber?: string;
   order_number?: string;
   status: string;
+  /** False when no line needed shipping (DELIVERED then reads "Completed"). */
+  requires_shipping?: boolean | null;
   total?: number;
   total_amount?: number;
   currency?: string;
@@ -102,7 +105,7 @@ export default function StoreOrdersPage() {
                   <div className="flex items-center gap-2.5 mb-1">
                     <span className="text-sm font-semibold text-gray-900">#{num}</span>
                     <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${statusStyle(order.status)}`}>
-                      {t(`orderStatus.${order.status}`) || order.status}
+                      {t(orderStatusLabelKey(order.status, order)) || order.status}
                     </span>
                   </div>
                   {date && (

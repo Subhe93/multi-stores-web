@@ -17,6 +17,7 @@ import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { continueShoppingLink, externalSiteUrl } from '@/lib/externalReturn';
 import { ExternalReturnPanel } from '@/components/checkout/ExternalReturnPanel';
 import type { OrderFieldValueRow } from '@/lib/customFields';
+import { orderRequiresShipping } from '@/lib/requiresShipping';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -60,6 +61,9 @@ export interface OrderReceiptOrder {
   shipping_method_name?: string | null;
   /** DELIVERY vs in-store PICKUP; drives the label of the shipping row. */
   shipping_method_type?: 'DELIVERY' | 'PICKUP' | null;
+  /** False when no line needed shipping at purchase time (snapshot); absent
+   *  on an older API. Read through `lib/requiresShipping`. */
+  requires_shipping?: boolean | null;
   discount_amount: number | string;
   total: number | string;
   currency?: string;
@@ -134,6 +138,8 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
   const fmt = (v: number) => formatPrice(v, currency, locale);
   const taxLines = order ? taxLinesFromLegacy(order, t('cart.tax')) : [];
   const taxExclusive = order?.tax_pricing_mode === 'EXCLUSIVE';
+  // An order of services / digital products only has no shipping row.
+  const needsShipping = orderRequiresShipping(order);
   // Company order on an INCLUSIVE store: net rows derived from the snapshot
   // (M2-DESIGN D4), keyed on the order itself — never on the buyer cookie.
   const companyNet = Boolean(order) && isCompanyOrder(order) && !taxExclusive;
@@ -204,6 +210,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
                 <span className="text-gray-500">{t('b2b.subtotalExclVat')}</span>
                 <span className="text-gray-900">{fmt(net.net_items)}</span>
               </div>
+              {needsShipping && (
               <div className="flex justify-between">
                 <span className="text-gray-500">
                   {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
@@ -211,6 +218,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
                 </span>
                 <span className="text-gray-900">{fmt(net.net_shipping)}</span>
               </div>
+              )}
               {Number(order.discount_amount) > 0 && (
                 <p className="text-xs text-gray-500">{t('b2b.includesDiscount', { amount: fmt(Number(order.discount_amount)) })}</p>
               )}
@@ -238,6 +246,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
               <span className="text-gray-500">{t('cart.subtotal')}</span>
               <span className="text-gray-900">{fmt(Number(order.subtotal))}</span>
             </div>
+            {needsShipping && (
             <div className="flex justify-between">
               <span className="text-gray-500">
                 {order.shipping_method_type === 'PICKUP' ? t('checkout.pickUpInStore') : t('cart.shipping')}
@@ -245,6 +254,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
               </span>
               <span className="text-gray-900">{fmt(Number(order.shipping_cost))}</span>
             </div>
+            )}
             {Number(order.discount_amount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-green-600">{t('cart.discount')}</span>

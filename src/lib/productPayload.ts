@@ -18,7 +18,8 @@ type Row = Record<string, unknown>;
 
 const isObj = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
 
-// Top-level product columns no client component reads.
+// Top-level product columns no client component reads. `requires_shipping`
+// is NOT one of them: the add-to-cart line and the promotion labels read it.
 const DROP_PRODUCT_KEYS = [
   'created_at',
   'updated_at',

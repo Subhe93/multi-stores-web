@@ -5,6 +5,7 @@
  * whichever surface added it. Pure, unit-tested.
  */
 import type { CartCustomFieldDisplay, CartItemMetadata } from '@/hooks/useCart';
+import { lineRequiresShipping } from '@/lib/requiresShipping';
 import type { GuestPersonalizationCheck } from '@/components/product/personalization/validateApi';
 
 /** The bundle offer chosen on the product page (display texts already resolved). */
@@ -37,6 +38,9 @@ export interface LineSource {
   customerFile?: string;
   /** The product's per-order limit (B2); null/absent = unlimited. */
   maxPerOrder?: number | null;
+  /** `false` when the product needs no shipping (service / digital product);
+   *  absent otherwise. Kept on guest lines, never sent to the server. */
+  requiresShipping?: false;
 }
 
 /** `"Color: Red / Size: M"` label of a variant's options ('' without options). */
@@ -73,6 +77,7 @@ export function buildLineMetadata(
     ...(src.customProductId ? { customProductId: src.customProductId } : {}),
     ...(src.customerFile ? { customerFile: src.customerFile } : {}),
     ...(typeof src.maxPerOrder === 'number' ? { maxPerOrder: src.maxPerOrder } : {}),
+    ...(lineRequiresShipping(src) ? {} : { requiresShipping: false as const }),
     ...(bundle
       ? {
           bundleOfferId: bundle.offerId,
