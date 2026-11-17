@@ -347,7 +347,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
                 rows={2}
-                placeholder={t('checkout.orderNotesPlaceholder')}
+                placeholder={t(needsShipping ? 'checkout.orderNotesPlaceholder' : 'checkout.orderNotesPlaceholderNoShipping')}
                 className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
               />
             </div>

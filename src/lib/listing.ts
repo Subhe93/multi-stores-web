@@ -6,6 +6,7 @@
 // the page's RSC payload.
 
 import type { ListingProduct } from '@/themes/types';
+import { promotionsForProduct } from '@/lib/requiresShipping';
 
 interface PromotionRow {
   type?: string;
@@ -23,10 +24,14 @@ export interface StorefrontProductRow {
   images?: Array<{ url?: string }>;
   promotions?: PromotionRow[];
   vendor?: { company_name?: string | null } | null;
+  /** False = service / digital product (read through `lib/requiresShipping`). */
+  requires_shipping?: boolean | null;
 }
 
 export function toListingProduct(p: StorefrontProductRow): ListingProduct {
-  const promo = p.promotions?.[0];
+  // The card badge shows the first promotion; a product without shipping
+  // never advertises free shipping (same rule as the product page).
+  const promo = promotionsForProduct(p, p.promotions)[0];
   return {
     id: p.id,
     base_price: Number(p.base_price),

@@ -237,6 +237,22 @@ describe('cart page real shipping', () => {
     expect(screen.getByTestId('cart-total-estimated').textContent).toBe('cart.finalTotalAtCheckout');
   });
 
+  it('a cart without shipping: no shipping row and an estimate note that does not mention shipping', async () => {
+    setCart({ items: [{ ...LINE, requiresShipping: false }] });
+    api.mockResolvedValue(quote({
+      shipping_cost: 0, total: 300, requires_shipping: false,
+      shipping: { available: true, cost: 0, methods: [], method: null, estimated_days: null },
+    }));
+    render(<StoreCartPage />);
+    await waitFor(() => expect(screen.getByTestId('cart-total-label').textContent).toBe('cart.estimatedTotal'));
+    expect(screen.queryByTestId('cart-shipping')).toBeNull();
+    expect(screen.queryByTestId('cart-shipping-estimated')).toBeNull();
+    expect(screen.getByTestId('cart-total-estimated').textContent).toBe('cart.finalTotalAtCheckoutNoShipping');
+    expect(screen.queryByText('cart.finalTotalAtCheckout')).toBeNull();
+    expect(screen.queryByText('cart.shippingAddedAtCheckout')).toBeNull();
+    expect(total()).toBe(SEK(300));
+  });
+
   it('a failed quote keeps the plain Total label (shipping is added at checkout)', async () => {
     api.mockRejectedValue(Object.assign(new Error('boom'), { status: 500 }));
     render(<StoreCartPage />);

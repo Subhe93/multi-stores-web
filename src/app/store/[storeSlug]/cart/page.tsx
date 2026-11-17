@@ -647,7 +647,7 @@ export default function StoreCartPage() {
                       <span className="text-base font-bold text-gray-900" data-testid="cart-total">{formatPrice(shownTotal, currency, locale)}</span>
                     </div>
                     {quote && (
-                      <p className="text-xs text-gray-500" data-testid="cart-total-estimated">{t('cart.finalTotalAtCheckout')}</p>
+                      <p className="text-xs text-gray-500" data-testid="cart-total-estimated">{t(needsShipping ? 'cart.finalTotalAtCheckout' : 'cart.finalTotalAtCheckoutNoShipping')}</p>
                     )}
                     {shownTaxLines.length > 0 && shownTaxEstimated && (
                       <p className="text-xs text-gray-500">{t('cart.taxEstimatedNote')}</p>
@@ -670,7 +670,7 @@ export default function StoreCartPage() {
                   <p className="text-xs text-gray-500 -mt-2 pb-2">{t('cart.shippingAddedAtCheckout')}</p>
                 )}
                 {quote && (
-                  <p className="text-xs text-gray-500 -mt-2 pb-2" data-testid="cart-total-estimated">{t('cart.finalTotalAtCheckout')}</p>
+                  <p className="text-xs text-gray-500 -mt-2 pb-2" data-testid="cart-total-estimated">{t(needsShipping ? 'cart.finalTotalAtCheckout' : 'cart.finalTotalAtCheckoutNoShipping')}</p>
                 )}
                 {taxExclusive && quote ? (
                   // Quoted: the server's tax lines and grand total, as at checkout.

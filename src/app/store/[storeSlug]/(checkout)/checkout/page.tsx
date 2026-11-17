@@ -43,7 +43,7 @@ import { clientCouponFigures, couponBelowCostCode, quotedSummaryFigures } from '
 import { navigateRespectingClarity } from '@/components/tracking/clarity';
 import { precheckVat, rememberReverseChargeHint, vatComparable, type VatCheckResult } from '@/lib/vatCheck';
 import { toKustomCartLines } from '@/hooks/useKustomCheckout';
-import { cartRequiresShipping, orderRequiresShipping, shippingQuoteLines } from '@/lib/requiresShipping';
+import { cartRequiresShipping, checkoutShippingVerdict, orderRequiresShipping, shippingQuoteLines } from '@/lib/requiresShipping';
 // Typing a postcode or switching methods re-quotes; coalesce bursts of changes.
 import { QUOTE_DEBOUNCE_MS } from '@/lib/cartQuote';
 import { isLineErrorCode } from '@/lib/checkoutLineErrors';
@@ -441,9 +441,22 @@ function CheckoutForm({
   // decides once there is one (a guest line can carry a stale flag); the
   // cart lines until then. Every cart that ships behaves exactly as before.
   const purchasableLines = availableLines(items);
-  const needsShipping = cartRequiresShipping(purchasableLines, quote);
+  // The quote was asked and failed: the line flags alone are not trusted (a
+  // stored guest line can be stale, and the order is still created with
+  // shipping), so the shipping step stays and the shipping estimate, which
+  // filters by product on the server, settles it for this cart.
+  const [quoteFailed, setQuoteFailed] = useState(false);
+  const [noShippingEstimateKey, setNoShippingEstimateKey] = useState<string | null>(null);
+  const allLinesKey = JSON.stringify(
+    purchasableLines.map((i) => [i.customProductId || i.productId || '', i.quantity]),
+  );
+  const shippingVerdict = checkoutShippingVerdict(quote, {
+    quoteFailed,
+    estimateSaysNoShipping: noShippingEstimateKey === allLinesKey,
+  });
+  const needsShipping = cartRequiresShipping(purchasableLines, shippingVerdict);
   // Lines shipping is quoted for: a mixed cart leaves its services out.
-  const shippingLines = shippingQuoteLines(purchasableLines, quote);
+  const shippingLines = shippingQuoteLines(purchasableLines, shippingVerdict);
   const shippingLinesKey = JSON.stringify(
     shippingLines.map((i) => [i.customProductId || i.productId || '', i.quantity]),
   );
@@ -766,6 +779,9 @@ function CheckoutForm({
         if (!orderRequiresShipping(res)) {
           setShippingMethods([]);
           setShippingError('');
+          // Asked for the whole cart: remembered, so a failed order quote
+          // does not keep an empty shipping step on screen.
+          if (shippingLinesKey === allLinesKey) setNoShippingEstimateKey(allLinesKey);
           return;
         }
         if (!res.available) {
@@ -801,7 +817,7 @@ function CheckoutForm({
       })
       .finally(() => { if (!cancelled) setShippingLoading(false); });
     return () => { cancelled = true; };
-  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick, storeId, market?.key, needsShipping, shippingLinesKey]);
+  }, [shippingCountryCode, items.length, subtotal, locale, requoteTick, storeId, market?.key, needsShipping, shippingLinesKey, allLinesKey]);
 
   // Quote the order (totals + itemized tax) once the destination country is
   // known, and again whenever the postcode, shipping method, coupon, cart or
@@ -823,6 +839,7 @@ function CheckoutForm({
   useEffect(() => {
     if (!storeId || !shippingCountryCode || items.length === 0) {
       setQuote(null);
+      setQuoteFailed(false);
       setQuoteLineError(null);
       setQuoteLoading(false);
       return;
@@ -852,10 +869,11 @@ function CheckoutForm({
           ...(isCompany && quoteVatNumber ? { vat_number: quoteVatNumber } : {}),
         }),
       })
-        .then((res) => { if (!cancelled) { setQuote(res); setQuoteCompany(isCompany); setQuoteLineError(null); setQuoteCouponError(null); } })
+        .then((res) => { if (!cancelled) { setQuote(res); setQuoteFailed(false); setQuoteCompany(isCompany); setQuoteLineError(null); setQuoteCouponError(null); } })
         .catch((err: unknown) => {
           if (cancelled) return;
           setQuote(null);
+          setQuoteFailed(true);
           // A deleted / unpublished product: drop its lines (the cart change
           // re-quotes). Nothing matched locally: say so and link to the cart.
           const gone = readUnavailableError(err);
@@ -2026,7 +2044,7 @@ function CheckoutForm({
                 <Label htmlFor="ck_notes">{t('checkout.orderNotes')}</Label>
                 <textarea id="ck_notes" value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  rows={2} placeholder={t('checkout.orderNotesPlaceholder')}
+                  rows={2} placeholder={t(needsShipping ? 'checkout.orderNotesPlaceholder' : 'checkout.orderNotesPlaceholderNoShipping')}
                   className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" />
               </div>
 

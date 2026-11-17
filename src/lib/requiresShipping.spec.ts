@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   cartRequiresShipping,
+  checkoutShippingVerdict,
   lineRequiresShipping,
   orderLineRequiresShipping,
   orderRequiresShipping,
@@ -94,6 +95,46 @@ describe('shippableLines / shippingQuoteLines', () => {
   });
 });
 
+describe('checkoutShippingVerdict (what the checkout decides with)', () => {
+  const idle = { quoteFailed: false, estimateSaysNoShipping: false };
+  const failed = { quoteFailed: true, estimateSaysNoShipping: false };
+
+  it('the quote is returned as is, whatever the other inputs say', () => {
+    const quote = { requires_shipping: false };
+    expect(checkoutShippingVerdict(quote, idle)).toBe(quote);
+    expect(checkoutShippingVerdict(quote, failed)).toBe(quote);
+    const ships = {};
+    expect(checkoutShippingVerdict(ships, { quoteFailed: true, estimateSaysNoShipping: true })).toBe(ships);
+  });
+
+  it('no quote yet: null, so the cart lines decide', () => {
+    expect(checkoutShippingVerdict(null, idle)).toBeNull();
+    expect(checkoutShippingVerdict(undefined, idle)).toBeNull();
+    expect(cartRequiresShipping([SERVICE], checkoutShippingVerdict(null, idle))).toBe(false);
+  });
+
+  it('a failed quote never trusts a stale line flag: the checkout keeps its shipping step', () => {
+    const verdict = checkoutShippingVerdict(null, failed);
+    expect(cartRequiresShipping([SERVICE], verdict)).toBe(true);
+    // Every line goes to the shipping estimate, which filters by product.
+    expect(shippingQuoteLines([SERVICE], verdict)).toEqual([SERVICE]);
+  });
+
+  it('a failed quote and an estimate that says nothing ships: no shipping step', () => {
+    const verdict = checkoutShippingVerdict(null, { quoteFailed: true, estimateSaysNoShipping: true });
+    expect(cartRequiresShipping([SERVICE], verdict)).toBe(false);
+    expect(shippingQuoteLines([SERVICE], verdict)).toEqual([]);
+  });
+
+  it('a cart that ships is the same with a failed quote as without one', () => {
+    const lines: Line[] = [{ id: 'a' }, SERVICE, { id: 'b' }];
+    const verdict = checkoutShippingVerdict(null, failed);
+    expect(cartRequiresShipping(lines, verdict)).toBe(cartRequiresShipping(lines, null));
+    expect(shippingQuoteLines(lines, verdict)).toEqual(shippingQuoteLines(lines, null));
+    expect(shippingQuoteLines([MUG], verdict)).toEqual([MUG]);
+  });
+});
+
 describe('order tracker', () => {
   const NO_SHIP = { requires_shipping: false };
 
@@ -129,8 +170,17 @@ describe('order tracker', () => {
     expect(orderStatusLabelKey('DELIVERED', NO_SHIP)).toBe('orderStatus.FULFILLED');
     expect(orderStatusLabelKey('DELIVERED', {})).toBe('orderStatus.DELIVERED');
     expect(orderStatusLabelKey('DELIVERED', { requires_shipping: true })).toBe('orderStatus.DELIVERED');
-    expect(orderStatusLabelKey('SHIPPED', NO_SHIP)).toBe('orderStatus.SHIPPED');
     expect(orderStatusLabelKey('CANCELLED', NO_SHIP)).toBe('orderStatus.CANCELLED');
+  });
+
+  it('a stored production or shipped status reads "Processing" on an order without shipping', () => {
+    for (const status of ['MANUFACTURING', 'QUALITY_CHECK', 'SHIPPED']) {
+      expect(orderStatusLabelKey(status, NO_SHIP)).toBe('orderStatus.PROCESSING');
+      // An order that ships keeps its own label.
+      expect(orderStatusLabelKey(status, {})).toBe(`orderStatus.${status}`);
+      expect(orderStatusLabelKey(status, { requires_shipping: true })).toBe(`orderStatus.${status}`);
+    }
+    expect(orderStatusLabelKey('PROCESSING', NO_SHIP)).toBe('orderStatus.PROCESSING');
   });
 });
 

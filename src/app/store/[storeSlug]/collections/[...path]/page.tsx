@@ -17,6 +17,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingProduct } from '@/lib/listing';
+import { promotionsForProduct } from '@/lib/requiresShipping';
 import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
@@ -38,6 +39,8 @@ interface Product {
   images: { url: string }[];
   promotions?: ProductPromotion[];
   vendor?: { company_name: string } | null;
+  /** False = service / digital product (read through `lib/requiresShipping`). */
+  requires_shipping?: boolean | null;
 }
 
 interface CreatorCategoryTranslation {
@@ -513,6 +516,9 @@ export default async function CollectionPage({
               const slugTr =
                 product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
                 product.translations.find((tr) => isUsableSlug(tr.slug));
+              // Card badge: the first promotion; a product without shipping
+              // never advertises free shipping (same as the listing section).
+              const promo = promotionsForProduct(product, product.promotions)[0];
 
               return (
                 <ProductCard
@@ -531,13 +537,13 @@ export default async function CollectionPage({
                   }
                   currency={currency}
                   promotionLabel={
-                    product.promotions?.[0]
-                      ? product.promotions[0].type === 'PERCENTAGE' ||
-                        product.promotions[0].type === 'FLASH_SALE'
-                        ? `${product.promotions[0].value}% off`
-                        : product.promotions[0].type === 'FREE_SHIPPING'
+                    promo
+                      ? promo.type === 'PERCENTAGE' ||
+                        promo.type === 'FLASH_SALE'
+                        ? `${promo.value}% off`
+                        : promo.type === 'FREE_SHIPPING'
                         ? 'Free Shipping'
-                        : product.promotions[0].translations?.[0]?.title ||
+                        : promo.translations?.[0]?.title ||
                           'Offer'
                       : undefined
                   }

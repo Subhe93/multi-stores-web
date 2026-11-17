@@ -66,6 +66,25 @@ export function cartRequiresShipping(
 }
 
 /**
+ * Server answer the checkout decides with (the `quote` argument of
+ * `cartRequiresShipping` / `shippingQuoteLines`). The order quote when there
+ * is one. Before the first quote answers, null: the cart lines decide. When
+ * the quote was asked and FAILED, the line flags alone are not trusted (a
+ * stored guest line can carry a stale `requiresShipping: false` while the
+ * order is still created with shipping): the checkout keeps its shipping
+ * step, every line goes to the shipping estimate, and the estimate (which
+ * filters by product on the server) may then answer that nothing ships.
+ */
+export function checkoutShippingVerdict(
+  quote: ShippingFlagSource | null | undefined,
+  opts: { quoteFailed: boolean; estimateSaysNoShipping: boolean },
+): ShippingFlagSource | null {
+  if (quote) return quote;
+  if (!opts.quoteFailed) return null;
+  return { requires_shipping: !opts.estimateSaysNoShipping };
+}
+
+/**
  * Lines sent to the shipping endpoints (`product_ids`, `item_count`): none
  * for a cart without shipping, the shippable lines otherwise. When the quote
  * says the cart ships but no line is flagged shippable (stale guest flags),
@@ -131,15 +150,22 @@ export function orderTrackerIndex(
 }
 
 /**
- * Message key of a status label: DELIVERED on an order without shipping
- * reads "Completed" (`orderStatus.FULFILLED`); everything else is unchanged.
+ * Message key of a status label. On an order without shipping DELIVERED
+ * reads "Completed" (`orderStatus.FULFILLED`), and a stored MANUFACTURING,
+ * QUALITY_CHECK or SHIPPED (bulk action, API client) reads "Processing",
+ * the step the tracker shows for it: such an order is never "Shipped" to
+ * the buyer. Everything else is unchanged.
  */
 export function orderStatusLabelKey(
   status: string | null | undefined,
   order: ShippingFlagSource | null | undefined,
 ): string {
-  if (!orderRequiresShipping(order) && (status ?? '').toUpperCase() === 'DELIVERED') {
-    return 'orderStatus.FULFILLED';
+  if (!orderRequiresShipping(order)) {
+    const s = (status ?? '').toUpperCase();
+    if (s === 'DELIVERED') return 'orderStatus.FULFILLED';
+    if (s === 'MANUFACTURING' || s === 'QUALITY_CHECK' || s === 'SHIPPED') {
+      return 'orderStatus.PROCESSING';
+    }
   }
   return `orderStatus.${status}`;
 }
