@@ -1,0 +1,118 @@
+/* Product card: colour swatches and the size line (CardSwatchList,
+   CardSizeLine). Quiet secondary information under the price: small, muted,
+   never interactive (the card's stretched link sits above them). Colours
+   derive from the inherited text colour so both follow the store palette. */
+
+.pcopt-swatches {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block-start: 10px;
+  min-block-size: 14px;
+  color: var(--theme-colors-text, #111827);
+}
+
+.pcopt-dot {
+  position: relative;
+  flex: none;
+  display: block;
+  inline-size: 14px;
+  block-size: 14px;
+  overflow: hidden;
+  /* The store's swatch shape, scaled from the product page's 44px swatch. */
+  border-radius: calc(var(--theme-swatch-radius, 9999px) * 0.3);
+  /* Hairline inside the dot: keeps white and cream visible on a light page. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.pcopt-dot > img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* The hairline again above an image swatch (the image covers the inset one). */
+.pcopt-dot[data-image]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.pcopt-more,
+.pcopt-count {
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, currentColor 66%, transparent);
+}
+
+.pcopt-more {
+  margin-inline-start: 2px;
+  /* "+3" reads left to right in every locale. */
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.pcopt-count {
+  margin-block-start: 10px;
+}
+
+.pcopt-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  margin-block-start: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--theme-colors-text, #111827) 72%, transparent);
+}
+
+.pcopt-size {
+  white-space: nowrap;
+  /* Size codes ("XS", "38/40") keep their own direction inside an RTL line. */
+  unicode-bidi: isolate;
+}
+
+/* Sold-out size: struck through and faded; the text alternative says so. */
+.pcopt-size[data-out] {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  opacity: 0.45;
+}
+
+.pcopt-sizes .pcopt-more {
+  margin-inline-start: 0;
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* Editorial card: a touch more air and a finer dot. */
+[data-card-style='editorial'] .pcopt-swatches {
+  gap: 7px;
+}
+
+[data-card-style='editorial'] .pcopt-dot {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+[data-card-style='editorial'] .pcopt-sizes {
+  letter-spacing: 0.1em;
+  column-gap: 12px;
+}
+
+@media (forced-colors: active) {
+  .pcopt-dot {
+    forced-color-adjust: none;
+    outline: 1px solid CanvasText;
+  }
+}
