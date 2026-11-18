@@ -1,0 +1,108 @@
+// Card model of the enhanced product card: what a card needs beyond the
+// classic fields, computed once per product row and independent of the
+// store's card settings (so a setting toggles without a refetch).
+//
+// `toCardExtras` reads a storefront product row (list payload, with or
+// without `card=1`; a missing field simply yields null) and is safe on the
+// server and in the browser. The three readers it combines live in their
+// own modules: stock.ts, options.ts.
+
+import type { ListingProduct } from '@/themes/types';
+import { cardSizes, cardSwatches } from './options';
+import { cardStock } from './stock';
+
+/** A variant as the list payload carries it (own and imported products). */
+export interface CardVariantRow {
+  id?: string;
+  options?: Record<string, string> | null;
+  /** 999 = the API's "untracked" sentinel. */
+  stock?: number | null;
+  is_active?: boolean | null;
+}
+
+/** The fields of a storefront product row the card model reads. */
+export interface CardSourceRow {
+  id: string;
+  images?: Array<{ url?: string | null }> | null;
+  variants?: CardVariantRow[] | null;
+  /** Option display config (array or keyed object, as the product page reads it). */
+  variant_option_config?: unknown;
+  track_inventory?: boolean | null;
+  stock_quantity?: number | null;
+  [extra: string]: unknown;
+}
+
+export interface CardSwatch {
+  /** Option value as stored ("Sand"); also the accessible name. */
+  value: string;
+  /** CSS colour of the dot. */
+  css?: string;
+  /** Second colour of a two-colour value. */
+  css2?: string;
+  /** Raw image URL of an image swatch (resolve with resolveMediaUrl). */
+  image?: string;
+}
+
+export interface CardSwatches {
+  /** At most CARD_SWATCH_MAX; empty when no value resolves to a colour or image. */
+  items: CardSwatch[];
+  /** Values beyond `items` ("+N"). */
+  more: number;
+  /** All colour values of the product (the "N colours" fallback). */
+  total: number;
+}
+
+export interface CardSizes {
+  /** At most CARD_SIZE_MAX, in the seller's order. */
+  items: Array<{ value: string; available: boolean }>;
+  more: number;
+}
+
+/**
+ * Stock as a card may show it. null = untracked or unknown: show nothing.
+ * `count` is set only for 1..LOW_STOCK_CAP (settings.ts); the card compares
+ * it with the store's threshold.
+ */
+export interface CardStock {
+  soldOut: boolean;
+  count: number | null;
+}
+
+export interface CardExtras {
+  /** Raw URL of the second image (hover), or null. */
+  second_image: string | null;
+  swatches: CardSwatches | null;
+  sizes: CardSizes | null;
+  stock: CardStock | null;
+  /** The product has selectable variants (quick add opens the picker). */
+  has_variants: boolean;
+}
+
+export const CARD_SWATCH_MAX = 5;
+export const CARD_SIZE_MAX = 8;
+
+export function toCardExtras(row: CardSourceRow): CardExtras {
+  const second = row.images?.[1]?.url;
+  return {
+    second_image: typeof second === 'string' && second ? second : null,
+    swatches: cardSwatches(row),
+    sizes: cardSizes(row),
+    stock: cardStock(row),
+    has_variants: (row.variants?.length ?? 0) > 0,
+  };
+}
+
+/**
+ * A listing projection (`toListingProduct` / `toListingCard`) with the card
+ * model attached under `card`. Use only when the store has card settings;
+ * without them the projection must stay exactly as today.
+ */
+export function withCardExtras<T extends ListingProduct>(projected: T, row: CardSourceRow): T {
+  return { ...projected, card: toCardExtras(row) };
+}
+
+/** The card model of a product: the attached one, else computed from the row itself. */
+export function cardExtrasOf(product: ListingProduct | CardSourceRow): CardExtras {
+  const attached = (product as ListingProduct).card;
+  return attached ?? toCardExtras(product as CardSourceRow);
+}

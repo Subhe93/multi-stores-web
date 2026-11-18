@@ -10,6 +10,8 @@ import type { ProductData } from '@/components/product/ProductDetailClient';
 import { buildGoogleFontsHref } from '@/lib/storeFonts';
 import { cssSafe } from '@/lib/storeTypography';
 import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
+import { withCardExtras, type CardSourceRow } from '@/lib/productCard/model';
+import { resolveProductCard } from '@/lib/productCard/settings';
 import { projectProductForClient } from '@/lib/productPayload';
 import { normalizeStoreTax } from '@/lib/tax';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -55,6 +57,7 @@ import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAsset
 //   progress=1                        (scroll progress bar)
 //   cursor=1                          (cursor dot)
 //   builder=1                         (builder preview state: static)
+//   card=classic|editorial            (enhanced product card with every feature on; absent = the card as it is today)
 //   bar=0                             (hides the demo bar, for screenshots)
 // plus the engine's own cx-motion=force.
 
@@ -109,6 +112,20 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   const cursor = one(query.cursor) === '1';
   const builder = one(query.builder) === '1';
   const showBar = one(query.bar) !== '0';
+  const cardParam = one(query.card);
+  // Enhanced card of the demo: every feature on, so each part is visible.
+  const productCard =
+    cardParam === 'classic' || cardParam === 'editorial'
+      ? resolveProductCard({
+          style: cardParam,
+          hover_image: true,
+          swatches: true,
+          sizes_line: true,
+          availability: 'sold_out_and_low',
+          badge: cardParam === 'editorial' ? 'sale' : 'percent',
+          quick_add: true,
+        })
+      : null;
 
   const { fixture, source } = await loadFixture();
   const messages = (await import(`@/i18n/messages/${locale}.json`)).default;
@@ -166,6 +183,9 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   };
 
   const products = fixture.products as unknown as StorefrontProductRow[];
+  // Card projection: with the card model when the demo card is on, else as today.
+  const toCard = (p: StorefrontProductRow) =>
+    productCard ? withCardExtras(toListingProduct(p), p as unknown as CardSourceRow) : toListingProduct(p);
   let body: ReactNode;
   if (view === 'product' && fixture.product) {
     const clientProduct = projectProductForClient(
@@ -186,7 +206,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
             {...shared}
             sections={PRODUCT_SECTIONS}
             product={clientProduct as unknown as ProductContext}
-            preloaded={{ 'product-2': products.slice(1, 5).map(toListingProduct) }}
+            preloaded={{ 'product-2': products.slice(1, 5).map(toCard) }}
           />
         </ProductPageStateProvider>
       </DesignerSessionProvider>
@@ -194,7 +214,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   } else if (view === 'listing') {
     const listing: ListingContext = {
       kind: 'catalog',
-      products: products.map(toListingProduct),
+      products: products.map(toCard),
       collections: [],
       query: {},
       basePath: '/products',
@@ -207,7 +227,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
     for (const s of sections) {
       if (s.section_key === 'featured-products') {
         const limit = typeof s.settings.limit === 'number' ? s.settings.limit : 4;
-        preloaded[s.id] = products.slice(0, limit).map(toListingProduct);
+        preloaded[s.id] = products.slice(0, limit).map(toCard);
       }
       // Brand sections with a linked product: the same shape the store preload gives.
       if ((PICKED_SECTION_KEYS as readonly string[]).includes(s.section_key)) {
@@ -252,6 +272,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
         market={null}
         markets={null}
         primaryLocale={fixture.primaryLocale}
+        productCard={productCard}
       >
         {fontsHref && (
           <>
@@ -346,6 +367,11 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
                 { label: 'curtain', href: href({ curtain: curtain ? null : '1' }), on: curtain },
                 { label: 'progress', href: href({ progress: progress ? null : '1' }), on: progress },
                 { label: 'cursor', href: href({ cursor: cursor ? null : '1' }), on: cursor },
+              ],
+              [
+                { label: 'card today', href: href({ card: null }), on: !productCard },
+                { label: 'card classic+', href: href({ card: 'classic' }), on: cardParam === 'classic' },
+                { label: 'card editorial', href: href({ card: 'editorial' }), on: cardParam === 'editorial' },
               ],
             ]}
             note={source === 'neutral' ? 'neutral placeholder content' : fixture.name}

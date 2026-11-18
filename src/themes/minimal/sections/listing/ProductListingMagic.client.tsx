@@ -16,7 +16,7 @@ import { useTranslations } from 'next-intl';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { resolveHero, type HeroHeight, type HeroPageConfig } from '@/lib/hero';
-import { ProductCard } from '@/components/product/ProductCard';
+import { StoreProductCard } from '@/components/product/card/StoreProductCard';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
@@ -376,8 +376,11 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
           product.translations.find((tr) => isUsableSlug(tr.slug));
         return (
-          <ProductCard
+          <StoreProductCard
             key={product.id}
+            card={product.card}
+            productId={product.id}
+            productSlug={slugTr?.slug || product.id}
             href={`${lp}/products/${slugTr?.slug || product.id}`}
             title={translation?.title || 'Untitled'}
             price={Number(product.base_price)}

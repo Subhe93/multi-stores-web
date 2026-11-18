@@ -7,6 +7,8 @@ import type { HeroPageConfig } from '@/lib/hero';
 import type { ListingPagination } from '@/lib/listingPaging';
 import type { StorefrontApps } from '@/lib/storeApps';
 import type { MarketRoute } from '@/lib/market';
+import type { CardExtras } from '@/lib/productCard/model';
+import type { ProductCardStored } from '@/lib/productCard/settings';
 import type { ChildLayout } from './sectionTree';
 
 export type LocalizedString = Record<string, string>;
@@ -120,7 +122,14 @@ export type ThemeCustomizations = {
     shadow?: Partial<SpacingTokens['shadow']>;
     containerMaxWidth?: string;
   };
-  product?: Partial<ProductTokens>;
+  product?: Partial<ProductTokens> & {
+    /**
+     * Enhanced product card (opt-in). Absent = the classic card everywhere
+     * and no `card=1` on product requests. Not a design token: mergeTokens
+     * ignores it; read through readProductCard (lib/productCard/settings.ts).
+     */
+    card?: ProductCardStored;
+  };
   /**
    * Store-wide motion profile. Absent or 'default' = today's motion. Read
    * through motionAttrs (tokens.ts), which turns the other values into
@@ -294,6 +303,8 @@ export interface ListingProduct {
   promotions?: unknown[];
   // Marketplace vendor (optional; see ProductContext.vendor).
   vendor?: { company_name: string } | null;
+  /** Card model (lib/productCard/model.ts); attached only for stores with card settings. */
+  card?: CardExtras;
   [extra: string]: unknown;
 }
 
