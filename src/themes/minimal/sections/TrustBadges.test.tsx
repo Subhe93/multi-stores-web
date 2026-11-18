@@ -170,7 +170,7 @@ describe('trust-badges strip layout', () => {
     ]);
   });
 
-  it('sets the items per row and the text width floor', () => {
+  it('sets the items per row and the widest description', () => {
     const vars = (n: number) => /<ul[^>]*style="([^"]*)"/.exec(strip(many(n)))?.[1];
     expect(vars(1)).toBe('--tb-n:1;--tb-w:20rem');
     expect(vars(2)).toBe('--tb-n:2;--tb-w:20rem');
@@ -185,8 +185,8 @@ describe('trust-badges strip layout', () => {
       (m) => m[1],
     );
     expect(descriptions).toEqual([
-      'text-xs md:text-sm leading-snug lg:w-[var(--tb-w)] lg:min-w-full lg:max-w-full',
-      'text-xs md:text-sm leading-snug lg:w-[var(--tb-w)] lg:min-w-full lg:max-w-full',
+      'text-xs md:text-sm leading-snug lg:max-w-[var(--tb-w)] lg:min-w-full',
+      'text-xs md:text-sm leading-snug lg:max-w-[var(--tb-w)] lg:min-w-full',
     ]);
     // Only from 1024px: nothing about the width below it.
     expect(classTokens(out).filter((c) => /^(?:md:|sm:)?(?:w|min-w|max-w)-/.test(c) && c !== 'min-w-0')).toEqual([]);

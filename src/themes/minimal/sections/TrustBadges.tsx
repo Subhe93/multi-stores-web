@@ -97,12 +97,13 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
                     {b.label}
                   </div>
                   {b.description && (
-                    // From 1024px the description no longer widens the text
-                    // block: the block is as wide as the label (at least
-                    // --tb-w, never wider than the cell), so the centred
-                    // content is what is actually visible.
+                    // From 1024px the description widens the text block
+                    // to --tb-w at most (a longer one wraps there; under a
+                    // longer label it is as wide as the label). The block
+                    // is as wide as its text, never a reserved width, so
+                    // the centred content is what is actually visible.
                     <div
-                      className="text-xs md:text-sm leading-snug lg:w-[var(--tb-w)] lg:min-w-full lg:max-w-full"
+                      className="text-xs md:text-sm leading-snug lg:max-w-[var(--tb-w)] lg:min-w-full"
                       style={{ color: 'var(--theme-colors-muted)' }}
                     >
                       {b.description}
