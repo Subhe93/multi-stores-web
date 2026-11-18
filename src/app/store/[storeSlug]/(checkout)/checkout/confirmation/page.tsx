@@ -1,5 +1,6 @@
 'use client';
 
+import { checkDraw, enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -29,6 +30,7 @@ function readGuestAccountEmail(orderId: string | null): string | null {
 }
 
 export default function OrderConfirmationPage() {
+  const motion = useFlowMotion();
   const t = useTranslations();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
@@ -182,14 +184,15 @@ export default function OrderConfirmationPage() {
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
             style={{ backgroundColor: 'color-mix(in srgb, var(--store-primary, #22c55e) 15%, white)' }}
           >
+            {/* Store motion style: the check mark draws once (css/flow.css.ts). */}
             {processing
               ? <Clock className="w-8 h-8" style={{ color: 'var(--store-primary, #22c55e)' }} />
-              : <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--store-primary, #22c55e)' }} />}
+              : <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--store-primary, #22c55e)' }} {...checkDraw(motion)} />}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2" {...enter(motion, 1)}>
             {processing ? t('checkout.paymentProcessingTitle') : t('checkout.orderPlaced')}
           </h1>
-          <p className="text-gray-500 text-sm">{processing ? t('checkout.paymentProcessingText') : t('checkout.thankYou')}</p>
+          <p className="text-gray-500 text-sm" {...enter(motion, 2)}>{processing ? t('checkout.paymentProcessingText') : t('checkout.thankYou')}</p>
           {processing && <p className="text-gray-500 text-sm mt-1">{t('checkout.bankPaymentDelay')}</p>}
           {order?.order_number && (
             <p className="text-xs text-gray-400 mt-3">
@@ -217,6 +220,7 @@ export default function OrderConfirmationPage() {
         <OrderReceipt
           order={order}
           orderId={orderId}
+          motion={motion}
           externalReturn={orderSettled ? { orderNumber: order.order_number, orderId: order.id } : null}
         />
       </div>

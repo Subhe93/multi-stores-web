@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
@@ -16,6 +16,7 @@ import { PersonalizationSummary, type SummaryDisplayLine } from './Personalizati
 import type { CartLineDesign } from '@/hooks/useCart';
 import { useCartDesign } from '@/components/designer/useCartDesign';
 import { DesignLineExtras } from './DesignLineExtras';
+import { collapseLine, flowMotionLive } from './FlowMotion';
 
 export interface CartItemData {
   id: string;
@@ -93,6 +94,9 @@ interface CartItemProps {
 export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQuantity = null, maxPerOrder }: CartItemProps) {
   const t = useTranslations();
   const [updating, setUpdating] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // Set by the first quantity change while the store motion style runs: the new number then fades in.
+  const [swap, setSwap] = useState(false);
   const display = useDisplayPrice();
   const currency = item.currency || 'EUR';
   // Company view (b2b app) shows the net line total; persons the gross.
@@ -114,13 +118,23 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
 
   async function handleQuantity(qty: number) {
     if (qty < 1) return;
+    if (flowMotionLive(rowRef.current)) setSwap(true);
     setUpdating(true);
     try { await onUpdateQuantity(item.id, qty); } finally { setUpdating(false); }
   }
 
+  // With the store motion style the line closes first (0.25 s), then leaves.
+  async function handleRemove() {
+    const leave = collapseLine(rowRef.current);
+    if (!leave) return onRemove(item.id);
+    await leave.done;
+    // A failed removal opens the line again (it is still in the cart).
+    try { await onRemove(item.id); } catch { leave.restore(); }
+  }
+
   return (
     // data-clarity-mask: cart lines can carry personalization (names).
-    <div data-clarity-mask="True" className={`flex gap-3 py-4 border-b border-gray-100 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
+    <div ref={rowRef} data-clarity-mask="True" className={`flex gap-3 py-4 border-b border-gray-100 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail with quantity badge */}
       <div className="relative w-16 h-16 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
@@ -224,7 +238,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
           <div className="flex items-center justify-end mt-auto pt-2">
             <button
               type="button"
-              onClick={() => onRemove(item.id)}
+              onClick={handleRemove}
               className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-3 min-h-11 text-xs font-medium text-gray-700 hover:text-red-600 hover:border-red-200 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -245,7 +259,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
               <Minus className="w-3 h-3" />
             </button>
             <span className="min-w-8 h-11 px-1 flex items-center justify-center text-xs font-medium text-gray-900 border-x border-gray-200">
-              {item.quantity}
+              {swap ? <span key={item.quantity} data-cx-swap="">{item.quantity}</span> : item.quantity}
             </span>
             <button
               onClick={() => handleQuantity(item.quantity + 1)}
@@ -258,7 +272,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
           </div>
 
           <button
-            onClick={() => onRemove(item.id)}
+            onClick={handleRemove}
             className="size-11 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
             aria-label={t('cart.remove')}
           >

@@ -1,5 +1,6 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -181,6 +182,7 @@ function statusStyle(status: string): string {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StoreOrderDetailPage() {
+  const motion = useFlowMotion();
   const params = useParams();
   const orderId = params.id as string;
   const t = useTranslations();
@@ -263,7 +265,7 @@ export default function StoreOrderDetailPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">{t('account.orderTitle', { number: num })}</h1>
+            <h1 className="text-lg font-semibold text-gray-900" {...enter(motion)}>{t('account.orderTitle', { number: num })}</h1>
             {date && (
               <p className="text-xs text-gray-400 mt-0.5">
                 {new Date(date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}

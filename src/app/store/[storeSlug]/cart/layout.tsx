@@ -3,6 +3,8 @@ import { cookies, headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { storefront } from '@/lib/api';
 import { getRequestMarket } from '@/lib/market.server';
+import { FlowMotionProvider } from '@/components/cart/FlowMotion';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 
 // The cart page itself is a client component and so cannot export metadata.
 // This layout exists only to mark the route noindex: a cart is per-visitor and
@@ -38,6 +40,22 @@ export async function generateMetadata({
   }
 }
 
-export default function CartLayout({ children }: { children: React.ReactNode }) {
-  return children;
+// Store motion style: the client page learns it from a provider that exists
+// only for a store with the switch on (same cached store call as the store
+// layout). Any other store gets its children untouched.
+export default async function CartLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ storeSlug: string }>;
+}) {
+  const { storeSlug } = await params;
+  let motion = false;
+  try {
+    motion = storeMotionOf(await storefront.getStore(storeSlug, await getRequestMarket()));
+  } catch {
+    motion = false;
+  }
+  return motion ? <FlowMotionProvider>{children}</FlowMotionProvider> : children;
 }

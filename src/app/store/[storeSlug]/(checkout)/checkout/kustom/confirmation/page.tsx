@@ -1,5 +1,6 @@
 'use client';
 
+import { checkDraw, enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -57,6 +58,7 @@ function LoadingState({ label }: { label: string }) {
 //  - `?orderId=` (legacy order-first flow): customer-scoped, needs a login.
 function KustomConfirmationContent() {
   const t = useTranslations();
+  const motion = useFlowMotion();
   const lp = useLocalePath();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -214,10 +216,11 @@ function KustomConfirmationContent() {
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
                 style={{ backgroundColor: 'color-mix(in srgb, var(--store-primary, #22c55e) 15%, white)' }}
               >
-                <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--store-primary, #22c55e)' }} />
+                {/* Store motion style: the check mark draws once (css/flow.css.ts). */}
+                <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--store-primary, #22c55e)' }} {...checkDraw(motion)} />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('checkout.orderPlaced')}</h1>
-              <p className="text-gray-500 text-sm">{t('checkout.thankYou')}</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2" {...enter(motion, 1)}>{t('checkout.orderPlaced')}</h1>
+              <p className="text-gray-500 text-sm" {...enter(motion, 2)}>{t('checkout.thankYou')}</p>
             </>
           ) : mismatch ? (
             <>
@@ -271,6 +274,7 @@ function KustomConfirmationContent() {
         <OrderReceipt
           order={order}
           orderId={orderId}
+          motion={motion}
           showOrderLink={Boolean(authToken)}
           externalReturn={paid ? { orderNumber, orderId } : null}
         />

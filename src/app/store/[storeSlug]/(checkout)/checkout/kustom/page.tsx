@@ -1,5 +1,6 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -39,6 +40,7 @@ function LoadingState({ label }: { label: string }) {
 // surface the message and still (re)load the session so they can retry.
 function KustomCheckoutContent() {
   const t = useTranslations();
+  const motion = useFlowMotion();
   const lp = useLocalePath();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -128,7 +130,7 @@ function KustomCheckoutContent() {
         <span className="text-gray-900 font-medium text-sm">{t('checkout.payment')}</span>
       </nav>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-5">{t('checkout.payment')}</h1>
+      <h1 className="text-xl font-semibold text-gray-900 mb-5" {...enter(motion)}>{t('checkout.payment')}</h1>
 
       {validationFailed && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

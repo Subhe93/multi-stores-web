@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2, LinkIcon, CheckCircle2 } from 'lucide-react';
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError, isStoreMismatchError } from '@/hooks/useAuth';
 
@@ -21,6 +22,8 @@ const LINK_COLOR = 'var(--theme-colors-link, var(--theme-colors-price, var(--sto
  */
 export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
   const t = useTranslations('auth');
+  // Store variant on a store with the motion style on; undefined on the platform.
+  const motion = useFlowMotion();
   const router = useRouter();
   const lp = useLocalePath();
   const { loginWithMagicToken } = useAuth();
@@ -86,7 +89,7 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
             />
           )}
         </div>
-        <h1 className={title}>{t('magicTitle')}</h1>
+        <h1 className={title} {...enter(motion)}>{t('magicTitle')}</h1>
         <p className={muted}>{status === 'loading' ? t('magicLoading') : t('magicSuccess')}</p>
       </div>
     );
@@ -101,7 +104,7 @@ export function MagicLogin({ variant }: { variant: 'store' | 'platform' }) {
       <div className={isStore ? 'mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-amber-50' : 'sd-auth-status sd-auth-status-amber'}>
         <LinkIcon className={isStore ? 'size-6 text-amber-600' : 'size-6'} aria-hidden="true" />
       </div>
-      <h1 className={title}>{t('magicInvalidTitle')}</h1>
+      <h1 className={title} {...enter(motion)}>{t('magicInvalidTitle')}</h1>
       <p className={`${muted} mb-2`}>
         {status === 'notCustomer'
           ? t('dashboardAccountNotAllowed')

@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { User, Package, MapPin, LogOut } from 'lucide-react';
+import { FlowMotionProvider } from '@/components/cart/FlowMotion';
+import { surface, type MotionProp } from '@/themes/creative/recipes';
+
+// This layout is a client component without a server parent of its own, so
+// the store motion switch is read from the store root (never on the server).
+const noSubscribe = () => () => {};
+const readStoreMotion = (): MotionProp =>
+  document.querySelector('.store-root[data-creative]') ? 'scroll' : undefined;
+const noStoreMotion = (): MotionProp => undefined;
 
 export default function StoreAccountLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('account');
@@ -15,6 +24,9 @@ export default function StoreAccountLayout({ children }: { children: React.React
   const lp = useLocalePath();
   const { token, loading, logout } = useAuth();
   const [ready, setReady] = useState(false);
+  // Store motion style, read from the store root after hydration (see below);
+  // the account content never renders before that (it waits for the session).
+  const motion = useSyncExternalStore(noSubscribe, readStoreMotion, noStoreMotion);
 
   useEffect(() => {
     if (!loading) {
@@ -49,7 +61,7 @@ export default function StoreAccountLayout({ children }: { children: React.React
   // in case Clarity loaded on an earlier page and the visitor navigated here
   // client-side (Clarity itself is not loaded on account routes).
   return (
-    <div className="container mx-auto px-4 py-8" data-clarity-mask="True">
+    <div className="container mx-auto px-4 py-8" data-clarity-mask="True" {...surface(motion, 'account', true)}>
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
         {/* Sidebar */}
         <aside className="space-y-1">
@@ -74,7 +86,7 @@ export default function StoreAccountLayout({ children }: { children: React.React
         </aside>
 
         {/* Main content */}
-        <main>{children}</main>
+        <main>{motion ? <FlowMotionProvider>{children}</FlowMotionProvider> : children}</main>
       </div>
     </div>
   );

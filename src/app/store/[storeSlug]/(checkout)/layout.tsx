@@ -20,6 +20,9 @@ import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
 import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, storePrimaryContrast, tokenArabicFamilies } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
+import { FlowMotionProvider } from '@/components/cart/FlowMotion';
+import { storeMotion } from '@/themes/creative/creativeAttrs';
+import { surface } from '@/themes/creative/recipes';
 
 interface Store {
   id: string;
@@ -90,6 +93,8 @@ export default async function CheckoutLayout({
 
   const messages = await getMessages();
   const t = await getTranslations({ locale: currentLang });
+  // Store motion style (flow scope: entrances and feedback only, fast timing).
+  const motion = storeMotion(store.theme_customizations) ? ('scroll' as const) : undefined;
 
   // Same host rule as the store layout (focused storefront loop guard), so
   // both provider trees carry the same settings.
@@ -202,8 +207,8 @@ export default async function CheckoutLayout({
           )}
 
           {/* ── Page content ── */}
-          <main className="flex-1">
-            {children}
+          <main className="flex-1" {...surface(motion, 'checkout', true)}>
+            {motion ? <FlowMotionProvider>{children}</FlowMotionProvider> : children}
           </main>
 
           {/* ── Minimal footer ── */}

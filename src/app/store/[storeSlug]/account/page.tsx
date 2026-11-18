@@ -1,5 +1,6 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -32,6 +33,7 @@ const inputCls =
   'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition';
 
 export default function StoreAccountPage() {
+  const motion = useFlowMotion();
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
   const tB2b = useTranslations('b2b');
@@ -211,7 +213,7 @@ export default function StoreAccountPage() {
       {/* Profile card */}
       <div className="store-surface store-bd rounded-2xl border p-6">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-lg font-semibold text-gray-900">{t('title')}</h1>
+          <h1 className="text-lg font-semibold text-gray-900" {...enter(motion)}>{t('title')}</h1>
           {!editing && (
             <button
               onClick={() => setEditing(true)}

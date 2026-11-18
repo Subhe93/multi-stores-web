@@ -63,6 +63,8 @@ import {
 } from '@/lib/b2bValidators';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { KustomCheckout } from '@/components/checkout/KustomCheckout';
+import { useFlowMotion } from '@/components/cart/FlowMotion';
+import { hover } from '@/themes/creative/recipes';
 import { VatNumberField } from '@/components/checkout/VatNumberField';
 import { RemoveUnavailableHint } from '@/components/cart/UnavailableInMarket';
 import { UnavailableRemovedNotice, useCartAvailabilityCheck } from '@/components/cart/UnavailableRemovedNotice';
@@ -362,6 +364,8 @@ function CheckoutForm({
   const codedError = useCodedApiError();
   const locale = useLocale();
   const lp = useLocalePath();
+  // Store motion style: pressed-state feedback of the pay button only (no entrance).
+  const motion = useFlowMotion();
   // Stripe.js + Elements of the mounted Payment Element (null until ready).
   const [stripeHandles, setStripeHandles] = useState<StripeHandles | null>(null);
   // Bumped to remount Elements with a fresh Stripe.js after a route change.
@@ -2134,6 +2138,7 @@ function CheckoutForm({
             <button
               type="submit"
               disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || shippingBlocksPay || (rcNotConfirmed && quoteLoading)}
+              {...hover(motion, 'press')}
               className="w-full mt-5 py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >
@@ -2206,6 +2211,7 @@ function CheckoutForm({
             <button
               type="submit"
               disabled={previewMode || loading || hasUnavailableItems || personalizationBlocked || noPaymentMethods || stripeSubmitBlocked || shippingBlocksPay || (rcNotConfirmed && quoteLoading)}
+              {...hover(motion, 'press')}
               className="w-full py-4 text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
             >

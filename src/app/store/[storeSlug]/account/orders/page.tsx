@@ -1,5 +1,6 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
@@ -41,6 +42,7 @@ function statusStyle(status: string): string {
 }
 
 export default function StoreOrdersPage() {
+  const motion = useFlowMotion();
   const t = useTranslations();
   const lp = useLocalePath();
   // Money and dates in the storefront locale (M5 D4).
@@ -73,7 +75,7 @@ export default function StoreOrdersPage() {
   return (
     <div className="store-surface store-bd rounded-2xl border overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100">
-        <h1 className="text-lg font-semibold text-gray-900">{t('account.orders')}</h1>
+        <h1 className="text-lg font-semibold text-gray-900" {...enter(motion)}>{t('account.orders')}</h1>
       </div>
 
       {orders.length === 0 ? (
@@ -90,7 +92,7 @@ export default function StoreOrdersPage() {
         </div>
       ) : (
         <div className="divide-y divide-gray-100">
-          {orders.map((order) => {
+          {orders.map((order, index) => {
             const num = order.orderNumber || order.order_number || order.id.slice(0, 8);
             const total = order.total ?? order.total_amount ?? 0;
             const date = order.createdAt || order.created_at;
@@ -99,6 +101,7 @@ export default function StoreOrdersPage() {
               <Link
                 key={order.id}
                 href={lp(`/account/orders/${order.id}`)}
+                {...enter(motion, Math.min(index, 4) + 1)}
                 className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex-1 min-w-0">

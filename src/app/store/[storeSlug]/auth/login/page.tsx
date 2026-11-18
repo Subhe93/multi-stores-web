@@ -1,5 +1,7 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
+import { hover } from '@/themes/creative/recipes';
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,6 +13,7 @@ import { useAuth, isNotCustomerAccountError, isStoreMismatchError } from '@/hook
 import { useApiError } from '@/lib/useApiError';
 
 export default function StoreLoginPage() {
+  const motion = useFlowMotion();
   const t = useTranslations('auth');
   const router = useRouter();
   const lp = useLocalePath();
@@ -51,10 +54,10 @@ export default function StoreLoginPage() {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-      <h1 className="text-3xl font-bold text-gray-900 text-center mb-2">
+      <h1 className="text-3xl font-bold text-gray-900 text-center mb-2" {...enter(motion)}>
         {t('loginTitle')}
       </h1>
-      <p className="text-gray-500 text-center text-sm mb-8">{t('loginSubtitle')}</p>
+      <p className="text-gray-500 text-center text-sm mb-8" {...enter(motion, 1)}>{t('loginSubtitle')}</p>
 
       {error && (
         <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -122,6 +125,7 @@ export default function StoreLoginPage() {
 
         <button
           type="submit"
+          {...hover(motion, 'press')}
           disabled={loading}
           className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}

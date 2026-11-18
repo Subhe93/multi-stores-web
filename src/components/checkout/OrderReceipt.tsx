@@ -18,6 +18,8 @@ import { continueShoppingLink, externalSiteUrl } from '@/lib/externalReturn';
 import { ExternalReturnPanel } from '@/components/checkout/ExternalReturnPanel';
 import type { OrderFieldValueRow } from '@/lib/customFields';
 import { orderRequiresShipping } from '@/lib/requiresShipping';
+import { enter } from '@/components/cart/FlowMotion';
+import { hover, type MotionProp } from '@/themes/creative/recipes';
 
 // ── Minimal order shape needed to render the receipt ───────────────────────
 // Mirrors the storefront's /orders/:id response (OrdersService.findById uses
@@ -116,11 +118,13 @@ interface OrderReceiptProps {
    * Ignored by stores without an external site.
    */
   externalReturn?: { orderNumber: string | null | undefined; orderId: string | null | undefined } | null;
+  /** Store motion style (flow pages): the summary rises once. Unset = static. */
+  motion?: MotionProp;
 }
 
 // Shared receipt block for the checkout confirmation pages (Stripe/COD and
 // Kustom): line items, totals and the post-purchase action buttons.
-export function OrderReceipt({ order, orderId, showOrderLink = true, externalReturn = null }: OrderReceiptProps) {
+export function OrderReceipt({ order, orderId, showOrderLink = true, externalReturn = null, motion }: OrderReceiptProps) {
   const t = useTranslations();
   const locale = useLocale();
   // Label fallback of the snapshot rows (store primary locale).
@@ -150,7 +154,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
       {/* Order items — only shown once we have the full order. While loading
           we keep just the success message so the page stays snappy. */}
       {order && order.items?.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6" {...enter(motion, 3)}>
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             {t('checkout.orderSummary')}
           </h2>
@@ -290,6 +294,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
         {orderId && showOrderLink && !checkoutSettings.no_customer_accounts && (
           <Link
             href={lp(`/account/orders/${orderId}`)}
+            {...hover(motion, 'press')}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
@@ -300,6 +305,7 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
         {!showReturnPanel && (
         <Link
           {...shoppingLink}
+          {...hover(motion, 'press')}
           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
         >
           {t('checkout.backToShopping')}

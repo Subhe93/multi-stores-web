@@ -1,5 +1,7 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
+import { hover } from '@/themes/creative/recipes';
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -8,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useApiError } from '@/lib/useApiError';
 
 export default function StoreForgotPasswordPage() {
+  const motion = useFlowMotion();
   const t = useTranslations('auth');
   const lp = useLocalePath();
   const apiError = useApiError();
@@ -38,10 +41,10 @@ export default function StoreForgotPasswordPage() {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-      <h1 className="text-2xl font-semibold text-gray-900 text-center mb-2">
+      <h1 className="text-2xl font-semibold text-gray-900 text-center mb-2" {...enter(motion)}>
         {t('forgotPasswordTitle')}
       </h1>
-      <p className="text-gray-500 text-center text-sm mb-8">{t('resetPasswordDesc')}</p>
+      <p className="text-gray-500 text-center text-sm mb-8" {...enter(motion, 1)}>{t('resetPasswordDesc')}</p>
 
       {success ? (
         <div className="text-center">
@@ -82,6 +85,7 @@ export default function StoreForgotPasswordPage() {
 
             <button
               type="submit"
+              {...hover(motion, 'press')}
               disabled={loading}
               className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}

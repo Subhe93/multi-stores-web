@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { ShoppingCart, Lock, ChevronLeft, Tag, X, Loader2, Minus, Plus } from 'lucide-react';
@@ -9,6 +9,8 @@ import { useContinueShoppingLink } from '@/hooks/useFocusedStorefront';
 import { useCart, type CartLineDesign } from '@/hooks/useCart';
 import { useCartDesign } from '@/components/designer/useCartDesign';
 import { DesignLineExtras } from '@/components/cart/DesignLineExtras';
+import { collapseLine, enter, flowMotionLive, useFlowMotion } from '@/components/cart/FlowMotion';
+import { hover, surface } from '@/themes/creative/recipes';
 import { formatPrice } from '@/lib/format';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
 import { resolveMediaUrl } from '@/lib/api';
@@ -78,9 +80,10 @@ function CartEmpty() {
   // Continue shopping leads to the external site when the store has one (P3);
   // in a focused storefront to the site page the buyer came from.
   const shoppingLink = useContinueShoppingLink(lp('/products'));
+  const motion = useFlowMotion();
 
   return (
-    <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-24">
+    <div className="min-h-screen store-page flex flex-col items-center justify-center px-4 py-24" {...surface(motion, 'cart', true)}>
       {/* The last lines were dropped because their product is gone. */}
       <UnavailableRemovedNotice className="mb-6 w-full max-w-md" />
       <div
@@ -89,10 +92,11 @@ function CartEmpty() {
       >
         <ShoppingCart className="w-9 h-9" style={{ color: 'var(--store-primary, #2563eb)' }} />
       </div>
-      <h1 className="text-2xl font-semibold text-gray-900 mb-2">{t('cart.empty')}</h1>
-      <p className="text-gray-500 mb-8 text-center max-w-xs text-sm">{t('cart.emptyDescription')}</p>
+      <h1 className="text-2xl font-semibold text-gray-900 mb-2" {...enter(motion)}>{t('cart.empty')}</h1>
+      <p className="text-gray-500 mb-8 text-center max-w-xs text-sm" {...enter(motion, 1)}>{t('cart.emptyDescription')}</p>
       <Link
         {...shoppingLink}
+        {...hover(motion, 'press')}
         className="px-8 py-3 text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
         style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
       >
@@ -144,6 +148,10 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
   const { currency } = useCart();
   const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
+  const motion = useFlowMotion();
+  const rowRef = useRef<HTMLDivElement>(null);
+  // Set by the first quantity change while motion runs: the new number then fades in.
+  const [swap, setSwap] = useState(false);
   const title = item.title || item.name || t('cart.productFallback');
   // Designer lines: the proof replaces the product image once it exists.
   const designInfo = useCartDesign(item.design, item.id.startsWith('local_'));
@@ -165,13 +173,23 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
 
   async function changeQty(qty: number) {
     if (qty < 1) return;
+    if (flowMotionLive(rowRef.current)) setSwap(true);
     setUpdating(true);
     try { await onUpdateQuantity(item.id, qty); } finally { setUpdating(false); }
   }
 
+  // With the store motion style the line closes first (0.25 s), then leaves.
+  async function remove() {
+    const leave = collapseLine(rowRef.current);
+    if (!leave) return onRemove(item.id);
+    await leave.done;
+    // A failed removal opens the line again (it is still in the cart).
+    try { await onRemove(item.id); } catch { leave.restore(); }
+  }
+
   return (
     // data-clarity-mask: cart lines can carry personalization (names).
-    <div data-clarity-mask="True" className={`flex gap-4 py-5 border-b border-gray-200 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
+    <div ref={rowRef} data-clarity-mask="True" className={`flex gap-4 py-5 border-b border-gray-200 last:border-b-0 transition-opacity ${updating ? 'opacity-50' : ''}`}>
       {/* Thumbnail */}
       <div className="relative w-20 h-20 shrink-0">
         <div className={`w-full h-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 ${unavailable ? 'opacity-50 grayscale' : ''}`}>
@@ -273,17 +291,19 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
             <button
               onClick={() => changeQty(item.quantity - 1)}
               disabled={updating || item.quantity <= 1 || hasBundle}
+              {...hover(motion, 'press')}
               className="size-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.decreaseQuantity')}
             >
               <Minus className="w-3 h-3" />
             </button>
             <span className="min-w-9 h-11 px-1 flex items-center justify-center text-sm font-medium text-gray-900 border-x border-gray-300">
-              {item.quantity}
+              {swap ? <span key={item.quantity} data-cx-swap="">{item.quantity}</span> : item.quantity}
             </span>
             <button
               onClick={() => changeQty(item.quantity + 1)}
               disabled={updating || hasBundle || atLimit}
+              {...hover(motion, 'press')}
               className="size-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label={t('common.increaseQuantity')}
             >
@@ -293,7 +313,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
           )}
 
           <button
-            onClick={() => onRemove(item.id)}
+            onClick={remove}
             className={unavailable
               ? 'min-h-11 px-2 text-xs font-medium text-gray-700 hover:text-red-600 transition-colors underline underline-offset-2'
               : 'min-h-11 px-2 text-xs text-gray-400 hover:text-red-500 transition-colors underline underline-offset-2'}
@@ -330,6 +350,7 @@ export default function StoreCartPage() {
   const locale = useLocale();
   const lp = useLocalePath();
   const shoppingLink = useContinueShoppingLink(lp('/products'));
+  const motion = useFlowMotion();
   const {
     items, loading, subtotal, total, coupon, currency, pricesUpdated, handoffDropped, migrationDropped, migrationDropError, dismissPricesNotice,
     taxLines, taxPricingMode, taxEstimated, totalWithTax, b2bNet, netItems,
@@ -409,11 +430,11 @@ export default function StoreCartPage() {
   }
 
   return (
-    <div className="min-h-screen store-page">
+    <div className="min-h-screen store-page" {...surface(motion, 'cart', true)}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Page title */}
-        <h1 className="text-2xl font-semibold text-gray-900 mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-8" {...enter(motion)}>
           {t('cart.title')}
         </h1>
 
@@ -563,6 +584,7 @@ export default function StoreCartPage() {
                     <button
                       onClick={handleApplyCoupon}
                       disabled={couponLoading || !couponCode.trim()}
+                      {...hover(motion, 'press')}
                       className={`px-3 py-2 text-sm font-medium rounded-md transition flex items-center gap-1 shrink-0 border ${
                 couponCode.trim() ? 'border-transparent hover:opacity-90' : 'border-gray-300 bg-white text-gray-500 cursor-not-allowed'
               }`}
@@ -727,6 +749,7 @@ export default function StoreCartPage() {
               ) : (
               <Link
                 href={lp('/checkout')}
+                {...hover(motion, 'press')}
                 className="flex items-center justify-center gap-2 w-full py-3.5 text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity mt-1"
                 style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
               >

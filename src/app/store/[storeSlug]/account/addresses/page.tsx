@@ -1,5 +1,6 @@
 'use client';
 
+import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
@@ -59,6 +60,7 @@ const inputCls =
   'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition';
 
 export default function StoreAddressesPage() {
+  const motion = useFlowMotion();
   const t = useTranslations('account');
   const tCheckout = useTranslations('checkout');
   const tB2b = useTranslations('b2b');
@@ -162,7 +164,7 @@ export default function StoreAddressesPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="store-surface store-bd rounded-2xl border p-5 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">{t('addresses')}</h1>
+        <h1 className="text-lg font-semibold text-gray-900" {...enter(motion)}>{t('addresses')}</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition"

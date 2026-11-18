@@ -9,6 +9,8 @@ import { routeSlug } from '@/lib/slugRoute';
 import { nullWhenNotFound } from '@/lib/apiAvailability';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { isRtl } from '@/i18n/config';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { fade, rise, surface } from '@/themes/creative/recipes';
 import { ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd } from '@/lib/pageJsonLd';
 import { htmlExcerpt } from '@/lib/pageExcerpt';
@@ -163,6 +165,9 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
   const focus = await requestFocusedStorefront(store?.checkout);
   const homeHref = focus?.siteUrl ?? (localePrefix(locale, store) || '/');
   // JSON-LD WebPage + Home › page breadcrumb, as for a store page.
+  // Store motion style (flow scope): the title rises once, the text fades in.
+  const motion = storeMotionOf(store) ? ('scroll' as const) : undefined;
+  const intro = motion ? ('intro' as const) : undefined;
   const ld = buildLandingJsonLd({
     origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
     path: `/legal/${slug}`,
@@ -178,6 +183,7 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
     <div
       className="container mx-auto px-4 py-12 max-w-3xl"
       dir={isRtl(contentLocale) ? 'rtl' : 'ltr'}
+      {...surface(motion, 'legal', true)}
     >
       {ld && (
         <>
@@ -192,9 +198,10 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
         locale={locale}
         className="mb-6"
       />
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8" {...rise(intro)}>{page.title}</h1>
       <div
         className="prose prose-gray max-w-none"
+        {...fade(intro, { i: 2 })}
         // Template html arrives filled; any `{{trader.*}}` left would resolve
         // to the store's trader details (no-op when none remain).
         dangerouslySetInnerHTML={{ __html: legalHtml(page.content, store, locale) }}
