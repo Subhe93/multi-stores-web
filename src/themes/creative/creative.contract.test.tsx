@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import type { FieldDefinition } from '../types';
@@ -35,15 +35,26 @@ interface DashboardSchema {
   defaultContent?: Record<string, unknown>;
 }
 
-// The dashboard file has no runtime imports, so it is transpiled and
-// evaluated on its own (Vite does not serve files outside this project root).
-function loadDashboard() {
-  const js = ts.transpileModule(source, {
+// The dashboard file is transpiled and evaluated on its own (Vite does not
+// serve files outside this project root). Its only runtime imports are the
+// per-section schema files beside it (./creative-sections/<key>.ts), which
+// are loaded the same way and have no runtime import themselves.
+function transpile(code: string): string {
+  return ts.transpileModule(code, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
+}
+
+function loadDashboard() {
   const exports = {} as { findSectionSchema: (id: string) => DashboardSchema | undefined };
-  new Function('exports', 'require', js)(exports, (id: string) => {
-    throw new Error(`unexpected runtime import in ${SCHEMAS_FILE}: ${id}`);
+  new Function('exports', 'require', transpile(source))(exports, (id: string) => {
+    if (!/^\.\/creative-sections\/[a-z-]+\.ts$/.test(id)) throw new Error(`unexpected runtime import in ${SCHEMAS_FILE}: ${id}`);
+    const file = resolve(dirname(SCHEMAS_FILE as string), id);
+    const sub = {} as Record<string, unknown>;
+    new Function('exports', 'require', transpile(readFileSync(file, 'utf8')))(sub, (inner: string) => {
+      throw new Error(`unexpected runtime import in ${file}: ${inner}`);
+    });
+    return sub;
   });
   return (id: string) => {
     const found = exports.findSectionSchema(id);
@@ -81,7 +92,10 @@ describe.skipIf(!ready)('creative engine: dashboard and storefront agree', () =>
   it.each([...CREATIVE_SECTION_KEYS])('%s: same fields in the same order, with the same shape', (id) => {
     const dashboard = loadDashboard()(id);
     const web = CREATIVE_SCHEMAS[id];
-    const dashboardFields = dashboard.schema.filter((f) => !HEADING_TAG_KEYS.includes(f.key));
+    // A tag key the storefront schema declares itself (cover-hero,
+    // script-manifesto) is an ordinary mirrored field, not the dashboard's own.
+    const declared = new Set(web.schema.schema.map((f) => f.key));
+    const dashboardFields = dashboard.schema.filter((f) => declared.has(f.key) || !HEADING_TAG_KEYS.includes(f.key));
     expect(dashboardFields.map((f) => f.key)).toEqual(web.schema.schema.map((f) => f.key));
     for (const f of web.schema.schema) {
       expect(fieldShape(field(dashboard.schema, f.key)), `${id}.${f.key}`).toEqual(fieldShape(f));

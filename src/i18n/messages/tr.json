@@ -1302,7 +1302,13 @@
   "creative": {
     "loadingPage": "Sayfa yükleniyor",
     "empty": {
-      "ornamentLine": "Motif yollarınızı veya bir başlık ekleyin"
+      "ornamentLine": "Motif yollarınızı veya bir başlık ekleyin",
+      "coverHero": "Bir başlık ve bir fotoğraf ekleyin",
+      "lookSpread": "Bir fotoğraf ve görünümün parçalarını ekleyin",
+      "objectStudy": "Bir ürün bağlayın veya fotoğraf ekleyin",
+      "scriptManifesto": "Cümlenizi bir veya daha fazla dilde ekleyin",
+      "impactArc": "Bir başlık, hedef veya adımları ekleyin",
+      "patternBand": "Desen karonuzu ekleyin"
     }
   }
 }

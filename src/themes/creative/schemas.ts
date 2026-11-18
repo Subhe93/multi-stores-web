@@ -6,6 +6,12 @@
 import type { ComponentType } from 'react';
 import type { FieldDefinition, LocalizedString, SectionDefinition, SectionRenderProps, SectionSchema } from '../types';
 import type { CreativeSectionKey } from './constants';
+import { entry as coverHero } from './schemas/cover-hero.schema';
+import { entry as impactArc } from './schemas/impact-arc.schema';
+import { entry as lookSpread } from './schemas/look-spread.schema';
+import { entry as objectStudy } from './schemas/object-study.schema';
+import { entry as patternBand } from './schemas/pattern-band.schema';
+import { entry as scriptManifesto } from './schemas/script-manifesto.schema';
 
 // ── Compact field builders ──────────────────────────────────────────────
 
@@ -136,6 +142,12 @@ const ornamentLine: CreativeSchemaEntry = {
 
 export const CREATIVE_SCHEMAS: Record<CreativeSectionKey, CreativeSchemaEntry> = {
   'ornament-line': ornamentLine,
+  'cover-hero': coverHero,
+  'look-spread': lookSpread,
+  'object-study': objectStudy,
+  'script-manifesto': scriptManifesto,
+  'impact-arc': impactArc,
+  'pattern-band': patternBand,
 };
 
 /**

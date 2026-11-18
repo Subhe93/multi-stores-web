@@ -1302,7 +1302,13 @@
   "creative": {
     "loadingPage": "Chargement de la page",
     "empty": {
-      "ornamentLine": "Ajoutez les tracés de votre motif ou un titre"
+      "ornamentLine": "Ajoutez les tracés de votre motif ou un titre",
+      "coverHero": "Ajoutez un titre et une photo",
+      "lookSpread": "Ajoutez une photo et les pièces du look",
+      "objectStudy": "Liez un produit ou ajoutez une photo",
+      "scriptManifesto": "Ajoutez votre phrase dans une ou plusieurs langues",
+      "impactArc": "Ajoutez un titre, un objectif ou les étapes",
+      "patternBand": "Ajoutez votre motif"
     }
   }
 }
