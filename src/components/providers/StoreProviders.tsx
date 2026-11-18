@@ -15,6 +15,8 @@ import type { BuyerType } from '@/lib/buyerType';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
 import { CheckoutSettingsProvider } from '@/hooks/useCheckoutSettings';
 import type { CheckoutSettings } from '@/lib/checkoutSettings';
+import { ProductCardProvider } from '@/hooks/useProductCard';
+import type { ProductCardSettings } from '@/lib/productCard/settings';
 
 function CartProviderWithAuth({
   children,
@@ -72,6 +74,7 @@ export function StoreProviders({
   buyerType,
   primaryLocale,
   checkout,
+  productCard,
 }: {
   children: ReactNode;
   locale?: string;
@@ -108,6 +111,9 @@ export function StoreProviders({
   /** Checkout behaviour (`checkout` block of `storefront.getStore`, already
    *  normalized). Undefined = the defaults, i.e. today's behaviour. */
   checkout?: CheckoutSettings | null;
+  /** Product card settings (`readProductCard(store.theme_customizations)`).
+   *  Null / undefined = the classic card, i.e. the markup as it is today. */
+  productCard?: ProductCardSettings | null;
 }) {
   const b2bApp = storeApps?.b2b;
   // Stable settings object so the BuyerType context value only changes when
@@ -133,7 +139,11 @@ export function StoreProviders({
                   marketPreview={Boolean(market?.preview)}
                   storeSlug={storeSlug}
                 >
-                  <StorePrimaryLocaleProvider value={primaryLocale}>{children}</StorePrimaryLocaleProvider>
+                  <StorePrimaryLocaleProvider value={primaryLocale}>
+                    <ProductCardProvider settings={productCard} storeSlug={storeSlug}>
+                      {children}
+                    </ProductCardProvider>
+                  </StorePrimaryLocaleProvider>
                 </CartProviderWithAuth>
               </CheckoutSettingsProvider>
             </MarketProvider>

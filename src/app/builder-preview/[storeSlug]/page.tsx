@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { storefront } from '@/lib/api';
 import { collectionHref, collectionPathFromTree } from '@/lib/collectionPath';
-import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
+import { listingProjector, type StorefrontProductRow } from '@/lib/listing';
 import { BuilderPreviewClient } from '@/themes/BuilderPreviewClient';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
@@ -99,9 +99,13 @@ export default async function BuilderPreviewPage({
       if (!isCollection || collection) {
         const params: Record<string, string> = { locale: previewLocale, limit: '12' };
         if (collection) params.creator_category = collection.slug;
+        // Always with the card fields and the card model: the owner toggles
+        // the product card in the customizer and the preview follows without
+        // a new request (the classic card ignores both).
+        params.card = '1';
         const products = (((await storefront.getProducts(storeSlug, params)) as StorefrontProductRow[] | null) || [])
           .slice(0, 12)
-          .map(toListingProduct);
+          .map(listingProjector(true));
         listing = {
           kind: isCollection ? 'collection' : 'catalog',
           products,

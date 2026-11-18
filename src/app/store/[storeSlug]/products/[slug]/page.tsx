@@ -26,6 +26,7 @@ import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/Pr
 import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
 import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
 import { preloadSectionData } from '@/lib/preloadSections';
+import { readProductCard } from '@/lib/productCard/settings';
 import type { ProductContext, SectionInstance } from '@/themes/types';
 import { productAvailability } from '@/lib/productAvailability';
 import { projectProductForClient } from '@/lib/productPayload';
@@ -320,6 +321,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale,
       marketRef: marketKey,
+      // Product rows of the template carry the card fields when the store has card settings.
+      card: readProductCard((storeData as { theme_customizations?: unknown } | null | undefined)?.theme_customizations),
     });
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
     const tr =

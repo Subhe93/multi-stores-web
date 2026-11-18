@@ -8,45 +8,14 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { VariantCards, type VariantCardsConfig } from '@/components/product/personalization/VariantCards';
 import { press, useProductMotion } from '@/components/product/productMotion';
-
-// ── Color utilities ────────────────────────────────────
-
-const COLOR_MAP: Record<string, string> = {
-  black: '#000000', white: '#ffffff', red: '#ef4444', blue: '#3b82f6',
-  green: '#22c55e', yellow: '#eab308', orange: '#f97316', purple: '#a855f7',
-  pink: '#ec4899', gray: '#9ca3af', grey: '#9ca3af', brown: '#92400e',
-  navy: '#1e3a5f', beige: '#f5f5dc', gold: '#d97706', silver: '#c0c0c0',
-  teal: '#14b8a6', cyan: '#06b6d4', coral: '#f97171', cream: '#fffdd0',
-  ivory: '#fffff0', khaki: '#c3b091', lavender: '#c4b5fd', maroon: '#7f1d1d',
-  olive: '#65a30d', turquoise: '#2dd4bf', wine: '#722f37', charcoal: '#374151',
-  mint: '#6ee7b7', peach: '#fdba74', rose: '#fb7185', salmon: '#fa8072', tan: '#d2b48c',
-  'أسود': '#000000', 'أبيض': '#ffffff', 'أحمر': '#ef4444', 'أزرق': '#3b82f6',
-  'أخضر': '#22c55e', 'أصفر': '#eab308', 'برتقالي': '#f97316', 'بنفسجي': '#a855f7',
-  'وردي': '#ec4899', 'رمادي': '#9ca3af', 'بني': '#92400e',
-};
-
-const COLOR_KEYWORDS = ['color', 'colour', 'لون', 'farbe', 'couleur', 'renk'];
-
-function isColorOptionKey(key: string): boolean {
-  return COLOR_KEYWORDS.some((kw) => key.toLowerCase().includes(kw));
-}
-
-function resolveColor(value: string): string | null {
-  const mapped = COLOR_MAP[value.toLowerCase()];
-  if (mapped) return mapped;
-  if (/^#([0-9a-f]{3,8})$/i.test(value)) return value;
-  if (/^(rgb|hsl)/i.test(value)) return value;
-  return null;
-}
-
-function isLightColor(hex: string): boolean {
-  const c = hex.replace('#', '');
-  if (c.length < 6) return true;
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 200;
-}
+import {
+  dualColorBackground,
+  isColorOptionKey,
+  isLightColor,
+  swatchConfiguredImage,
+  swatchCssColor,
+  swatchDualColor,
+} from '@/lib/swatches';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -271,7 +240,7 @@ export function VariantSelector({
     // option config; fall back to the first variant that carries this value
     // and has its own image.
     const cfg = configByName[key];
-    const configured = cfg?.swatchMap?.[value] ?? cfg?.imageMap?.[value];
+    const configured = swatchConfiguredImage(cfg, value);
     if (configured) return configured;
     const v = variants.find((v) => v.options?.[key] === value && v.images?.length);
     return v?.images?.[0]?.url;
@@ -314,8 +283,8 @@ export function VariantSelector({
                 {values.map((value) => {
                   const isSelected = selectedValue === value;
                   const available = isOptionAvailable(key, value);
-                  const dualHex = config?.dualColorMap?.[value];
-                  const cssColor = config?.colorMap?.[value] || resolveColor(value);
+                  const dualHex = swatchDualColor(config, value);
+                  const cssColor = swatchCssColor(config, value);
                   const hasSwatch = !!(cssColor || dualHex);
 
                   if (hasSwatch) {
@@ -335,7 +304,7 @@ export function VariantSelector({
                             // Store setting (theme customizer): round or square swatches.
                             borderRadius: 'var(--theme-swatch-radius, 9999px)',
                             ...(dualHex
-                              ? { background: `linear-gradient(135deg, ${dualHex[0]} 50%, ${dualHex[1]} 50%)` }
+                              ? { background: dualColorBackground(dualHex) }
                               : { backgroundColor: cssColor! }),
                             border: light ? '2px solid #e5e7eb' : '2px solid transparent',
                             boxShadow: isSelected ? undefined : '0 1px 3px rgba(0,0,0,0.08)',

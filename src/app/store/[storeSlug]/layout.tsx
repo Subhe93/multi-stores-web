@@ -15,6 +15,7 @@ import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
+import { readProductCard } from '@/lib/productCard/settings';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront';
@@ -594,7 +595,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
         ) : fontsHref && (

@@ -274,6 +274,8 @@ export interface ProductsPageParams {
   creator_category_id?: string;
   search?: string;
   sort?: ListingApiSort;
+  /** Enhanced product card: asks the API for the card fields (`cardQuery`). */
+  card?: '1';
 }
 
 /**
@@ -320,6 +322,8 @@ export const storefront = {
     if (params.sort) q.set('sort', params.sort);
     q.set('page', String(params.page));
     q.set('limit', String(params.limit));
+    // After `limit`, before the market suffix: absent = the URL of before.
+    if (params.card === '1') q.set('card', '1');
     const data = await api<unknown>(
       `/storefront/${slug}/products?${q.toString()}${marketQuery(market, true)}`,
       await storefrontOpts(slug),

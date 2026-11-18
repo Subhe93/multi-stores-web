@@ -7,6 +7,7 @@
 
 import type { ListingProduct } from '@/themes/types';
 import { promotionsForProduct } from '@/lib/requiresShipping';
+import { withCardExtras, type CardSourceRow } from '@/lib/productCard/model';
 
 interface PromotionRow {
   type?: string;
@@ -60,4 +61,17 @@ export function toListingProduct(p: StorefrontProductRow): ListingProduct {
  */
 export function toListingCard(p: StorefrontProductRow): ListingProduct {
   return { ...toListingProduct(p), tax_rate_bp: p.tax_rate_bp ?? undefined };
+}
+
+/**
+ * The projection a route uses for its store: `base` itself (by reference,
+ * so the output is exactly as before) when the store has no card settings,
+ * else `base` plus the card model of the row (`withCardExtras`).
+ */
+export function listingProjector<R extends StorefrontProductRow>(
+  enhanced: boolean,
+  base: (p: StorefrontProductRow) => ListingProduct = toListingProduct,
+): (p: R) => ListingProduct {
+  if (!enhanced) return (p) => base(p);
+  return (p) => withCardExtras(base(p), p as unknown as CardSourceRow);
 }

@@ -23,7 +23,11 @@ export type ListingLoadResult<T> =
 export async function loadListing<T>(
   slug: string,
   input: {
-    /** Today's request of the route (legacy mode sends exactly this). */
+    /**
+     * Today's request of the route (legacy mode sends exactly this). A route
+     * of a store with card settings adds `card: '1'` last (`cardQuery`); the
+     * first page then asks for it too. The probe never does: it only counts.
+     */
     queryParams: Record<string, string>;
     /** The URL `?sort=` value. */
     sort?: string;
@@ -52,7 +56,11 @@ export async function loadListing<T>(
 
   const apiSort = listingApiSort(sort);
   if (apiSort) request.sort = apiSort;
-  const first = await storefront.getProductsPage(slug, { ...request, page: 1, limit: LISTING_PAGE_SIZE }, market);
+  const first = await storefront.getProductsPage(
+    slug,
+    { ...request, page: 1, limit: LISTING_PAGE_SIZE, ...(queryParams.card === '1' ? { card: '1' as const } : {}) },
+    market,
+  );
   if (first.legacy) return { mode: 'legacy', products: first.items as T[] };
   return {
     mode: 'server',

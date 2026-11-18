@@ -12,6 +12,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { preloadSectionData } from '@/lib/preloadSections';
+import { readProductCard } from '@/lib/productCard/settings';
 import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
 import { htmlExcerpt, sectionsExcerpt } from '@/lib/pageExcerpt';
@@ -281,6 +282,8 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
     const preloaded = await preloadSectionData(storeSlug, v2.snapshot.sections, {
       locale,
       marketRef: await getRequestMarket(),
+      // Product rows of the page carry the card fields when the store has card settings.
+      card: readProductCard((store as { theme_customizations?: unknown } | null | undefined)?.theme_customizations),
     });
     const tr =
       v2.snapshot.page.translations.find((x) => x.locale === locale) ||

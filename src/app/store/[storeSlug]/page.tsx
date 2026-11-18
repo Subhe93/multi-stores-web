@@ -7,7 +7,9 @@ import { collectionHref } from '@/lib/collectionPath';
 import { buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildHomeJsonLd } from '@/lib/pageJsonLd';
 import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTree } from 'lucide-react';
-import { ProductCard } from '@/components/product/ProductCard';
+import { StoreProductCard } from '@/components/product/card/StoreProductCard';
+import { toCardExtras, type CardSourceRow } from '@/lib/productCard/model';
+import { cardQuery, readProductCard } from '@/lib/productCard/settings';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
@@ -224,6 +226,9 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(homeLd) }} />
   ) : null;
 
+  // Product card settings of the store (null = the classic card, classic requests).
+  const cardSettings = readProductCard(store.theme_customizations);
+
   // If the creator has published a v2 home, render it through the active theme.
   // CSS variables for the theme are already injected by the parent layout.
   if (publishedHome?.snapshot?.sections?.length) {
@@ -233,6 +238,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     const preloaded = await preloadSectionData(storeSlug, publishedHome.snapshot.sections, {
       locale,
       marketRef: marketKey,
+      card: cardSettings,
     });
     return (
       <>
@@ -255,7 +261,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // it is not fetched there. Same request as before; still the whole
   // catalogue (`featured` is not a filter of the API).
   const products = (await storefront
-    .getProducts(storeSlug, { featured: 'true', locale }, marketKey)
+    .getProducts(storeSlug, { featured: 'true', locale, ...cardQuery(cardSettings) }, marketKey)
     .catch(() => [])) as Product[];
 
   // Pick the resolved translation for a collection in the active locale.
@@ -477,8 +483,17 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                 product.translations.find((tr) => isUsableSlug(tr.slug));
 
               return (
-                <ProductCard
+                <StoreProductCard
                   key={product.id}
+                  // Enhanced card only (the store has card settings): its model
+                  // and the ids quick add reads. Without settings: today's props.
+                  {...(cardSettings
+                    ? {
+                        card: toCardExtras(product as unknown as CardSourceRow),
+                        productId: product.id,
+                        productSlug: slugTr?.slug || product.id,
+                      }
+                    : {})}
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
