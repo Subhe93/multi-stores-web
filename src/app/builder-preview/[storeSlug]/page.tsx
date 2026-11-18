@@ -82,7 +82,8 @@ export default async function BuilderPreviewPage({
 
   // Sample listing for the listing templates. Mirrors what the /products and
   // /collections/[handle] routes inject, minus filters: the first 12 products
-  // (the API ignores `limit` today, so we also slice) and the creator
+  // (the API answers at most `limit`; the slice keeps an older API that
+  // ignored it safe) and the creator
   // category tree. COLLECTION_TEMPLATE stands in the first active collection
   // for the real handle. Soft-fails to undefined so the section shows its
   // placeholder instead of the preview crashing.

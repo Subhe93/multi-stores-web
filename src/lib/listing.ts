@@ -26,6 +26,8 @@ export interface StorefrontProductRow {
   vendor?: { company_name?: string | null } | null;
   /** False = service / digital product (read through `lib/requiresShipping`). */
   requires_shipping?: boolean | null;
+  /** b2b app only: estimated tax rate for the company net view. */
+  tax_rate_bp?: number | null;
 }
 
 export function toListingProduct(p: StorefrontProductRow): ListingProduct {
@@ -48,4 +50,14 @@ export function toListingProduct(p: StorefrontProductRow): ListingProduct {
       : undefined,
     vendor: p.vendor?.company_name ? { company_name: p.vendor.company_name } : undefined,
   };
+}
+
+/**
+ * Card projection of the server-paginated listings: `toListingProduct` plus
+ * the b2b `tax_rate_bp`, so a card shows the same net price as the built-in
+ * grid. Used only in server mode; the legacy template projection is
+ * unchanged.
+ */
+export function toListingCard(p: StorefrontProductRow): ListingProduct {
+  return { ...toListingProduct(p), tax_rate_bp: p.tax_rate_bp ?? undefined };
 }

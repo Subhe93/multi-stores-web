@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { marketQuery, type MarketRef } from './market';
 import { isStoreNotLiveError, PRODUCT_PREVIEW_COOKIE, STORE_PREVIEW_COOKIE, storeHomeHref } from './storeGate';
 import { previewFetchOptions, previewTokenFor, readBrowserPreviewCookie, resolveStorefrontFetchOptions } from './storePreview';
+import type { ListingApiSort } from './listingPaging';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -244,6 +245,50 @@ export type StoreLegalPage =
       updated_at: string | null;
     };
 
+/** One page of `GET /storefront/:slug/products?page=…` (opt-in pagination). */
+export interface ProductsPage<T = unknown> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  has_more: boolean;
+  /** Older API answered the plain full array. */
+  legacy: boolean;
+}
+
+/** Parameters of a paged product list request. */
+export interface ProductsPageParams {
+  locale: string;
+  page: number;
+  limit: number;
+  creator_category?: string;
+  creator_category_id?: string;
+  search?: string;
+  sort?: ListingApiSort;
+}
+
+/**
+ * Normalises the answer of a paged request. An array is an API that does not
+ * paginate yet: it answered the full list, which becomes one complete page.
+ */
+export function toProductsPage(data: unknown): ProductsPage {
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length, page: 1, limit: data.length, has_more: false, legacy: true };
+  }
+  const obj = data as Partial<ProductsPage> | null;
+  if (obj && typeof obj === 'object' && Array.isArray(obj.items) && typeof obj.total === 'number') {
+    return {
+      items: obj.items,
+      total: obj.total,
+      page: Number(obj.page),
+      limit: Number(obj.limit),
+      has_more: obj.has_more === true,
+      legacy: false,
+    };
+  }
+  throw new Error('Unexpected product page response');
+}
+
 // Storefront API helpers
 export const storefront = {
   getStore: async (slug: string, market?: MarketRef) =>
@@ -252,6 +297,25 @@ export const storefront = {
   getProducts: async (slug: string, params?: Record<string, string>, market?: MarketRef) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return api(`/storefront/${slug}/products${query}${marketQuery(market, Boolean(query))}`, await storefrontOpts(slug));
+  },
+
+  // Opt-in paged form of the same list (`page` present). Keys are written in
+  // a fixed order so equal requests share one cache entry under the store
+  // tag; an older API answers the full array (`legacy: true`).
+  getProductsPage: async (slug: string, params: ProductsPageParams, market?: MarketRef): Promise<ProductsPage> => {
+    const q = new URLSearchParams();
+    q.set('locale', params.locale);
+    if (params.creator_category) q.set('creator_category', params.creator_category);
+    if (params.creator_category_id) q.set('creator_category_id', params.creator_category_id);
+    if (params.search) q.set('search', params.search);
+    if (params.sort) q.set('sort', params.sort);
+    q.set('page', String(params.page));
+    q.set('limit', String(params.limit));
+    const data = await api<unknown>(
+      `/storefront/${slug}/products?${q.toString()}${marketQuery(market, true)}`,
+      await storefrontOpts(slug),
+    );
+    return toProductsPage(data);
   },
 
   // Slug arguments are DECODED (pages run route params through `routeSlug`);

@@ -197,10 +197,6 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   const locale = lang || store.language_config?.primary_locale || 'en';
   const lp = lang ? `/${lang}` : '';
 
-  const products = (await storefront
-    .getProducts(storeSlug, { featured: 'true', locale }, marketKey)
-    .catch(() => [])) as Product[];
-
   // Currency from the store, used by sections that render prices (FeaturedProducts).
   const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';
 
@@ -250,6 +246,13 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
       </>
     );
   }
+
+  // Built-in home only: a published builder home never shows this list, so
+  // it is not fetched there. Same request as before; still the whole
+  // catalogue (`featured` is not a filter of the API).
+  const products = (await storefront
+    .getProducts(storeSlug, { featured: 'true', locale }, marketKey)
+    .catch(() => [])) as Product[];
 
   // Pick the resolved translation for a collection in the active locale.
   const pickCollectionName = (c: CreatorCategory): string => {
