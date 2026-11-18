@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -48,7 +48,7 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(1, Math.min(4, v));
 }
 
-function FeatureGrid({ settings, content, locale }: SectionRenderProps) {
+function FeatureGrid({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as FeatureItem[]) || []).filter((f) => f.title || f.description || f.icon);
@@ -89,6 +89,7 @@ function FeatureGrid({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-12">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -100,11 +101,11 @@ function FeatureGrid({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup className="grid gap-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <MotionGroup motion={motion} className="grid gap-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {items.map((f, i) => {
           const Icon = f.icon ? ICONS[f.icon] || Sparkles : Sparkles;
           return (
-            <StaggerItem key={i} className={`flex flex-col gap-3 ${alignClass}`}>
+            <MotionItem motion={motion} index={i} key={i} className={`flex flex-col gap-3 ${alignClass}`}>
               {iconStyle === 'chip' ? (
                 <div
                   className="size-12 rounded-xl flex items-center justify-center shrink-0"
@@ -125,10 +126,10 @@ function FeatureGrid({ settings, content, locale }: SectionRenderProps) {
                   {f.description}
                 </p>
               )}
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

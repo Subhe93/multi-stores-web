@@ -5,9 +5,10 @@
 import { Check } from 'lucide-react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
+import { hover } from '../../creative/recipes';
 
 interface PricingPlan {
   name?: string;
@@ -28,7 +29,7 @@ function splitFeatures(features: unknown): string[] {
     .filter(Boolean);
 }
 
-function PricingTable({ settings, content, locale }: SectionRenderProps) {
+function PricingTable({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const plans = ((content.plans as PricingPlan[]) || []).filter((p) => p.name || p.price);
@@ -103,6 +104,7 @@ function PricingTable({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-14">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -114,7 +116,7 @@ function PricingTable({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid gap-6 items-stretch max-w-6xl mx-auto"
         style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}
       >
@@ -122,7 +124,7 @@ function PricingTable({ settings, content, locale }: SectionRenderProps) {
           const features = splitFeatures(plan.features);
           const highlighted = plan.highlighted === true;
           return (
-            <StaggerItem key={i} className="h-full">
+            <MotionItem motion={motion} index={i} key={i} className="h-full">
               <div
                 className={`relative flex flex-col gap-6 p-8 h-full transition-transform duration-300 ${
                   highlighted ? 'lg:-translate-y-2' : ''
@@ -208,15 +210,16 @@ function PricingTable({ settings, content, locale }: SectionRenderProps) {
                       fontWeight: 'var(--theme-weight-bold)',
                       boxShadow: highlighted ? 'var(--theme-shadow-md)' : undefined,
                     }}
+                    {...hover(motion, 'press')}
                   >
                     {plan.cta_text}
                   </a>
                 )}
               </div>
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

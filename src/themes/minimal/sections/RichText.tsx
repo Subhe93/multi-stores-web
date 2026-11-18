@@ -11,6 +11,8 @@ import {
   resolveDynamicText,
   type DynamicContentSource,
 } from './_shared/dynamicSource';
+import { MotionText } from '../../creative/primitives/Motion';
+import { rise } from '../../creative/recipes';
 
 /**
  * Rich text whose body comes from the current product (settings
@@ -24,6 +26,7 @@ function DynamicRichText({
   product,
   locale,
   builderPreview,
+  motion,
 }: SectionRenderProps & { source: DynamicContentSource }) {
   const preview = isDynamicPreview(builderPreview);
   const resolved = resolveDynamicText(source, product, settings, locale);
@@ -49,6 +52,7 @@ function DynamicRichText({
     body = (
       <div
         data-dynamic-source={source}
+        {...rise(motion, { i: 2 })}
         className={PRODUCT_PROSE_CLASS}
         dangerouslySetInnerHTML={{ __html: resolved.html }}
       />
@@ -57,6 +61,7 @@ function DynamicRichText({
     body = (
       <div
         data-dynamic-source={source}
+        {...rise(motion, { i: 2 })}
         className="prose prose-lg max-w-none"
         style={{ color: 'var(--theme-colors-text)' }}
       >
@@ -73,7 +78,11 @@ function DynamicRichText({
     );
   } else if (resolved?.kind === 'specs') {
     body = (
-      <div data-dynamic-source={source} className={alignment === 'center' ? 'flex justify-center text-start' : undefined}>
+      <div
+        data-dynamic-source={source}
+        className={alignment === 'center' ? 'flex justify-center text-start' : undefined}
+        {...rise(motion, { i: 2 })}
+      >
         <SpecsTable rows={resolved.rows} />
       </div>
     );
@@ -101,6 +110,7 @@ function DynamicRichText({
           <Heading level={eyebrowTag} look="body"
             className="text-xs font-semibold uppercase tracking-[0.2em] mb-3"
             style={{ color: 'var(--theme-colors-accent)' }}
+            {...rise(motion)}
           >
             {eyebrow}
           </Heading>
@@ -116,7 +126,7 @@ function DynamicRichText({
               color: 'var(--theme-colors-text)',
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {body}
@@ -132,7 +142,7 @@ function RichText(props: SectionRenderProps) {
   return <StaticRichText {...props} />;
 }
 
-function StaticRichText({ settings, content }: SectionRenderProps) {
+function StaticRichText({ settings, content, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'p');
   const html = (content.html as string) || '';
@@ -170,6 +180,7 @@ function StaticRichText({ settings, content }: SectionRenderProps) {
           <Heading level={eyebrowTag} look="body"
             className="text-xs font-semibold uppercase tracking-[0.2em] mb-3"
             style={{ color: 'var(--theme-colors-accent)' }}
+            {...rise(motion)}
           >
             {eyebrow}
           </Heading>
@@ -185,13 +196,15 @@ function StaticRichText({ settings, content }: SectionRenderProps) {
               color: 'var(--theme-colors-text)',
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {html && (
           <div
             className="prose prose-lg max-w-none [&_a]:text-[var(--theme-colors-primary)] [&_strong]:text-[var(--theme-colors-text)]"
             style={{ color: 'var(--theme-colors-text)' }}
+            // One block: the body rises as a whole, never paragraph by paragraph.
+            {...rise(motion, { i: 2 })}
             dangerouslySetInnerHTML={{ __html: html }}
           />
         )}

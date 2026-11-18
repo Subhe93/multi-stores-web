@@ -14,6 +14,8 @@ import {
 } from './_shared/socialIcons';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { item as cell, rise, stagger } from '../../creative/recipes';
 
 type Layout = 'horizontal' | 'vertical' | 'grid';
 type Alignment = 'start' | 'center' | 'end';
@@ -52,7 +54,7 @@ function HEADING_FROM(content: Record<string, unknown>) {
   };
 }
 
-function SocialIcons({ settings, content, locale, storeContext, chrome }: SectionRenderProps) {
+function SocialIcons({ settings, content, locale, storeContext, chrome, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const { heading, subheading } = HEADING_FROM(content);
@@ -216,11 +218,11 @@ function SocialIcons({ settings, content, locale, storeContext, chrome }: Sectio
                 color: headingColor,
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="text-sm" style={{ color: subheadingColor }}>
+            <Heading level={subheadingTag} look="body" className="text-sm" style={{ color: subheadingColor }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -230,6 +232,7 @@ function SocialIcons({ settings, content, locale, storeContext, chrome }: Sectio
       <ul
         className={wrapperClass}
         style={{ gap: `${gapPx}px`, listStyle: 'none', padding: 0, margin: 0, ...gridStyle }}
+        {...stagger(motion)}
       >
         {links.map(({ item, href }, i) => {
           const platform = item.platform;
@@ -237,7 +240,7 @@ function SocialIcons({ settings, content, locale, storeContext, chrome }: Sectio
           const accessibleLabel = item.label || def.label[locale === 'ar' ? 'ar' : 'en'] || def.label.en;
           const showLabel = labelMode !== 'never';
           return (
-            <li key={i}>
+            <li key={i} {...cell(motion, i)}>
               <a
                 href={href}
                 target={openInNewTab ? '_blank' : undefined}

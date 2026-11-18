@@ -7,7 +7,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -24,7 +24,7 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(2, Math.min(4, v));
 }
 
-function TeamGrid({ settings, content, locale }: SectionRenderProps) {
+function TeamGrid({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const members = ((content.members as TeamMember[]) || []).filter((m) => m.name || m.photo);
@@ -62,6 +62,7 @@ function TeamGrid({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-12">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -73,7 +74,7 @@ function TeamGrid({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid gap-6"
         style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${Math.floor(880 / columns)}px, 1fr))` }}
       >
@@ -129,7 +130,7 @@ function TeamGrid({ settings, content, locale }: SectionRenderProps) {
           );
 
           return (
-            <StaggerItem key={i} className="h-full">
+            <MotionItem motion={motion} index={i} key={i} className="h-full">
               {m.link_url ? (
                 <a href={m.link_url} className="block h-full" target="_blank" rel="noopener noreferrer">
                   {card}
@@ -137,10 +138,10 @@ function TeamGrid({ settings, content, locale }: SectionRenderProps) {
               ) : (
                 card
               )}
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

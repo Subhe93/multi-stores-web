@@ -14,6 +14,7 @@ import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag } from './_shared/headingLevel';
+import { hover, rise } from '../../creative/recipes';
 
 interface CarouselItem {
   quote?: string;
@@ -23,7 +24,7 @@ interface CarouselItem {
   rating?: number;
 }
 
-export function TestimonialCarousel({ settings, content, locale }: SectionRenderProps) {
+export function TestimonialCarousel({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const items = ((content.items as CarouselItem[]) || []).filter((t) => t.quote || t.author);
   const autoplayMs = typeof settings.autoplay_ms === 'number' ? settings.autoplay_ms : 6000;
@@ -96,6 +97,7 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
       {heading && (
         <div className="mb-10">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')} heading={heading} align="center" headingColor={settings.heading_color} />
         </div>
       )}
@@ -109,6 +111,7 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
         onMouseLeave={() => setPaused(false)}
         onFocusCapture={() => setPaused(true)}
         onBlurCapture={() => setPaused(false)}
+        {...rise(motion, { i: 2 })}
       >
         {/* Crossfade stack: every slide occupies the same grid cell so the
             container reserves the tallest slide's height — no layout shift
@@ -121,6 +124,8 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
               <figure
                 key={i}
                 aria-hidden={!active}
+                // Motion style: the change of quote is a 0.45 s cross-fade (css/story.css.ts).
+                data-cx-swap={motion ? '' : undefined}
                 className={`col-start-1 row-start-1 flex flex-col items-center text-center gap-6 transition-opacity duration-500 ease-out ${
                   active ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
@@ -201,6 +206,7 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
                 color: 'var(--theme-colors-text)',
                 boxShadow: 'var(--theme-shadow-sm)',
               }}
+              {...hover(motion, 'press')}
             >
               <PrevIcon className="size-5" />
             </button>
@@ -215,6 +221,7 @@ export function TestimonialCarousel({ settings, content, locale }: SectionRender
                 color: 'var(--theme-colors-text)',
                 boxShadow: 'var(--theme-shadow-sm)',
               }}
+              {...hover(motion, 'press')}
             >
               <NextIcon className="size-5" />
             </button>

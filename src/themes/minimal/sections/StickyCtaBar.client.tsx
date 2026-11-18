@@ -9,11 +9,12 @@ import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { X } from 'lucide-react';
 import { buttonStyles, colorOr, numberOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
+import { hover, surface } from '../../creative/recipes';
 
 // A call-to-action bar that slides up and pins to the bottom of the viewport
 // once the visitor scrolls past a threshold. Dismissible, and it snaps without
 // animation under prefers-reduced-motion.
-export function StickyCtaBar({ settings, content }: SectionRenderProps) {
+export function StickyCtaBar({ settings, content, motion: phase }: SectionRenderProps) {
   const text = (content.text as string) || '';
   const ctaText = (content.cta_text as string) || '';
   const ctaUrl = (settings.cta_url as string) || '#';
@@ -82,6 +83,9 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
       animate={{ y: show ? 0 : 160, opacity: show ? 1 : 0 }}
       transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 32 }}
       aria-hidden={!show}
+      // Motion style: the bar keeps its own slide; marking it as a surface
+      // keeps the default section entrance off this fixed element.
+      {...surface(phase, 'sticky-cta-bar')}
     >
       <div
         className="pointer-events-auto mx-auto max-w-3xl flex items-center gap-4 px-5 py-3"
@@ -98,6 +102,7 @@ export function StickyCtaBar({ settings, content }: SectionRenderProps) {
             href={ctaUrl}
             className="inline-flex items-center justify-center px-5 py-2 text-sm shrink-0 transition hover:opacity-90"
             style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)' }}
+            {...hover(phase, 'press')}
           >
             {ctaText}
           </a>

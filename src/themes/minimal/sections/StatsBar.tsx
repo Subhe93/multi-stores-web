@@ -1,6 +1,7 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { Counter, StaggerGroup, StaggerItem } from '../../_motion';
+import { Counter } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -16,7 +17,7 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(2, Math.min(4, v));
 }
 
-function StatsBar({ settings, content, locale }: SectionRenderProps) {
+function StatsBar({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as StatItem[]) || []).filter((s) => s.value || s.label);
@@ -47,6 +48,7 @@ function StatsBar({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-10">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -58,7 +60,7 @@ function StatsBar({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid gap-6 text-center"
         style={
           style === 'surface'
@@ -73,7 +75,7 @@ function StatsBar({ settings, content, locale }: SectionRenderProps) {
         }
       >
         {items.map((s, i) => (
-          <StaggerItem key={i}>
+          <MotionItem motion={motion} index={i} key={i}>
             <Counter
               value={s.value || ''}
               prefix={s.prefix || ''}
@@ -91,9 +93,9 @@ function StatsBar({ settings, content, locale }: SectionRenderProps) {
                 {s.label}
               </div>
             )}
-          </StaggerItem>
+          </MotionItem>
         ))}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

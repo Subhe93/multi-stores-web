@@ -10,7 +10,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingLines } from './_shared/headingLines';
 import { Heading } from './_shared/Heading';
@@ -18,6 +18,7 @@ import { headingTag, textTag } from './_shared/headingLevel';
 import { GRID_COLS_CLASS, clampCols, gridColsStyle, gridImageSizes } from './_shared/grid';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { StatusBadge, hasStatusBadge } from './_shared/StatusBadge';
+import { hover, rise } from '../../creative/recipes';
 
 interface Card {
   image?: string;
@@ -45,7 +46,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-function ProjectCards({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function ProjectCards({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -105,6 +106,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
       {(heading || subheading) && (
         <div className="mb-8 md:mb-10">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -118,7 +120,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className={`${GRID_COLS_CLASS} gap-5 md:gap-6`}
         style={gridColsStyle(columns, columnsTablet, columnsMobile)}
       >
@@ -131,10 +133,17 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
           const badge = showStatus && hasStatusBadge(card.status);
 
           return (
-            <StaggerItem key={i} className="h-full">
-              <article className="group relative flex h-full flex-col overflow-hidden" style={frame}>
+            <MotionItem motion={motion} index={i} key={i} className="h-full">
+              <article
+                className="group relative flex h-full flex-col overflow-hidden"
+                style={frame}
+                // A linked card answers the pointer: its photo zooms slowly
+                // and a card with a surface or a border lifts.
+                data-cx-card={motion && url ? '' : undefined}
+                {...(url && cardStyle !== 'plain' ? hover(motion, 'lift') : null)}
+              >
                 {img && (
-                  <div className={`relative ${aspectClass} overflow-hidden`}>
+                  <div className={`relative ${aspectClass} overflow-hidden`} {...(url ? hover(motion, 'media') : null)}>
                     <StoreImage
                       src={img}
                       alt={str(card.alt)}
@@ -143,7 +152,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
                       unoptimized={isSvgSrc(img)}
                       // The hover zoom is a link affordance: a card without a link stays still.
                       className={
-                        url
+                        url && !motion
                           ? 'object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]'
                           : 'object-cover'
                       }
@@ -209,17 +218,18 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
                   )}
                 </div>
               </article>
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
 
       {linkLabel && linkUrl && (
-        <div className={`mt-8 md:mt-10 ${align === 'center' ? 'text-center' : 'text-start'}`}>
+        <div className={`mt-8 md:mt-10 ${align === 'center' ? 'text-center' : 'text-start'}`} {...rise(motion)}>
           <a
             href={sectionHref(linkUrl, locale, primaryLocale)}
             className={`inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline ${FOCUS_RING}`}
             style={{ color: linkColor }}
+            {...hover(motion, 'underline')}
           >
             {linkLabel}
             <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />

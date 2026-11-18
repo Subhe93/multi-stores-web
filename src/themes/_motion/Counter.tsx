@@ -11,6 +11,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { observeOnce, prefersReducedMotion } from './inView';
 
 const DURATION_MS = 1400;
+// An element the motion engine armed and has not shown yet (themes/creative/engine/core.ts).
+const PENDING = '[data-cx-state="pending"]';
 
 /** CSS-style cubic-bezier easing (x1, y1, x2, y2), solved for x by bisection. */
 export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
@@ -119,23 +121,42 @@ export function Counter({ value, prefix = '', suffix = '', className, style }: C
     const el = ref.current;
     if (!el || !parsed || prefersReducedMotion()) return;
     let frame = 0;
+    let waiting: MutationObserver | null = null;
+    const begin = () => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - start) / DURATION_MS);
+        // End on exactly what the author typed.
+        setDisplay(p >= 1 ? value : formatFrame(parsed, parsed.target * ease(p)));
+        if (p < 1) frame = requestAnimationFrame(tick);
+      };
+      setDisplay(formatFrame(parsed, 0));
+      frame = requestAnimationFrame(tick);
+    };
     const stop = observeOnce(
       el,
       () => {
-        const start = performance.now();
-        const tick = (now: number) => {
-          const p = Math.min(1, (now - start) / DURATION_MS);
-          // End on exactly what the author typed.
-          setDisplay(p >= 1 ? value : formatFrame(parsed, parsed.target * ease(p)));
-          if (p < 1) frame = requestAnimationFrame(tick);
-        };
-        setDisplay(formatFrame(parsed, 0));
-        frame = requestAnimationFrame(tick);
+        // Store motion style: the number may sit inside a block that has not
+        // entered yet (still transparent). The count then starts with that
+        // block's entrance, never behind it.
+        const host = el.closest(PENDING);
+        if (!host || typeof MutationObserver === 'undefined') {
+          begin();
+          return;
+        }
+        waiting = new MutationObserver(() => {
+          if (host.matches(PENDING)) return;
+          waiting?.disconnect();
+          waiting = null;
+          begin();
+        });
+        waiting.observe(host, { attributes: true, attributeFilter: ['data-cx-state'] });
       },
       { rootMargin: '0px 0px -10% 0px' },
     );
     return () => {
       stop();
+      waiting?.disconnect();
       cancelAnimationFrame(frame);
     };
   }, [parsed, value]);

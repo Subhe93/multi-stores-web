@@ -9,6 +9,8 @@ import { colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { item, rise, stagger } from '../../creative/recipes';
 
 interface FeatureItem {
   icon?: string;
@@ -42,7 +44,7 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(2, Math.min(4, v));
 }
 
-export function AnimatedFeatures({ settings, content, locale }: SectionRenderProps) {
+export function AnimatedFeatures({ settings, content, locale, motion: phase }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -69,18 +71,18 @@ export function AnimatedFeatures({ settings, content, locale }: SectionRenderPro
         <div className="mb-12 max-w-2xl mx-auto text-center flex flex-col gap-3">
           {heading && (
             <Heading level={headingLevel} style={{ fontFamily: 'var(--theme-font-heading)', fontSize: 'var(--theme-scale-h2)', fontWeight: 'var(--theme-weight-heading)', letterSpacing: 'var(--theme-tracking-heading)', color: colorOr(settings.heading_color, 'var(--theme-colors-text)') }}>
-              {heading}
+              <MotionText motion={phase} text={heading} />
             </Heading>
           )}
-          {subheading && <Heading level={subheadingTag} look="body" className="text-base" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>{subheading}</Heading>}
+          {subheading && <Heading level={subheadingTag} look="body" className="text-base" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }} {...rise(phase, { i: 2 })}>{subheading}</Heading>}
         </div>
       )}
 
-      <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }} {...stagger(phase)}>
         {items.map((f, i) => {
           const paths = ICON_PATHS[f.icon || 'check'] || ICON_PATHS.check;
           return (
-            <div key={i} className="flex flex-col items-center text-center gap-3">
+            <div key={i} className="flex flex-col items-center text-center gap-3" {...item(phase, i)}>
               <motion.svg
                 width="56" height="56" viewBox="0 0 24 24" fill="none"
                 stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"

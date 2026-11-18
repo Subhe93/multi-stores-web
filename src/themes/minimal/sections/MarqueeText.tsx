@@ -1,5 +1,6 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
+import { fade } from '../../creative/recipes';
 
 // Seconds per loop by speed setting.
 const DURATION: Record<string, number> = { slow: 40, normal: 24, fast: 14 };
@@ -12,7 +13,7 @@ const SIZE: Record<string, string> = {
 // A bold oversized text band that scrolls horizontally forever (CSS-only
 // marquee, see .marquee in globals.css). The phrase repeats with a separator;
 // pauses on hover and stops/wraps under reduced motion.
-function MarqueeText({ settings, content }: SectionRenderProps) {
+function MarqueeText({ settings, content, motion }: SectionRenderProps) {
   const text = (content.text as string) || '';
   const separator = (settings.separator as string) || '✦';
   const speed = (settings.speed as string) || 'normal';
@@ -48,8 +49,10 @@ function MarqueeText({ settings, content }: SectionRenderProps) {
 
   return (
     <section className="py-10" style={{ backgroundColor: bg }}>
-      <div className="marquee">
+      <div className="marquee" {...fade(motion)}>
         <div
+          // Motion style: the loop keeps its speed and pauses while the section is off screen.
+          data-cx-loop={motion ? '' : undefined}
           className={`marquee-track ${SIZE[size]} font-extrabold tracking-tight`}
           style={{
             animationDuration: `${duration}s`,

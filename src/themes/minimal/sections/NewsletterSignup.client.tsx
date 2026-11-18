@@ -9,8 +9,10 @@ import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, rise } from '../../creative/recipes';
 
-export function NewsletterSignup({ settings, content, locale }: SectionRenderProps) {
+export function NewsletterSignup({ settings, content, locale, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -58,7 +60,7 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
   }
 
   const form = (
-    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2 w-full max-w-lg">
+    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2 w-full max-w-lg" {...rise(motion, { i: 3 })}>
       <div
         className="flex-1 flex items-center gap-2 px-4"
         style={{
@@ -83,6 +85,8 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
         disabled={state === 'submitting'}
         className="inline-flex items-center justify-center gap-2 px-6 py-3 disabled:opacity-60"
         style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)' }}
+        // A form control: it answers a press, it never follows the pointer.
+        {...hover(motion, 'press')}
       >
         {state === 'submitting' ? (
           <>
@@ -118,11 +122,11 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
               color: headingColor,
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {subheading && (
-          <Heading level={subheadingTag} look="body" className="max-w-xl text-sm" style={{ color: subheadingColor }}>
+          <Heading level={subheadingTag} look="body" className="max-w-xl text-sm" style={{ color: subheadingColor }} {...rise(motion, { i: 2 })}>
             {subheading}
           </Heading>
         )}
@@ -151,11 +155,11 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
               color: headingColor,
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {subheading && (
-          <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto mb-6" style={{ color: subheadingColor }}>{subheading}</Heading>
+          <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto mb-6" style={{ color: subheadingColor }} {...rise(motion, { i: 2 })}>{subheading}</Heading>
         )}
         <div className="flex justify-center">{form}</div>
         {message}
@@ -183,11 +187,11 @@ export function NewsletterSignup({ settings, content, locale }: SectionRenderPro
               color: headingColor,
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {subheading && (
-          <Heading level={subheadingTag} look="body" className="max-w-md text-sm" style={{ color: subheadingColor }}>
+          <Heading level={subheadingTag} look="body" className="max-w-md text-sm" style={{ color: subheadingColor }} {...rise(motion, { i: 2 })}>
             {subheading}
           </Heading>
         )}

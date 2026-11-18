@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -20,7 +20,7 @@ function Mark({ value, color }: { value?: string; color: string }) {
 
 // Two-column feature comparison ("us" vs "them"). The highlighted column reads
 // as the recommended choice with an accent header and surface background.
-function ComparisonTable({ settings, content, locale }: SectionRenderProps) {
+function ComparisonTable({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const colA = (content.col_a_label as string) || (locale === 'ar' ? 'نحن' : 'Us');
@@ -55,6 +55,7 @@ function ComparisonTable({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-10">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -87,9 +88,9 @@ function ComparisonTable({ settings, content, locale }: SectionRenderProps) {
           </div>
         </div>
 
-        <StaggerGroup>
+        <MotionGroup motion={motion}>
           {rows.map((r, i) => (
-            <StaggerItem
+            <MotionItem motion={motion} index={i}
               key={i}
               className="grid items-center text-sm"
               style={{
@@ -106,9 +107,9 @@ function ComparisonTable({ settings, content, locale }: SectionRenderProps) {
               <div className="px-3 py-4">
                 <Mark value={r.b || 'no'} color="var(--theme-colors-muted)" />
               </div>
-            </StaggerItem>
+            </MotionItem>
           ))}
-        </StaggerGroup>
+        </MotionGroup>
       </div>
     </section>
   );

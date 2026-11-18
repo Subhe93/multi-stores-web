@@ -18,6 +18,9 @@ import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { focusPosition } from './_shared/BleedSplit';
 import { BUTTON_RADIUS } from './_shared/cta';
 import { FOCUS_RING, sectionHref } from './_shared/links';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, line, magnetic, parallax, rise } from '../../creative/recipes';
+import { MotionRise } from './_shared/MotionStagger';
 
 type BandHeight = 'sm' | 'md' | 'lg';
 
@@ -47,7 +50,7 @@ const FULL_BLEED = {
   marginInline: 'calc(50% - 50vw)',
 } as const;
 
-function BrandBand({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function BrandBand({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
   const headingId = useId();
   const image = str(settings.image);
   const resolvedImage = image ? resolveMediaUrl(image) : '';
@@ -88,8 +91,27 @@ function BrandBand({ settings, content, locale, primaryLocale, builderPreview }:
   // Drawn in the text colour itself: the theme border colour would vanish
   // on a photo.
   const rule = (
-    <span aria-hidden="true" className="hidden h-px min-w-8 flex-1 sm:block" style={{ backgroundColor: textColor, opacity: 0.7 }} />
+    <span
+      aria-hidden="true"
+      className="hidden h-px min-w-8 flex-1 sm:block"
+      style={{ backgroundColor: textColor, opacity: 0.7 }}
+      {...line(motion, { d: 2 })}
+    />
   );
+
+  const photo = resolvedImage ? (
+    <StoreImage
+      src={resolvedImage}
+      // Empty alt = decorative.
+      alt={str(content.alt)}
+      fill
+      sizes="100vw"
+      loading="lazy"
+      unoptimized={isSvgSrc(resolvedImage)}
+      className="object-cover"
+      style={{ objectPosition: focusPosition(settings.image_focus) }}
+    />
+  ) : null;
 
   return (
     <section
@@ -103,38 +125,35 @@ function BrandBand({ settings, content, locale, primaryLocale, builderPreview }:
         color: textColor,
       }}
     >
-      {resolvedImage && (
-        <StoreImage
-          src={resolvedImage}
-          // Empty alt = decorative.
-          alt={str(content.alt)}
-          fill
-          sizes="100vw"
-          loading="lazy"
-          unoptimized={isSvgSrc(resolvedImage)}
-          className="object-cover"
-          style={{ objectPosition: focusPosition(settings.image_focus) }}
-        />
+      {photo && motion ? (
+        // The photo drifts a little slower than the page (the band clips it).
+        <div className="absolute inset-0" {...parallax(motion, -6)}>
+          {photo}
+        </div>
+      ) : (
+        photo
       )}
       <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlay})` }} />
 
       <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-4 text-center">
         {resolvedLogo && (
-          <StoreImage
-            src={resolvedLogo}
-            alt=""
-            width={logoHeight}
-            height={logoHeight}
-            sizes={`${logoHeight * LOGO_MAX_ASPECT}px`}
-            loading="lazy"
-            unoptimized={isSvgSrc(resolvedLogo)}
-            className="object-contain"
-            style={{
-              height: logoHeight,
-              width: 'auto',
-              maxWidth: `min(${logoHeight * LOGO_MAX_ASPECT}px, 80vw)`,
-            }}
-          />
+          <MotionRise motion={motion}>
+            <StoreImage
+              src={resolvedLogo}
+              alt=""
+              width={logoHeight}
+              height={logoHeight}
+              sizes={`${logoHeight * LOGO_MAX_ASPECT}px`}
+              loading="lazy"
+              unoptimized={isSvgSrc(resolvedLogo)}
+              className="object-contain"
+              style={{
+                height: logoHeight,
+                width: 'auto',
+                maxWidth: `min(${logoHeight * LOGO_MAX_ASPECT}px, 80vw)`,
+              }}
+            />
+          </MotionRise>
         )}
         {heading && (
           <div className="flex w-full items-center justify-center gap-4 md:gap-6">
@@ -152,7 +171,7 @@ function BrandBand({ settings, content, locale, primaryLocale, builderPreview }:
                 color: textColor,
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
               <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="center" />
             </Heading>
             {ruled && rule}
@@ -162,23 +181,28 @@ function BrandBand({ settings, content, locale, primaryLocale, builderPreview }:
           <p
             className="max-w-prose"
             style={{ fontSize: 'var(--theme-scale-body)', lineHeight: 'var(--theme-line-body)', color: textColor }}
+            {...rise(motion, { i: 3 })}
           >
             {tagline}
           </p>
         )}
         {ctaText && (
-          <a
-            href={sectionHref(settings.cta_url, locale, primaryLocale)}
-            className={`mt-2 inline-flex items-center justify-center px-7 py-3 text-sm font-semibold transition-opacity hover:opacity-80 ${FOCUS_RING}`}
-            style={{
-              color: textColor,
-              border: `1.5px solid ${textColor}`,
-              borderRadius: BUTTON_RADIUS,
-              outlineColor: textColor,
-            }}
-          >
-            {ctaText}
-          </a>
+          <MotionRise motion={motion} i={4}>
+            <a
+              href={sectionHref(settings.cta_url, locale, primaryLocale)}
+              className={`mt-2 inline-flex items-center justify-center px-7 py-3 text-sm font-semibold transition-opacity hover:opacity-80 ${FOCUS_RING}`}
+              style={{
+                color: textColor,
+                border: `1.5px solid ${textColor}`,
+                borderRadius: BUTTON_RADIUS,
+                outlineColor: textColor,
+              }}
+              {...hover(motion, 'press')}
+              {...magnetic(motion)}
+            >
+              {ctaText}
+            </a>
+          </MotionRise>
         )}
       </div>
     </section>

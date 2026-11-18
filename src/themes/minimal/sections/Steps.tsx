@@ -1,8 +1,9 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
+import { line } from '../../creative/recipes';
 
 interface StepItem {
   title?: string;
@@ -17,7 +18,7 @@ function clampColumns(n: unknown, fallback: number): number {
 // Numbered process / "how it works" section. Each step shows an auto-numbered
 // badge, title and short description, optionally joined by a connector line on
 // wide screens. Composes the shared SectionHeading + staggered reveal.
-function Steps({ settings, content, locale }: SectionRenderProps) {
+function Steps({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as StepItem[]) || []).filter((s) => s.title || s.description);
@@ -53,6 +54,7 @@ function Steps({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-12">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -64,18 +66,19 @@ function Steps({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid gap-x-8 gap-y-10"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {items.map((s, i) => (
-          <StaggerItem key={i} className="relative flex flex-col items-center text-center gap-3">
+          <MotionItem motion={motion} index={i} key={i} className="relative flex flex-col items-center text-center gap-3">
             {/* Connector line to the next step (desktop only). */}
             {showConnector && i < items.length - 1 && (
               <span
                 aria-hidden
                 className="hidden md:block absolute top-6 left-1/2 w-full h-px"
                 style={{ backgroundColor: 'var(--theme-colors-border)' }}
+                {...line(motion, { d: 4 })}
               />
             )}
             <div
@@ -94,9 +97,9 @@ function Steps({ settings, content, locale }: SectionRenderProps) {
                 {s.description}
               </p>
             )}
-          </StaggerItem>
+          </MotionItem>
         ))}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

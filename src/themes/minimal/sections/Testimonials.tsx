@@ -4,7 +4,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -21,7 +21,7 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(1, Math.min(4, v));
 }
 
-function Testimonials({ settings, content, locale }: SectionRenderProps) {
+function Testimonials({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as TestimonialItem[]) || []).filter((t) => t.quote || t.author);
@@ -65,6 +65,7 @@ function Testimonials({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-12">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -76,14 +77,14 @@ function Testimonials({ settings, content, locale }: SectionRenderProps) {
         </div>
       )}
 
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid gap-5"
         style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${Math.floor(900 / columns)}px, 1fr))` }}
       >
         {items.map((t, i) => {
           const rating = Math.max(0, Math.min(5, Number(t.rating) || 0));
           return (
-            <StaggerItem key={i} className="h-full">
+            <MotionItem motion={motion} index={i} key={i} className="h-full">
             <figure
               className={`flex flex-col gap-4 p-6 h-full${layout === 'cards' ? ' card-lift' : ''}`}
               style={
@@ -147,10 +148,10 @@ function Testimonials({ settings, content, locale }: SectionRenderProps) {
                 </div>
               </figcaption>
             </figure>
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

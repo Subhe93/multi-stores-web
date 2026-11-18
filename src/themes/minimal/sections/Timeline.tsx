@@ -8,9 +8,10 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, mediaFx } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
+import { line } from '../../creative/recipes';
 
 interface TimelineItem {
   label?: string;
@@ -19,7 +20,7 @@ interface TimelineItem {
   image?: string;
 }
 
-function Timeline({ settings, content, locale }: SectionRenderProps) {
+function Timeline({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const items = ((content.items as TimelineItem[]) || []).filter(
@@ -64,6 +65,10 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
       }}
     />
   );
+
+  // Motion style: the connector draws from the top (the vertical variant of
+  // the line recipe, css/story.css.ts) while the entries rise one by one.
+  const rail = motion ? { ...line(motion), 'data-cx-rail': '' } : null;
 
   const renderBody = (item: TimelineItem, alignEnd: boolean) => (
     <div className={`flex flex-col gap-2 ${alignEnd ? 'md:items-end md:text-end' : ''}`}>
@@ -113,6 +118,7 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
       {(heading || subheading) && (
         <div className="mb-14">
           <SectionHeading
+            motion={motion}
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
@@ -131,19 +137,21 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
         <div
           className={`absolute top-1 bottom-1 w-px ${alternate ? 'md:hidden' : ''}`}
           style={{ insetInlineStart: '7px', backgroundColor: markerColor, opacity: 0.25 }}
+          {...rail}
         />
         {alternate && (
           <div
             className="absolute top-1 bottom-1 w-px hidden md:block left-1/2 -translate-x-1/2"
             style={{ backgroundColor: markerColor, opacity: 0.25 }}
+            {...rail}
           />
         )}
 
-        <StaggerGroup className="flex flex-col gap-10 md:gap-14">
+        <MotionGroup motion={motion} className="flex flex-col gap-10 md:gap-14">
           {items.map((item, i) => {
             const onEndSide = alternate && i % 2 === 1;
             return (
-              <StaggerItem key={i}>
+              <MotionItem motion={motion} index={i} key={i}>
                 <div
                   className={`relative ps-10 ${
                     alternate ? 'md:ps-0 md:grid md:grid-cols-[1fr_4rem_1fr] md:items-start' : ''
@@ -173,10 +181,10 @@ function Timeline({ settings, content, locale }: SectionRenderProps) {
                     {renderBody(item, alternate && !onEndSide)}
                   </div>
                 </div>
-              </StaggerItem>
+              </MotionItem>
             );
           })}
-        </StaggerGroup>
+        </MotionGroup>
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { resolveMediaUrl } from '@/lib/api';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
+import { rise } from '../../creative/recipes';
 
 interface LogoItem {
   image?: string;
@@ -24,7 +25,7 @@ function safeHost(url: string): string {
 // Infinite auto-scrolling logo strip (CSS-only marquee). Two copies of the
 // logos slide seamlessly; hovering pauses, and reduced-motion stops it and
 // wraps the logos onto centered rows (see .marquee rules in globals.css).
-function LogoMarquee({ settings, content, locale }: SectionRenderProps) {
+function LogoMarquee({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const items = ((content.items as LogoItem[]) || []).filter((l) => l.image);
   const grayscale = settings.grayscale !== false;
@@ -88,12 +89,14 @@ function LogoMarquee({ settings, content, locale }: SectionRenderProps) {
         <p
           className="text-center text-xs font-semibold uppercase tracking-wider mb-8"
           style={{ color: colorOr(settings.heading_color, 'var(--theme-colors-muted)') }}
+          {...rise(motion)}
         >
           {heading}
         </p>
       )}
-      <div className="marquee">
-        <div className="marquee-track" style={{ animationDuration: `${duration}s` }}>
+      <div className="marquee" {...rise(motion, { i: 1 })}>
+        {/* Motion style: the loop keeps its speed and pauses while the section is off screen. */}
+        <div className="marquee-track" style={{ animationDuration: `${duration}s` }} data-cx-loop={motion ? '' : undefined}>
           {items.map((l, i) => renderLogo(l, `a-${i}`))}
           {/* Second copy enables the seamless loop. */}
           {items.map((l, i) => renderLogo(l, `b-${i}`))}

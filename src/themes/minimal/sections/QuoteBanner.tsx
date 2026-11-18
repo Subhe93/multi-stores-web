@@ -5,6 +5,8 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { Reveal } from '../../_motion';
+import { MotionText } from '../../creative/primitives/Motion';
+import { rise } from '../../creative/recipes';
 
 type Alignment = 'left' | 'center' | 'right';
 
@@ -15,7 +17,7 @@ const ALIGN_CLASS: Record<Alignment, string> = {
   right: 'text-end items-end',
 };
 
-function QuoteBanner({ settings, content, locale }: SectionRenderProps) {
+function QuoteBanner({ settings, content, locale, motion }: SectionRenderProps) {
   const quote = (content.quote as string) || '';
   const author = (content.author as string) || '';
   const role = (content.role as string) || '';
@@ -47,9 +49,13 @@ function QuoteBanner({ settings, content, locale }: SectionRenderProps) {
     );
   }
 
+  // Motion style: the quote enters line by line behind a mask and the
+  // author follows; the generic reveal of the block is not used then.
+  const Block = motion ? 'div' : Reveal;
+
   return (
     <section className="py-16 md:py-24">
-      <Reveal direction="up">
+      <Block {...(motion ? null : { direction: 'up' as const })}>
         <figure className={`relative flex flex-col gap-8 max-w-4xl mx-auto px-4 ${ALIGN_CLASS[alignment]}`}>
           {/* Decorative quotation mark — aria-hidden, purely visual. */}
           <span
@@ -78,11 +84,11 @@ function QuoteBanner({ settings, content, locale }: SectionRenderProps) {
               color: quoteColor,
             }}
           >
-            {quote}
+            <MotionText motion={motion} text={quote} />
           </blockquote>
 
           {(author || role) && (
-            <figcaption className="flex flex-col gap-1">
+            <figcaption className="flex flex-col gap-1" {...rise(motion, { i: 3 })}>
               {author && (
                 <span className="text-sm font-semibold tracking-wide" style={{ color: authorColor }}>
                   {author}
@@ -96,7 +102,7 @@ function QuoteBanner({ settings, content, locale }: SectionRenderProps) {
             </figcaption>
           )}
         </figure>
-      </Reveal>
+      </Block>
     </section>
   );
 }

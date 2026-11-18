@@ -22,6 +22,9 @@ import { computeProgress, statusValue } from './_shared/progress';
 import { ProgressBar } from './_shared/ProgressBar';
 import { StatusBadge } from './_shared/StatusBadge';
 import { toneColors, toneValue } from './_shared/tone';
+import { Counter } from '../../_motion';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
@@ -40,7 +43,7 @@ function formatters(locale: string) {
   }
 }
 
-function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -108,6 +111,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
       ? withUnit(t('progress.goal', { goal: fmt.number.format(progress.goal) }))
       : '';
   const percent = progress.percent ?? 0;
+  const percentText = fmt.percent.format(percent / 100);
 
   const Icon =
     typeof settings.icon === 'string' && Object.prototype.hasOwnProperty.call(TRUST_BADGE_ICONS, settings.icon)
@@ -134,6 +138,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
             look="body"
             className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
             style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
+            {...rise(motion)}
           >
             {eyebrow}
           </Heading>
@@ -151,13 +156,14 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
               ...multilineStyle(heading),
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
         )}
         {body && (
           <p
             className="max-w-prose"
             style={{ color: colorOr(settings.body_color, colors.muted), lineHeight: 'var(--theme-line-body)' }}
+            {...rise(motion, { i: 2 })}
           >
             {body}
           </p>
@@ -175,6 +181,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
             borderRadius: 'var(--theme-radius-md)',
           }}
           data-progress-panel=""
+          {...rise(motion, { i: 3 })}
         >
           <div className="flex items-start gap-3">
             {Icon && <Icon className="size-8 shrink-0" strokeWidth={1.5} aria-hidden />}
@@ -196,10 +203,20 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
                   text={reachedLine}
                   label={itemTitle || t('progress.label')}
                   barColor={colorOr(settings.bar_color, 'var(--theme-colors-accent)')}
+                  motion={motion}
                 />
-                {settings.show_percent === true && (
-                  <span className="text-sm font-semibold tabular-nums">{fmt.percent.format(percent / 100)}</span>
-                )}
+                {settings.show_percent === true &&
+                  (motion ? (
+                    // Counts up with the bar. The width is reserved for the
+                    // final value, so the bar beside it never changes length.
+                    <Counter
+                      value={percentText}
+                      className="shrink-0 text-end text-sm font-semibold tabular-nums"
+                      style={{ minInlineSize: `calc(${percentText.length}ch + 0.4em)` }}
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold tabular-nums">{percentText}</span>
+                  ))}
               </div>
             </>
           )}
@@ -213,11 +230,13 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
       )}
 
       {ctaText && (
-        <div className="mt-6">
+        <div className="mt-6" {...rise(motion, { i: 4 })}>
           <a
             href={sectionHref(settings.cta_url, locale, primaryLocale)}
             className={`inline-flex items-center gap-2 px-6 py-3 motion-safe:transition-opacity hover:opacity-90 ${FOCUS_RING}`}
             style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+            {...hover(motion, 'press')}
+            {...magnetic(motion)}
           >
             {ctaText}
             {settings.cta_arrow === true && <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />}
@@ -245,15 +264,18 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
   }
 
   const media = resolvedImage ? (
-    <StoreImage
-      src={resolvedImage}
-      alt={str(content.alt)}
-      fill
-      sizes="(min-width: 768px) 50vw, 100vw"
-      unoptimized={isSvgSrc(resolvedImage)}
-      className="object-cover"
-      style={{ objectPosition: focusPosition(settings.image_focus) }}
-    />
+    // Opens towards the text column; on the first section of a page it only settles.
+    <MotionMedia motion={motion} fill dir={settings.image_side === 'end' ? 'end' : 'start'}>
+      <StoreImage
+        src={resolvedImage}
+        alt={str(content.alt)}
+        fill
+        sizes="(min-width: 768px) 50vw, 100vw"
+        unoptimized={isSvgSrc(resolvedImage)}
+        className="object-cover"
+        style={{ objectPosition: focusPosition(settings.image_focus) }}
+      />
+    </MotionMedia>
   ) : (
     <BleedMediaPlaceholder />
   );

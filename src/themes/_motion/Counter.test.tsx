@@ -46,6 +46,40 @@ describe('Counter', () => {
     expect(span.textContent).toBe('10,000');
   });
 
+  it('inside a block the motion engine has not shown yet, the count starts with that block', async () => {
+    const { container } = render(
+      <div data-cx-reveal="rise" data-cx-state="pending">
+        <Counter value="60%" />
+      </div>,
+    );
+    const host = container.firstElementChild as HTMLElement;
+    const span = host.firstElementChild as HTMLElement;
+    act(() => ioCallback?.([{ isIntersecting: true, target: span }]));
+    // Still the authored value: the block is transparent, nothing counts behind it.
+    expect(span.textContent).toBe('60%');
+    await act(async () => {
+      host.setAttribute('data-cx-state', 'shown');
+      await Promise.resolve();
+    });
+    expect(span.textContent).toBe('0%');
+    act(() => vi.advanceTimersByTime(1500));
+    expect(span.textContent).toBe('60%');
+  });
+
+  it('stops waiting for its block when it unmounts', () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect');
+    const { container, unmount } = render(
+      <div data-cx-state="pending">
+        <Counter value="12" />
+      </div>,
+    );
+    const span = container.querySelector('span') as HTMLElement;
+    act(() => ioCallback?.([{ isIntersecting: true, target: span }]));
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
+    disconnect.mockRestore();
+  });
+
   it('eases like cubic-bezier(0.16,1,0.3,1)', () => {
     const e = cubicBezier(0.16, 1, 0.3, 1);
     expect(e(0)).toBe(0);

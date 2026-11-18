@@ -2,7 +2,8 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { resolveMediaUrl } from '@/lib/api';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import { colorOr } from '../../elementStyles';
-import { StaggerGroup, StaggerItem } from '../../_motion';
+import { rise } from '../../creative/recipes';
+import { MotionGroup, MotionItem } from './_shared/MotionStagger';
 
 interface LogoItem {
   image?: string;
@@ -24,7 +25,7 @@ function safeHost(url: string): string {
   }
 }
 
-function LogoList({ settings, content, locale }: SectionRenderProps) {
+function LogoList({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const items = ((content.items as LogoItem[]) || []).filter((l) => l.image);
   const columns = clampColumns(settings.columns, 5);
@@ -55,11 +56,12 @@ function LogoList({ settings, content, locale }: SectionRenderProps) {
         <p
           className="text-center text-xs font-semibold uppercase tracking-wider mb-8"
           style={{ color: colorOr(settings.heading_color, 'var(--theme-colors-muted)') }}
+          {...rise(motion)}
         >
           {heading}
         </p>
       )}
-      <StaggerGroup
+      <MotionGroup motion={motion}
         className="grid items-center gap-x-8 gap-y-6"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
@@ -86,7 +88,7 @@ function LogoList({ settings, content, locale }: SectionRenderProps) {
             (l.url ? safeHost(l.url) : '') ||
             (locale === 'ar' ? 'فتح الرابط' : 'Open link');
           return (
-            <StaggerItem key={i}>
+            <MotionItem motion={motion} index={i} key={i}>
               {l.url ? (
                 <a
                   href={l.url}
@@ -98,10 +100,10 @@ function LogoList({ settings, content, locale }: SectionRenderProps) {
               ) : (
                 img
               )}
-            </StaggerItem>
+            </MotionItem>
           );
         })}
-      </StaggerGroup>
+      </MotionGroup>
     </section>
   );
 }

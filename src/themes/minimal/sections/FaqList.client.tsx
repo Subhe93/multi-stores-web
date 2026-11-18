@@ -12,13 +12,15 @@ import { ChevronDown } from 'lucide-react';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { item, rise, stagger } from '../../creative/recipes';
 
 interface FaqItem {
   question?: string;
   answer?: string;
 }
 
-export function FaqList({ settings, content, locale }: SectionRenderProps) {
+export function FaqList({ settings, content, locale, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -39,16 +41,21 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
 
   const visible = items.filter((q) => q.question || q.answer);
 
-  function Row({ q, i }: { q: FaqItem; i: number }) {
+  // A plain function, not a component: a component declared in here would be
+  // a new type on every render, so every row would remount on each toggle
+  // and the open / close transition could never run.
+  function renderRow(q: FaqItem, i: number) {
     const isOpen = open.has(i);
     return (
       <div
+        key={i}
         className="overflow-hidden transition-colors"
         style={{
           border: '1px solid var(--theme-colors-border)',
           borderRadius: 'var(--theme-radius-md)',
           backgroundColor: isOpen ? 'var(--theme-colors-surface)' : 'var(--theme-colors-background)',
         }}
+        {...item(motion, i)}
       >
         <button
           type="button"
@@ -76,6 +83,8 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
         <div
           className="grid transition-[grid-template-rows] duration-300 ease-out"
           style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+          // Motion style: opens and closes in 0.35 s on the house ease (css/story.css.ts).
+          data-cx-acc={motion ? '' : undefined}
         >
           <div className="overflow-hidden">
             <p
@@ -103,11 +112,11 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
                 lineHeight: 'var(--theme-line-heading)',
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
+            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -136,10 +145,9 @@ export function FaqList({ settings, content, locale }: SectionRenderProps) {
               ? 'grid md:grid-cols-2 gap-3 max-w-5xl mx-auto'
               : 'space-y-3 max-w-3xl mx-auto'
           }
+          {...stagger(motion)}
         >
-          {visible.map((q, i) => (
-            <Row key={i} q={q} i={i} />
-          ))}
+          {visible.map((q, i) => renderRow(q, i))}
         </div>
       )}
     </section>

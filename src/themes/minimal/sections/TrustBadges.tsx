@@ -6,6 +6,7 @@ import {
 import type { CSSProperties } from 'react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
+import { item, stagger } from '../../creative/recipes';
 
 // Strip layout, from 1024px: where an incomplete last row starts so that it
 // is centred, keyed by the number of missing items. The grid is counted in
@@ -17,7 +18,7 @@ const STRIP_LAST_ROW_START: Record<number, string> = {
   3: 'lg:col-start-4',
 };
 
-function TrustBadges({ settings, content, locale }: SectionRenderProps) {
+function TrustBadges({ settings, content, locale, motion }: SectionRenderProps) {
   const items = (content.items as BadgeItem[]) || [];
   const layout = (settings.layout as 'cards' | 'inline' | 'strip') || 'cards';
   const padding = (settings.padding as 'compact' | 'comfortable') || 'comfortable';
@@ -73,6 +74,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
           // --tb-c: the half-columns of a row from 1024px, as a plain number
           // (a calc() inside repeat() is not accepted by every browser).
           style={{ '--tb-n': perRow, '--tb-c': perRow * 2, '--tb-w': perRow >= 3 ? '13rem' : '20rem' } as CSSProperties}
+          {...stagger(motion)}
         >
           {visible.map((b, i) => {
             const Icon = trustBadgeIcon(b.icon);
@@ -87,6 +89,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
                 key={i}
                 className={`col-span-2 flex items-center gap-3 px-3 md:px-6 lg:justify-center ${divider} ${centre}`.replace(/ +/g, ' ').trim()}
                 style={{ borderColor: 'var(--theme-colors-border)' }}
+                {...item(motion, i)}
               >
                 <Icon
                   className="size-7 md:size-8 shrink-0"
@@ -123,11 +126,11 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
   if (layout === 'inline') {
     return (
       <section className={padClass}>
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5" {...stagger(motion)}>
           {visible.map((b, i) => {
             const Icon = trustBadgeIcon(b.icon);
             return (
-              <div key={i} className="flex items-center gap-2.5">
+              <div key={i} className="flex items-center gap-2.5" {...item(motion, i)}>
                 <Icon
                   className="size-5 shrink-0"
                   style={{ color: 'var(--theme-colors-primary)' }}
@@ -158,6 +161,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
         style={{
           gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))`,
         }}
+        {...stagger(motion)}
       >
         {visible.map((b, i) => {
           const Icon = trustBadgeIcon(b.icon);
@@ -170,6 +174,7 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
                 border: '1px solid var(--theme-colors-border)',
                 borderRadius: 'var(--theme-radius-md)',
               }}
+              {...item(motion, i)}
             >
               <div
                 className="size-10 rounded-xl flex items-center justify-center shrink-0"

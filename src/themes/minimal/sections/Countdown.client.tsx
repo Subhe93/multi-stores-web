@@ -8,6 +8,8 @@ import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { rise } from '../../creative/recipes';
 
 interface Parts {
   days: number;
@@ -27,7 +29,7 @@ function diffParts(targetMs: number, nowMs: number): Parts {
   };
 }
 
-export function Countdown({ settings, content, locale }: SectionRenderProps) {
+export function Countdown({ settings, content, locale, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -79,11 +81,11 @@ export function Countdown({ settings, content, locale }: SectionRenderProps) {
                   color: colorOr(settings.heading_color, 'var(--theme-colors-text)'),
                 }}
               >
-                {heading}
+                <MotionText motion={motion} text={heading} />
               </Heading>
             )}
             {subheading && (
-              <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+              <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }} {...rise(motion, { i: 2 })}>
                 {subheading}
               </Heading>
             )}
@@ -99,7 +101,7 @@ export function Countdown({ settings, content, locale }: SectionRenderProps) {
             {expiredText}
           </p>
         ) : (
-          <div className={`flex gap-3 sm:gap-4 ${justify}`}>
+          <div className={`flex gap-3 sm:gap-4 ${justify}`} {...rise(motion, { i: 3 })}>
             {(['days', 'hours', 'minutes', 'seconds'] as const).map((unit) => (
               <div
                 key={unit}
