@@ -2,11 +2,13 @@ import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { storeHref } from '@/lib/storeUrl';
+import type { CSSProperties, ReactNode } from 'react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
+import { hover, item, stagger, type MotionProp } from '../../creative/recipes';
 
 type TileSize = 'small' | 'wide' | 'tall' | 'large';
 
@@ -27,10 +29,57 @@ const SPAN: Record<TileSize, string> = {
   large: 'md:col-span-2 md:row-span-2',
 };
 
+// With the store motion style the engine staggers the tiles row by row
+// (creative/recipes: cards-stagger): plain elements with the same classes
+// replace the generic stagger group, which would hide the tiles a second time.
+function Group({
+  motion,
+  className,
+  style,
+  children,
+}: {
+  motion: MotionProp;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  if (!motion) {
+    return (
+      <StaggerGroup className={className} style={style}>
+        {children}
+      </StaggerGroup>
+    );
+  }
+  return (
+    <div className={className} style={style} {...stagger(motion)}>
+      {children}
+    </div>
+  );
+}
+
+function Cell({
+  motion,
+  index,
+  className,
+  children,
+}: {
+  motion: MotionProp;
+  index: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!motion) return <StaggerItem className={className}>{children}</StaggerItem>;
+  return (
+    <div className={className} {...item(motion, index)}>
+      {children}
+    </div>
+  );
+}
+
 // A modern asymmetric "bento" grid of tiles in mixed sizes. Each tile can carry
 // an image (with overlaid text) or a title + body on a coloured surface. Tiles
 // reveal in a stagger and lift on hover.
-function BentoGrid({ settings, content, locale }: SectionRenderProps) {
+function BentoGrid({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const tiles = ((content.tiles as BentoTile[]) || []).filter((t) => t.title || t.text || t.image);
@@ -56,11 +105,12 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
         <div className="mb-10">
           <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')}
-            subheadingTag={textTag(settings.subheading_tag, 'p')} heading={heading} subheading={subheading} align="center" headingColor={settings.heading_color} subheadingColor={settings.subheading_color} />
+            subheadingTag={textTag(settings.subheading_tag, 'p')} heading={heading} subheading={subheading} align="center" headingColor={settings.heading_color} subheadingColor={settings.subheading_color} motion={motion} />
         </div>
       )}
 
-      <StaggerGroup
+      <Group
+        motion={motion}
         className="grid grid-cols-2 md:grid-cols-4 gap-4 md:auto-rows-[170px]"
         style={{ gridAutoFlow: 'dense' }}
       >
@@ -69,9 +119,10 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
           const img = t.image ? resolveMediaUrl(t.image) : '';
           const Wrapper = t.url ? 'a' : 'div';
           return (
-            <StaggerItem key={i} className={`${SPAN[size]} min-h-[170px]`}>
+            <Cell key={i} motion={motion} index={i} className={`${SPAN[size]} min-h-[170px]`}>
               <Wrapper
                 {...(t.url ? { href: storeHref(t.url) } : {})}
+                {...(img ? hover(motion, 'media') : null)}
                 className="card-lift relative flex h-full flex-col justify-end overflow-hidden p-5"
                 style={{
                   borderRadius: 'var(--theme-radius-lg)',
@@ -98,10 +149,10 @@ function BentoGrid({ settings, content, locale }: SectionRenderProps) {
                   )}
                 </div>
               </Wrapper>
-            </StaggerItem>
+            </Cell>
           );
         })}
-      </StaggerGroup>
+      </Group>
     </section>
   );
 }

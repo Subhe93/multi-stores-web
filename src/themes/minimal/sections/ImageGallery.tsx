@@ -5,6 +5,8 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, item as cell, rise, stagger } from '../../creative/recipes';
 
 interface GalleryItem {
   url?: string;
@@ -23,7 +25,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
   auto: '',
 };
 
-function ImageGallery({ settings, content, locale }: SectionRenderProps) {
+function ImageGallery({ settings, content, locale, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -56,10 +58,19 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
 
   // Each image is a tile — wrapped in <a> only when a link is supplied. Keeps
   // the same hover/transition treatment regardless of click behaviour.
-  function Tile({ item }: { item: GalleryItem }) {
+  // `index` is passed only in the grid and masonry layouts: the tile box then
+  // carries the cards-stagger item mark (the box, not the link: a link is an
+  // inline element in the masonry columns and cannot move).
+  function Tile({ item, index }: { item: GalleryItem; index?: number }) {
     const src = resolveMediaUrl(item.url || '');
+    const mark = typeof index === 'number' ? cell(motion, index) : null;
     const inner = (
-      <div className="group relative overflow-hidden" style={radiusStyle}>
+      <div
+        className="group relative overflow-hidden"
+        style={radiusStyle}
+        {...hover(motion, 'media')}
+        {...mark}
+      >
         {aspect === 'auto' ? (
           // Natural ratio: next/image cannot size it without known dimensions,
           // so it stays a plain <img> with an optimized srcset.
@@ -121,11 +132,11 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
                 lineHeight: 'var(--theme-line-heading)',
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
+            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -148,13 +159,15 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
           </p>
         </div>
       ) : layout === 'masonry' ? (
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 *:mb-4 *:break-inside-avoid">
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 *:mb-4 *:break-inside-avoid" {...stagger(motion)}>
           {visibleItems.map((item, i) => (
-            <Tile key={i} item={item} />
+            <Tile key={i} item={item} index={i} />
           ))}
         </div>
       ) : layout === 'carousel' ? (
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4">
+        // A swipe row enters as one block: tiles outside the row's view
+        // must not wait for the swipe to appear.
+        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4" {...rise(motion, { i: 1 })}>
           {visibleItems.map((item, i) => (
             <div key={i} className="snap-start shrink-0 w-72">
               <Tile item={item} />
@@ -178,9 +191,9 @@ function ImageGallery({ settings, content, locale }: SectionRenderProps) {
               `.trim(),
             }}
           />
-          <div className={`grid gap-4 ${scopeClass}`}>
+          <div className={`grid gap-4 ${scopeClass}`} {...stagger(motion)}>
             {visibleItems.map((item, i) => (
-              <Tile key={i} item={item} />
+              <Tile key={i} item={item} index={i} />
             ))}
           </div>
         </>

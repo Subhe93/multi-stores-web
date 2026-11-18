@@ -1,6 +1,7 @@
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
+import type { ReactNode } from 'react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import {
   DynamicSourceHint,
@@ -19,6 +20,7 @@ import {
   sizedImageLayout,
   useImageSizeScope,
 } from './_shared/SizedImage';
+import { MotionMedia } from '../../creative/primitives/Motion';
 
 // `single-image`: one image, nothing else. Fits anywhere in a layout
 // container. On a PRODUCT_TEMPLATE its image can come from the product
@@ -46,7 +48,7 @@ function SingleImage(props: SectionRenderProps) {
 }
 
 /** `image_size` path (plans/image-sizing/SPEC.md); legacy aspect/fit are ignored. */
-function SingleImageSized({ settings, content, product, locale, builderPreview }: SectionRenderProps) {
+function SingleImageSized({ settings, content, product, locale, builderPreview, motion }: SectionRenderProps) {
   const scope = useImageSizeScope();
   const layout = sizedImageLayout(settings.image_size as ImageSizeSettings, scope, CONTAINER);
   const { resolved } = layout;
@@ -67,7 +69,7 @@ function SingleImageSized({ settings, content, product, locale, builderPreview }
     const url = resolveMediaUrl((settings.image as string) || '');
     if (url) {
       // The frame is the link itself, so the clickable area is the image.
-      return <SizedImage layout={layout} src={url} alt={altText} frameStyle={frameStyle} link={link} />;
+      return <SizedImage layout={layout} src={url} alt={altText} frameStyle={frameStyle} link={link} motion={motion} />;
     }
     if (preview) {
       // Builder only: an upload box. The live store renders nothing.
@@ -135,6 +137,7 @@ function SingleImageSized({ settings, content, product, locale, builderPreview }
           frameStyle={frameStyle}
           link={link}
           dataDynamicImage={source}
+          motion={motion}
         />
       );
     } else {
@@ -152,7 +155,7 @@ function SingleImageSized({ settings, content, product, locale, builderPreview }
   );
 }
 
-function SingleImageLegacy({ settings, content, product, locale, builderPreview }: SectionRenderProps) {
+function SingleImageLegacy({ settings, content, product, locale, builderPreview, motion }: SectionRenderProps) {
   const aspect = ((settings.aspect as Aspect) in ASPECT_CLASS ? settings.aspect : 'auto') as Aspect;
   const fit = settings.fit === 'contain' ? 'object-contain' : 'object-cover';
   const rounded = settings.rounded !== false;
@@ -168,16 +171,26 @@ function SingleImageLegacy({ settings, content, product, locale, builderPreview 
   const mode = aspect === 'auto' ? ('intrinsic' as const) : ('fill' as const);
   const imgClass = aspect === 'auto' ? 'w-full h-auto' : fit;
 
+  // Store motion style: the image sits in a mask inside its frame, which
+  // opens upwards while the image settles (settle only on the first section).
+  const masked = (img: ReactNode) => (
+    <MotionMedia motion={motion} fill={mode === 'fill'} dir="up">
+      {img}
+    </MotionMedia>
+  );
+
   let image = null;
   if (!source) {
     const url = resolveMediaUrl((settings.image as string) || '');
     if (url) {
       image = (
         <div className={frameClass} style={frameStyle}>
-          {mode === 'fill' ? (
-            <StoreImage src={url} alt={altText} fill sizes={SIZES} unoptimized={isSvgSrc(url)} className={imgClass} />
-          ) : (
-            <StoreImage src={url} alt={altText} width={1200} height={1200} sizes={SIZES} unoptimized={isSvgSrc(url)} className={imgClass} />
+          {masked(
+            mode === 'fill' ? (
+              <StoreImage src={url} alt={altText} fill sizes={SIZES} unoptimized={isSvgSrc(url)} className={imgClass} />
+            ) : (
+              <StoreImage src={url} alt={altText} width={1200} height={1200} sizes={SIZES} unoptimized={isSvgSrc(url)} className={imgClass} />
+            ),
           )}
         </div>
       );
@@ -229,18 +242,20 @@ function SingleImageLegacy({ settings, content, product, locale, builderPreview 
     } else if (resolved) {
       image = (
         <div className={frameClass} style={frameStyle} data-dynamic-image={source}>
-          {mode === 'fill' ? (
-            <StoreImage src={resolved.url} alt={dynamicAlt(resolved)} fill sizes={SIZES} unoptimized={isSvgSrc(resolved.url)} className={imgClass} />
-          ) : (
-            <StoreImage
-              src={resolved.url}
-              alt={dynamicAlt(resolved)}
-              width={1200}
-              height={1200}
-              sizes={SIZES}
-              unoptimized={isSvgSrc(resolved.url)}
-              className={imgClass}
-            />
+          {masked(
+            mode === 'fill' ? (
+              <StoreImage src={resolved.url} alt={dynamicAlt(resolved)} fill sizes={SIZES} unoptimized={isSvgSrc(resolved.url)} className={imgClass} />
+            ) : (
+              <StoreImage
+                src={resolved.url}
+                alt={dynamicAlt(resolved)}
+                width={1200}
+                height={1200}
+                sizes={SIZES}
+                unoptimized={isSvgSrc(resolved.url)}
+                className={imgClass}
+              />
+            ),
           )}
         </div>
       );

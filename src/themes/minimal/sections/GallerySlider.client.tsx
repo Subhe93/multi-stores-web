@@ -9,6 +9,8 @@ import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { useTranslations } from 'next-intl';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, rise } from '../../creative/recipes';
 
 interface GalleryItem {
   url?: string;
@@ -30,7 +32,7 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-export function GallerySlider({ settings, content, locale }: SectionRenderProps) {
+export function GallerySlider({ settings, content, locale, motion }: SectionRenderProps) {
   const t = useTranslations('slider');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -61,7 +63,7 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
     // Alt falls back to the caption so captioned images are not decorative.
     const alt = item.alt?.trim() || caption;
     const inner = (
-      <div className="group relative overflow-hidden h-full" style={radiusStyle}>
+      <div className="group relative overflow-hidden h-full" style={radiusStyle} {...hover(motion, 'media')}>
         <div className={`relative w-full ${ASPECT_CLASS[aspect]}`}>
           <StoreImage
             src={resolveMediaUrl(item.url || '')}
@@ -109,11 +111,11 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
                 lineHeight: 'var(--theme-line-heading)',
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }}>
+            <Heading level={subheadingTag} look="body" className="max-w-2xl mx-auto" style={{ color: 'var(--theme-colors-muted)' }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -134,6 +136,24 @@ export function GallerySlider({ settings, content, locale }: SectionRenderProps)
               ? 'لا توجد صور بعد. أضف صورًا من البيلدر.'
               : 'No images yet. Add some from the builder.'}
           </p>
+        </div>
+      ) : motion ? (
+        // The slider enters as one block; slides outside the track's view
+        // must not wait for a swipe to appear. Controls are untouched.
+        <div {...rise(motion, { i: 1 })}>
+          <Slider
+            slides={slideNodes}
+            slidesPerView={spvDesktop}
+            slidesPerViewTablet={spvTablet}
+            slidesPerViewMobile={spvMobile}
+            gapPx={gapPx}
+            autoplayMs={autoplayMs > 0 ? autoplayMs : undefined}
+            showArrows={showArrows}
+            showDots={showDots}
+            loop={loop}
+            dir={dir}
+            ariaLabel={t('galleryLabel')}
+          />
         </div>
       ) : (
         <Slider

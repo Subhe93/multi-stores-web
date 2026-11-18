@@ -15,6 +15,8 @@ import {
   type ImageSizeSettings,
   type ResolvedImageSizing,
 } from '../../../imageSizing';
+import { MotionMedia } from '../../../creative/primitives/Motion';
+import type { MotionProp } from '../../../creative/recipes';
 
 /** Unique, CSS-safe scope class for one sized image (call once per image). */
 export function useImageSizeScope(): string {
@@ -101,6 +103,7 @@ export function SizedImage({
   frameStyle,
   link,
   dataDynamicImage,
+  motion,
 }: {
   layout: SizedImageLayout;
   src: string;
@@ -108,8 +111,19 @@ export function SizedImage({
   frameStyle?: CSSProperties;
   link?: SizedImageLink;
   dataDynamicImage?: string;
+  /**
+   * Store motion style (the section's own `motion` prop). Unset = today's
+   * markup. Set: the image sits in a mask inside the frame, which opens
+   * upwards while the image settles. The frame keeps its size: the image
+   * carries the height, the mask only follows it.
+   */
+  motion?: MotionProp;
 }): ReactNode {
-  const img = <SizedImageImg layout={layout} src={src} alt={alt} />;
+  const img = (
+    <MotionMedia motion={motion} dir="up">
+      <SizedImageImg layout={layout} src={src} alt={alt} />
+    </MotionMedia>
+  );
   const data = dataDynamicImage ? { 'data-dynamic-image': dataDynamicImage } : {};
   return (
     <>

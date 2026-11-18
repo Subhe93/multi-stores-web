@@ -4,13 +4,14 @@
 // server-side theme registry resolves `.Component` to a ClientReference.
 
 import { useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
+import { rise } from '../../creative/recipes';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -18,7 +19,15 @@ function clampPct(n: number): number {
   return Math.max(0, Math.min(100, n));
 }
 
-export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
+// The comparison enters as one block; the handle and the images inside are
+// never animated. With the store motion style a plain element with the rise
+// recipe replaces the generic reveal.
+function Frame({ motion, children }: { motion: SectionRenderProps['motion']; children: ReactNode }) {
+  if (!motion) return <Reveal direction="scale">{children}</Reveal>;
+  return <div {...rise(motion, { i: 1 })}>{children}</div>;
+}
+
+export function BeforeAfter({ settings, content, locale, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const labelBefore = (content.label_before as string) || '';
@@ -88,6 +97,7 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
               align="center"
               headingColor={settings.heading_color}
               subheadingColor={settings.subheading_color}
+              motion={motion}
             />
           </div>
         )}
@@ -128,11 +138,12 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
             align="center"
             headingColor={settings.heading_color}
             subheadingColor={settings.subheading_color}
+            motion={motion}
           />
         </div>
       )}
 
-      <Reveal direction="scale">
+      <Frame motion={motion}>
         <div
           ref={containerRef}
           className="relative mx-auto w-full max-w-4xl select-none overflow-hidden aspect-[4/3] sm:aspect-[16/10]"
@@ -217,7 +228,7 @@ export function BeforeAfter({ settings, content, locale }: SectionRenderProps) {
             </div>
           </div>
         </div>
-      </Reveal>
+      </Frame>
     </section>
   );
 }

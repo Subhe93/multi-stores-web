@@ -25,6 +25,7 @@ import {
 } from './_shared/socialIcons';
 import { hasImageSize, type ImageSizeSettings } from '../../imageSizing';
 import { SizedImage, sizedImageLayout, useImageSizeScope } from './_shared/SizedImage';
+import { item, stagger } from '../../creative/recipes';
 
 type Mode = 'grid' | 'flex';
 type Align = 'start' | 'center' | 'end' | 'stretch';
@@ -424,7 +425,7 @@ function BlockView({ block }: { block: Block }) {
 
 // ── Section ─────────────────────────────────────────────────────
 
-function LayoutColumns({ settings, content, locale }: SectionRenderProps) {
+function LayoutColumns({ settings, content, locale, motion }: SectionRenderProps) {
   const cells = ((content.cells as Cell[]) || []).filter((c) => (c.blocks?.length ?? 0) > 0);
 
   const mode = (settings.mode as Mode) || 'grid';
@@ -476,6 +477,9 @@ function LayoutColumns({ settings, content, locale }: SectionRenderProps) {
         key={i}
         className={`flex flex-col gap-3 ${cellAlignClass}`}
         style={cellStyle}
+        // Store motion style: the columns rise one after the other, row by
+        // row; the blocks inside a column move with it, never on their own.
+        {...item(motion, i)}
       >
         {blocks.map((b, j) => (
           <BlockView key={j} block={b} />
@@ -503,7 +507,7 @@ function LayoutColumns({ settings, content, locale }: SectionRenderProps) {
           }}
         />
       )}
-      <div className={containerClass} style={{ gap: `${gapPx}px` }}>
+      <div className={containerClass} style={{ gap: `${gapPx}px` }} {...stagger(motion)}>
         {cellNodes}
       </div>
     </section>

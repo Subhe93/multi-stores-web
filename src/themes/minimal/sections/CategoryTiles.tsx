@@ -2,6 +2,7 @@
 // small arrow, each linking somewhere (usually a collection). Static: the
 // owner enters every tile; nothing is fetched.
 
+import type { CSSProperties, ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { resolveMediaUrl } from '@/lib/api';
@@ -16,6 +17,7 @@ import { Heading } from './_shared/Heading';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { GRID_COLS_CLASS, clampCols, gridColsStyle, gridImageSizes } from './_shared/grid';
 import { FOCUS_RING, sectionHref } from './_shared/links';
+import { hover, item, rise, stagger, type MotionProp } from '../../creative/recipes';
 
 interface Tile {
   image?: string;
@@ -43,7 +45,67 @@ const IMAGE_ZOOM_CLASS =
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-function CategoryTiles({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+// With the store motion style the engine staggers the tiles row by row
+// (creative/recipes: cards-stagger): plain elements with the same classes
+// replace the generic stagger group, which would hide the tiles a second time.
+function Group({
+  motion,
+  swipe,
+  className,
+  style,
+  children,
+}: {
+  motion: MotionProp;
+  swipe?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  if (!motion) {
+    return (
+      <StaggerGroup className={className} style={style}>
+        {children}
+      </StaggerGroup>
+    );
+  }
+  const grid = (
+    <div className={className} style={style} {...stagger(motion)} {...(swipe ? { 'data-cx-swipe': '' } : null)}>
+      {children}
+    </div>
+  );
+  // A swipe row (phones, `mobile_scroll`) enters as one block: tiles outside
+  // the row's view must not wait for the swipe to appear. The wrapper exists
+  // only with the motion style; the media stylesheet (css/media.css.ts) keeps
+  // the row's entrance to phones and the per-tile stagger to wider screens.
+  return swipe ? (
+    <div data-cx-swipe-row="" {...rise(motion, { i: 1 })}>
+      {grid}
+    </div>
+  ) : (
+    grid
+  );
+}
+
+function Cell({
+  motion,
+  index,
+  className,
+  children,
+}: {
+  motion: MotionProp;
+  index: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!motion) return <StaggerItem className={className}>{children}</StaggerItem>;
+  return (
+    <div className={className} {...item(motion, index)}>
+      {children}
+    </div>
+  );
+}
+
+function CategoryTiles({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -103,11 +165,14 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
             ruled={settings.heading_rule === true}
             headingColor={settings.heading_color}
             subheadingColor={settings.subheading_color}
+            motion={motion}
           />
         </div>
       )}
 
-      <StaggerGroup
+      <Group
+        motion={motion}
+        swipe={mobileScroll}
         className={`${GRID_COLS_CLASS} gap-3 md:gap-4${
           mobileScroll
             ? // The row runs to the screen edges: it cancels the page gutter
@@ -150,6 +215,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                 aria-hidden
                 className="inline-flex size-7 md:size-8 shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: arrowBg, color: arrowColor }}
+                {...(motion ? { 'data-cx-arrow': '' } : null)}
               >
                 <ArrowRight className="size-4 rtl:-scale-x-100" />
               </span>
@@ -171,7 +237,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                   className="text-sm md:text-base font-semibold leading-tight"
                   style={{ color: titleColor }}
                 >
-                  {title}
+                  {motion && url ? <span className="cx-tt">{title}</span> : title}
                 </Heading>
               )}
               {subtitle && (
@@ -183,8 +249,10 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
           );
 
           return (
-            <StaggerItem
+            <Cell
               key={i}
+              motion={motion}
+              index={i}
               className={`h-full${mobileScroll ? ' max-md:shrink-0 max-md:basis-[62%] max-md:snap-start' : ''}`}
             >
               {overlay ? (
@@ -192,6 +260,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                   {...linkProps}
                   className={`group relative block overflow-hidden ${aspectClass} ${FOCUS_RING}`}
                   style={{ borderRadius: radius, backgroundColor: 'var(--theme-colors-surface)' }}
+                  {...(url && img ? hover(motion, 'media') : null)}
                 >
                   {image}
                   {img && (
@@ -230,6 +299,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                   <div
                     className={`relative ${aspectClass} overflow-hidden`}
                     style={img ? undefined : { backgroundColor: 'var(--theme-colors-surface)' }}
+                    {...(url && img ? hover(motion, 'media') : null)}
                   >
                     {image}
                   </div>
@@ -241,10 +311,10 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                   )}
                 </Wrapper>
               )}
-            </StaggerItem>
+            </Cell>
           );
         })}
-      </StaggerGroup>
+      </Group>
     </section>
   );
 }

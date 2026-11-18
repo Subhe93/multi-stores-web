@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
@@ -23,6 +24,8 @@ import { ctaDefaults, ctaToneValue } from './_shared/cta';
 import { headingLines, multilineStyle } from './_shared/headingLines';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, parallax, rise, type MotionProp } from '../../creative/recipes';
 
 type Position = 'left' | 'right';
 type Aspect = 'square' | 'portrait' | 'landscape' | 'wide';
@@ -50,7 +53,7 @@ const MIN_HEIGHT_CLASS: Record<MinHeight, string> = {
  */
 function dynamicImageBlock(
   source: DynamicImageSource,
-  { settings, product, locale, builderPreview }: SectionRenderProps,
+  { settings, product, locale, builderPreview, motion }: SectionRenderProps,
   aspectClass: string,
 ) {
   const preview = isDynamicPreview(builderPreview);
@@ -85,21 +88,53 @@ function dynamicImageBlock(
   }
   if (!resolved) return hint;
   return (
-    <div className={`relative ${aspectClass}`} style={mediaFx()} data-dynamic-image={source}>
-      <StoreImage
-        src={resolved.url}
-        alt={resolved.alt}
-        fill
-        sizes={IMAGE_SIZES}
-        unoptimized={isSvgSrc(resolved.url)}
-        className="object-cover"
-      />
+    <div
+      className={`relative ${aspectClass}`}
+      style={mediaFx()}
+      data-dynamic-image={source}
+      {...(motion ? { 'data-cx-frame': '' } : null)}
+    >
+      <MotionMedia motion={motion} fill dir="up">
+        <StoreImage
+          src={resolved.url}
+          alt={resolved.alt}
+          fill
+          sizes={IMAGE_SIZES}
+          unoptimized={isSvgSrc(resolved.url)}
+          className="object-cover"
+        />
+      </MotionMedia>
     </div>
   );
 }
 
+/**
+ * The uploaded image inside its frame. With the store motion style the frame
+ * opens from the text side while the image settles, and from 768 px the
+ * image drifts a little with the scroll (never on product pages and lists:
+ * their timing is the fast one and the layer is not oversized there).
+ */
+function motionImage(motion: MotionProp, textSide: 'start' | 'end', still: boolean, image: ReactNode): ReactNode {
+  if (!motion) return image;
+  return (
+    <MotionMedia motion={motion} fill dir={textSide}>
+      {still ? (
+        image
+      ) : (
+        // data-cx-soft: a smaller oversize (css/media.css.ts), so a photo
+        // with content near its edges is hardly cropped.
+        <div className="absolute inset-0" data-cx-soft="" {...parallax(motion, -5)}>
+          {image}
+        </div>
+      )}
+    </MotionMedia>
+  );
+}
+
 function ImageWithText(props: SectionRenderProps) {
-  const { settings, content, locale, primaryLocale } = props;
+  const { settings, content, locale, primaryLocale, motion } = props;
+  // Fast surfaces (product page, listing) get no scroll-linked layer.
+  const still = !!props.product || !!props.listing;
   // A missing / 'static' / unknown image_source keeps the uploaded image.
   const imageSource = dynamicImageSource(settings);
   const headingLevel = headingTag(settings.heading_level, 'h2');
@@ -169,15 +204,20 @@ function ImageWithText(props: SectionRenderProps) {
         blend={colors.blend}
         media={
           resolvedImage ? (
-            <StoreImage
-              src={resolvedImage}
-              alt={altText}
-              fill
-              sizes={IMAGE_SIZES}
-              unoptimized={isSvgSrc(resolvedImage)}
-              className="object-cover"
-              style={{ objectPosition: focusPosition(settings.image_focus) }}
-            />
+            motionImage(
+              motion,
+              position === 'right' ? 'start' : 'end',
+              still,
+              <StoreImage
+                src={resolvedImage}
+                alt={altText}
+                fill
+                sizes={IMAGE_SIZES}
+                unoptimized={isSvgSrc(resolvedImage)}
+                className="object-cover"
+                style={{ objectPosition: focusPosition(settings.image_focus) }}
+              />,
+            )
           ) : props.builderPreview === true ? (
             // Builder only: keep the image half visible until one is uploaded.
             <BleedMediaPlaceholder />
@@ -189,6 +229,7 @@ function ImageWithText(props: SectionRenderProps) {
             <Heading level={eyebrowTag} look="body"
               className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
               style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
+              {...rise(motion)}
             >
               {eyebrow}
             </Heading>
@@ -205,7 +246,7 @@ function ImageWithText(props: SectionRenderProps) {
                 ...multilineStyle(bleedHeading),
               }}
             >
-              {bleedHeading}
+              <MotionText motion={motion} text={bleedHeading} d={1} />
               <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
             </Heading>
           )}
@@ -213,17 +254,19 @@ function ImageWithText(props: SectionRenderProps) {
             <p
               className="max-w-prose"
               style={{ color: colorOr(settings.body_color, colors.muted), lineHeight: 'var(--theme-line-body)' }}
+              {...rise(motion, { i: 2 })}
             >
               {body}
             </p>
           )}
           {(ctaText || ctaSecondaryText) && (
-            <div className="flex flex-wrap gap-3 mt-2">
+            <div className="flex flex-wrap gap-3 mt-2" {...rise(motion, { i: 3 })}>
               {ctaText && (
                 <a
                   href={sectionHref(settings.cta_url, locale, primaryLocale)}
                   className={buttonClass}
                   style={{ ...primaryStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                  {...hover(motion, 'press')}
                 >
                   {ctaText}
                 </a>
@@ -233,6 +276,7 @@ function ImageWithText(props: SectionRenderProps) {
                   href={ctaSecondaryHref}
                   className={buttonClass}
                   style={{ ...secondaryStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                  {...hover(motion, 'press')}
                 >
                   {ctaSecondaryText}
                 </a>
@@ -270,6 +314,7 @@ function ImageWithText(props: SectionRenderProps) {
         <Heading level={eyebrowTag} look="body"
           className="text-xs font-semibold uppercase tracking-[0.2em]"
           style={{ color: colorOr(settings.eyebrow_color, 'var(--theme-colors-accent)') }}
+          {...rise(motion)}
         >
           {eyebrow}
         </Heading>
@@ -285,7 +330,7 @@ function ImageWithText(props: SectionRenderProps) {
             color: colorOr(settings.heading_color, 'var(--theme-colors-text)'),
           }}
         >
-          {heading}
+          <MotionText motion={motion} text={heading} d={1} />
           <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
         </Heading>
       )}
@@ -293,6 +338,7 @@ function ImageWithText(props: SectionRenderProps) {
         <p
           className="max-w-prose"
           style={{ color: colorOr(settings.body_color, 'var(--theme-colors-muted)'), lineHeight: 'var(--theme-line-body)' }}
+          {...rise(motion, { i: 2 })}
         >
           {body}
         </p>
@@ -300,12 +346,13 @@ function ImageWithText(props: SectionRenderProps) {
       {ctaSecondaryText ? (
         // Two buttons side by side; the single-button markup below is left
         // exactly as it was.
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3" {...rise(motion, { i: 3 })}>
           {ctaText && (
             <a
               href={ctaUrl}
               className="inline-flex items-center px-6 py-2.5 mt-2 transition hover:opacity-90"
               style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)' }}
+              {...hover(motion, 'press')}
             >
               {ctaText}
             </a>
@@ -314,16 +361,18 @@ function ImageWithText(props: SectionRenderProps) {
             href={ctaSecondaryHref}
             className={`inline-flex items-center px-6 py-2.5 mt-2 motion-safe:transition-opacity hover:opacity-80 ${FOCUS_RING}`}
             style={{ ...ctaSecondaryStyle, fontWeight: 'var(--theme-weight-bold)' }}
+            {...hover(motion, 'press')}
           >
             {ctaSecondaryText}
           </a>
         </div>
       ) : ctaText ? (
-        <div>
+        <div {...rise(motion, { i: 3 })}>
           <a
             href={ctaUrl}
             className="inline-flex items-center px-6 py-2.5 mt-2 transition hover:opacity-90"
             style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)' }}
+            {...hover(motion, 'press')}
           >
             {ctaText}
           </a>
@@ -333,15 +382,22 @@ function ImageWithText(props: SectionRenderProps) {
   );
 
   const imageBlock = imageSource ? dynamicImageBlock(imageSource, props, ASPECT_CLASS[aspect]) : resolvedImage ? (
-    <div className={`relative ${ASPECT_CLASS[aspect]}`} style={mediaFx()}>
-      <StoreImage
-        src={resolvedImage}
-        alt={altText}
-        fill
-        sizes="(min-width: 768px) 50vw, 100vw"
-        unoptimized={isSvgSrc(resolvedImage)}
-        className="object-cover"
-      />
+    // data-cx-frame: the frame's shadow waits for the image behind the mask
+    // (css/media.css.ts), so no empty shadow box shows before the reveal.
+    <div className={`relative ${ASPECT_CLASS[aspect]}`} style={mediaFx()} {...(motion ? { 'data-cx-frame': '' } : null)}>
+      {motionImage(
+        motion,
+        position === 'left' ? 'end' : 'start',
+        still,
+        <StoreImage
+          src={resolvedImage}
+          alt={altText}
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          unoptimized={isSvgSrc(resolvedImage)}
+          className="object-cover"
+        />,
+      )}
     </div>
   ) : (
     <div
@@ -363,7 +419,19 @@ function ImageWithText(props: SectionRenderProps) {
     if (!eyebrow && !heading && !body && !ctaText && !ctaSecondaryText) return null;
     return (
       <section className="my-12">
-        <Reveal direction="up">{text}</Reveal>
+        {motion ? <div>{text}</div> : <Reveal direction="up">{text}</Reveal>}
+      </section>
+    );
+  }
+
+  if (motion) {
+    // The store motion style: the recipes on the image and on each text
+    // element replace the two generic reveal wrappers (same grid cells).
+    const second = position !== 'left';
+    return (
+      <section className="grid md:grid-cols-2 gap-8 lg:gap-20 my-12 items-center">
+        <div className={second ? 'md:order-2' : undefined}>{imageBlock}</div>
+        <div className={second ? 'md:order-1' : undefined}>{text}</div>
       </section>
     );
   }

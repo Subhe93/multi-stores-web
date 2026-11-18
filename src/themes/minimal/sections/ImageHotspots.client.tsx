@@ -3,7 +3,7 @@
 // Component implementation. Definition lives in ImageHotspots.tsx so the
 // server-side theme registry resolves `.Component` to a ClientReference.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
 import { ArrowUpRight } from 'lucide-react';
@@ -11,6 +11,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionRenderProps } from '../../types';
 import { Reveal } from '../../_motion';
+import { rise } from '../../creative/recipes';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
 
@@ -27,7 +28,17 @@ function clampPct(n: unknown, fallback: number): number {
   return Math.max(0, Math.min(100, v));
 }
 
-export function ImageHotspots({ settings, content, locale }: SectionRenderProps) {
+// The image with its dots enters as one block; the dots and cards keep
+// their own behaviour. With the store motion style a plain element with the
+// rise recipe replaces the generic reveal.
+function Frame({ motion, children }: { motion: SectionRenderProps['motion']; children: ReactNode }) {
+  if (!motion) return <Reveal direction="scale">{children}</Reveal>;
+  return <div {...rise(motion, { i: 1 })}>{children}</div>;
+}
+
+// `phase` is the store motion style of the section (the name `motion` is
+// framer's here).
+export function ImageHotspots({ settings, content, locale, motion: phase }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const image = (settings.image as string) || '';
@@ -76,7 +87,7 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
         <div className="mb-10">
           <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading}
-            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" />
+            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" motion={phase} />
         </div>
       )}
 
@@ -93,7 +104,7 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
         }
       `}</style>
 
-      <Reveal direction="scale">
+      <Frame motion={phase}>
         <div ref={containerRef} className="relative mx-auto w-full max-w-4xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -204,7 +215,7 @@ export function ImageHotspots({ settings, content, locale }: SectionRenderProps)
             );
           })}
         </div>
-      </Reveal>
+      </Frame>
     </section>
   );
 }

@@ -20,6 +20,8 @@ import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { rise } from '../../creative/recipes';
 
 type Embed =
   | { kind: 'external'; video: ParsedExternalVideo }
@@ -47,7 +49,7 @@ function resolveEmbed(raw: string): Embed | null {
 
 const noopSubscribe = () => () => {};
 
-export function VideoEmbed({ settings, content, locale, storeSlug }: SectionRenderProps) {
+export function VideoEmbed({ settings, content, locale, storeSlug, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
   const heading = (content.heading as string) || '';
@@ -93,11 +95,11 @@ export function VideoEmbed({ settings, content, locale, storeSlug }: SectionRend
                 color: colorOr(settings.heading_color, 'var(--theme-colors-text)'),
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-2" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -112,6 +114,9 @@ export function VideoEmbed({ settings, content, locale, storeSlug }: SectionRend
           backgroundColor: 'var(--theme-colors-surface)',
           borderRadius: 'var(--theme-radius-md)',
         }}
+        // The player frame enters as one block; the video, the poster and
+        // the controls inside are never animated.
+        {...rise(motion, { i: 1 })}
       >
         {!embed ? (
           <div className="absolute inset-0 flex items-center justify-center px-4 text-center">

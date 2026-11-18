@@ -5,7 +5,7 @@
 // Client-side for the lightbox (keyboard navigation + scroll lock).
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
@@ -18,6 +18,7 @@ import { lockScroll } from '@/lib/scrollLock';
 import { LightboxImage } from '@/components/product/LightboxImage';
 import { SectionHeading } from './_shared/SectionHeading';
 import { headingTag, textTag } from './_shared/headingLevel';
+import { hover, item as cell, stagger, type MotionProp } from '../../creative/recipes';
 
 interface MasonryImage {
   image?: string;
@@ -33,7 +34,56 @@ function clampColumns(n: unknown, fallback: number): number {
   return Math.max(2, Math.min(4, v));
 }
 
-export function MasonryGallery({ settings, content, locale }: SectionRenderProps) {
+// With the store motion style the engine reveals the tiles as they enter
+// (creative/recipes: cards-stagger): plain elements with the same classes
+// replace the generic stagger group, which would hide the tiles a second time.
+function Group({
+  motion,
+  className,
+  style,
+  children,
+}: {
+  motion: MotionProp;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  if (!motion) {
+    return (
+      <StaggerGroup className={className} style={style}>
+        {children}
+      </StaggerGroup>
+    );
+  }
+  return (
+    <div className={className} style={style} {...stagger(motion)}>
+      {children}
+    </div>
+  );
+}
+
+function Cell({
+  motion,
+  index,
+  className,
+  children,
+}: {
+  motion: MotionProp;
+  index: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!motion) return <StaggerItem className={className}>{children}</StaggerItem>;
+  return (
+    <div className={className} {...cell(motion, index)}>
+      {children}
+    </div>
+  );
+}
+
+// `phase` is the store motion style of the section (the name `motion` is
+// framer's here).
+export function MasonryGallery({ settings, content, locale, motion: phase }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const images = ((content.images as MasonryImage[]) || []).filter((i) => !!i.image);
@@ -87,7 +137,7 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
         <div className="mb-10">
           <SectionHeading
             tag={headingTag(settings.heading_level, 'h2')} heading={heading} subheading={subheading}
-            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" />
+            subheadingTag={textTag(settings.subheading_tag, 'p')} align="center" motion={phase} />
         </div>
       )}
 
@@ -115,7 +165,8 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
             @media (min-width: 1024px) { .ms-masonry { column-count: var(--ms-masonry-cols, 3); } }
           `}</style>
 
-          <StaggerGroup
+          <Group
+            motion={phase}
             className="ms-masonry"
             style={{ '--ms-masonry-cols': columns } as CSSProperties}
           >
@@ -124,6 +175,7 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                 <div
                   className="group relative overflow-hidden"
                   style={{ borderRadius: 'var(--theme-radius-md)' }}
+                  {...hover(phase, 'media')}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -147,7 +199,7 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
               );
 
               return (
-                <StaggerItem key={i} className="mb-4 break-inside-avoid">
+                <Cell key={i} motion={phase} index={i} className="mb-4 break-inside-avoid">
                   {item.url ? (
                     <a href={item.url} className="block">
                       {tile}
@@ -164,10 +216,10 @@ export function MasonryGallery({ settings, content, locale }: SectionRenderProps
                   ) : (
                     tile
                   )}
-                </StaggerItem>
+                </Cell>
               );
             })}
-          </StaggerGroup>
+          </Group>
 
           {/* Minimal dark lightbox, portalled to <body>. The portal leaves the
               page's `dir` / theme scope, so it carries the direction itself. */}
