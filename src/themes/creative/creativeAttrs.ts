@@ -21,6 +21,11 @@ export function readCreative(c?: ThemeCustomizations | null): CreativeOptions | 
   return { smooth: smooth !== 'off', magnetic: magnetic !== 'off', curtain: transition === 'curtain' };
 }
 
+/** The store switched its motion style on (sections then get the `motion` prop). */
+export function storeMotion(c?: ThemeCustomizations | null): boolean {
+  return readCreative(c) !== null;
+}
+
 /**
  * Data attributes for `.store-root`. An empty object when the switch is off,
  * so a store that never set it renders the same root element.
@@ -33,4 +38,10 @@ export function creativeAttrs(c?: ThemeCustomizations | null): Record<string, st
   if (!options.magnetic) attrs['data-creative-magnetic'] = 'off';
   if (options.curtain) attrs['data-creative-transition'] = 'curtain';
   return attrs;
+}
+
+/** storeMotion() for a store record of any shape (pages cast their own). */
+export function storeMotionOf(store: unknown): boolean {
+  if (!store || typeof store !== 'object') return false;
+  return storeMotion((store as { theme_customizations?: ThemeCustomizations | null }).theme_customizations);
 }

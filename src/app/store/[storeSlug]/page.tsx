@@ -10,6 +10,7 @@ import { Truck, RefreshCw, ShieldCheck, Star, ArrowRight, ChevronRight, FolderTr
 import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
@@ -240,6 +241,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
           locale={locale}
           primaryLocale={primaryLocale}
           storeSlug={storeSlug}
+          motion={storeMotionOf(store)}
           currency={storeCurrency}
           preloaded={preloaded}
         />

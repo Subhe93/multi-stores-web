@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Cx } from '../boot.client';
 import { BASE_CSS } from '../css/base.css';
-import { sceneProps, sceneValue } from '../scene';
 import { CxStyle } from './CxStyle';
 import { JsFlag } from './JsFlag';
 
@@ -17,10 +16,6 @@ export type CxSectionProps = {
   island?: boolean;
   /** Break out of the page container to the full viewport width. */
   bleed?: boolean;
-  scene?: unknown;
-  sceneBg?: unknown;
-  sceneText?: unknown;
-  sceneAccent?: unknown;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
@@ -29,7 +24,7 @@ export type CxSectionProps = {
 /**
  * Root of every creative section. Renders, in order: the motion flag script,
  * the base stylesheet, the section stylesheet, then the element carrying
- * data-cx-section (and the scene attributes), with the island as last child.
+ * data-cx-section, with the island as last child.
  */
 export function CxSection({
   name,
@@ -37,19 +32,13 @@ export function CxSection({
   as = 'section',
   island = true,
   bleed = true,
-  scene,
-  sceneBg,
-  sceneText,
-  sceneAccent,
   className,
   style,
   children,
   ...rest
 }: CxSectionProps) {
   const Tag = as;
-  const sp = sceneProps(sceneValue(scene), { bg: sceneBg, text: sceneText, accent: sceneAccent });
   const cls = [bleed ? 'cx-bleed' : '', className || ''].filter(Boolean).join(' ');
-  const merged = sp.style || style ? { ...sp.style, ...style } : undefined;
   return (
     <>
       <JsFlag />
@@ -57,9 +46,8 @@ export function CxSection({
       {css ? <CxStyle id={name} css={css} /> : null}
       <Tag
         data-cx-section={name}
-        data-cx-scene={sp['data-cx-scene']}
         className={cls || undefined}
-        style={merged}
+        style={style}
         {...rest}
       >
         {children}

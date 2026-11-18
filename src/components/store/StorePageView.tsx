@@ -10,6 +10,7 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance } from '@/themes/types';
 import { PageBreadcrumb } from '@/components/common/PageBreadcrumb';
@@ -308,6 +309,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
           locale={locale}
           primaryLocale={primaryLocale}
           storeSlug={storeSlug}
+          motion={storeMotionOf(store)}
           // Product cards fall back to EUR without it (prices showed "€").
           currency={store?.currency}
           preloaded={preloaded}

@@ -1294,20 +1294,8 @@
     }
   },
   "creative": {
-    "marqueePause": "إيقاف مؤقت",
-    "marqueePlay": "تشغيل",
-    "storySkip": "تخطَّ هذا القسم",
-    "storyHint": "واصل التمرير",
-    "storyProgress": "{current} / {total}",
     "loadingPage": "جارٍ تحميل الصفحة",
     "empty": {
-      "heroOutline": "أضف صورة أو عنواناً إلى هذا القسم",
-      "heroSunrise": "أضف صورة أو عنواناً إلى هذا القسم",
-      "stageScenes": "أضف عملاً فنياً ومشهدين على الأقل",
-      "storyPinned": "أضف بطاقات إلى هذا القسم",
-      "stickySteps": "أضف عنواناً وخطوات إلى هذا القسم",
-      "motionPath": "أضف عنواناً ومحطات إلى هذا القسم",
-      "marqueeBand": "أضف عناصر إلى هذا الشريط",
       "ornamentLine": "أضف مسارات نقشك أو عنواناً"
     }
   }

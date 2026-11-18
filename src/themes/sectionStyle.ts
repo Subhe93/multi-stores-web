@@ -63,20 +63,11 @@ export interface SectionStyle {
   animate?: AnimateToken;
   // Breakpoints where the section is hidden entirely (display: none).
   hide_on?: Breakpoint[];
+  // Per-section override of the motion. Unset = automatic (the store's
+  // motion style, or today's scroll-in reveal). 'none' = this section never
+  // animates in. Read by SectionRenderer only; the resolver below ignores it.
+  motion?: 'none';
 
-  // Creative engine (themes/creative/decor): a scene colour theme and a
-  // living background on any section. Flat keys, unset = nothing rendered.
-  // Read by renderSectionDecor only; the resolver below ignores them.
-  scene?: 'dark' | 'light' | 'accent';
-  scene_bg?: string;
-  scene_text?: string;
-  scene_accent?: string;
-  backdrop?: 'dots' | 'particles' | 'glow';
-  backdrop_color_1?: string;
-  backdrop_color_2?: string;
-  backdrop_intensity?: 'soft' | 'medium';
-  backdrop_motion?: 'slow' | 'still';
-  backdrop_particle?: 'dot' | 'ring';
 
   // ── Legacy fields (read-only fallback) ──────────────────────────────
   // The previous schema stored padding/margin as separate top/bottom tokens.

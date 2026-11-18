@@ -15,7 +15,7 @@ vi.mock('../engine/core', () => ({ register: () => () => {} }));
 
 import { MOTION_FLAG_SCRIPT } from '../motionFlag';
 import { BASE_CSS } from '../css/base.css';
-import { CxAssets, CxSection, EmptyState, Eyebrow, HeadingText, MaskReveal, Numeral, OutlineAccent, PillButton } from '.';
+import { CxAssets, CxSection, EmptyState, Eyebrow, HeadingText, MaskReveal, PillButton } from '.';
 
 /** Static markup without the hoisted <style> block React puts first. */
 function body(html: string): string {
@@ -124,39 +124,6 @@ describe('HeadingText', () => {
   });
 });
 
-describe('OutlineAccent and Numeral', () => {
-  it('is decorative, sized sm / md only', () => {
-    const { container } = render(<OutlineAccent text="ATELIER" size="xl" look="outline" />);
-    const el = container.firstElementChild as HTMLElement;
-    expect(el.getAttribute('aria-hidden')).toBe('true');
-    expect(el.getAttribute('data-cx-size')).toBe('md');
-    expect(el.getAttribute('data-cx-accent')).toBe('outline');
-    expect(el.hasAttribute('data-cx-script')).toBe(false);
-    expect(render(<OutlineAccent text="ATELIER" size="sm" look="faint" />).container.firstElementChild?.getAttribute('data-cx-size')).toBe('sm');
-  });
-
-  it('falls back to faint for Arabic-script text (no text stroke on joined letters)', () => {
-    const { container } = render(<OutlineAccent text="أتيليه" size="md" look="outline" />);
-    const el = container.firstElementChild as HTMLElement;
-    expect(el.getAttribute('data-cx-accent')).toBe('faint');
-    expect(el.getAttribute('data-cx-script')).toBe('arabic');
-  });
-
-  it('renders nothing without text', () => {
-    expect(render(<OutlineAccent text="" size="md" look="outline" />).container.innerHTML).toBe('');
-  });
-
-  it('numerals are two Latin digits, decorative, sm / md only', () => {
-    const { container } = render(<Numeral n={4} look="outline" size="lg" />);
-    const el = container.firstElementChild as HTMLElement;
-    expect(el.textContent).toBe('04');
-    expect(el.getAttribute('aria-hidden')).toBe('true');
-    expect(el.getAttribute('data-cx-num')).toBe('outline');
-    expect(el.getAttribute('data-cx-size')).toBe('md');
-    expect(render(<Numeral n={12} look="solid" size="sm" />).container.firstElementChild?.textContent).toBe('12');
-  });
-});
-
 describe('Eyebrow, MaskReveal, PillButton, EmptyState', () => {
   it('eyebrow flags Arabic text (no uppercase, no tracking)', () => {
     const latin = render(<Eyebrow text="Our story" intro />).container.firstElementChild as HTMLElement;
@@ -255,33 +222,6 @@ describe('CxSection', () => {
     expect(html).toMatch(/data-href="[^"]*cx-a[^"]*"/);
   });
 
-  it('scene attributes and overrides land on the section element', () => {
-    const { container } = render(
-      <CxSection name="x" island={false} bleed={false} scene="accent" sceneBg="#aa2233" sceneText="junk" style={{ minHeight: 10 }}>
-        <p>content</p>
-      </CxSection>,
-    );
-    const el = container.querySelector('[data-cx-section="x"]') as HTMLElement;
-    expect(el.getAttribute('data-cx-scene')).toBe('accent');
-    expect(el.style.getPropertyValue('--cx-bg')).toBe('#aa2233');
-    expect(el.style.getPropertyValue('--cx-fg')).toBe('');
-    expect(el.style.minHeight).toBe('10px');
-    expect(el.hasAttribute('class')).toBe(false);
-    // island={false}: no anchor, zero JavaScript.
-    expect(el.querySelector('[data-cx-anchor]')).toBeNull();
-  });
-
-  it('scene "none" or junk adds nothing', () => {
-    for (const scene of ['none', 'pink', undefined, 3]) {
-      const html = renderToStaticMarkup(
-        <CxSection name="x" island={false} scene={scene}>
-          <p>c</p>
-        </CxSection>,
-      );
-      expect(body(html)).not.toContain('data-cx-scene');
-    }
-  });
-
   it('as="div" and CxAssets for existing sections', () => {
     const html = renderToStaticMarkup(
       <CxSection name="x" as="div" island={false}>
@@ -323,12 +263,6 @@ describe('base stylesheet', () => {
     expect(BASE_CSS).toContain(
       'html[data-cx-motion] .store-root:not([data-motion-reveal="off"]):not([data-cx-builder]) [data-cx-reveal="rise"][data-cx-state="pending"]',
     );
-  });
-
-  it('decorative sizes stay medium: the largest accent token caps at 3.5rem', () => {
-    expect(BASE_CSS).toContain('--cx-accent-sm:clamp(1.25rem,2.4vw,2rem)');
-    expect(BASE_CSS).toContain('--cx-accent-md:clamp(1.75rem,4vw,3.5rem)');
-    expect(BASE_CSS).not.toMatch(/--cx-accent-(lg|xl)/);
   });
 
   it('uses logical properties only (no physical margin / padding / inset sides)', () => {

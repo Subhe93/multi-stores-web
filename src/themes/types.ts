@@ -459,6 +459,15 @@ export interface SectionRenderProps {
    * which show a "no data" placeholder only in the builder preview.
    */
   builderPreview?: boolean;
+  /**
+   * Store motion style (themes/creative). Passed ONLY when the store switched
+   * it on and the section did not opt out ("_style.motion": "none"); every
+   * other render keeps exactly the props it had. 'intro' = the first section
+   * of the page (its motion plays on load, CSS only), 'scroll' = it plays
+   * when the section enters the viewport. Sections spread the recipe helpers
+   * of themes/creative/recipes.ts with it; undefined makes them return nothing.
+   */
+  motion?: 'intro' | 'scroll';
 }
 
 /** One rendered child handed to a layout container. */

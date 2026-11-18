@@ -52,12 +52,16 @@ export function CreativeBoot({
   options,
   curtainLabel,
   logoUrl,
+  segmentOverride,
 }: {
   options: CreativeOptions;
   curtainLabel: string;
   logoUrl?: string;
+  /** Demo route only: the store segment to act as (null = home, "products", "cart"). */
+  segmentOverride?: string | null;
 }): null {
-  const segment = useSelectedLayoutSegment();
+  const layoutSegment = useSelectedLayoutSegment();
+  const segment = segmentOverride === undefined ? layoutSegment : segmentOverride;
   const pathname = usePathname();
   const router = useRouter();
   const { smooth, magnetic, curtain } = options;

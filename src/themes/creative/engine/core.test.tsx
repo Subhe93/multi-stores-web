@@ -137,8 +137,8 @@ describe('creative engine core', () => {
 
     const off = register(scope);
     expect(document.documentElement.hasAttribute('data-cx-motion')).toBe(true);
-    // On screen: never hidden.
-    expect(near.hasAttribute('data-cx-state')).toBe(false);
+    // On screen: never hidden (marked as done, so a later pass leaves it alone).
+    expect(near.getAttribute('data-cx-state')).toBe('done');
     expect(far.getAttribute('data-cx-state')).toBe('pending');
     expect(scope.hasAttribute('data-cx-watch')).toBe(true);
     expect(root.style.getPropertyValue('--cx-header-h')).toBe('0px');
@@ -148,6 +148,7 @@ describe('creative engine core', () => {
 
     off();
     expect(far.hasAttribute('data-cx-state')).toBe(false);
+    expect(near.hasAttribute('data-cx-state')).toBe(false);
     expect(scope.hasAttribute('data-cx-watch')).toBe(false);
     expect(scope.hasAttribute('data-cx-inview')).toBe(false);
     expect(root.style.getPropertyValue('--cx-header-h')).toBe('');

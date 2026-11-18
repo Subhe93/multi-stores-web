@@ -4,11 +4,9 @@ import {
   ACCENT_SIZES,
   COMMERCE_SEGMENTS,
   CREATIVE_SECTION_KEYS,
-  headingRevealValue,
-  imageRevealDirection,
-  imageRevealValue,
   isBrandPath,
   isBrandSegment,
+  routeScope,
 } from './constants';
 
 describe('accentSize (owner decision: no giant words)', () => {
@@ -24,16 +22,15 @@ describe('accentSize (owner decision: no giant words)', () => {
   });
 });
 
-describe('option sanitizers', () => {
-  it('default to the neutral value', () => {
-    expect(headingRevealValue(undefined)).toBe('none');
-    expect(headingRevealValue('lines')).toBe('lines');
-    expect(headingRevealValue('chars')).toBe('none');
-    expect(imageRevealValue('mask')).toBe('mask');
-    expect(imageRevealValue(true)).toBe('none');
-    expect(imageRevealDirection('start')).toBe('start');
-    expect(imageRevealDirection('end')).toBe('end');
-    expect(imageRevealDirection('left')).toBe('up');
+describe('routeScope', () => {
+  it('home and content pages are brand, product lists and pages are shop, the rest is flow', () => {
+    expect(routeScope(null)).toBe('brand');
+    expect(routeScope('our-impact')).toBe('brand');
+    expect(routeScope('products')).toBe('shop');
+    expect(routeScope('collections')).toBe('shop');
+    for (const s of ['cart', 'checkout', '(checkout)', 'account', 'auth', 'legal', 'market-not-found']) {
+      expect(routeScope(s), s).toBe('flow');
+    }
   });
 });
 
@@ -69,8 +66,7 @@ describe('route scope', () => {
 });
 
 describe('section keys', () => {
-  it('lists the eight creative sections', () => {
-    expect(CREATIVE_SECTION_KEYS).toHaveLength(8);
-    expect(new Set(CREATIVE_SECTION_KEYS).size).toBe(8);
+  it('the engine adds one section: the ornament divider', () => {
+    expect([...CREATIVE_SECTION_KEYS]).toEqual(['ornament-line']);
   });
 });

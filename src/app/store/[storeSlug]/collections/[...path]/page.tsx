@@ -14,6 +14,7 @@ import { isSvgSrc } from '@/lib/storeMedia';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingCard, toListingProduct } from '@/lib/listing';
@@ -309,6 +310,7 @@ export default async function CollectionPage({
           locale={tplLocale}
           primaryLocale={ldPrimary}
           storeSlug={storeSlug}
+          motion={storeMotionOf(storeData)}
           currency={currency}
           listing={listing}
           preloaded={preloaded}

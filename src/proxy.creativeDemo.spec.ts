@@ -25,7 +25,7 @@ describe('proxy: creative demo route', () => {
   it('passes through without a store lookup while the gate is open, on any host', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     for (const host of ['localhost:3100', 'some-store.localhost:3100', 'shop.example.com']) {
-      const res = await proxy(req(host, '/dev/creative-demo?only=hero-outline&locale=ar'));
+      const res = await proxy(req(host, '/dev/creative-demo?view=product&locale=ar'));
       expect(res.headers.get('x-middleware-next'), host).toBe('1');
       expect(res.headers.get('x-middleware-rewrite'), host).toBeNull();
       expect(res.headers.get('location'), host).toBeNull();

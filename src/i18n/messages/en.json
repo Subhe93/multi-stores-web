@@ -1294,20 +1294,8 @@
     }
   },
   "creative": {
-    "marqueePause": "Pause",
-    "marqueePlay": "Play",
-    "storySkip": "Skip this section",
-    "storyHint": "Keep scrolling",
-    "storyProgress": "{current} / {total}",
     "loadingPage": "Loading page",
     "empty": {
-      "heroOutline": "Add an image or a heading to this section",
-      "heroSunrise": "Add an image or a heading to this section",
-      "stageScenes": "Add an artwork and at least two scenes",
-      "storyPinned": "Add cards to this section",
-      "stickySteps": "Add a heading and steps to this section",
-      "motionPath": "Add a heading and stops to this section",
-      "marqueeBand": "Add items to this band",
       "ornamentLine": "Add your motif paths or a heading"
     }
   }

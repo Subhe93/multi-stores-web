@@ -73,50 +73,6 @@ describe('creative engine is opt-in', () => {
     }
   });
 
-  it('_style without a scene or a backdrop adds no element, class or attribute', () => {
-    const plain = STORED_PAGE.map((s) => ({
-      ...s,
-      settings: { ...s.settings, _style: { padding: { top: 'lg', bottom: 'lg' }, background: 'surface' } },
-    }));
-    const withUnsetDecor = STORED_PAGE.map((s) => ({
-      ...s,
-      settings: {
-        ...s.settings,
-        _style: {
-          padding: { top: 'lg', bottom: 'lg' },
-          background: 'surface',
-          scene: 'none',
-          scene_bg: '',
-          backdrop: 'none',
-          backdrop_color_1: '',
-        },
-      },
-    }));
-    const a = renderPage(plain);
-    const b = renderPage(withUnsetDecor);
-    expect(b).toBe(a);
-    for (const trace of CREATIVE_TRACES) expect(a).not.toMatch(trace);
-  });
-
-  it('chrome sections never get the decor hook', () => {
-    const html = renderToStaticMarkup(
-      <SectionRenderer
-        theme={minimalTheme}
-        sections={[
-          section('c1', 'brand-band', { image: '/uploads/b.jpg', _style: { scene: 'dark', backdrop: 'dots' } }, {
-            heading: 'Our brand',
-          }),
-        ]}
-        locale="en"
-        primaryLocale="en"
-        storeSlug="demo"
-        chrome
-        collapseWrappers={false}
-      />,
-    );
-    expect(html).not.toMatch(/data-cx-scene|cx-scene-wrap|cx-bd/);
-  });
-
   it('root attributes are absent without the switch', () => {
     const unset: Array<ThemeCustomizations | null | undefined> = [
       undefined,
@@ -133,7 +89,7 @@ describe('creative engine is opt-in', () => {
 });
 
 describe('creative sections are registered', () => {
-  it('the eight keys exist in the minimal theme, built on the frozen schemas', () => {
+  it('the ornament divider exists in the minimal theme, built on the frozen schema', () => {
     for (const key of CREATIVE_SECTION_KEYS) {
       const def = minimalTheme.sections[key];
       expect(def, key).toBeTruthy();
@@ -151,28 +107,10 @@ describe('creative sections are registered', () => {
     }
   });
 
-  it('none of them gets the generic scroll-in wrapper (its transform would break sticky stages)', () => {
-    for (const key of CREATIVE_SECTION_KEYS) expect(shouldReveal(key, false), key).toBe(false);
-  });
-
-  it('a section with nothing set renders nothing on the live store and a placeholder in the builder', () => {
-    for (const key of CREATIVE_SECTION_KEYS) {
-      const empty = [section('e1', key, { ...CREATIVE_SCHEMAS[key].defaultSettings }, {})];
-      const live = renderToStaticMarkup(
-        <SectionRenderer theme={minimalTheme} sections={empty} locale="en" primaryLocale="en" storeSlug="demo" />,
-      );
-      expect(live, key).not.toMatch(/data-cx-section|<script/);
-      const builder = renderToStaticMarkup(
-        <SectionRenderer
-          theme={minimalTheme}
-          sections={empty}
-          locale="en"
-          primaryLocale="en"
-          storeSlug="demo"
-          builderPreview
-        />,
-      );
-      expect(builder, key).toContain(`data-cx-empty="${key}"`);
+  it('the dropped compositions are not registered', () => {
+    for (const key of ['hero-outline', 'hero-sunrise', 'stage-scenes', 'story-pinned', 'sticky-steps', 'motion-path', 'marquee-band']) {
+      expect(minimalTheme.sections[key], key).toBeUndefined();
     }
+    expect(shouldReveal('ornament-line', false)).toBe(false);
   });
 });

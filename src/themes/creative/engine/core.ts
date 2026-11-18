@@ -41,8 +41,15 @@ interface ScopeState {
 const noop: Cleanup = () => {};
 const scopes = new Map<HTMLElement, ScopeState>();
 
-// Reveal line: an element shows when its top passes 78 % of the viewport.
-const REVEAL_MARGIN = '0px 0px -22% 0px';
+// Reveal line: an element shows when its top passes 84 % of the viewport.
+const REVEAL_MARGIN = '0px 0px -16% 0px';
+// A shown element goes back to its own styles after its entrance: the
+// "shown" rule carries a transition that would otherwise override the
+// element's hover transitions for good.
+const SETTLE_MS = 3200;
+// Stagger steps are capped: the tenth card must not wait a second.
+const MAX_STEP = 5;
+const LINE_STEP = 0.1;
 // Behaviours load when their scope is within 1.5 viewports.
 const NEAR_MARGIN = '150% 0px 150% 0px';
 
@@ -188,25 +195,136 @@ function withSelf(scope: HTMLElement, selector: string): HTMLElement[] {
   return found;
 }
 
+/** Elements laid out on the same row share a top edge (2 px tolerance). */
+function rowIndex(els: HTMLElement[]): number[] {
+  const out: number[] = [];
+  let rowTop = Number.NaN;
+  let n = 0;
+  for (const el of els) {
+    const top = el.getBoundingClientRect().top;
+    if (Number.isNaN(rowTop) || Math.abs(top - rowTop) > 2) {
+      rowTop = top;
+      n = 0;
+    }
+    out.push(Math.min(n++, MAX_STEP));
+  }
+  return out;
+}
+
+/** Marks an element the engine tagged itself, so the cleanup can untag it. */
+function tag(el: HTMLElement, kind: string, state: ScopeState, step?: number): void {
+  if (el.hasAttribute('data-cx-reveal') || el.hasAttribute('data-cx-intro')) return;
+  el.setAttribute('data-cx-reveal', kind);
+  el.setAttribute('data-cx-tagged', '');
+  if (step) el.style.setProperty('--cx-i', String(step));
+  state.cleanups.push(() => {
+    el.removeAttribute('data-cx-reveal');
+    el.removeAttribute('data-cx-tagged');
+    el.style.removeProperty('--cx-i');
+  });
+}
+
+/**
+ * Recipe "cards-stagger": a container marked data-cx-reveal="stagger" hands
+ * the entrance to its items ([data-cx-item] descendants, else its children).
+ * Each item rises on its own when it enters, delayed by its place in its
+ * row, so a long grid cascades row by row and never animates off screen.
+ */
+function expandStaggers(scope: HTMLElement, state: ScopeState): void {
+  for (const group of withSelf(scope, '[data-cx-reveal="stagger"]')) {
+    let items = Array.from(group.querySelectorAll<HTMLElement>('[data-cx-item]'));
+    if (!items.length) items = Array.from(group.children) as HTMLElement[];
+    items = items.filter((el) => !el.hasAttribute('data-cx-reveal') && !el.hasAttribute('hidden'));
+    const steps = rowIndex(items);
+    items.forEach((el, i) => tag(el, 'rise', state, steps[i]));
+  }
+}
+
+const AUTO_SKIP = 'script,style,template,[hidden],[data-cx-anchor]';
+
+/**
+ * Default treatment of a section that carries data-cx-auto and no recipe of
+ * its own: its content blocks rise softly one after the other, and a block
+ * of three or more alike children (a card grid, a logo row) cascades.
+ */
+function autoTag(scope: HTMLElement, state: ScopeState): void {
+  if (!scope.hasAttribute('data-cx-auto')) return;
+  if (scope.querySelector('[data-cx-reveal],[data-cx-intro],[data-cx-section]')) return;
+  const usable = (el: Element) => !el.matches(AUTO_SKIP);
+  // Walk down through single-child wrappers to the first element with several blocks.
+  let host: HTMLElement = scope;
+  for (let depth = 0; depth < 6; depth++) {
+    const kids = (Array.from(host.children) as HTMLElement[]).filter(usable);
+    if (kids.length !== 1) break;
+    host = kids[0];
+  }
+  const blocks = (Array.from(host.children) as HTMLElement[]).filter(usable).slice(0, 12);
+  if (!blocks.length) {
+    if (host !== scope) tag(host, 'rise', state);
+    return;
+  }
+  blocks.forEach((block, i) => {
+    const kids = (Array.from(block.children) as HTMLElement[]).filter(usable);
+    const alike = kids.length >= 3 && kids.every((k) => k.tagName === kids[0].tagName);
+    if (alike) tag(block, 'stagger', state);
+    else tag(block, 'rise', state, Math.min(i, MAX_STEP));
+  });
+}
+
+/** Recipe "heading-lines": words that share a line enter together, line after line. */
+function groupLines(el: HTMLElement, state: ScopeState): void {
+  const words = Array.from(el.querySelectorAll<HTMLElement>('.cx-wi'));
+  if (words.length < 2) return;
+  let line = -1;
+  let lineTop = Number.NaN;
+  for (const word of words) {
+    const top = (word.parentElement || word).offsetTop;
+    if (Number.isNaN(lineTop) || Math.abs(top - lineTop) > 2) {
+      lineTop = top;
+      line += 1;
+    }
+    word.style.setProperty('--cx-ld', `${(Math.min(line, MAX_STEP) * LINE_STEP).toFixed(2)}s`);
+  }
+  state.cleanups.push(() => {
+    for (const word of words) word.style.removeProperty('--cx-ld');
+  });
+}
+
 function armReveals(scope: HTMLElement, state: ScopeState): void {
-  const els = withSelf(scope, '[data-cx-reveal]');
+  autoTag(scope, state);
+  expandStaggers(scope, state);
+  const els = withSelf(scope, '[data-cx-reveal]').filter((el) => el.getAttribute('data-cx-reveal') !== 'stagger');
   if (!els.length) return;
   const vh = window.innerHeight || document.documentElement.clientHeight;
   const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
   for (const el of els) {
-    // Already armed through an outer scope.
+    // Already armed (through an outer scope or an earlier pass).
     if (el.hasAttribute('data-cx-state')) continue;
     const top = el.getBoundingClientRect().top;
     // On screen or already scrolled past: stays at rest, never hidden.
-    if (top < vh) continue;
+    if (top < vh) {
+      el.setAttribute('data-cx-state', 'done');
+      state.cleanups.push(() => el.removeAttribute('data-cx-state'));
+      continue;
+    }
+    if (el.getAttribute('data-cx-reveal') === 'words') groupLines(el, state);
     el.setAttribute('data-cx-state', 'pending');
     // The last block before the footer may never reach the reveal line:
     // observe it with no margin, or it would stay hidden.
     const topAtEnd = top + window.scrollY - maxScroll;
-    const rootMargin = topAtEnd > vh * 0.78 ? '0px' : REVEAL_MARGIN;
-    const stop = observeOnce(el, () => el.setAttribute('data-cx-state', 'shown'), { rootMargin });
+    const rootMargin = topAtEnd > vh * 0.84 ? '0px' : REVEAL_MARGIN;
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const stop = observeOnce(
+      el,
+      () => {
+        el.setAttribute('data-cx-state', 'shown');
+        settle = setTimeout(() => el.setAttribute('data-cx-state', 'done'), SETTLE_MS);
+      },
+      { rootMargin },
+    );
     state.cleanups.push(() => {
       stop();
+      clearTimeout(settle);
       el.removeAttribute('data-cx-state');
     });
   }
@@ -317,6 +435,20 @@ function release(scope: HTMLElement, force = false): void {
   scope.removeAttribute('data-cx-inview');
   for (const el of withSelf(scope, '[data-cx-live]')) el.removeAttribute('data-cx-live');
   if (scopes.size === 0) stopShared?.();
+}
+
+/**
+ * Arms what was added to a registered scope after its first pass (cards of a
+ * "load more", a late client render). Elements already handled are skipped.
+ */
+export function rearm(scope: HTMLElement): void {
+  const state = scopes.get(scope);
+  if (state && !state.dead) armReveals(scope, state);
+}
+
+/** Whether the element is a registered scope. */
+export function isRegistered(scope: HTMLElement): boolean {
+  return scopes.has(scope);
 }
 
 function revertAll(): void {

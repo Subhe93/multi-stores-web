@@ -4,5 +4,7 @@ export { CxStyle } from './CxStyle';
 export { JsFlag } from './JsFlag';
 export { CxSection, CxAssets, type CxSectionProps } from './CxSection';
 export { HeadingText, type HeadingTextProps } from './HeadingText';
-export { Eyebrow, MaskReveal, OutlineAccent, Numeral, PillButton } from './parts';
+export { Eyebrow, MaskReveal, PillButton } from './parts';
 export { EmptyState } from './EmptyState';
+export { MotionText, MotionMedia } from './Motion';
+export { StoreMotionAssets } from './StoreMotionAssets';

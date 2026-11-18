@@ -20,6 +20,7 @@ import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
+import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/ProductBlocksWarmup';
 import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
 import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
@@ -410,6 +411,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
               locale={locale}
               primaryLocale={primaryLocale}
               storeSlug={storeSlug}
+              motion={storeMotionOf(storeData)}
               product={clientProduct as ProductContext}
               currency={storeCurrency}
               preloaded={preloaded}

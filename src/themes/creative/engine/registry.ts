@@ -13,9 +13,5 @@ export interface BehaviorEntry {
 export const BEHAVIORS: Record<string, BehaviorEntry> = {
   scrub: { calm: false, load: () => import('./behaviors/scrub') },
   pointer: { calm: false, load: () => import('./behaviors/pointer') },
-  actor: { calm: true, load: () => import('./behaviors/actor') },
-  track: { calm: true, load: () => import('./behaviors/track') },
-  steps: { calm: true, load: () => import('./behaviors/steps') },
-  path: { calm: true, load: () => import('./behaviors/path') },
   draw: { calm: true, load: () => import('./behaviors/draw') },
 };

@@ -4,22 +4,13 @@
 
 import { locales } from '@/i18n/config';
 
-/** Section keys added by the creative engine (registered in the minimal theme). */
-export const CREATIVE_SECTION_KEYS = [
-  'hero-outline',
-  'hero-sunrise',
-  'stage-scenes',
-  'story-pinned',
-  'sticky-steps',
-  'motion-path',
-  'marquee-band',
-  'ornament-line',
-] as const;
+/** Section keys added by the motion engine (registered in the minimal theme). */
+export const CREATIVE_SECTION_KEYS = ['ornament-line'] as const;
 export type CreativeSectionKey = (typeof CREATIVE_SECTION_KEYS)[number];
 
 /**
- * Sizes of every decorative word, numeral, marquee text and travelling
- * artwork. Owner decision: no large or giant value exists.
+ * Sizes of every decorative element (the hero emblem). Owner decision: no
+ * large or giant value exists.
  */
 export const ACCENT_SIZES = ['sm', 'md'] as const;
 export type AccentSize = (typeof ACCENT_SIZES)[number];
@@ -27,30 +18,6 @@ export type AccentSize = (typeof ACCENT_SIZES)[number];
 /** The stored size as a known value; anything else (lg, xl, junk) reads as 'md'. */
 export function accentSize(raw: unknown): AccentSize {
   return raw === 'sm' ? 'sm' : 'md';
-}
-
-/** Existing sections that read heading_reveal / heading_emphasis from settings. */
-export const HEADING_OPTION_SECTIONS = [
-  'hero-banner',
-  'hero-split',
-  'parallax-banner',
-  'image-with-text',
-  'brand-band',
-] as const;
-
-/** Existing sections that read image_reveal / image_reveal_direction from settings. */
-export const IMAGE_REVEAL_SECTIONS = ['hero-split', 'image-with-text', 'single-image'] as const;
-
-export function headingRevealValue(raw: unknown): 'none' | 'lines' {
-  return raw === 'lines' ? 'lines' : 'none';
-}
-
-export function imageRevealValue(raw: unknown): 'none' | 'mask' {
-  return raw === 'mask' ? 'mask' : 'none';
-}
-
-export function imageRevealDirection(raw: unknown): 'up' | 'start' | 'end' {
-  return raw === 'start' || raw === 'end' ? raw : 'up';
 }
 
 /**
@@ -69,6 +36,22 @@ export const COMMERCE_SEGMENTS = [
   'legal',
   'market-not-found',
 ] as const;
+
+/** Product lists and product pages: light, fast motion; smooth scrolling stays on. */
+export const SHOP_SEGMENTS = ['products', 'collections'] as const;
+
+export type RouteScope = 'brand' | 'shop' | 'flow';
+
+/**
+ * Motion scope of a route under the store layout. brand = home and content
+ * pages (everything), shop = product lists and product pages (light and
+ * fast), flow = cart, checkout, account, sign-in, legal (entrance and
+ * feedback only; no smooth scrolling, no curtain, no magnetic pull).
+ */
+export function routeScope(segment: string | null): RouteScope {
+  if (isBrandSegment(segment)) return 'brand';
+  return (SHOP_SEGMENTS as readonly string[]).includes(segment as string) ? 'shop' : 'flow';
+}
 
 /** `null` (home) and page slugs are brand pages. */
 export function isBrandSegment(segment: string | null): boolean {

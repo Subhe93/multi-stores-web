@@ -1,6 +1,13 @@
-// Shared stylesheet of the creative engine, rendered through CxStyle only by
-// pages that use a creative section, option or scene (never in globals.css:
-// that file is inlined into the HTML of every store).
+// Shared stylesheet of the motion engine, rendered through CxStyle only by
+// stores that switched their motion style on and by pages that place the
+// ornament divider (never in globals.css: that file is inlined into the HTML
+// of every store).
+//
+// Motion numbers (benchmarked on the two reference sites, see
+// plans/newroj/STORE-MOTION-CONTRACT.md): entrances ease out on an expo
+// curve over 1.2 s, masks open on an in-out curve over 1.3 s while the image
+// inside settles from 1.16 to 1 over 1.7 s, words step by 0.05 s, lines by
+// 0.1 s and items by 0.09 s. Travel is short (28 px, 44 px on a desktop).
 //
 // Rules of the house:
 // - Nothing is hidden, moved or animated outside the gate selector G, so a
@@ -20,22 +27,15 @@ export const G_RTL =
 export const DESKTOP_FINE = '@media (min-width: 1024px) and (hover: hover) and (pointer: fine)';
 
 const TOKENS = `
-.store-root{--cx-ease:cubic-bezier(.16,1,.3,1);--cx-dur:1.2s;--cx-dur-slow:1.4s;--cx-dist:40px;--cx-stagger:.06s;--cx-accent-sm:clamp(1.25rem,2.4vw,2rem);--cx-accent-md:clamp(1.75rem,4vw,3.5rem);--cx-radius-card:28px;--cx-t-bg:var(--theme-colors-background);--cx-t-surface:var(--theme-colors-surface);--cx-t-text:var(--theme-colors-text);--cx-t-accent:var(--theme-colors-accent);--cx-t-accentc:var(--theme-colors-accentContrast)}
-.store-root[data-motion-reveal="calm"]{--cx-dist:24px;--cx-dur:1.56s;--cx-dur-slow:1.82s}
-@media (min-width:1024px){.store-root{--cx-dist:80px}.store-root[data-motion-reveal="calm"]{--cx-dist:48px}}
+.store-root{--cx-ease:cubic-bezier(.16,1,.3,1);--cx-ease-io:cubic-bezier(.65,0,.35,1);--cx-dur:1.2s;--cx-dur-slow:1.4s;--cx-dur-clip:1.3s;--cx-dur-settle:1.7s;--cx-dur-ui:.45s;--cx-dist:28px;--cx-stagger:.09s;--cx-word-step:.05s;--cx-radius-card:28px}
+.store-root[data-motion-reveal="calm"]{--cx-dist:16px;--cx-dur:1.56s;--cx-dur-slow:1.82s;--cx-dur-clip:1.6s;--cx-dur-settle:2s}
+@media (min-width:1024px){.store-root{--cx-dist:44px}.store-root[data-motion-reveal="calm"]{--cx-dist:26px}}
+.store-root [data-cx-tier="fast"]{--cx-dur:.6s;--cx-dur-slow:.8s;--cx-dur-clip:.7s;--cx-dur-settle:.9s;--cx-dist:14px;--cx-stagger:.04s;--cx-word-step:.03s}
 `;
 
 // Engine spans inside a heading must not pick up the body typography.
 const GUARD = `
-.store-root :is(.cx-ht,.cx-w,.cx-wi,.cx-em,.cx-num,.cx-acc,.cx-btn-in,.cx-btn-l){font:inherit;color:inherit;letter-spacing:inherit}
-`;
-
-const SCENES = `
-[data-cx-scene="dark"]{--cx-bg:var(--cx-t-text);--cx-fg:var(--cx-t-bg);--cx-ac:var(--cx-t-accent)}
-[data-cx-scene="light"]{--cx-bg:var(--cx-t-surface);--cx-fg:var(--cx-t-text);--cx-ac:var(--cx-t-accent)}
-[data-cx-scene="accent"]{--cx-bg:var(--cx-t-accent);--cx-fg:var(--cx-t-accentc);--cx-ac:var(--cx-t-bg)}
-[data-cx-scene]{background-color:var(--cx-bg);color:var(--cx-fg);--theme-colors-background:var(--cx-bg);--theme-colors-surface:color-mix(in srgb,var(--cx-fg) 6%,var(--cx-bg));--theme-colors-text:var(--cx-fg);--theme-colors-muted:color-mix(in srgb,var(--cx-fg) 68%,transparent);--theme-colors-border:color-mix(in srgb,var(--cx-fg) 16%,transparent);--theme-colors-accent:var(--cx-ac);--theme-colors-primary:var(--cx-fg);--theme-colors-primaryContrast:var(--cx-bg);--theme-colors-accentContrast:var(--cx-bg)}
-.store-root [data-cx-scene]:where([data-cx-section],[data-cx-section] *) :where(h1,h2,h3,h4,h5,h6,p,li,span):where(:not([style*="color"])){color:inherit}
+.store-root :is(.cx-ht,.cx-w,.cx-wi,.cx-em,.cx-btn-in,.cx-btn-l){font:inherit;color:inherit;letter-spacing:inherit}
 `;
 
 const LAYOUT = `
@@ -54,14 +54,6 @@ const TEXT = `
 .store-root .cx-eyebrow::before{content:"";flex:none;inline-size:40px;block-size:1px;background:currentColor;transform-origin:0 50%}
 .store-root[dir="rtl"] .cx-eyebrow::before{transform-origin:100% 50%}
 .store-root .cx-eyebrow[data-cx-script="arabic"]{letter-spacing:0;text-transform:none;font-size:13px}
-.store-root .cx-acc{display:inline-block;max-inline-size:40%;white-space:nowrap;pointer-events:none;user-select:none;font-family:var(--theme-font-heading);font-weight:var(--theme-weight-heading);line-height:1;font-size:var(--cx-accent-md);direction:ltr;text-transform:uppercase;letter-spacing:.08em}
-.store-root .cx-acc[data-cx-size="sm"]{font-size:var(--cx-accent-sm)}
-.store-root .cx-acc[data-cx-script="arabic"]{direction:rtl;text-transform:none;letter-spacing:0}
-.store-root .cx-acc[data-cx-accent="outline"]{-webkit-text-stroke:1px currentColor;-webkit-text-fill-color:transparent}
-.store-root .cx-acc[data-cx-accent="faint"]{opacity:.1}
-.store-root .cx-num{display:inline-block;direction:ltr;unicode-bidi:isolate;font-family:var(--theme-font-heading);font-weight:var(--theme-weight-heading);font-variant-numeric:lining-nums tabular-nums;line-height:1;font-size:2.5rem}
-.store-root .cx-num[data-cx-size="sm"]{font-size:1.75rem}
-.store-root .cx-num[data-cx-num="outline"]{-webkit-text-stroke:1px currentColor;-webkit-text-fill-color:transparent}
 `;
 
 const BUTTON = `
@@ -82,19 +74,23 @@ const EMPTY = `
 
 const REVEALS = `
 ${G} [data-cx-reveal="words"][data-cx-state="pending"] .cx-wi{transform:translateY(110%)}
-${G} [data-cx-reveal="words"][data-cx-state="shown"] .cx-wi{transition:transform var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-reveal="words"][data-cx-state="shown"] .cx-wi{transition:transform var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-delay,0s) + var(--cx-ld,calc(var(--cx-i,0) * var(--cx-word-step))))}
 ${G} [data-cx-reveal="mask"][data-cx-state="pending"]{clip-path:inset(100% 0 0 0)}
 ${G} [data-cx-reveal="mask"][data-cx-dir="start"][data-cx-state="pending"]{clip-path:inset(0 100% 0 0)}
 ${G} [data-cx-reveal="mask"][data-cx-dir="end"][data-cx-state="pending"]{clip-path:inset(0 0 0 100%)}
 ${G_RTL} [data-cx-reveal="mask"][data-cx-dir="start"][data-cx-state="pending"]{clip-path:inset(0 0 0 100%)}
 ${G_RTL} [data-cx-reveal="mask"][data-cx-dir="end"][data-cx-state="pending"]{clip-path:inset(0 100% 0 0)}
-${G} [data-cx-reveal="mask"][data-cx-state="shown"]{clip-path:inset(0);transition:clip-path var(--cx-dur-slow) var(--cx-ease);transition-delay:var(--cx-delay,0s)}
-${G} [data-cx-reveal="mask"][data-cx-state="pending"] .cx-mask-in{transform:scale(1.18)}
-${G} [data-cx-reveal="mask"][data-cx-state="shown"] .cx-mask-in{transition:transform var(--cx-dur-slow) var(--cx-ease);transition-delay:var(--cx-delay,0s)}
+${G} [data-cx-reveal="mask"][data-cx-state="shown"]{clip-path:inset(0);transition:clip-path var(--cx-dur-clip) var(--cx-ease-io);transition-delay:var(--cx-delay,0s)}
+${G} [data-cx-reveal="mask"][data-cx-state="pending"] .cx-mask-in{transform:scale(1.16)}
+${G} [data-cx-reveal="mask"][data-cx-state="shown"] .cx-mask-in{transition:transform var(--cx-dur-settle) var(--cx-ease);transition-delay:var(--cx-delay,0s)}
 ${G} [data-cx-reveal="rise"][data-cx-state="pending"]{opacity:0;transform:translateY(var(--cx-dist))}
 ${G} [data-cx-reveal="rise"][data-cx-state="shown"]{transition:opacity var(--cx-dur) var(--cx-ease),transform var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
 ${G} [data-cx-reveal="fade"][data-cx-state="pending"]{opacity:0}
-${G} [data-cx-reveal="fade"][data-cx-state="shown"]{transition:opacity var(--cx-dur) ease;transition-delay:var(--cx-delay,0s)}
+${G} [data-cx-reveal="fade"][data-cx-state="shown"]{transition:opacity var(--cx-dur) ease;transition-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-reveal="line"][data-cx-state="pending"]{transform:scaleX(0)}
+${G} [data-cx-reveal="line"]{transform-origin:0 50%}
+${G_RTL} [data-cx-reveal="line"]{transform-origin:100% 50%}
+${G} [data-cx-reveal="line"][data-cx-state="shown"]{transition:transform var(--cx-dur-clip) var(--cx-ease-io);transition-delay:var(--cx-delay,0s)}
 `;
 
 const INTROS = `
@@ -103,9 +99,9 @@ const INTROS = `
 @keyframes cx-fade{from{opacity:0}to{opacity:1}}
 @keyframes cx-scale{from{transform:scale(1.06)}to{transform:none}}
 @keyframes cx-rule{from{transform:scaleX(0)}to{transform:none}}
-${G} [data-cx-intro="words"] .cx-wi{animation:cx-word var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,.15s) + var(--cx-i,0) * var(--cx-stagger))}
-${G} [data-cx-intro="rise"]{animation:cx-rise var(--cx-dur) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
-${G} [data-cx-intro="fade"]{animation:cx-fade var(--cx-dur) ease both;animation-delay:var(--cx-delay,0s)}
+${G} [data-cx-intro="words"] .cx-wi{animation:cx-word var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,.15s) + var(--cx-i,0) * var(--cx-word-step))}
+${G} [data-cx-intro="rise"]{animation:cx-rise var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-intro="fade"]{animation:cx-fade var(--cx-dur) ease both;animation-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
 ${G} [data-cx-intro="scale"]:not(.cx-mask),${G} .cx-mask[data-cx-intro="scale"]>.cx-mask-in{animation:cx-scale var(--cx-dur-slow) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
 ${G} [data-cx-intro="rule"]{transform-origin:0 50%;animation:cx-rule var(--cx-dur) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
 ${G_RTL} [data-cx-intro="rule"]{transform-origin:100% 50%}
@@ -128,5 +124,5 @@ export function minifyCss(css: string): string {
 }
 
 export const BASE_CSS: string = minifyCss(
-  TOKENS + GUARD + SCENES + LAYOUT + TEXT + BUTTON + EMPTY + REVEALS + INTROS + PRINT,
+  TOKENS + GUARD + LAYOUT + TEXT + BUTTON + EMPTY + REVEALS + INTROS + PRINT,
 );

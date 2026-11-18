@@ -31,19 +31,6 @@ describe('creative section schemas', () => {
     }
   });
 
-  it('the size fields exist where the contract puts them', () => {
-    const sizeKeys = (key: (typeof CREATIVE_SECTION_KEYS)[number]) =>
-      allFields(CREATIVE_SCHEMAS[key].schema.schema)
-        .filter((f) => isSizeKey(f.key))
-        .map((f) => f.key);
-    expect(sizeKeys('hero-outline')).toEqual(['accent_size']);
-    expect(sizeKeys('hero-sunrise')).toEqual(['sun_size']);
-    expect(sizeKeys('stage-scenes')).toEqual(['artwork_size']);
-    expect(sizeKeys('sticky-steps')).toEqual(['numeral_size']);
-    expect(sizeKeys('motion-path')).toEqual(['artwork_size']);
-    expect(sizeKeys('marquee-band')).toEqual(['size']);
-  });
-
   it.each(entries)('%s: no option anywhere is called lg, xl or giant for a decorative size', (_key, entry) => {
     for (const f of allFields(entry.schema.schema)) {
       if (!/accent|numeral|artwork|sun_size|^size$|scale/.test(f.key)) continue;
@@ -126,20 +113,13 @@ describe('creative section schemas', () => {
     walk(entry.schema.schema);
   });
 
-  it('page types: brand pages only, the band and the ornament also in the footer', () => {
-    for (const [key, entry] of entries) {
-      const expected =
-        key === 'marquee-band' || key === 'ornament-line'
-          ? ['HOME', 'STATIC', 'LANDING', 'FOOTER']
-          : ['HOME', 'STATIC', 'LANDING'];
-      expect(entry.schema.pageTypes, key).toEqual(expected);
-    }
+  it('page types: brand pages and the footer', () => {
+    for (const [key, entry] of entries) expect(entry.schema.pageTypes, key).toEqual(['HOME', 'STATIC', 'LANDING', 'FOOTER']);
   });
 
-  it('new sections accent the marked phrase by default', () => {
-    for (const [key, entry] of entries) {
-      if (key === 'marquee-band' || key === 'ornament-line') continue;
-      expect(entry.defaultSettings.heading_emphasis, key).toBe('italic');
-    }
+  it('the ornament is a divider only: no text, button, frame or colour scene fields', () => {
+    const keys = CREATIVE_SCHEMAS['ornament-line'].schema.schema.map((f) => f.key);
+    expect(keys).toEqual(['tile_width', 'tile_height', 'paths', 'color_a', 'color_b', 'color_c', 'stroke', 'width', 'draw']);
+    expect(CREATIVE_SCHEMAS['ornament-line'].schema.translatable).toEqual([]);
   });
 });

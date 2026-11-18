@@ -37,6 +37,13 @@ const mountMagnetic = vi.fn((root: HTMLElement) => {
 });
 vi.mock('./magnetic', () => ({ mountMagnetic: (root: HTMLElement) => mountMagnetic(root) }));
 
+const stopScan = vi.fn();
+const startScan = vi.fn((root: HTMLElement) => {
+  void root;
+  return stopScan;
+});
+vi.mock('./scan', () => ({ startScan: (root: HTMLElement) => startScan(root) }));
+
 const curtainHandle = { arrived: vi.fn(), destroy: vi.fn() };
 const mountCurtain = vi.fn((opts: unknown) => {
   void opts;
@@ -136,12 +143,28 @@ describe('store runtime', () => {
     runtime.destroy();
   });
 
-  it.each(['products', 'collections', 'cart', '(checkout)', 'account', 'auth', 'legal'])(
-    'commerce segment %s: nothing starts',
+  it.each(['products', 'collections'])(
+    'shop segment %s: smooth scrolling and the section scan, no magnetic pull, no curtain',
     async (segment) => {
       const runtime = await loadRuntime();
       runtime.sync(state({ segment, pathname: `/${segment}`, options: { smooth: true, magnetic: true, curtain: true } }));
       await settle();
+      expect(startScan).toHaveBeenCalledTimes(1);
+      expect(createLenis).toHaveBeenCalledTimes(1);
+      expect(mountMagnetic).not.toHaveBeenCalled();
+      expect(mountCurtain).not.toHaveBeenCalled();
+      runtime.destroy();
+      expect(stopScan).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(['cart', '(checkout)', 'account', 'auth', 'legal'])(
+    'flow segment %s: only the section scan starts (no frame loop)',
+    async (segment) => {
+      const runtime = await loadRuntime();
+      runtime.sync(state({ segment, pathname: `/${segment}`, options: { smooth: true, magnetic: true, curtain: true } }));
+      await settle();
+      expect(startScan).toHaveBeenCalledTimes(1);
       expect(createLenis).not.toHaveBeenCalled();
       expect(mountMagnetic).not.toHaveBeenCalled();
       expect(mountCurtain).not.toHaveBeenCalled();
@@ -221,11 +244,11 @@ describe('store runtime', () => {
     expect(curtainHandle.destroy).toHaveBeenCalledTimes(1);
   });
 
-  it('navigating to a commerce page destroys Lenis; coming back creates a fresh one', async () => {
+  it('navigating to a flow page destroys Lenis; coming back creates a fresh one', async () => {
     const runtime = await loadRuntime();
     runtime.sync(state());
     await settle();
-    runtime.sync(state({ segment: 'products', pathname: '/products' }));
+    runtime.sync(state({ segment: 'cart', pathname: '/cart' }));
     await settle();
     expect(lenisInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(window.__lenis).toBeUndefined();

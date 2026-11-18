@@ -2,7 +2,7 @@ import { useTranslations } from 'next-intl';
 import { BASE_CSS } from '../css/base.css';
 import { CxStyle } from './CxStyle';
 
-/** 'hero-outline' -> 'heroOutline' (the key under creative.empty). */
+/** 'ornament-line' -> 'ornamentLine' (the key under creative.empty). */
 function emptyKey(name: string): string {
   return name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }

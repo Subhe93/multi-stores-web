@@ -11,7 +11,6 @@ import type {
 import { animationClass, readSectionStyle, resolveSectionStyle, type SectionStyle } from './sectionStyle';
 import { Reveal } from './_motion';
 import { hasDynamicSource } from './minimal/sections/_shared/dynamicSourceKeys';
-import { renderSectionDecor } from './creative/decor/sectionDecor';
 import {
   buildSectionTree,
   isContainerKey,
@@ -24,20 +23,17 @@ import {
 } from './sectionTree';
 
 // Sections that are usually the page's LCP element: never wrapped in a reveal.
-// The creative sections (themes/creative) bring their own reveals and sticky
-// stages: the wrapper's pending transform would break `position: sticky`.
+// The ornament divider (themes/creative) brings its own line-draw.
 const NO_REVEAL_KEYS = new Set([
   'aurora-hero',
   'product-page',
   'product-gallery',
   'product-listing',
-  'stage-scenes',
-  'story-pinned',
-  'sticky-steps',
-  'motion-path',
-  'marquee-band',
   'ornament-line',
 ]);
+
+// Commerce surfaces: with the store motion style on they get the fast timing.
+const FAST_KEYS = new Set(['product-page', 'product-gallery', 'product-listing', 'add-to-cart', 'product-details']);
 
 /** Whether a page-content section gets the scroll-in reveal wrapper. */
 export function shouldReveal(sectionKey: string, isFirst: boolean): boolean {
@@ -80,6 +76,10 @@ interface SectionRendererProps {
   // dashed drop placeholder. On the live store an empty container renders
   // nothing at all.
   builderPreview?: boolean;
+  // Store motion style (themes/creative, storeMotion(theme_customizations)).
+  // False or unset = today's markup, byte for byte. True: every section is
+  // marked for the motion engine and receives the `motion` prop.
+  motion?: boolean;
 }
 
 /** Render-wide values shared by every section of one renderer call. */
@@ -95,6 +95,7 @@ interface RenderContext {
   preloaded?: Record<string, unknown>;
   chrome?: boolean;
   builderPreview?: boolean;
+  motion?: boolean;
   wrapperStyle: CSSProperties | undefined;
   /** First renderable leaf in document order (likely the LCP element). */
   firstId: string | undefined;
@@ -231,12 +232,16 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
   const css =
     styleCss + (isProductLeaf ? `.${wrapperScope}:has(>.${innerScope}:empty){display:none}` : '');
   const animClass = animationClass(sectionStyle?.animate);
-  // Scene theme / living background from `_style` (creative engine). Null for
-  // every section that sets neither, which then keeps today's markup.
-  const decor = ctx.chrome ? null : renderSectionDecor(sectionStyle, { nested });
-  const wrapperClass = [wrapperScope, animClass, decor?.className].filter(Boolean).join(' ');
-  const wrapperStyle = decor?.style ? { ...ctx.wrapperStyle, ...decor.style } : ctx.wrapperStyle;
+  const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
+  const wrapperStyle = ctx.wrapperStyle;
   const isContainer = isContainerKey(section.section_key);
+  // Motion style of the store. The section's own override wins: "none"
+  // switches every entrance of this section off (also today's reveal).
+  const motionNone = sectionStyle?.motion === 'none';
+  // Chrome (header, footer) is never the page's intro: it only reveals what
+  // is below the fold.
+  const phase: 'intro' | 'scroll' | undefined =
+    ctx.motion && !motionNone ? (!ctx.chrome && section.id === ctx.firstId ? 'intro' : 'scroll') : undefined;
   // Containers get three extra props; every other section keeps exactly the
   // props it had before nesting existed.
   const containerProps = isContainer
@@ -280,6 +285,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
         preloaded={ctx.preloaded?.[section.id]}
         {...containerProps}
         {...productBlockProps}
+        {...(phase ? { motion: phase } : null)}
       />
     </div>
   );
@@ -293,10 +299,27 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
     (isContainer
       ? subtreeContains(node, ctx.firstId) || subtreeHasNoReveal(node) || !shouldReveal(section.section_key, false)
       : isNoRevealNode(node) || !shouldReveal(section.section_key, section.id === ctx.firstId));
+  // With the motion style on, the wrapper is the engine's scope instead of
+  // the generic reveal. Collapsed chrome wrappers (display: contents) have no
+  // box to observe: header and footer sections mark their own root.
+  // - data-cx-tier="fast": product pages and lists (commerce timing).
+  // - data-cx-auto: a section without recipes of its own gets the default
+  //   treatment (its blocks rise in sequence, alike children cascade). Given
+  //   exactly where today's reveal applies, and to sections inside containers.
+  const fast = isProductBlock(section.section_key, def) || FAST_KEYS.has(section.section_key) || !!ctx.product || !!ctx.listing;
+  const auto = !isContainer && !fast && !isNoRevealNode(node) && phase === 'scroll' && (nested || !plain);
+  const motionAttrs: Record<string, string> | null =
+    phase && !ctx.wrapperStyle
+      ? {
+          'data-cx-section': section.section_key,
+          ...(fast ? { 'data-cx-tier': 'fast' } : null),
+          ...(auto ? { 'data-cx-auto': '' } : null),
+        }
+      : null;
   return (
     <Fragment key={section.id}>
       {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
-      {plain ? (
+      {plain || phase || motionNone ? (
         // Chrome (header/footer) and the first / LCP-type section keep a
         // plain wrapper: a sticky header must not start offset, and the
         // LCP section must paint straight from the server HTML.
@@ -305,9 +328,8 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           data-section-key={section.section_key}
           className={wrapperClass}
           style={wrapperStyle}
-          {...decor?.attrs}
+          {...motionAttrs}
         >
-          {decor?.before}
           {inner}
         </div>
       ) : (
@@ -318,9 +340,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           data-section-key={section.section_key}
           className={wrapperClass}
           style={wrapperStyle}
-          {...decor?.attrs}
         >
-          {decor?.before}
           {inner}
         </Reveal>
       )}
@@ -352,6 +372,7 @@ export function SectionRenderer({
   chrome,
   collapseWrappers,
   builderPreview,
+  motion,
 }: SectionRendererProps) {
   // In chrome mode the wrapper boxes are collapsed so a sticky header can
   // anchor to the page layout rather than its own tight wrapper.
@@ -374,6 +395,7 @@ export function SectionRenderer({
     preloaded,
     chrome,
     builderPreview,
+    motion: motion && !builderPreview,
     wrapperStyle,
     firstId,
   };

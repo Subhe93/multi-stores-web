@@ -3,12 +3,11 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import type { FieldDefinition } from '../types';
-import { CREATIVE_SECTION_KEYS, HEADING_OPTION_SECTIONS, IMAGE_REVEAL_SECTIONS } from './constants';
+import { CREATIVE_SECTION_KEYS } from './constants';
 import { CREATIVE_SCHEMAS } from './schemas';
 
-// Cross-repo check: the dashboard keeps a hand-made copy of the creative
-// schemas (section-schemas.ts) and injects the options of the existing
-// sections. File: DASHBOARD_SCHEMAS_FILE, else the creative dashboard
+// Cross-repo check: the dashboard keeps a hand-made copy of the ornament
+// divider schema (section-schemas.ts). File: DASHBOARD_SCHEMAS_FILE, else the creative dashboard
 // worktree, else the main dashboard checkout. Skipped when no file is there
 // or the file does not carry the creative schemas yet, so the storefront
 // repo alone still passes.
@@ -21,7 +20,7 @@ const CANDIDATES = [
 
 const SCHEMAS_FILE = CANDIDATES.find((f) => existsSync(f));
 const source = SCHEMAS_FILE ? readFileSync(SCHEMAS_FILE, 'utf8') : '';
-const ready = source.includes("'stage-scenes'") || source.includes('"stage-scenes"');
+const ready = source.includes("'ornament-line'") || source.includes('"ornament-line"');
 
 interface DashboardSchema {
   id: string;
@@ -116,59 +115,18 @@ describe.skipIf(!ready)('creative engine: dashboard and storefront agree', () =>
     walk(dashboard.schema);
   });
 
-  it.each([...HEADING_OPTION_SECTIONS])('%s: heading reveal and emphasis options, never stored as defaults', (id) => {
-    const dashboard = loadDashboard()(id);
-    expect(fieldShape(field(dashboard.schema, 'heading_reveal'))).toMatchObject({
-      type: 'select',
-      defaultValue: 'none',
-      options: ['none', 'lines'],
-    });
-    expect(fieldShape(field(dashboard.schema, 'heading_emphasis'))).toMatchObject({
-      type: 'select',
-      defaultValue: 'none',
-      options: ['none', 'color', 'italic'],
-    });
-    expect(fieldShape(field(dashboard.schema, 'heading_emphasis_color'))).toMatchObject({
-      type: 'color',
-      showIf: { key: 'heading_emphasis', in: ['color', 'italic'] },
-    });
-    const keys = dashboard.schema.map((f) => f.key);
-    expect(keys.slice(keys.indexOf('heading_accent_color') + 1, keys.indexOf('heading_accent_color') + 4)).toEqual([
-      'heading_reveal',
-      'heading_emphasis',
-      'heading_emphasis_color',
-    ]);
-    for (const key of ['heading_reveal', 'heading_emphasis', 'heading_emphasis_color']) {
-      expect(dashboard.translatable).not.toContain(key);
-      expect(dashboard.defaultSettings ?? {}).not.toHaveProperty(key);
-    }
-  });
-
-  it.each([...IMAGE_REVEAL_SECTIONS])('%s: image reveal options, never stored as defaults', (id) => {
-    const dashboard = loadDashboard()(id);
-    expect(fieldShape(field(dashboard.schema, 'image_reveal'))).toMatchObject({
-      type: 'select',
-      defaultValue: 'none',
-      options: ['none', 'mask'],
-    });
-    expect(fieldShape(field(dashboard.schema, 'image_reveal_direction'))).toMatchObject({
-      type: 'select',
-      defaultValue: 'up',
-      options: ['up', 'start', 'end'],
-      showIf: { key: 'image_reveal', in: ['mask'] },
-    });
-    expect(dashboard.schema.slice(-2).map((f) => f.key)).toEqual(['image_reveal', 'image_reveal_direction']);
-    for (const key of ['image_reveal', 'image_reveal_direction']) {
-      expect(dashboard.translatable).not.toContain(key);
-      expect(dashboard.defaultSettings ?? {}).not.toHaveProperty(key);
-    }
-  });
-
-  it('sections outside the two lists carry none of the options', () => {
+  // The compositions of the first draft and its per-section options are gone:
+  // motion is automatic (store switch) with one per-section override in _style.
+  it('the dropped sections and per-section options are not offered', () => {
     const find = loadDashboard();
-    for (const id of ['rich-text', 'trust-badges', 'hero-slider', 'hero-video']) {
+    for (const id of ['hero-outline', 'hero-sunrise', 'stage-scenes', 'story-pinned', 'sticky-steps', 'motion-path', 'marquee-band']) {
+      expect(() => find(id), id).toThrow();
+    }
+    for (const id of ['hero-banner', 'hero-split', 'parallax-banner', 'image-with-text', 'brand-band', 'single-image', 'rich-text']) {
       const keys = find(id).schema.map((f) => f.key);
-      for (const key of ['heading_reveal', 'heading_emphasis', 'image_reveal']) expect(keys, `${id}.${key}`).not.toContain(key);
+      for (const key of ['heading_reveal', 'heading_emphasis', 'heading_emphasis_color', 'image_reveal', 'image_reveal_direction']) {
+        expect(keys, `${id}.${key}`).not.toContain(key);
+      }
     }
   });
 });

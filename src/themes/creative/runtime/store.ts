@@ -1,10 +1,14 @@
-// Store-level runtime of the creative switch: smooth scrolling (Lenis),
-// magnetic buttons and the optional page curtain. Loaded by CreativeBoot
-// (boot.client.tsx) only for a store that switched creative motion on, and
-// active on brand pages only: on commerce pages everything is destroyed and
-// no animation frame loop runs.
+// Store-level runtime of the motion switch. Loaded by CreativeBoot
+// (boot.client.tsx) only for a store that switched its motion style on.
+// - Every page: the section scan (runtime/scan), which arms the reveals of
+//   the sections the renderer marked. Observers only, no frame loop.
+// - Brand and shop pages (home, content pages, product lists, product
+//   pages): smooth scrolling (Lenis) on a desktop with a fine pointer.
+// - Brand pages only: magnetic buttons and the optional page curtain.
+// - Flow pages (cart, checkout, account, sign-in, legal): nothing but the
+//   scan. No frame loop ever runs there.
 
-import { isBrandPath, isBrandSegment } from '../constants';
+import { isBrandPath, routeScope } from '../constants';
 import type { CreativeOptions } from '../creativeAttrs';
 import { clearMotionFlag, motionForced } from '../motionFlag';
 import { refresh } from '../engine/core';
@@ -40,6 +44,35 @@ let stopBase: Cleanup | null = null;
 let popped = false;
 
 // ── Lenis ───────────────────────────────────────────────────────────────
+
+// ── Section scan ───────────────────────────────────────────────────────
+
+let stopScan: Cleanup | null = null;
+let scanTicket = 0;
+let scanLoading = false;
+
+function startSections(): void {
+  if (stopScan || scanLoading) return;
+  const root = document.querySelector<HTMLElement>('.store-root');
+  if (!root) return;
+  scanLoading = true;
+  const ticket = ++scanTicket;
+  import('./scan')
+    .then((m) => {
+      scanLoading = false;
+      if (ticket !== scanTicket) return;
+      stopScan = m.startScan(root);
+    })
+    .catch(() => {
+      scanLoading = false;
+    });
+}
+
+function endSections(): void {
+  scanTicket += 1;
+  stopScan?.();
+  stopScan = null;
+}
 
 let lenis: LenisInstance | null = null;
 let lenisTicket = 0;
@@ -310,11 +343,16 @@ export function sync(next: StoreRuntimeState): void {
   state = next;
   startBase();
 
+  // Reveals also run under the calm profile (softened in CSS).
+  if (motionAllowed() && !isBuilder()) startSections();
+  else endSections();
+
   const active = motionAllowed() && !isCalm() && !isBuilder();
-  const brand = active && isBrandSegment(next.segment);
+  const scope = routeScope(next.segment);
+  const brand = active && scope === 'brand';
   const fine = finePointer();
 
-  if (brand && next.options.smooth && fine && isDesktop()) startLenis();
+  if (active && scope !== 'flow' && next.options.smooth && fine && isDesktop()) startLenis();
   else stopLenis();
 
   if (brand && next.options.magnetic && fine) startMagnetic();
@@ -328,6 +366,7 @@ export function sync(next: StoreRuntimeState): void {
 
 /** Removes every listener, observer, ticker callback and instance. */
 export function destroy(): void {
+  endSections();
   stopLenis();
   endMagnetic();
   endCurtain();

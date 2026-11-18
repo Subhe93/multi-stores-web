@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# motion demo: pointer to a fixture file outside the repository
+/creative-demo.local.json

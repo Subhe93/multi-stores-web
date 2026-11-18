@@ -52,7 +52,7 @@ import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
 import { creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
 import { CreativeBoot } from '@/themes/creative/boot.client';
-import { JsFlag } from '@/themes/creative/primitives/JsFlag';
+import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
 
 // ---------- Type definitions ----------
 
@@ -663,12 +663,13 @@ export default async function StoreLayout({
           {/* Store-owner "Edit" button: renders nothing (and loads nothing)
               unless the dashboard handed this browser an owner token. */}
           <EditHintBoot storeSlug={storeSlug} />
-          {/* Creative engine, store switch (theme_customizations.motion.creative):
-              smooth scrolling, magnetic buttons and the optional page curtain on
-              brand pages. Nothing is rendered for a store that never set it. */}
+          {/* Motion style of the store (theme_customizations.motion.creative):
+              the gate script, the stylesheets of the motion recipes and the
+              runtime (section scan, smooth scrolling, magnetic buttons, optional
+              page curtain). Nothing is rendered for a store that never set it. */}
           {creative && (
             <>
-              <JsFlag />
+              <StoreMotionAssets />
               <CreativeBoot
                 options={creative}
                 curtainLabel={creativeCurtainLabel}
@@ -740,6 +741,7 @@ export default async function StoreLayout({
                     sections={headerSections}
                     locale={currentLang}
                     storeSlug={storeSlug}
+                    motion={!!creative}
                     primaryLocale={primaryLocale}
                     storeContext={storeCtx}
                     chrome
@@ -806,6 +808,7 @@ export default async function StoreLayout({
                     sections={footerSections}
                     locale={currentLang}
                     storeSlug={storeSlug}
+                    motion={!!creative}
                     primaryLocale={primaryLocale}
                     storeContext={storeCtx}
                     chrome
