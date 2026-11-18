@@ -21,7 +21,7 @@ import { resolveTheme } from '@/themes/registry';
 import { mergeTokens, storePrimaryContrast, tokenArabicFamilies } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
 import { FlowMotionProvider } from '@/components/cart/FlowMotion';
-import { storeMotion } from '@/themes/creative/creativeAttrs';
+import { clientMessages, storeMotion } from '@/themes/creative/creativeAttrs';
 import { surface } from '@/themes/creative/recipes';
 
 interface Store {
@@ -116,7 +116,7 @@ export default async function CheckoutLayout({
     : t('checkout.returnToStore');
 
   return (
-    <NextIntlClientProvider locale={currentLang} messages={messages}>
+    <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
       <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.

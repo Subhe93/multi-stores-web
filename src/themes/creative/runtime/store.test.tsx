@@ -418,12 +418,12 @@ describe('store runtime', () => {
     runtime.destroy();
   });
 
-  it('calm profile: the progress bar only mirrors the scroll and stays, the cursor dot does not', async () => {
+  it('calm profile: neither the progress bar nor the cursor dot', async () => {
     mountRoot({ 'data-motion-reveal': 'calm' });
     const runtime = await loadRuntime();
     runtime.sync(state({ options: everything }));
     await settle();
-    expect(mountProgress).toHaveBeenCalledTimes(1);
+    expect(mountProgress).not.toHaveBeenCalled();
     expect(mountCursor).not.toHaveBeenCalled();
     runtime.destroy();
   });

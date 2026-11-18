@@ -445,8 +445,9 @@ export function sync(next: StoreRuntimeState): void {
   if (brand && next.options.curtain) startCurtain();
   else endCurtain();
 
-  // The bar only mirrors the scroll position: it stays under the calm profile.
-  if (allowed && scope !== 'flow' && next.options.progress) progress.start();
+  // Like every option of the switch, the bar is off under the calm profile
+  // (the builder says so next to the options).
+  if (active && scope !== 'flow' && next.options.progress) progress.start();
   else progress.end();
 
   if (brand && next.options.cursor && fine) cursor.start();

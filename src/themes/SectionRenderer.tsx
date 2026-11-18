@@ -236,7 +236,9 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
   const wrapperStyle = ctx.wrapperStyle;
   const isContainer = isContainerKey(section.section_key);
   // Motion style of the store. The section's own override wins: "none"
-  // switches every entrance of this section off (also today's reveal).
+  // switches every entrance of this section off (also today's reveal). With
+  // the store switch on the wrapper is marked data-motion-still, and the
+  // motion stylesheet keeps the section's own legacy reveals at rest too.
   const motionNone = sectionStyle?.motion === 'none';
   // Chrome (header, footer) is never the page's intro: it only reveals what
   // is below the fold.
@@ -329,6 +331,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           className={wrapperClass}
           style={wrapperStyle}
           {...motionAttrs}
+          {...(motionNone && ctx.motion ? { 'data-motion-still': '' } : null)}
         >
           {inner}
         </div>

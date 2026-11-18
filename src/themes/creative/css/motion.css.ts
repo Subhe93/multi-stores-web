@@ -18,19 +18,26 @@ const delays = Array.from({ length: 12 }, (_, n) => `[data-cx-d="${n + 1}"]{--cx
   '\n',
 );
 
+// A pressed link or button lists every transition it needs: the press itself,
+// the magnetic pull (translate) and its own colour and opacity feedback. One
+// list, because press and magnetic would otherwise replace each other's
+// `transition` and one of the two would snap. The store's own image zoom
+// switch (data-motion-zoom="off") also silences the slow zoom of hover-media.
 const HOVER = `
 ${FINE}{
 ${G} [data-cx-hover="lift"]{transition:translate .5s var(--cx-ease),box-shadow .5s ease}
 ${G} [data-cx-hover="lift"]:hover{translate:0 -4px}
 ${G} [data-cx-hover="media"] :is(img,video){transition:scale 1.2s cubic-bezier(.2,0,0,1)}
 ${G} [data-cx-hover="media"]:hover :is(img,video),${G} a:hover [data-cx-hover="media"] :is(img,video),${G} a:focus-visible [data-cx-hover="media"] :is(img,video){scale:1.045}
-${G} [data-cx-hover="underline"]{background-image:linear-gradient(currentColor,currentColor);background-repeat:no-repeat;background-size:0% 1px;background-position:100% 100%;transition:background-size .5s var(--cx-ease);text-decoration:none}
+${G} [data-cx-hover="underline"]{background-image:linear-gradient(currentColor,currentColor);background-repeat:no-repeat;background-size:0% 1px;background-position:100% 100%;transition:background-size .5s var(--cx-ease),opacity .25s ease,color .25s ease;text-decoration:none}
 ${G} [data-cx-hover="underline"]:hover,${G} [data-cx-hover="underline"]:focus-visible{background-size:100% 1px;background-position:0% 100%}
 ${G_RTL} [data-cx-hover="underline"]{background-position:0% 100%}
 ${G_RTL} [data-cx-hover="underline"]:hover,${G_RTL} [data-cx-hover="underline"]:focus-visible{background-position:100% 100%}
 ${G} [data-cx-magnetic]:not(.cx-btn){translate:var(--cx-mx,0px) var(--cx-my,0px);transition:translate .35s var(--cx-ease)}
 }
 ${G} [data-cx-hover="press"]{transition:scale .2s ease}
+${G} a[data-cx-hover="press"]:not(.cx-btn),${G} button[data-cx-hover="press"]:not(.cx-btn){transition:scale .2s ease,translate .35s var(--cx-ease),opacity .25s ease,background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .3s ease}
+${G}[data-motion-zoom="off"] [data-cx-hover="media"][data-cx-hover] :is(img,video){scale:none}
 ${G} [data-cx-hover="press"]:active{scale:.97}
 `;
 
@@ -43,4 +50,12 @@ html[data-cx-motion] .store-root:not([data-motion-reveal]):not([data-cx-builder]
 }
 `;
 
-export const MOTION_CSS: string = minifyCss(steps + '\n' + delays + HOVER + PARALLAX);
+// Per-section override "none" (settings._style.motion): the section gets no
+// motion prop, so its own legacy reveal and stagger wrappers would still
+// play. They stay at rest instead (same declarations as the store profile
+// "off" in globals.css).
+const STILL = `
+${G} [data-motion-still] [data-reveal][data-reveal-state],${G} [data-motion-still] [data-stagger-item][data-stagger-state]{opacity:1;transform:none;transition:none}
+`;
+
+export const MOTION_CSS: string = minifyCss(steps + '\n' + delays + HOVER + PARALLAX + STILL);

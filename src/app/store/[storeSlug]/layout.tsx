@@ -50,7 +50,7 @@ import {
 } from '@/lib/consent';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
-import { creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
+import { clientMessages, creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
 import { CreativeBoot } from '@/themes/creative/boot.client';
 import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
 
@@ -267,7 +267,7 @@ export default async function StoreLayout({
     const gateTokens = mergeTokens(resolveTheme(store.theme_key).tokens, store.theme_customizations);
     const gateName = store.theme?.translations?.[gateLocale]?.name || store.name || storeSlug;
     return (
-      <NextIntlClientProvider locale={gateLocale} messages={await getMessages()}>
+      <NextIntlClientProvider locale={gateLocale} messages={clientMessages(await getMessages())}>
         <StoreGatePage
           kind={gated.gate}
           storeSlug={storeSlug}
@@ -590,7 +590,7 @@ export default async function StoreLayout({
     (messages as { creative?: { loadingPage?: string } }).creative?.loadingPage || '';
 
   return (
-    <NextIntlClientProvider locale={currentLang} messages={messages}>
+    <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
       <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
@@ -778,6 +778,7 @@ export default async function StoreLayout({
                     currentLang={currentLang}
                     showStoreName={showStoreName}
                     logoSize={logoSize}
+                    {...(creative ? { motion: 'scroll' as const } : null)}
                   />
                   {marketBanner}
                 </div>
@@ -831,6 +832,7 @@ export default async function StoreLayout({
                     currentLang={currentLang}
                     primaryLocale={primaryLocale}
                     platformName={platformName}
+                    {...(creative ? { motion: 'scroll' as const } : null)}
                   />
                   <CookieSettingsLink variant="footer-row" />
                 </div>

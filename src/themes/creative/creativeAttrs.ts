@@ -58,3 +58,16 @@ export function storeMotionOf(store: unknown): boolean {
   if (!store || typeof store !== 'object') return false;
   return storeMotion((store as { theme_customizations?: ThemeCustomizations | null }).theme_customizations);
 }
+
+/**
+ * Messages for the client provider of a store page. The `creative` texts are
+ * read on the server only (the curtain label travels as a prop, the empty
+ * state is a server component), so they are left out of the payload: the
+ * HTML of a store page does not grow by a namespace it never reads.
+ */
+export function clientMessages<T extends object>(messages: T): T {
+  if (!('creative' in messages)) return messages;
+  const rest = { ...messages } as T & { creative?: unknown };
+  delete rest.creative;
+  return rest;
+}

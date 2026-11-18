@@ -110,8 +110,10 @@ describe('section renderer', () => {
     const on = render({ motion: true });
     expect(wrapper(on, 's3')).not.toMatch(/data-cx-|data-reveal/);
     expect(on).toContain('<h2>Three</h2>');
+    // Marked, so the motion stylesheet also keeps its legacy reveals at rest.
+    expect(wrapper(on, 's3')).toContain('data-motion-still=""');
     const off = render();
-    expect(wrapper(off, 's3')).not.toMatch(/data-cx-|data-reveal/);
+    expect(wrapper(off, 's3')).not.toMatch(/data-cx-|data-reveal|data-motion-still/);
   });
 
   it('the builder preview never gets the motion markup', () => {

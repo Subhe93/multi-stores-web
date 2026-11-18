@@ -12,8 +12,9 @@ import type { Behavior } from '../core';
 const LAYERS = '[data-cx-y],[data-cx-x],[data-cx-rotate],[data-cx-scale]';
 
 const scrub: Behavior = async (el, ctx) => {
-  // Off on phones.
+  // Off on phones and on commerce surfaces (product pages, listings, flow).
   if (!window.matchMedia('(min-width: 768px)').matches) return;
+  if (el.closest('[data-cx-tier="fast"]')) return;
   const layers = Array.from(el.querySelectorAll<HTMLElement>(LAYERS));
   if (el.matches(LAYERS)) layers.unshift(el);
   if (!layers.length) return;

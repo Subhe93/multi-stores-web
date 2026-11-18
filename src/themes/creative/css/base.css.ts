@@ -93,10 +93,13 @@ ${G_RTL} [data-cx-reveal="line"]{transform-origin:100% 50%}
 ${G} [data-cx-reveal="line"][data-cx-state="shown"]{transition:transform var(--cx-dur-clip) var(--cx-ease-io);transition-delay:var(--cx-delay,0s)}
 `;
 
+// cx-rise and cx-fade have no end keyframe: they end on the element's own
+// opacity and transform, so a resting opacity below 1 (a muted eyebrow) and a
+// hover opacity are not pinned by the filled animation.
 const INTROS = `
 @keyframes cx-word{from{transform:translateY(110%)}to{transform:none}}
-@keyframes cx-rise{from{opacity:0;transform:translateY(var(--cx-dist))}to{opacity:1;transform:none}}
-@keyframes cx-fade{from{opacity:0}to{opacity:1}}
+@keyframes cx-rise{from{opacity:0;transform:translateY(var(--cx-dist))}}
+@keyframes cx-fade{from{opacity:0}}
 @keyframes cx-scale{from{transform:scale(1.06)}to{transform:none}}
 @keyframes cx-rule{from{transform:scaleX(0)}to{transform:none}}
 ${G} [data-cx-intro="words"] .cx-wi{animation:cx-word var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,.15s) + var(--cx-i,0) * var(--cx-word-step))}

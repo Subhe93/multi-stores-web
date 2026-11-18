@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,8 +17,15 @@ import { physicalClasses } from './_shared/testHelpers';
 // Cross-repo check of the editorial section set: the dashboard copy of each
 // schema and the two dashboard presets, against the storefront definitions
 // and components. Reads the sibling dashboard checkout; skipped when it is
-// not there (the storefront repo alone still passes).
-const DASHBOARD_LIB = resolve(process.cwd(), '../multi-stores-dashboard/src/lib');
+// not there (the storefront repo alone still passes). A storefront worktree
+// named .wt-web-<name> is checked against its own dashboard worktree
+// .wt-dashboard-<name> when that one exists: both sides of a schema change
+// live on the same branch.
+const PAIRED_WORKTREE = resolve(process.cwd(), '..', basename(process.cwd()).replace(/^\.wt-web-/, '.wt-dashboard-'), 'src/lib');
+const DASHBOARD_LIB =
+  /^\.wt-web-/.test(basename(process.cwd())) && existsSync(PAIRED_WORKTREE)
+    ? PAIRED_WORKTREE
+    : resolve(process.cwd(), '../multi-stores-dashboard/src/lib');
 const SCHEMAS_FILE = resolve(DASHBOARD_LIB, 'section-schemas.ts');
 const PRESETS_FILE = resolve(DASHBOARD_LIB, 'editorialPresets.ts');
 const hasDashboard = existsSync(SCHEMAS_FILE) && existsSync(PRESETS_FILE);

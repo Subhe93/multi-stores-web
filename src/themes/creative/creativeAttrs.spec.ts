@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ThemeCustomizations } from '../types';
-import { creativeAttrs, readCreative } from './creativeAttrs';
+import { clientMessages, creativeAttrs, readCreative } from './creativeAttrs';
 
 const c = (creative: unknown, extra: Record<string, unknown> = {}) =>
   ({ motion: { ...extra, creative } }) as unknown as ThemeCustomizations;
@@ -98,5 +98,18 @@ describe('creative store switch', () => {
 
   it('lives beside the motion profile without touching it', () => {
     expect(creativeAttrs(c({ enabled: true }, { reveal: 'calm', zoom: 'off' }))).toEqual({ 'data-creative': '' });
+  });
+});
+
+describe('client messages', () => {
+  it('leave the creative texts on the server and keep everything else in order', () => {
+    const messages = { store: { a: '1' }, sections: { b: '2' }, creative: { loadingPage: 'Loading page' } };
+    expect(JSON.stringify(clientMessages(messages))).toBe('{"store":{"a":"1"},"sections":{"b":"2"}}');
+    expect(messages.creative.loadingPage).toBe('Loading page');
+  });
+
+  it('return the same object when there is nothing to leave out', () => {
+    const messages = { store: { a: '1' } };
+    expect(clientMessages(messages)).toBe(messages);
   });
 });

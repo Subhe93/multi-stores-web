@@ -15,8 +15,6 @@
 //   phone the wave is capped at two steps (two columns).
 // - the "view all" link of a product row: its chevron leans 3 px with the
 //   underline sweep.
-// - the store's own zoom switch (data-motion-zoom="off") also silences the
-//   slow image zoom of the cards.
 
 import { G, G_RTL, minifyCss } from './base.css';
 
@@ -28,7 +26,6 @@ ${G} ${SLIDES}[data-cx-state="pending"] [data-cx-slide]{opacity:0;translate:0 va
 ${G} ${SLIDES}[data-cx-state="shown"] [data-cx-slide]{transition:opacity var(--cx-dur) var(--cx-ease),translate var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-i,0) * var(--cx-stagger))}
 ${G} ${SLIDES} [aria-roledescription="carousel"]>button:active{scale:.97}
 ${G} [data-cx-hover="press"][data-cx-more-btn]{transition:scale .2s ease,border-color .25s ease,box-shadow .25s ease}
-${G}[data-motion-zoom="off"] [data-cx-hover="media"][data-cx-hover] :is(img,video){scale:none}
 @media (max-width:767px){
 ${G} ${SLIDES}[data-cx-state="shown"] [data-cx-slide]{transition-delay:calc(min(var(--cx-i,0),1) * var(--cx-stagger))}
 ${G} [data-cx-more][data-cx-intro="rise"]{animation-delay:calc(min(var(--cx-i,0),1) * var(--cx-stagger))}

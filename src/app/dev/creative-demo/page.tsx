@@ -44,6 +44,8 @@ import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAsset
 //   style=off                         (store switch off: the platform as it is today)
 //   motion=calm|off                   (store motion profile)
 //   curtain=1                         (page transition curtain)
+//   progress=1                        (scroll progress bar)
+//   cursor=1                          (cursor dot)
 //   builder=1                         (builder preview state: static)
 //   bar=0                             (hides the demo bar, for screenshots)
 // plus the engine's own cx-motion=force.
@@ -95,6 +97,8 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   const styleOn = one(query.style) !== 'off';
   const profile = one(query.motion);
   const curtain = one(query.curtain) === '1';
+  const progress = one(query.progress) === '1';
+  const cursor = one(query.cursor) === '1';
   const builder = one(query.builder) === '1';
   const showBar = one(query.bar) !== '0';
 
@@ -105,7 +109,13 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   const stored = fixture.themeCustomizations;
   const motion: Record<string, unknown> = {};
   if (profile === 'calm' || profile === 'off') motion.reveal = profile;
-  if (styleOn) motion.creative = { enabled: true, ...(curtain ? { transition: 'curtain' } : null) };
+  if (styleOn)
+    motion.creative = {
+      enabled: true,
+      ...(curtain ? { transition: 'curtain' } : null),
+      ...(progress ? { progress: 'bar' } : null),
+      ...(cursor ? { cursor: 'dot' } : null),
+    };
   const customizations = {
     ...stored,
     ...(Object.keys(motion).length ? { motion } : { motion: undefined }),
@@ -311,7 +321,11 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
                 { label: 'profile off', href: href({ style: null, motion: 'off' }), on: styleOn && profile === 'off' },
                 { label: 'switch off', href: href({ style: 'off', motion: null }), on: !styleOn },
               ],
-              [{ label: 'curtain', href: href({ curtain: curtain ? null : '1' }), on: curtain }],
+              [
+                { label: 'curtain', href: href({ curtain: curtain ? null : '1' }), on: curtain },
+                { label: 'progress', href: href({ progress: progress ? null : '1' }), on: progress },
+                { label: 'cursor', href: href({ cursor: cursor ? null : '1' }), on: cursor },
+              ],
             ]}
             note={source === 'neutral' ? 'neutral placeholder content' : fixture.name}
           />

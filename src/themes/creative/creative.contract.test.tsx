@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { FieldDefinition } from '../types';
 import { CREATIVE_SECTION_KEYS } from './constants';
 import { CREATIVE_SCHEMAS } from './schemas';
+import { EMBLEM_FIELDS } from '../minimal/sections/_shared/emblemFields';
 
 // Cross-repo check: the dashboard keeps a hand-made copy of the ornament
 // divider schema (section-schemas.ts). File: DASHBOARD_SCHEMAS_FILE, else the creative dashboard
@@ -126,6 +127,19 @@ describe.skipIf(!ready)('creative engine: dashboard and storefront agree', () =>
       const keys = find(id).schema.map((f) => f.key);
       for (const key of ['heading_reveal', 'heading_emphasis', 'heading_emphasis_color', 'image_reveal', 'image_reveal_direction']) {
         expect(keys, `${id}.${key}`).not.toContain(key);
+      }
+    }
+  });
+
+  // The optional hero emblem: the dashboard carries the same four fields as
+  // the last four of hero-split and hero-banner, with six-locale texts.
+  it.each(['hero-split', 'hero-banner'])('%s: the emblem fields are mirrored at the end of the schema', (id) => {
+    const tail = loadDashboard()(id).schema.slice(-EMBLEM_FIELDS.length);
+    expect(tail.map(fieldShape)).toEqual(EMBLEM_FIELDS.map(fieldShape));
+    for (const f of tail) {
+      for (const locale of LOCALES) {
+        expect(f.label?.[locale]?.trim(), `${id}.${f.key} label ${locale}`).toBeTruthy();
+        for (const o of f.options ?? []) expect(o.label?.[locale]?.trim(), `${id}.${f.key}.${o.value} ${locale}`).toBeTruthy();
       }
     }
   });

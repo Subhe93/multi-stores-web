@@ -22,14 +22,6 @@ ${G} [data-cx-section] .card-lift{transition-duration:.5s}
 }
 `;
 
-// A pressed button keeps the transitions it needs beside the press itself:
-// the magnetic pull (translate) and its own colour and opacity feedback.
-// Without this rule the press and the magnetic recipe replace each other's
-// `transition` and one of the two snaps.
-const PRESS = `
-${G} :is(a,button)[data-cx-hover="press"]:not(.cx-btn){transition:scale .2s ease,translate .35s var(--cx-ease),opacity .25s ease,background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .3s ease}
-`;
-
 // Vertical variant of line-draw: the rail of a timeline grows downwards.
 // The rail is as tall as the list, so it takes the long settle duration.
 const RAIL = `
@@ -47,4 +39,4 @@ ${G} [data-cx-acc]{transition:grid-template-rows .35s var(--cx-ease)}
 ${G} [data-cx-swap]{transition:opacity .45s ease}
 `;
 
-export const STORY_CSS: string = minifyCss(CARDS + PRESS + RAIL + UI);
+export const STORY_CSS: string = minifyCss(CARDS + RAIL + UI);

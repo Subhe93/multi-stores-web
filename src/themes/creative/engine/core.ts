@@ -42,7 +42,12 @@ const noop: Cleanup = () => {};
 const scopes = new Map<HTMLElement, ScopeState>();
 
 // Reveal line: an element shows when its top passes 84 % of the viewport.
-const REVEAL_MARGIN = '0px 0px -16% 0px';
+// The observed area reaches far above the viewport, so an element that a
+// jump carried past (End key, anchor link, restored scroll position) is
+// released too instead of staying pending until the visitor scrolls back.
+const ABOVE = '100000px';
+const REVEAL_MARGIN = `${ABOVE} 0px -16% 0px`;
+const REVEAL_MARGIN_END = `${ABOVE} 0px 0px 0px`;
 // A shown element goes back to its own styles after its entrance: the
 // "shown" rule carries a transition that would otherwise override the
 // element's hover transitions for good.
@@ -296,13 +301,17 @@ function armReveals(scope: HTMLElement, state: ScopeState): void {
   const els = withSelf(scope, '[data-cx-reveal]').filter((el) => el.getAttribute('data-cx-reveal') !== 'stagger');
   if (!els.length) return;
   const vh = window.innerHeight || document.documentElement.clientHeight;
+  const vw = window.innerWidth || document.documentElement.clientWidth;
   const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
   for (const el of els) {
     // Already armed (through an outer scope or an earlier pass).
     if (el.hasAttribute('data-cx-state')) continue;
-    const top = el.getBoundingClientRect().top;
-    // On screen or already scrolled past: stays at rest, never hidden.
-    if (top < vh) {
+    const rect = el.getBoundingClientRect();
+    const top = rect.top;
+    // On screen or already scrolled past: stays at rest, never hidden. The
+    // same goes for an element beside the viewport (a card further along a
+    // swipe row): no vertical scroll would ever bring it to the reveal line.
+    if (top < vh || (vw > 0 && rect.width > 0 && (rect.left >= vw || rect.right <= 0))) {
       el.setAttribute('data-cx-state', 'done');
       state.cleanups.push(() => el.removeAttribute('data-cx-state'));
       continue;
@@ -312,7 +321,7 @@ function armReveals(scope: HTMLElement, state: ScopeState): void {
     // The last block before the footer may never reach the reveal line:
     // observe it with no margin, or it would stay hidden.
     const topAtEnd = top + window.scrollY - maxScroll;
-    const rootMargin = topAtEnd > vh * 0.84 ? '0px' : REVEAL_MARGIN;
+    const rootMargin = topAtEnd > vh * 0.84 ? REVEAL_MARGIN_END : REVEAL_MARGIN;
     let settle: ReturnType<typeof setTimeout> | undefined;
     const stop = observeOnce(
       el,
