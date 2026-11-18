@@ -76,6 +76,7 @@ import {
 } from '@/lib/checkoutCountries';
 import { useDefaultQuoteCountry } from '@/hooks/useCartQuote';
 import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
+import { storeOffersCod } from '@/lib/codPolicy';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -2294,6 +2295,7 @@ function CheckoutRouter() {
             id: string;
             card_payments_enabled?: boolean;
             cod_enabled?: boolean;
+            store_type?: string;
             kustom_enabled?: boolean;
             preview?: boolean;
           };
@@ -2305,7 +2307,8 @@ function CheckoutRouter() {
           flags.card = store.card_payments_enabled !== false;
           // Cash on delivery is opt-in per store (off by default server-side):
           // strict check so COD stays hidden for stores that haven't enabled it.
-          flags.cod = store.cod_enabled === true;
+          // Never offered by a MARKETPLACE store (platform rule).
+          flags.cod = storeOffersCod(store);
           flags.kustom = store.kustom_enabled !== false;
         } catch { /* ignore */ }
       }
