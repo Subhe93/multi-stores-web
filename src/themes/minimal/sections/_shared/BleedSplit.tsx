@@ -45,9 +45,11 @@ export function BleedMediaPlaceholder() {
   return (
     <div
       className="absolute inset-0"
+      // Tinted from the section's text colour, so the box shows on every
+      // tone (a surface-coloured box vanished on the surface tone).
       style={{
-        backgroundColor: 'var(--theme-colors-surface)',
-        border: '1px dashed var(--theme-colors-border)',
+        backgroundColor: 'color-mix(in srgb, currentColor 6%, transparent)',
+        border: '1px dashed color-mix(in srgb, currentColor 35%, transparent)',
       }}
       data-bleed-placeholder=""
     />

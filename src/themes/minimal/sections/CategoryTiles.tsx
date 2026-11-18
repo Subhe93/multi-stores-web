@@ -112,7 +112,12 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
               ' [--g:1rem] sm:[--g:1.5rem] max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:mx-[calc(var(--g)*-1)] max-md:px-[var(--g)] max-md:py-1'
             : ''
         }`}
-        style={gridColsStyle(columns, columnsTablet, columnsMobile)}
+        // Scroll padding keeps a snapped tile on the page gutter instead of
+        // flush against the screen edge.
+        style={{
+          ...gridColsStyle(columns, columnsTablet, columnsMobile),
+          ...(mobileScroll ? { scrollPaddingInline: 'var(--g)' } : {}),
+        }}
       >
         {tiles.map((tile, i) => {
           const title = str(tile.title);
@@ -193,7 +198,19 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
                       style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)' }}
                     />
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 md:p-4">
+                  {/* A second scrim that grows with the text, so a long title
+                      over a light photo never leaves the dark area. */}
+                  <div
+                    className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 md:p-4"
+                    style={
+                      img
+                        ? {
+                            paddingTop: '3rem',
+                            background: 'linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.55) 3rem)',
+                          }
+                        : undefined
+                    }
+                  >
                     {text}
                     {arrow}
                   </div>

@@ -244,7 +244,7 @@ describe('hero-split bleed variant', () => {
     const out = html({ settings: { variant: 'bleed' }, content: CONTENT, builderPreview: true });
     expect(out).toContain('data-bleed-split="bleed"');
     expect(out).toContain('data-bleed-placeholder');
-    expect(out).toContain('1px dashed var(--theme-colors-border)');
+    expect(out).toContain('1px dashed color-mix(in srgb, currentColor 35%, transparent)');
     expect(out).not.toContain('<img');
     // Never on the live store, and never once an image is set.
     expect(html({ settings: { variant: 'bleed' }, content: CONTENT, builderPreview: false })).not.toContain('data-bleed-placeholder');

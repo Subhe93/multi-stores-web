@@ -177,7 +177,7 @@ describe('progress-spotlight layout', () => {
     expect(live).not.toContain('100vw');
     const preview = html({ builderPreview: true });
     expect(preview).toContain('data-bleed-split="bleed"');
-    expect(preview).toContain('1px dashed var(--theme-colors-border)');
+    expect(preview).toContain('data-bleed-placeholder');
     expect(preview).not.toContain('<img');
   });
 
