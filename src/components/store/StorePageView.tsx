@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
-import { nullWhenNotFound } from '@/lib/apiAvailability';
+import { readWithFallback } from '@/lib/apiAvailability';
 import { buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
@@ -87,18 +87,25 @@ export async function fetchStorePage(
   pageSlug: string,
   system?: 'v2' | 'legacy',
 ): Promise<StorePageData> {
-  const [store, v2, legacy] = await Promise.all([
+  const [store, [v2, legacy]] = await Promise.all([
     storefront.getStore(storeSlug, await getRequestMarket()).catch(() => null) as Promise<StoreLite | null>,
-    // M6.6: builder pages — STATIC or LANDING — are both served at the root
-    // (slugs are unique per store, so one lookup covers both).
-    system === 'legacy'
-      ? null
-      : (storefront.getPublishedPage(storeSlug, pageSlug).catch(nullWhenNotFound) as Promise<V2Page | null>),
-    system === 'v2'
-      ? null
-      : (storefront.getPage(storeSlug, pageSlug).catch(nullWhenNotFound) as Promise<LegacyPage | null>),
+    // A failed builder lookup is fatal (it wins when both exist). The legacy
+    // lookup of a builder page is an uncached 404 on every view: when it
+    // fails for a temporary reason the builder page still renders.
+    readWithFallback(
+      // M6.6: builder pages — STATIC or LANDING — are both served at the root
+      // (slugs are unique per store, so one lookup covers both).
+      system === 'legacy' ? null : (storefront.getPublishedPage(storeSlug, pageSlug) as Promise<V2Page>),
+      system === 'v2' ? null : (storefront.getPage(storeSlug, pageSlug) as Promise<LegacyPage>),
+      rendersV2,
+    ),
   ]);
   return { store, v2, legacy };
+}
+
+/** Whether StorePageView renders this builder page (else the legacy one). */
+function rendersV2(v2: V2Page | null): v2 is V2Page {
+  return !!v2?.snapshot?.sections?.length;
 }
 
 /**
@@ -266,7 +273,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
 
   // Prefer v2 — it carries the section layout the creator built. The CSS vars
   // from the parent layout are already in scope so sections render themed.
-  if (v2 && v2.snapshot?.sections?.length) {
+  if (rendersV2(v2)) {
     const theme = resolveTheme(store?.theme_key);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     // M6.4: collection-products sections render their list from the server.

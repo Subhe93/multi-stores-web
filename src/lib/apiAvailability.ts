@@ -43,6 +43,35 @@ export function nullWhenNotFound(err: unknown): null {
   throw new StoreUnavailableError();
 }
 
+/**
+ * Two reads of one resource that lives in two systems (a builder page, then
+ * the legacy page of the same slug), both already started. `primary` wins
+ * when it serves the resource, so its failure decides as in
+ * nullWhenNotFound. `fallback` answers 404 for every resource of the other
+ * system, which is never cached, so it is a live API call on each view: its
+ * temporary failure (API restart, timeout) is ignored while `primary` serves
+ * the resource, and decides as in nullWhenNotFound only when it is needed.
+ */
+export async function readWithFallback<A, B>(
+  primary: Promise<A> | null,
+  fallback: Promise<B> | null,
+  serves: (value: A | null) => boolean,
+): Promise<[A | null, B | null]> {
+  // Settle the fallback first, so it never rejects unhandled when `primary`
+  // throws below.
+  const held = fallback
+    ? fallback.then(
+        (value) => ({ ok: true as const, value }),
+        (error: unknown) => ({ ok: false as const, error }),
+      )
+    : null;
+  const first = primary ? await primary.catch(nullWhenNotFound) : null;
+  const second = held ? await held : null;
+  if (!second) return [first, null];
+  if (second.ok) return [first, second.value];
+  return [first, serves(first) ? null : nullWhenNotFound(second.error)];
+}
+
 /** Thrown by the store layout when the store could not be loaded because the
  *  API is unavailable (rendered by the error boundary as a 5xx, never 404). */
 export class StoreUnavailableError extends Error {
