@@ -15,6 +15,7 @@
 
 import { storefront } from './api';
 import type { MarketRef } from './market';
+import { cardQuery, type ProductCardSettings } from './productCard/settings';
 import type { SectionInstance } from '@/themes/types';
 import {
   PICKED_SECTION_KEYS,
@@ -167,7 +168,12 @@ async function preloadPickedProducts(
 export async function preloadSectionData(
   storeSlug: string,
   sections: SectionInstance[],
-  opts: { locale: string; marketRef?: MarketRef },
+  opts: {
+    locale: string;
+    marketRef?: MarketRef;
+    /** The store's card settings (`readProductCard`): the lists then carry the card fields, as the sections ask. */
+    card?: ProductCardSettings | null;
+  },
 ): Promise<Record<string, unknown>> {
   const targets = sections.flatMap((s) => {
     if (s.is_hidden) return [];
@@ -179,7 +185,8 @@ export async function preloadSectionData(
 
   const results = await Promise.allSettled(
     targets.map(async ({ params, limit }) => {
-      const list = (await storefront.getProducts(storeSlug, params, opts.marketRef)) as unknown;
+      // `card` last, exactly as the sections build their own request.
+      const list = (await storefront.getProducts(storeSlug, { ...params, ...cardQuery(opts.card) }, opts.marketRef)) as unknown;
       return Array.isArray(list) ? list.slice(0, limit) : [];
     }),
   );

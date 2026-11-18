@@ -8,7 +8,9 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { collectionHref, collectionPathInChain, resolveCollectionChain } from '@/lib/collectionPath';
-import { ProductCard } from '@/components/product/ProductCard';
+import { StoreProductCard } from '@/components/product/card/StoreProductCard';
+import { toCardExtras, type CardSourceRow } from '@/lib/productCard/model';
+import { cardQuery, readProductCard } from '@/lib/productCard/settings';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { resolveHero, type StoreHero } from '@/lib/hero';
@@ -18,7 +20,7 @@ import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { stagger, surface, type MotionProp } from '@/themes/creative/recipes';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
-import { toListingCard, toListingProduct } from '@/lib/listing';
+import { listingProjector, toListingCard, toListingProduct } from '@/lib/listing';
 import { loadListing } from '@/lib/listingLoad';
 import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
@@ -133,8 +135,11 @@ export default async function CollectionPage({
       language_config?: { primary_locale?: string } | null;
       theme?: { hero?: StoreHero };
       theme_key?: string;
+      theme_customizations?: unknown;
     };
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
+  // Product card settings of the store (null = the classic card, classic requests).
+  const cardSettings = readProductCard(storeData?.theme_customizations);
 
   const [creatorCategoriesTree, template] = await Promise.all([
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
@@ -185,6 +190,8 @@ export default async function CollectionPage({
   // route makes today's exact request and renders as before.
   const queryParams: Record<string, string> = { locale, creator_category: handle };
   if (search) queryParams.search = search;
+  // Last key, only with card settings: the default request does not move.
+  Object.assign(queryParams, cardQuery(cardSettings));
   const loaded = await loadListing<Product>(storeSlug, { queryParams, sort }, marketRef);
   const products = loaded.products;
   const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
@@ -277,11 +284,12 @@ export default async function CollectionPage({
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale: tplLocale,
       marketRef,
+      card: cardSettings,
     });
     const listing: ListingContext = {
       kind: 'collection',
       // Card-level projection only — see lib/listing.ts.
-      products: pagination ? products.map(toListingCard) : products.map(toListingProduct),
+      products: products.map(listingProjector(Boolean(cardSettings), pagination ? toListingCard : toListingProduct)),
       // The tree only feeds the catalog pills; a collection page reads
       // `collection.children` instead, so it stays out of the RSC payload.
       collections: [],
@@ -522,7 +530,7 @@ export default async function CollectionPage({
           // Server mode: first page from the server, next pages by "load more".
           <ListingPagedGrid
             storeSlug={storeSlug}
-            initial={products.map(toListingCard)}
+            initial={products.map(listingProjector(Boolean(cardSettings), toListingCard))}
             pagination={pagination}
             locale={locale}
             lp={lp}
@@ -552,8 +560,17 @@ export default async function CollectionPage({
               const promo = promotionsForProduct(product, product.promotions)[0];
 
               return (
-                <ProductCard
+                <StoreProductCard
                   key={product.id}
+                  // Enhanced card only (the store has card settings): its model
+                  // and the ids quick add reads. Without settings: today's props.
+                  {...(cardSettings
+                    ? {
+                        card: toCardExtras(product as unknown as CardSourceRow),
+                        productId: product.id,
+                        productSlug: slugTr?.slug || product.id,
+                      }
+                    : {})}
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}

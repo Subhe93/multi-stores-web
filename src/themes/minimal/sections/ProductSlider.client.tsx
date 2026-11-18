@@ -16,6 +16,10 @@ import { Slider } from './_shared/Slider.client';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
+import { useProductCardSettings } from '@/hooks/useProductCard';
+import { StoreProductCard } from '@/components/product/card/StoreProductCard';
+import { cardExtrasOf, type CardSourceRow } from '@/lib/productCard/model';
+import { cardQuery } from '@/lib/productCard/settings';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { MotionText } from '../../creative/primitives/Motion';
@@ -77,12 +81,16 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const market = useMarket();
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
+  // Enhanced product card (store opt-in): the list asks for the card fields
+  // and the cards go through the dispatcher. null = everything as today.
+  const cardSettings = useProductCardSettings();
+  const wantsCard = cardSettings !== null;
 
   // Keyed by the request it answers, like FeaturedProducts: server-preloaded
   // products (lib/preloadSections.ts) seed the state under the mount key, so
   // the server HTML has the slides and the mount fetch is skipped; a change
   // of any dep yields a new key and re-fetches.
-  const requestKey = [storeSlug, locale, limit, filter, marketKey ?? '', marketPreview ? '1' : ''].join('|');
+  const requestKey = [storeSlug, locale, limit, filter, marketKey ?? '', marketPreview ? '1' : '', ...(wantsCard ? ['card'] : [])].join('|');
   const [loaded, setLoaded] = useState<{ key: string; products: ProductRow[] } | null>(() =>
     Array.isArray(preloaded) ? { key: requestKey, products: preloaded as ProductRow[] } : null,
   );
@@ -94,7 +102,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     if (loadedKeyRef.current === requestKey) return;
     let cancelled = false;
     const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
-    const params = productSliderParams({ locale, limit, filter });
+    const params = { ...productSliderParams({ locale, limit, filter }), ...cardQuery(cardSettings) };
     const settle = (list: ProductRow[]) => {
       if (cancelled) return;
       loadedKeyRef.current = requestKey;
@@ -107,7 +115,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     return () => {
       cancelled = true;
     };
-  }, [requestKey, storeSlug, locale, limit, filter, marketKey, marketPreview]);
+  }, [requestKey, storeSlug, locale, limit, filter, marketKey, marketPreview, cardSettings]);
 
   const c = currency || 'EUR';
   // b2b app: company view shows net amounts.
@@ -138,6 +146,30 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     const productPath = slugTr?.slug || p.id;
     const url = `${localePrefix}/products/${productPath}`;
     const imageSrc = p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : '';
+    // Store opt-in: the enhanced card, with this section's aspect and motion.
+    if (cardSettings) {
+      return (
+        <StoreProductCard
+          key={p.id}
+          // The attached model of a projected row, else computed from the raw row.
+      card={cardExtrasOf(p as unknown as CardSourceRow)}
+          productId={p.id}
+          productSlug={productPath}
+          entrance={motion ? { 'data-cx-slide': '', 'data-cx-i': index > 0 ? String(Math.min(index, 5)) : undefined } : {}}
+          href={url}
+          title={tr?.title || ''}
+          price={Number(p.base_price)}
+          taxRateBp={p.tax_rate_bp}
+          comparePrice={p.compare_at_price ? Number(p.compare_at_price) : undefined}
+          imageUrl={p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined}
+          currency={c}
+          vendorName={p.vendor?.company_name}
+          aspectClass={aspectClass}
+          sizes={imageSizes}
+          motion={motion}
+        />
+      );
+    }
     return (
       <a
         key={p.id}

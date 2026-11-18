@@ -7,7 +7,9 @@ import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
-import { ProductCard } from '@/components/product/ProductCard';
+import { StoreProductCard } from '@/components/product/card/StoreProductCard';
+import { toCardExtras, type CardSourceRow } from '@/lib/productCard/model';
+import { cardQuery, readProductCard } from '@/lib/productCard/settings';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
@@ -15,7 +17,7 @@ import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { stagger, surface, type MotionProp } from '@/themes/creative/recipes';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
-import { toListingCard, toListingProduct } from '@/lib/listing';
+import { listingProjector, toListingCard, toListingProduct } from '@/lib/listing';
 import { loadListing } from '@/lib/listingLoad';
 import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
@@ -144,14 +146,19 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     language_config?: { primary_locale?: string } | null;
     theme?: { hero?: StoreHero };
     theme_key?: string;
+    theme_customizations?: unknown;
     market?: MarketRoute | null;
   };
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
+  // Product card settings of the store (null = the classic card, classic requests).
+  const cardSettings = readProductCard(storeData?.theme_customizations);
 
   const queryParams: Record<string, string> = { locale };
   if (search) queryParams.search = search;
   if (category) queryParams.category = category;
   if (creator_category) queryParams.creator_category = creator_category;
+  // Last key, only with card settings: the default request does not move.
+  Object.assign(queryParams, cardQuery(cardSettings));
 
   // Only the creator's own collections are shown on the storefront — admin/provider
   // taxonomy categories live at the platform level and don't belong on the store page.
@@ -241,11 +248,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale: tplLocale,
       marketRef: marketKey,
+      card: cardSettings,
     });
     const listing: ListingContext = {
       kind: 'catalog',
       // Card-level projection only — see lib/listing.ts.
-      products: pagination ? products.map(toListingCard) : products.map(toListingProduct),
+      products: products.map(listingProjector(Boolean(cardSettings), pagination ? toListingCard : toListingProduct)),
       collections: creatorCategories || [],
       query: { search, sort, category, creator_category },
       hero: storeData?.theme?.hero?.products,
@@ -519,7 +527,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           // Server mode: first page from the server, next pages by "load more".
           <ListingPagedGrid
             storeSlug={storeSlug}
-            initial={products.map(toListingCard)}
+            initial={products.map(listingProjector(Boolean(cardSettings), toListingCard))}
             pagination={pagination}
             locale={locale}
             lp={lp}
@@ -547,8 +555,17 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
               const promo = promotionsForProduct(product, product.promotions)[0];
 
               return (
-                <ProductCard
+                <StoreProductCard
                   key={product.id}
+                  // Enhanced card only (the store has card settings): its model
+                  // and the ids quick add reads. Without settings: today's props.
+                  {...(cardSettings
+                    ? {
+                        card: toCardExtras(product as unknown as CardSourceRow),
+                        productId: product.id,
+                        productSlug: slugTr?.slug || product.id,
+                      }
+                    : {})}
                   href={`${lp}/products/${slugTr?.slug || product.id}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}

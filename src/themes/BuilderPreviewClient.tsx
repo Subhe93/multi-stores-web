@@ -15,6 +15,8 @@ import { dashboardOrigins } from '@/lib/platformHosts';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { projectProductForClient } from '@/lib/productPayload';
 import { StoreAppsProvider } from '@/hooks/useStoreApps';
+import { ProductCardProvider } from '@/hooks/useProductCard';
+import { readProductCard } from '@/lib/productCard/settings';
 import { StoreTaxProvider } from '@/hooks/useStoreTax';
 import { BuyerTypeProvider } from '@/hooks/useBuyerType';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
@@ -405,6 +407,11 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   );
   const selectedCss = selectionCss(safeSelectedId, selectedParentId);
 
+  // Product card settings, live from the customizations the dashboard posts:
+  // a toggle in Design > Product card shows at once (the sample listing of
+  // this route always carries the card fields).
+  const productCard = useMemo(() => readProductCard(state.customizations), [state.customizations]);
+
   return (
     <div
       data-theme={theme.key}
@@ -455,6 +462,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           // Designer app (M5.5): the sample product's design session, shared by
           // the gallery (canvas) and add-to-cart (form) sections.
           <PreviewStoreSettings apps={state.apps} tax={state.tax}>
+          <ProductCardProvider settings={productCard} storeSlug={storeSlug}>
           <DesignerSessionProvider designer={state.product?.designer} productId={state.product?.id ?? ''} locale={state.locale}>
             <PreviewProductState
               product={state.product}
@@ -476,6 +484,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
               />
             </PreviewProductState>
           </DesignerSessionProvider>
+          </ProductCardProvider>
           </PreviewStoreSettings>
         )}
       </theme.Layout>

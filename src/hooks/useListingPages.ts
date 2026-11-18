@@ -13,6 +13,9 @@ import { storefront } from '@/lib/api';
 import { toListingCard, type StorefrontProductRow } from '@/lib/listing';
 import type { ListingPagination } from '@/lib/listingPaging';
 import { useMarket } from '@/hooks/useMarket';
+import { useProductCardSettings } from '@/hooks/useProductCard';
+import { withCardExtras, type CardSourceRow } from '@/lib/productCard/model';
+import { cardQuery } from '@/lib/productCard/settings';
 import type { ListingProduct } from '@/themes/types';
 
 interface PagesState {
@@ -51,6 +54,8 @@ export function useListingPages({
   const market = useMarket();
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
+  // Enhanced card: the next pages carry the card fields like the first one.
+  const cardSettings = useProductCardSettings();
 
   // A new request (sort, search, collection, locale) or a new first page
   // yields a new key, which drops the appended pages without an effect.
@@ -87,10 +92,12 @@ export function useListingPages({
     setState({ ...base, loading: true, error: false });
     const marketRef = marketKey ? (marketPreview ? { key: marketKey, preview: true as const } : { key: marketKey }) : undefined;
     storefront
-      .getProductsPage(storeSlug, { ...pagination.request, page, limit: pagination.pageSize }, marketRef)
+      .getProductsPage(storeSlug, { ...pagination.request, page, limit: pagination.pageSize, ...cardQuery(cardSettings) }, marketRef)
       .then((res) => {
         if (keyRef.current !== requestKey) return;
-        const cards = (res.items as StorefrontProductRow[]).map(toListingCard);
+        const cards = (res.items as StorefrontProductRow[]).map((row) =>
+          cardSettings ? withCardExtras(toListingCard(row), row as unknown as CardSourceRow) : toListingCard(row),
+        );
         setState((prev) => {
           const from = prev && prev.key === requestKey ? prev : base;
           if (res.legacy) {
