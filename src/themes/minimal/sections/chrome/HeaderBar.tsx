@@ -8,6 +8,7 @@
 // toggle, but the current minimal experience renders fine without it.
 
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 // Chrome links use prefetch={false}: viewport-prefetching every menu link
 // floods the origin with dynamic RSC renders on each page view.
 import { Search, User, ChevronDown } from 'lucide-react';
@@ -29,6 +30,7 @@ import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
 import { BlurOnNavigate } from './BlurOnNavigate.client';
 import { HeaderScrollState } from './HeaderScrollState.client';
+import { HeaderOverlayHome } from './HeaderOverlayHome.client';
 
 interface NavItem {
   label?: string;
@@ -99,6 +101,15 @@ const STICKY_CLASS: Record<StickyMode, string> = {
 //              full-width column panel, the rest keep a simple dropdown.
 type SubmenuStyle = 'dropdown' | 'mega';
 
+// Transparent header over the first section (`overlay_hero`):
+// 'off'  — the stored header (default; markup unchanged);
+// 'home' — only on the store's home page (HeaderOverlayHome marks it);
+// 'all'  — on every page whose first section is a hero (detected in CSS).
+export type OverlayHero = 'off' | 'home' | 'all';
+export function parseOverlayHero(raw: unknown): OverlayHero {
+  return raw === 'home' || raw === 'all' ? raw : 'off';
+}
+
 function HeaderBar({ settings, content, locale, primaryLocale, storeContext, motion }: SectionRenderProps) {
   const ctx = storeContext;
   // Shared (non-async) component: next-intl's hook works both in the RSC
@@ -136,6 +147,17 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
   const compactHeaderAttr = compact ? { 'data-compact-header': '' } : {};
   const compactRowAttr = compact ? { 'data-header-row': '' } : {};
   const compactBrandAttr = compact ? { 'data-header-brand': '' } : {};
+  // Transparent over the first section (opt-in). The look lives in
+  // globals.css; here only marks: the mode and scrim on the header, the
+  // solid text colour as --hb-fg (dropdown panels keep it), the logos, and
+  // the optional light logo. With 'off' none of them is rendered.
+  const overlayHero = parseOverlayHero(settings.overlay_hero);
+  const overlay = overlayHero !== 'off';
+  const overlayHeaderAttr = overlay
+    ? { 'data-overlay-header': overlayHero, 'data-overlay-scrim': settings.overlay_scrim === 'none' ? 'none' : 'soft' }
+    : {};
+  const overlayLogoAttr = overlay ? { 'data-header-logo': '' } : {};
+  const logoUrlLight = overlay ? (settings.logo_url_light as string) || '' : '';
 
   const logoSize = numberOr(settings.logo_size, 32);
   // Square box (stored headers) or natural proportions under a height
@@ -194,14 +216,17 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
   const header = (
     <header
       {...compactHeaderAttr}
+      {...overlayHeaderAttr}
       {...surface(motion, 'header')}
       className={`${STICKY_CLASS[stickyMode]} backdrop-blur-sm`}
       style={{
         backgroundColor: bg,
         color: fg,
         borderBottom: `1px solid ${borderColor}`,
+        ...(overlay ? ({ '--hb-fg': fg } as CSSProperties) : null),
       }}
     >
+      {overlayHero === 'home' && <HeaderOverlayHome homeHref={homeUrl} />}
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8" style={{ maxWidth: 'var(--theme-container-max)' }}>
         <div {...compactRowAttr} className="flex items-center justify-between gap-4 h-16">
           {/* Mobile menu trigger — only renders <md, the drawer + state live
@@ -224,6 +249,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
               // ~100px box); SVG logos pass through unchanged. Eager: the
               // header is always above the fold.
               <StoreImage
+                {...overlayLogoAttr}
                 src={resolveMediaUrl(logoUrl)}
                 alt={storeName}
                 width={logoBox.width}
@@ -237,6 +263,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
             )}
             {showLogo && logoUrlMobile && (
               <StoreImage
+                {...overlayLogoAttr}
                 src={resolveMediaUrl(logoUrlMobile)}
                 alt={storeName}
                 width={logoBox.width}
@@ -246,6 +273,23 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
                 unoptimized={isSvgSrc(resolveMediaUrl(logoUrlMobile))}
                 style={logoBox.style}
                 className={`${logoBox.className} md:hidden`}
+              />
+            )}
+            {/* Light logo of the transparent state (both breakpoints); CSS
+                shows it only while the header lies over the first section,
+                in place of the logos above. */}
+            {showLogo && logoUrlLight && (
+              <StoreImage
+                data-header-logo-light=""
+                src={resolveMediaUrl(logoUrlLight)}
+                alt={storeName}
+                width={logoBox.width}
+                height={logoBox.height}
+                sizes={logoBox.sizes}
+                loading="eager"
+                unoptimized={isSvgSrc(resolveMediaUrl(logoUrlLight))}
+                style={logoBox.style}
+                className={logoBox.className}
               />
             )}
             {showStoreName && storeName && (
@@ -398,8 +442,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
       </div>
     </header>
   );
-  if (!compact) return header;
-  // The sentinel must be the sibling right before the header.
+  if (!compact && !overlay) return header;
+  // The sentinel must be the sibling right before the header. The overlay
+  // reuses it: data-scrolled="true" turns the header solid again.
   return (
     <>
       <HeaderScrollState />
@@ -514,6 +559,33 @@ export const headerBarSection: SectionDefinition = {
       { key: 'text_color', type: 'color', label: { en: 'Text color', ar: 'لون النص' } },
       { key: 'border_color', type: 'color', label: { en: 'Bottom border color', ar: 'لون الحد السفلي' } },
       { key: 'accent_color', type: 'color', label: { en: 'Accent (active link / locale)', ar: 'لون التمييز (الرابط النشط / اللغة)' } },
+      // Transparent over the first section (opt-in, unset = 'off').
+      {
+        key: 'overlay_hero',
+        type: 'select',
+        label: { en: 'Transparent over the first section', ar: 'شفاف فوق القسم الأول' },
+        description: {
+          en: 'At the top of the page the bar lies over the first section with a transparent background and light text, and turns solid on scroll. "Pages with a hero" means every page whose first section is a hero. A hero can use var(--store-header-h) as its top padding.',
+          ar: 'في أعلى الصفحة يظهر الشريط فوق القسم الأول بخلفية شفافة ونص فاتح، ويعود صلباً عند التمرير. «الصفحات ذات البانر الرئيسي» تعني كل صفحة قسمها الأول بانر رئيسي. يمكن للبانر استخدام var(--store-header-h) كمسافة علوية.',
+        },
+        defaultValue: 'off',
+        options: [
+          { value: 'off', label: { en: 'Off', ar: 'إيقاف' } },
+          { value: 'home', label: { en: 'Home page only', ar: 'الصفحة الرئيسية فقط' } },
+          { value: 'all', label: { en: 'Pages with a hero', ar: 'الصفحات ذات البانر الرئيسي' } },
+        ],
+      },
+      {
+        key: 'overlay_scrim',
+        type: 'select',
+        label: { en: 'Shade behind the transparent bar', ar: 'تظليل خلف الشريط الشفاف' },
+        defaultValue: 'soft',
+        options: [
+          { value: 'soft', label: { en: 'Soft gradient', ar: 'تدرّج خفيف' } },
+          { value: 'none', label: { en: 'None', ar: 'بدون' } },
+        ],
+      },
+      { key: 'logo_url_light', type: 'image', label: { en: 'Light logo for the transparent bar (optional)', ar: 'شعار فاتح للشريط الشفاف (اختياري)' } },
       // Navigation source. A menu key takes priority over inline items, which
       // take priority over auto-generated links from the store's pages.
       { key: 'menu_key', type: 'menuPicker', label: { en: 'Menu', ar: 'القائمة' }, description: { en: 'Pick a menu built in the Menus page. Leave as None to use the inline links below.', ar: 'اختر قائمة من صفحة القوائم. اتركها بدون لاستخدام الروابط أدناه.' } },

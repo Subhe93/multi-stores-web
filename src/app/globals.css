@@ -349,6 +349,127 @@ header[data-compact-header][data-scrolled="true"] [data-header-brand] {
   }
 }
 
+/* Transparent header over the first section (header-bar `overlay_hero`).
+   The attributes exist only when the owner turned the setting on:
+   data-overlay-header="home|all" and data-overlay-scrim="soft|none" on the
+   header, data-header-logo / data-header-logo-light on the logos, and the
+   solid text colour as --hb-fg. The overlay is ON when
+   - 'home': HeaderOverlayHome put its marker inside the header (home page);
+   - 'all':  the first section of the page is a hero.
+   While on, the header gives its own height back as a negative block-end
+   margin, so the first section starts under it (nothing is reserved, nothing
+   moves on scroll), and --store-header-h tells that section how tall the bar
+   is (a hero can use it as its top padding). Until HeaderScrollState reports
+   data-scrolled="true" the bar is transparent with light text; then it shows
+   its normal colours and logo again. Opened menus and dropdowns keep the
+   solid colours. The bar row is h-16 plus the 1px bottom border. */
+.store-root:is(
+    :has(header[data-overlay-header="home"] > [data-overlay-home]),
+    :has(header[data-overlay-header="all"]):has(
+        main > div > div[data-section-key]:first-of-type:is([data-section-key*="hero"], [data-section-key="parallax-banner"]),
+        main > div[data-section-key]:first-of-type:is([data-section-key*="hero"], [data-section-key="parallax-banner"])
+      )
+  ) {
+  --store-header-h: calc(4rem + 1px);
+
+  & header[data-overlay-header] {
+    margin-block-end: calc(var(--hb-shrink, 0px) - var(--store-header-h));
+  }
+  /* With compact_on_scroll the scrolled row is 0.75rem lower and the compact
+     rule adds 0.75rem of margin; together the in-flow size stays zero. */
+  & header[data-overlay-header][data-compact-header][data-scrolled="true"] {
+    --hb-shrink: 0.75rem;
+  }
+
+  /* The transparent state. */
+  & header[data-overlay-header]:not([data-scrolled="true"]) {
+    background-color: transparent !important;
+    color: #fff !important;
+    border-bottom-color: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+    &[data-overlay-scrim="soft"]::before {
+      opacity: 1;
+    }
+    /* Icons get the same soft shadow as the text (not inside the panels). */
+    & svg:not(:is(.shadow-lg, .shadow-xl) *) {
+      filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.4));
+    }
+    /* The mobile menu trigger carries the solid colour inline. */
+    & button[aria-haspopup="dialog"] {
+      color: inherit !important;
+    }
+    & .hover\:bg-black\/5:hover:not(:is(.shadow-lg, .shadow-xl) *) {
+      background-color: rgb(255 255 255 / 0.14);
+    }
+    /* Dropdown and mega panels keep the solid look. */
+    & :is(.shadow-lg, .shadow-xl) {
+      color: var(--hb-fg);
+      text-shadow: none;
+    }
+    /* Logo: the light version when one is set, else the logo drawn white. */
+    &:has([data-header-logo-light]) [data-header-logo] {
+      display: none;
+    }
+    & [data-header-logo-light] {
+      display: block;
+    }
+    &:not(:has([data-header-logo-light])) [data-header-logo] {
+      filter: brightness(0) invert(1);
+    }
+  }
+}
+header[data-overlay-header] {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    backdrop-filter 0.35s ease;
+}
+header[data-overlay-header][data-compact-header] {
+  transition:
+    margin-block-end 0.2s ease,
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    backdrop-filter 0.35s ease;
+}
+header[data-overlay-header] [data-header-logo] {
+  transition: filter 0.35s ease;
+}
+header[data-overlay-header] [data-header-logo-light] {
+  display: none;
+}
+/* Soft scrim: a top gradient behind the bar's content, a little taller than
+   the bar, faded in only in the transparent state. */
+header[data-overlay-scrim="soft"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: calc(100% + 2.5rem);
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.2) 55%, rgb(0 0 0 / 0));
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.35s ease;
+}
+/* Focus stays visible on both the transparent and the solid bar. */
+header[data-overlay-header] :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  header[data-overlay-header],
+  header[data-overlay-header][data-compact-header],
+  header[data-overlay-header] [data-header-logo],
+  header[data-overlay-scrim="soft"]::before {
+    transition: none;
+  }
+}
+
 /* Heading accent (themes/minimal/sections/_shared/HeadingAccent.tsx): a
    decorative line or brush stroke under a big heading. It sits inside the
    heading element, so `em` follows the heading size. The colour is always an
