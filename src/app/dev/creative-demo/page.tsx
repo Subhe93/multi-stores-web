@@ -29,6 +29,14 @@ import { CreativeBoot } from '@/themes/creative/boot.client';
 import { creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
 import { creativeDemoEnabled } from '@/themes/creative/demo/demoGate';
 import { loadFixture, toInstances } from '@/themes/creative/demo/fixture';
+import {
+  PICKED_SECTION_KEYS,
+  pickedSlugs,
+  rowHasSlug,
+  toPickedProduct,
+  type PickedProduct,
+  type PickedSourceRow,
+} from '@/themes/creative/data/pickedProducts';
 import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
 
 // Demo page of the store motion style: a store home replayed outside any
@@ -200,6 +208,19 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
       if (s.section_key === 'featured-products') {
         const limit = typeof s.settings.limit === 'number' ? s.settings.limit : 4;
         preloaded[s.id] = products.slice(0, limit).map(toListingProduct);
+      }
+      // Brand sections with a linked product: the same shape the store preload gives.
+      if ((PICKED_SECTION_KEYS as readonly string[]).includes(s.section_key)) {
+        const slugs = new Set<string>();
+        for (const tr of s.translations) for (const slug of pickedSlugs(s.section_key, s.settings, tr.content)) slugs.add(slug);
+        for (const slug of pickedSlugs(s.section_key, s.settings, {})) slugs.add(slug);
+        const picks: Record<string, PickedProduct> = {};
+        for (const slug of slugs) {
+          const row = (fixture.products as unknown as PickedSourceRow[]).find((p) => rowHasSlug(p, slug));
+          const hit = row ? toPickedProduct(row, slug, locale, fixture.primaryLocale, fixture.currency) : null;
+          if (hit) picks[slug] = hit;
+        }
+        if (Object.keys(picks).length) preloaded[s.id] = { products: picks };
       }
     }
     body = <SectionRenderer {...shared} sections={sections} preloaded={preloaded} />;

@@ -1302,7 +1302,13 @@
   "creative": {
     "loadingPage": "Seite wird geladen",
     "empty": {
-      "ornamentLine": "Fügen Sie Ihre Motivpfade oder eine Überschrift hinzu"
+      "ornamentLine": "Fügen Sie Ihre Motivpfade oder eine Überschrift hinzu",
+      "coverHero": "Überschrift und Foto hinzufügen",
+      "lookSpread": "Foto und die Teile des Looks hinzufügen",
+      "objectStudy": "Produkt verknüpfen oder Foto hinzufügen",
+      "scriptManifesto": "Ihren Satz in einer oder mehreren Sprachen hinzufügen",
+      "impactArc": "Überschrift, Ziel oder Schritte hinzufügen",
+      "patternBand": "Ihre Musterkachel hinzufügen"
     }
   }
 }

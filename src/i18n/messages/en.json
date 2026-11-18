@@ -1302,7 +1302,13 @@
   "creative": {
     "loadingPage": "Loading page",
     "empty": {
-      "ornamentLine": "Add your motif paths or a heading"
+      "ornamentLine": "Add your motif paths or a heading",
+      "coverHero": "Add a heading and a photograph",
+      "lookSpread": "Add a photograph and the pieces of the look",
+      "objectStudy": "Link a product or add a photograph",
+      "scriptManifesto": "Add your sentence in one or more languages",
+      "impactArc": "Add a heading, a goal or the steps",
+      "patternBand": "Add your pattern tile"
     }
   }
 }

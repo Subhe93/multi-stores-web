@@ -16,6 +16,14 @@
 import { storefront } from './api';
 import type { MarketRef } from './market';
 import type { SectionInstance } from '@/themes/types';
+import {
+  PICKED_SECTION_KEYS,
+  pickedSlugs,
+  toPickedProduct,
+  type PickedPreload,
+  type PickedProduct,
+  type PickedSourceRow,
+} from '@/themes/creative/data/pickedProducts';
 
 export const COLLECTION_PRODUCTS_SECTION_KEY = 'collection-products';
 
@@ -104,6 +112,53 @@ function sectionProductsRequest(s: SectionInstance, locale: string): { params: R
   return null;
 }
 
+/** Product slugs a brand section (cover-hero, look-spread, object-study) links to, over all its locales. */
+function sectionPickedSlugs(s: SectionInstance): string[] {
+  if (!(PICKED_SECTION_KEYS as readonly string[]).includes(s.section_key)) return [];
+  const out = pickedSlugs(s.section_key, s.settings || {}, {});
+  for (const tr of s.translations || []) {
+    for (const slug of pickedSlugs(s.section_key, s.settings || {}, tr.content || {})) {
+      if (!out.includes(slug)) out.push(slug);
+    }
+  }
+  return out.slice(0, 8);
+}
+
+/**
+ * Live products of the brand sections: one request per distinct slug, in
+ * parallel, failures dropped. Returns `{ [section.id]: PickedPreload }`.
+ */
+async function preloadPickedProducts(
+  storeSlug: string,
+  sections: SectionInstance[],
+  opts: { locale: string; marketRef?: MarketRef },
+): Promise<Record<string, PickedPreload>> {
+  const wanted = sections.flatMap((s) => {
+    if (s.is_hidden) return [];
+    const slugs = sectionPickedSlugs(s);
+    return slugs.length ? [{ id: s.id, slugs }] : [];
+  });
+  if (wanted.length === 0) return {};
+  const all = [...new Set(wanted.flatMap((w) => w.slugs))];
+  const rows = await Promise.allSettled(
+    all.map((slug) => storefront.getProduct(storeSlug, slug, opts.locale, opts.marketRef) as Promise<unknown>),
+  );
+  const bySlug: Record<string, PickedProduct> = {};
+  rows.forEach((r, i) => {
+    if (r.status !== 'fulfilled' || !r.value || typeof r.value !== 'object') return;
+    const row = r.value as PickedSourceRow & { currency?: unknown };
+    const product = toPickedProduct(row, all[i], opts.locale, opts.locale, typeof row.currency === 'string' ? row.currency : undefined);
+    if (product) bySlug[all[i]] = product;
+  });
+  const out: Record<string, PickedPreload> = {};
+  for (const w of wanted) {
+    const products: Record<string, PickedProduct> = {};
+    for (const slug of w.slugs) if (bySlug[slug]) products[slug] = bySlug[slug];
+    if (Object.keys(products).length) out[w.id] = { products };
+  }
+  return out;
+}
+
 /**
  * Fetch, on the server, the data of every visible section that supports
  * preloading. Returns `{ [section.id]: data }`; sections whose request failed
@@ -119,7 +174,8 @@ export async function preloadSectionData(
     const req = sectionProductsRequest(s, opts.locale);
     return req ? [{ id: s.id, ...req }] : [];
   });
-  if (targets.length === 0) return {};
+  const pickedData = await preloadPickedProducts(storeSlug, sections, opts);
+  if (targets.length === 0) return pickedData;
 
   const results = await Promise.allSettled(
     targets.map(async ({ params, limit }) => {
@@ -128,7 +184,7 @@ export async function preloadSectionData(
     }),
   );
 
-  const out: Record<string, unknown> = {};
+  const out: Record<string, unknown> = { ...pickedData };
   results.forEach((r, i) => {
     if (r.status === 'fulfilled') out[targets[i].id] = r.value;
   });

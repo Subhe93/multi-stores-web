@@ -10,7 +10,8 @@ export const API_ORIGIN = API_URL.replace(/\/api$/, '');
 // Resolve image URLs — relative /uploads/... paths come from the API server
 export function resolveMediaUrl(url?: string | null): string {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Inline images (data:) are complete as they are.
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
   return `${API_ORIGIN}${url}`;
 }
 

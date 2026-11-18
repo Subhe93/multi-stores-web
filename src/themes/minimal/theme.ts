@@ -64,6 +64,12 @@ import { layoutRowSection } from './sections/layout/LayoutRow';
 import { layoutColumnSection } from './sections/layout/LayoutColumn';
 import { layoutGridSection } from './sections/layout/LayoutGrid';
 import { ornamentLineSection } from '../creative/sections/OrnamentLine';
+import { coverHeroSection } from '../creative/sections/CoverHero';
+import { lookSpreadSection } from '../creative/sections/LookSpread';
+import { objectStudySection } from '../creative/sections/ObjectStudy';
+import { scriptManifestoSection } from '../creative/sections/ScriptManifesto';
+import { impactArcSection } from '../creative/sections/ImpactArc';
+import { patternBandSection } from '../creative/sections/PatternBand';
 
 export const minimalTheme: Theme = {
   key: 'minimal',
@@ -124,6 +130,14 @@ export const minimalTheme: Theme = {
     // Motion engine (themes/creative): the ornament divider. Opt-in, a page
     // that does not place it loads none of its CSS or JavaScript.
     'ornament-line': ornamentLineSection,
+    // Brand sections (themes/creative): opt-in like the divider, each with
+    // its own recipes and stylesheet.
+    'cover-hero': coverHeroSection,
+    'look-spread': lookSpreadSection,
+    'object-study': objectStudySection,
+    'script-manifesto': scriptManifestoSection,
+    'impact-arc': impactArcSection,
+    'pattern-band': patternBandSection,
     // Curated product list — works on HOME/LANDING (fetches from API).
     'featured-products': featuredProductsSection,
     'product-slider': productSliderSection,

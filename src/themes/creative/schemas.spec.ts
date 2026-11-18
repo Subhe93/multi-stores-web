@@ -18,8 +18,12 @@ describe('creative section schemas', () => {
     for (const [key, entry] of entries) expect(entry.schema.id).toBe(key);
   });
 
-  it.each(entries)('%s: every size field offers exactly sm / md, default md (no giant words)', (_key, entry) => {
-    const sizes = allFields(entry.schema.schema).filter((f) => isSizeKey(f.key));
+  // The one exception: the height of the woven band (24 / 48 / 96 px). It is
+  // the height of a strip of pattern, not the size of a word or an emblem.
+  const isBandHeight = (key: string, field: string) => key === 'pattern-band' && field === 'size';
+
+  it.each(entries)('%s: every size field offers exactly sm / md, default md (no giant words)', (key, entry) => {
+    const sizes = allFields(entry.schema.schema).filter((f) => isSizeKey(f.key) && !isBandHeight(key, f.key));
     for (const f of sizes) {
       expect(f.type, f.key).toBe('select');
       expect(f.options?.map((o) => o.value), f.key).toEqual(['sm', 'md']);
@@ -31,9 +35,9 @@ describe('creative section schemas', () => {
     }
   });
 
-  it.each(entries)('%s: no option anywhere is called lg, xl or giant for a decorative size', (_key, entry) => {
+  it.each(entries)('%s: no option anywhere is called lg, xl or giant for a decorative size', (key, entry) => {
     for (const f of allFields(entry.schema.schema)) {
-      if (!/accent|numeral|artwork|sun_size|^size$|scale/.test(f.key)) continue;
+      if (!/accent|numeral|artwork|sun_size|^size$|scale/.test(f.key) || isBandHeight(key, f.key)) continue;
       const values = f.options?.map((o) => o.value) ?? [];
       expect(values, f.key).not.toContain('lg');
       expect(values, f.key).not.toContain('xl');
@@ -113,8 +117,18 @@ describe('creative section schemas', () => {
     walk(entry.schema.schema);
   });
 
-  it('page types: brand pages and the footer', () => {
-    for (const [key, entry] of entries) expect(entry.schema.pageTypes, key).toEqual(['HOME', 'STATIC', 'LANDING', 'FOOTER']);
+  it('page types: brand pages, plus the footer or the product template where the section belongs there', () => {
+    const PAGES = ['HOME', 'STATIC', 'LANDING'];
+    const expected: Record<string, string[]> = {
+      'ornament-line': [...PAGES, 'FOOTER'],
+      'cover-hero': PAGES,
+      'look-spread': PAGES,
+      'object-study': [...PAGES, 'PRODUCT_TEMPLATE'],
+      'script-manifesto': [...PAGES, 'FOOTER'],
+      'impact-arc': PAGES,
+      'pattern-band': [...PAGES, 'FOOTER'],
+    };
+    for (const [key, entry] of entries) expect(entry.schema.pageTypes, key).toEqual(expected[key]);
   });
 
   it('the ornament is a divider only: no text, button, frame or colour scene fields', () => {

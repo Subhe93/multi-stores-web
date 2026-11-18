@@ -23,13 +23,20 @@ import {
 } from './sectionTree';
 
 // Sections that are usually the page's LCP element: never wrapped in a reveal.
-// The ornament divider (themes/creative) brings its own line-draw.
+// The ornament divider and the brand sections (themes/creative) bring their
+// own recipes: no generic reveal and no data-cx-auto.
 const NO_REVEAL_KEYS = new Set([
   'aurora-hero',
   'product-page',
   'product-gallery',
   'product-listing',
   'ornament-line',
+  'cover-hero',
+  'look-spread',
+  'object-study',
+  'script-manifesto',
+  'impact-arc',
+  'pattern-band',
 ]);
 
 // Commerce surfaces: with the store motion style on they get the fast timing.

@@ -66,7 +66,15 @@ describe('route scope', () => {
 });
 
 describe('section keys', () => {
-  it('the engine adds one section: the ornament divider', () => {
-    expect([...CREATIVE_SECTION_KEYS]).toEqual(['ornament-line']);
+  it('the engine adds the ornament divider and the six brand sections', () => {
+    expect([...CREATIVE_SECTION_KEYS]).toEqual([
+      'ornament-line',
+      'cover-hero',
+      'look-spread',
+      'object-study',
+      'script-manifesto',
+      'impact-arc',
+      'pattern-band',
+    ]);
   });
 });

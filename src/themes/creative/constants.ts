@@ -5,7 +5,15 @@
 import { locales } from '@/i18n/config';
 
 /** Section keys added by the motion engine (registered in the minimal theme). */
-export const CREATIVE_SECTION_KEYS = ['ornament-line'] as const;
+export const CREATIVE_SECTION_KEYS = [
+  'ornament-line',
+  'cover-hero',
+  'look-spread',
+  'object-study',
+  'script-manifesto',
+  'impact-arc',
+  'pattern-band',
+] as const;
 export type CreativeSectionKey = (typeof CREATIVE_SECTION_KEYS)[number];
 
 /**
