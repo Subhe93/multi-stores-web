@@ -11,6 +11,7 @@ import type {
 import { animationClass, readSectionStyle, resolveSectionStyle, type SectionStyle } from './sectionStyle';
 import { Reveal } from './_motion';
 import { hasDynamicSource } from './minimal/sections/_shared/dynamicSourceKeys';
+import { renderSectionDecor } from './creative/decor/sectionDecor';
 import {
   buildSectionTree,
   isContainerKey,
@@ -23,7 +24,20 @@ import {
 } from './sectionTree';
 
 // Sections that are usually the page's LCP element: never wrapped in a reveal.
-const NO_REVEAL_KEYS = new Set(['aurora-hero', 'product-page', 'product-gallery', 'product-listing']);
+// The creative sections (themes/creative) bring their own reveals and sticky
+// stages: the wrapper's pending transform would break `position: sticky`.
+const NO_REVEAL_KEYS = new Set([
+  'aurora-hero',
+  'product-page',
+  'product-gallery',
+  'product-listing',
+  'stage-scenes',
+  'story-pinned',
+  'sticky-steps',
+  'motion-path',
+  'marquee-band',
+  'ornament-line',
+]);
 
 /** Whether a page-content section gets the scroll-in reveal wrapper. */
 export function shouldReveal(sectionKey: string, isFirst: boolean): boolean {
@@ -217,7 +231,11 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
   const css =
     styleCss + (isProductLeaf ? `.${wrapperScope}:has(>.${innerScope}:empty){display:none}` : '');
   const animClass = animationClass(sectionStyle?.animate);
-  const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
+  // Scene theme / living background from `_style` (creative engine). Null for
+  // every section that sets neither, which then keeps today's markup.
+  const decor = ctx.chrome ? null : renderSectionDecor(sectionStyle, { nested });
+  const wrapperClass = [wrapperScope, animClass, decor?.className].filter(Boolean).join(' ');
+  const wrapperStyle = decor?.style ? { ...ctx.wrapperStyle, ...decor.style } : ctx.wrapperStyle;
   const isContainer = isContainerKey(section.section_key);
   // Containers get three extra props; every other section keeps exactly the
   // props it had before nesting existed.
@@ -286,8 +304,10 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           data-section-id={section.id}
           data-section-key={section.section_key}
           className={wrapperClass}
-          style={ctx.wrapperStyle}
+          style={wrapperStyle}
+          {...decor?.attrs}
         >
+          {decor?.before}
           {inner}
         </div>
       ) : (
@@ -297,8 +317,10 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           data-section-id={section.id}
           data-section-key={section.section_key}
           className={wrapperClass}
-          style={ctx.wrapperStyle}
+          style={wrapperStyle}
+          {...decor?.attrs}
         >
+          {decor?.before}
           {inner}
         </Reveal>
       )}
