@@ -83,10 +83,15 @@ describe('icons metadata', () => {
     expect(meta.icons).toEqual({ icon: 'https://api.example/uploads/fav.png' });
   });
 
-  it('store without a favicon: no override, the platform icons are inherited', async () => {
+  // An `icons: undefined` field would not inherit the platform set: Next
+  // resolves it to no icon link at all (seen in a production build). The
+  // store names the platform favicon itself, the one link it always had.
+  it('store without a favicon: the platform /favicon.ico link, as before', async () => {
     const meta = await storeMetadata({ params });
     expect(meta.title).toBe('Newroj');
-    expect(meta.icons).toBeUndefined();
+    expect(meta.icons).toEqual({
+      icon: [{ url: '/favicon.ico', type: 'image/x-icon', sizes: '32x32 48x48' }],
+    });
   });
 
   it('store that is not LIVE: no override', async () => {

@@ -27,6 +27,7 @@ import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { EditHintBoot } from '@/components/edit-hint/EditHintBoot';
 import { loadGatedStore, type GatedStore } from '@/lib/storeGate.server';
 import { storeGate } from '@/lib/storeGate';
+import { PLATFORM_FAVICON_ICON } from '@/lib/storeFavicon';
 import { StoreGatePage } from '@/components/layout/StoreGatePage';
 import { StorePreviewBar } from '@/components/layout/StorePreviewBar';
 import { StorePreviewReset } from '@/components/layout/StorePreviewUnlock';
@@ -208,9 +209,11 @@ export async function generateMetadata({
         store.description,
       // The creator uploads a favicon in store settings; it was stored and
       // never rendered, so every storefront showed the framework default.
+      // A store without one keeps the single platform icon link it always
+      // had (an `undefined` here would resolve to no icon link at all).
       icons: store.favicon_url
         ? { icon: resolveMediaUrl(store.favicon_url) }
-        : undefined,
+        : { icon: [{ ...PLATFORM_FAVICON_ICON }] },
     };
   } catch {
     return {};
