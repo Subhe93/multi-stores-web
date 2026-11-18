@@ -13,6 +13,13 @@ import { Check, ChevronDown, Globe } from 'lucide-react';
 import { resolveLocaleMeta } from '@/lib/localeMeta';
 
 // Small flag image with a globe fallback (unknown locale or a failed load).
+//
+// Flags are never mirrored or cropped. The whole flag is drawn in its own
+// proportions inside a fixed 24x16 slot (object-contain, so nothing moves
+// while it loads): a 3:2 flag fills the slot, a 2:1 flag is 24x12, centred.
+// No rounding and no ring on the box (they would clip or cover the artwork);
+// the hairline is a drop shadow that follows the drawn flag, outside its
+// pixels. No `rtl:` or scale class here or on any wrapper in this file.
 function Flag({ url }: { url: string; label: string }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) return <Globe className="size-4 shrink-0 opacity-70" />;
@@ -22,11 +29,11 @@ function Flag({ url }: { url: string; label: string }) {
       src={url}
       alt=""
       aria-hidden
-      width={20}
-      height={15}
+      width={24}
+      height={16}
       decoding="async"
       onError={() => setFailed(true)}
-      className="w-5 h-3.75 rounded-xs object-cover shrink-0 ring-1 ring-black/5"
+      className="block h-4 w-6 shrink-0 object-contain [filter:drop-shadow(0_0_0.5px_rgb(0_0_0/0.45))]"
     />
   );
 }
