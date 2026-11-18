@@ -15,7 +15,7 @@
 // 11-12 starting 38 % down the large one. 768 to 1023 px: text 1-6, large
 // photograph 7-12, no small photograph (its caption sits under the buttons).
 
-import { G, minifyCss } from './base.css';
+import { G, minifyCss, wipe, wipeFrom, wipeT } from './base.css';
 
 const RTL = '.store-root[dir="rtl"]';
 
@@ -128,7 +128,14 @@ const DESKTOP = `
 `;
 
 // Phones: the entrance sequence has at most three steps.
+// The woven edge beside the photograph is a repeating strip: it is uncovered
+// from the top by one soft-edged wipe instead of fading in all at once.
+const EDGE_T = '1.6s var(--cx-ease-io) .4s';
 const MOTION = `
+@keyframes cx-ch-edge{${wipeFrom('y')}}
+${G} .cx-ch-edge[data-cx-intro]{${wipe('y', true)};animation:cx-ch-edge ${EDGE_T} both}
+${G} .cx-ch-edge[data-cx-reveal][data-cx-state="pending"]{opacity:1;${wipe('y', false)}}
+${G} .cx-ch-edge[data-cx-reveal][data-cx-state="shown"]{${wipe('y', true)};${wipeT(EDGE_T)}}
 @media (max-width:767.98px){
 ${G} .cx-ch [data-cx-i="4"]{--cx-i:3}
 }

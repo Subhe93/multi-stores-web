@@ -12,7 +12,7 @@
 //   .cx-hero-btn    call-to-action links (rise + press + magnetic)
 //   .cx-hero-media  the mask around a hero image
 
-import { G, G_RTL, minifyCss } from './base.css';
+import { G, G_RTL, minifyCss, wipe, wipeFrom, wipeT } from './base.css';
 
 // On load a hero text rises to ITS OWN resting values: the keyframes have no
 // end state and do not fill forwards, so an eyebrow that rests at 70 %
@@ -31,18 +31,23 @@ ${G} a.cx-hero-btn:not([data-cx-state="shown"]){transition:translate .35s var(--
 `;
 
 // Heading accent (line or brush stroke under the heading): draws from the
-// inline start once the words are on their way. A clip, not a scale: the
-// brush stroke is mirrored with a transform in right-to-left pages, and the
-// clip is applied before that transform, so only the plain line needs a
-// right-to-left variant.
+// inline start once the words are on their way, as one soft-edged wipe (a
+// feathered mask, so the brush has no hard cut travelling along it). A mask,
+// not a scale: the brush stroke is mirrored with a transform in
+// right-to-left pages, and the mask is applied before that transform, so
+// only the plain line needs a right-to-left variant.
+const A = '~.heading-accent';
+const AL = '~.heading-accent[data-variant="line"]';
+const H = '.cx-hero-h>.cx-ht';
 const ACCENT = `
-@keyframes cx-hero-draw{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
-@keyframes cx-hero-draw-r{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0)}}
-${G} .cx-hero-h>.cx-ht[data-cx-intro]~.heading-accent{animation:cx-hero-draw var(--cx-dur-clip) var(--cx-ease-io) .45s backwards}
-${G_RTL} .cx-hero-h>.cx-ht[data-cx-intro]~.heading-accent[data-variant="line"]{animation-name:cx-hero-draw-r}
-${G} .cx-hero-h>.cx-ht[data-cx-state="pending"]~.heading-accent{clip-path:inset(0 100% 0 0)}
-${G_RTL} .cx-hero-h>.cx-ht[data-cx-state="pending"]~.heading-accent[data-variant="line"]{clip-path:inset(0 0 0 100%)}
-${G} .cx-hero-h>.cx-ht[data-cx-state="shown"]~.heading-accent{clip-path:inset(0);transition:clip-path var(--cx-dur-clip) var(--cx-ease-io) .3s}
+@keyframes cx-hero-draw{${wipeFrom('x')}}
+@keyframes cx-hero-draw-r{${wipeFrom('x-rtl')}}
+${G} ${H}[data-cx-intro]${A}{${wipe('x', true)};animation:cx-hero-draw var(--cx-dur-clip) var(--cx-ease-io) .45s backwards}
+${G_RTL} ${H}[data-cx-intro]${AL}{${wipe('x-rtl', true)};animation-name:cx-hero-draw-r}
+${G} ${H}[data-cx-state="pending"]${A}{${wipe('x', false)}}
+${G_RTL} ${H}[data-cx-state="pending"]${AL}{${wipe('x-rtl', false)}}
+${G} ${H}[data-cx-state="shown"]${A}{${wipe('x', true)};${wipeT('var(--cx-dur-clip) var(--cx-ease-io) .3s')}}
+${G_RTL} ${H}[data-cx-state="shown"]${AL}{${wipe('x-rtl', true)}}
 `;
 
 // Phones: a hero image further down the page is not wiped open, it only

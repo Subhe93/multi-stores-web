@@ -26,6 +26,29 @@ export const G_RTL =
 /** Media query of the desktop-only layouts (sticky stages, pinned tracks, pointer effects). */
 export const DESKTOP_FINE = '@media (min-width: 1024px) and (hover: hover) and (pointer: fine)';
 
+/**
+ * Soft-edged wipe: the declarations of a mask that uncovers an element along
+ * one axis. The mask is a gradient 2.2 times the element (opaque up to 46 %,
+ * clear from 54 %), so its edge is a feather of about a sixth of the element
+ * and never a hard cut. Only mask-position moves: wipe(axis, false) is the
+ * hidden position, wipe(axis, true) the open one. 'x' opens from the left,
+ * 'x-rtl' from the right, 'y' from the top.
+ */
+export type WipeAxis = 'x' | 'x-rtl' | 'y';
+const WIPE_DEG: Record<WipeAxis, number> = { x: 90, 'x-rtl': 270, y: 180 };
+const WIPE_FROM: Record<WipeAxis, string> = { x: '100% 0', 'x-rtl': '0 0', y: '0 100%' };
+const WIPE_TO: Record<WipeAxis, string> = { x: '0 0', 'x-rtl': '100% 0', y: '0 0' };
+export function wipe(axis: WipeAxis, open: boolean): string {
+  const image = `linear-gradient(${WIPE_DEG[axis]}deg,#000 46%,transparent 54%)`;
+  const rest = `${open ? WIPE_TO[axis] : WIPE_FROM[axis]}/${axis === 'y' ? '100% 220%' : '220% 100%'} no-repeat`;
+  return `-webkit-mask:${image} ${rest};mask:${image} ${rest}`;
+}
+/** Keyframe body that starts a wipe at its hidden position (the end is the element's own open mask). */
+export const wipeFrom = (axis: WipeAxis): string =>
+  `from{-webkit-mask-position:${WIPE_FROM[axis]};mask-position:${WIPE_FROM[axis]}}`;
+/** Transition declaration of a wipe. */
+export const wipeT = (timing: string): string => `transition:-webkit-mask-position ${timing},mask-position ${timing}`;
+
 const TOKENS = `
 .store-root{--cx-ease:cubic-bezier(.16,1,.3,1);--cx-ease-io:cubic-bezier(.65,0,.35,1);--cx-dur:1.2s;--cx-dur-slow:1.4s;--cx-dur-clip:1.3s;--cx-dur-settle:1.7s;--cx-dur-ui:.45s;--cx-dist:28px;--cx-stagger:.09s;--cx-word-step:.05s;--cx-radius-card:28px}
 .store-root[data-motion-reveal="calm"]{--cx-dist:16px;--cx-dur:1.56s;--cx-dur-slow:1.82s;--cx-dur-clip:1.6s;--cx-dur-settle:2s}
@@ -106,7 +129,7 @@ ${G} [data-cx-intro="words"] .cx-wi{animation:cx-word var(--cx-dur) var(--cx-eas
 ${G} [data-cx-intro="rise"]{animation:cx-rise var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
 ${G} [data-cx-intro="fade"]{animation:cx-fade var(--cx-dur) ease both;animation-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
 ${G} [data-cx-intro="scale"]:not(.cx-mask),${G} .cx-mask[data-cx-intro="scale"]>.cx-mask-in{animation:cx-scale var(--cx-dur-slow) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
-${G} [data-cx-intro="rule"]{transform-origin:0 50%;animation:cx-rule var(--cx-dur) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
+${G} [data-cx-intro="rule"]{transform-origin:0 50%;animation:cx-rule var(--cx-dur-clip) var(--cx-ease-io) both;animation-delay:var(--cx-delay,0s)}
 ${G_RTL} [data-cx-intro="rule"]{transform-origin:100% 50%}
 ${G} .cx-eyebrow[data-cx-intro="eyebrow"]{animation:cx-fade var(--cx-dur) ease both}
 ${G} .cx-eyebrow[data-cx-intro="eyebrow"]::before{animation:cx-rule var(--cx-dur) var(--cx-ease) both}

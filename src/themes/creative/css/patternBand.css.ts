@@ -13,11 +13,11 @@
 // Default state = the band at rest. The hidden start state exists only
 // behind the gate G and the state the engine sets on the band's own reveal
 // attribute, so no JavaScript, reduced motion, store motion off and the
-// builder all show the finished band. The entrance is the one stepped
-// easing of the platform: the cloth arrives column by column (the weave).
-// It never travels sideways and never loops.
+// builder all show the finished band. The entrance is one continuous wipe
+// with a feathered edge along the whole band (inline start to end), never
+// tile by tile. It never travels sideways and never loops.
 
-import { G, G_RTL, minifyCss } from './base.css';
+import { G, G_RTL, minifyCss, wipe, wipeFrom, wipeT } from './base.css';
 
 const RTL = '.store-root[dir="rtl"]';
 const PHONE = '@media (max-width:767px)';
@@ -61,26 +61,22 @@ ${PHONE}{
 }
 `;
 
-// The band carries fade(m); the rows inside are clipped from the inline end
-// while it is pending and open in steps once it is shown. The band's own
-// fade is shortened so the first columns are already opaque.
+// The band carries fade(m), but its entrance is a wipe, not a fade: while it
+// is pending the whole band (both rows as one piece) sits behind a soft mask
+// and opens along its length in one in-out gesture once it is shown. The
+// mask is gone again when the engine marks the band done.
+const T = '1.6s var(--cx-ease-io,cubic-bezier(.65,0,.35,1))';
+const B = '.cx-pb-band[data-cx-reveal]';
 const WEAVE = `
-@keyframes cx-pb-weave{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
-@keyframes cx-pb-weave-rtl{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0)}}
-${G} .cx-pb-band[data-cx-reveal] .cx-pb-row{clip-path:inset(0)}
-${G} .cx-pb-band[data-cx-reveal][data-cx-state="pending"] .cx-pb-row{clip-path:inset(0 100% 0 0)}
-${G_RTL} .cx-pb-band[data-cx-reveal][data-cx-state="pending"] .cx-pb-row{clip-path:inset(0 0 0 100%)}
-${G} .cx-pb-band[data-cx-reveal][data-cx-state="shown"]{transition-duration:.2s}
-${G} .cx-pb-band[data-cx-reveal][data-cx-state="shown"] .cx-pb-row{transition:clip-path 1.4s steps(14,end)}
-${G} .cx-pb-band[data-cx-reveal][data-cx-state="shown"] .cx-pb-row+.cx-pb-row{transition-delay:.2s}
-${G} .cx-pb-band[data-cx-intro] .cx-pb-row{animation:cx-pb-weave 1.4s steps(14,end) both}
-${G_RTL} .cx-pb-band[data-cx-intro] .cx-pb-row{animation-name:cx-pb-weave-rtl}
-${G} .cx-pb-band[data-cx-intro] .cx-pb-row+.cx-pb-row{animation-delay:.2s}
-${PHONE}{
-${G} .cx-pb-band[data-cx-reveal][data-cx-state="shown"] .cx-pb-row{transition-timing-function:steps(10,end)}
-${G} .cx-pb-band[data-cx-intro] .cx-pb-row{animation-timing-function:steps(10,end)}
-}
-@media print{.cx-pb-row{clip-path:none!important;animation:none!important;transition:none!important}}
+@keyframes cx-pb-wipe{${wipeFrom('x')}}
+@keyframes cx-pb-wipe-rtl{${wipeFrom('x-rtl')}}
+${G} ${B}[data-cx-state="pending"]{opacity:1;${wipe('x', false)}}
+${G_RTL} ${B}[data-cx-state="pending"]{${wipe('x-rtl', false)}}
+${G} ${B}[data-cx-state="shown"]{${wipe('x', true)};${wipeT(T)}}
+${G_RTL} ${B}[data-cx-state="shown"]{${wipe('x-rtl', true)}}
+${G} .cx-pb-band[data-cx-intro]{${wipe('x', true)};animation:cx-pb-wipe ${T} both}
+${G_RTL} .cx-pb-band[data-cx-intro]{${wipe('x-rtl', true)};animation-name:cx-pb-wipe-rtl}
+@media print{.cx-pb-band{-webkit-mask:none!important;mask:none!important;animation:none!important;transition:none!important}}
 `;
 
 export const PATTERN_BAND_CSS: string = minifyCss(LAYOUT + WEAVE);

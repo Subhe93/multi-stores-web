@@ -12,7 +12,7 @@
 // breakpoint (user units) to stay close to 1 px and 2.5 px on screen.
 // non-scaling-stroke is not used: it breaks pathLength-normalised dashes.
 
-import { G, G_RTL, minifyCss } from './base.css';
+import { G, G_RTL, minifyCss, wipe, wipeFrom, wipeT } from './base.css';
 
 const RTL = '.store-root[dir="rtl"]';
 const TABLET = '@media (min-width:768px)';
@@ -119,17 +119,28 @@ ${DESKTOP}{
 `;
 
 // Scroll reveal: the stage carries the fade recipe; its parts follow from
-// its state. Horizon first, then the track, then the stroke runs to its
-// value and the mark appears where it arrives (it never travels).
+// its state. Horizon first, then the ridge line is uncovered along it by one
+// soft-edged wipe, then the track, then the stroke runs to its value and the
+// mark appears where it arrives (it never travels). The ridge carries a
+// recipe attribute of its own; inside a stage it is taken over here, so it
+// follows the stage's clock instead of a second observer (it used to rise in
+// on its own, late, together with the mark).
 const S = '.cx-ia-stage[data-cx-reveal]';
 const QUIET = '.cx-ia-track,.cx-ia-tick,.cx-ia-ends'.split(',');
 const each = (prefix: string, rule: string) => QUIET.map((q) => `${prefix} ${q}`).join(',') + rule;
+
+const RIDGE_T = '1.6s var(--cx-ease-io) .3s';
 
 const MOTION = `
 ${G} ${S} .cx-ia-horizon{transform-origin:0 50%}
 ${G_RTL} ${S} .cx-ia-horizon{transform-origin:100% 50%}
 ${G} ${S}[data-cx-state="pending"] .cx-ia-horizon{transform:scaleX(0)}
 ${G} ${S}[data-cx-state="shown"] .cx-ia-horizon{transition:transform 1.3s var(--cx-ease-io)}
+${G} ${S} .cx-ia-ridge[data-cx-reveal]{opacity:1;transform:none}
+${G} ${S}[data-cx-state="pending"] .cx-ia-ridge{${wipe('x', false)}}
+${G_RTL} ${S}[data-cx-state="pending"] .cx-ia-ridge{${wipe('x-rtl', false)}}
+${G} ${S}[data-cx-state="shown"] .cx-ia-ridge[data-cx-reveal]{${wipe('x', true)};${wipeT(RIDGE_T)}}
+${G_RTL} ${S}[data-cx-state="shown"] .cx-ia-ridge[data-cx-reveal]{${wipe('x-rtl', true)}}
 ${each(`${G} ${S}[data-cx-state="pending"]`, '{opacity:0}')}
 ${each(`${G} ${S}[data-cx-state="shown"]`, '{transition:opacity .8s ease .3s}')}
 ${G} ${S}[data-cx-state="pending"] .cx-ia-prog{stroke-dashoffset:var(--cx-ia-f,0);opacity:0}
@@ -144,15 +155,19 @@ const I = '.cx-ia-stage[data-cx-intro]';
 const INTRO = `
 @keyframes cx-ia-h{from{transform:scaleX(0)}}
 @keyframes cx-ia-o{from{opacity:0}}
+@keyframes cx-ia-w{${wipeFrom('x')}}
+@keyframes cx-ia-w-r{${wipeFrom('x-rtl')}}
 @keyframes cx-ia-p{0%{stroke-dashoffset:var(--cx-ia-f,0);opacity:0}8%{opacity:1}}
 @keyframes cx-ia-m{from{opacity:0;translate:0 8px}}
 ${G} ${I} .cx-ia-horizon{transform-origin:0 50%;animation:cx-ia-h 1.3s var(--cx-ease-io) both}
 ${G_RTL} ${I} .cx-ia-horizon{transform-origin:100% 50%}
+${G} ${I} .cx-ia-ridge[data-cx-intro]{${wipe('x', true)};animation:cx-ia-w ${RIDGE_T} both}
+${G_RTL} ${I} .cx-ia-ridge[data-cx-intro]{${wipe('x-rtl', true)};animation-name:cx-ia-w-r}
 ${each(`${G} ${I}`, '{animation:cx-ia-o .8s ease .3s both}')}
 ${G} ${I} .cx-ia-prog{animation:cx-ia-p 1.7s var(--cx-ease-io) .6s both}
 ${G} ${I} .cx-ia-mark{animation:cx-ia-m .9s var(--cx-ease) 1.9s both}
 ${G} ${I}[data-cx-planned] .cx-ia-mark{animation-delay:.9s}
-@media print{.cx-ia-horizon,.cx-ia-track,.cx-ia-tick,.cx-ia-ends,.cx-ia-prog,.cx-ia-mark{animation:none!important;transition:none!important;transform:none!important;translate:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+@media print{.cx-ia-ridge{-webkit-mask:none!important;mask:none!important;animation:none!important;transition:none!important}.cx-ia-horizon,.cx-ia-track,.cx-ia-tick,.cx-ia-ends,.cx-ia-prog,.cx-ia-mark{animation:none!important;transition:none!important;transform:none!important;translate:none!important;opacity:1!important;stroke-dashoffset:0!important}}
 `;
 
 export const IMPACT_ARC_CSS: string = minifyCss(LAYOUT + MOTION + INTRO);

@@ -96,17 +96,41 @@ ${RTL} .cx-os-note{direction:rtl}
 `;
 
 // Leader lines: each stroke is normalised (pathLength 1) and draws from the
-// dot outwards. --cx-k = place of the leader (0.15 s apart), --cx-b / --cx-t
-// = start and length of the stroke inside its leader. The lines start 1.1 s
-// after the plate is shown, so the photograph has opened before they move.
-// On the narrow layout the list rows are reached later by the scroll, so the
-// long delay of the margin notes is dropped there.
+// dot outwards. --cx-k = place of the leader (0.2 s apart), --cx-b / --cx-t
+// = start and length of the stroke inside its leader.
+//
+// One clock for the whole annotation on the wide layout: the dots, the lines
+// and the notes all follow the state of the line layer (.cx-os-lines), not
+// their own observers (a dot low on the plate used to appear after its line
+// had left, and a note before its line arrived). Per leader: the dot comes
+// up, the line leaves it, the note settles as the line reaches it. The plate
+// has opened by then (the first dot waits 0.95 s). Everything ends before
+// the engine marks the layer done (3.2 s).
+// On the narrow layout there are no lines and the list rows are reached
+// later by the scroll: the dots and rows keep their own reveal there, and
+// the long delay of the margin notes is dropped.
+const IO = 'var(--cx-ease-io,cubic-bezier(.65,0,.35,1))';
+const L = '.cx-os-lines';
 const DRAW = `
 @keyframes cx-os-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-${G} .cx-os-lines[data-cx-state] .cx-os-l{stroke-dasharray:1}
-${G} .cx-os-lines[data-cx-state="pending"] .cx-os-l{stroke-dashoffset:1}
-${G} .cx-os-lines[data-cx-state="shown"] .cx-os-l{stroke-dashoffset:0;transition:stroke-dashoffset var(--cx-t,1.3s) var(--cx-ease-io,cubic-bezier(.65,0,.35,1));transition-delay:calc(1.1s + var(--cx-k,0) * .15s + var(--cx-b,0s))}
-${G} .cx-os-lines[data-cx-intro] .cx-os-l{stroke-dasharray:1;animation:cx-os-draw var(--cx-t,1.3s) var(--cx-ease-io,cubic-bezier(.65,0,.35,1)) both;animation-delay:calc(1.1s + var(--cx-k,0) * .15s + var(--cx-b,0s))}
+@keyframes cx-os-dot{from{opacity:0}}
+${G} ${L}[data-cx-state] .cx-os-l{stroke-dasharray:1}
+${G} ${L}[data-cx-state="pending"] .cx-os-l{stroke-dashoffset:1}
+${G} ${L}[data-cx-state="shown"] .cx-os-l{stroke-dashoffset:0;transition:stroke-dashoffset var(--cx-t,1.3s) ${IO};transition-delay:calc(1.15s + var(--cx-k,0) * .2s + var(--cx-b,0s))}
+${G} ${L}[data-cx-intro] .cx-os-l{stroke-dasharray:1;animation:cx-os-draw var(--cx-t,1.3s) ${IO} both;animation-delay:calc(1.15s + var(--cx-k,0) * .2s + var(--cx-b,0s))}
+${WIDE}{
+${G} ${L}~.cx-os-dot~.cx-os-dot{--cx-k:1}
+${G} ${L}~.cx-os-dot~.cx-os-dot~.cx-os-dot{--cx-k:2}
+${G} ${L}~.cx-os-dot~.cx-os-dot~.cx-os-dot~.cx-os-dot{--cx-k:3}
+${G} ${L}[data-cx-state]~.cx-os-dot[data-cx-reveal]{opacity:1;transition:opacity .5s ease;transition-delay:calc(.95s + var(--cx-k,0) * .2s)}
+${G} ${L}[data-cx-state="pending"]~.cx-os-dot[data-cx-reveal]{opacity:0;transition:none}
+${G} ${L}[data-cx-state="done"]~.cx-os-dot[data-cx-reveal]{transition:none}
+${G} ${L}[data-cx-intro]~.cx-os-dot[data-cx-intro]{animation:cx-os-dot .5s ease both;animation-delay:calc(.95s + var(--cx-k,0) * .2s)}
+${G} .cx-os-frame:has(${L}[data-cx-state]) .cx-os-note[data-cx-reveal]{opacity:1;transform:none;transition:opacity .9s var(--cx-ease),transform .9s var(--cx-ease);transition-delay:calc(1.9s + var(--cx-i,0) * .2s)}
+${G} .cx-os-frame:has(${L}[data-cx-state="pending"]) .cx-os-note[data-cx-reveal]{opacity:0;transform:translateY(16px);transition:none}
+${G} .cx-os-frame:has(${L}[data-cx-state="done"]) .cx-os-note[data-cx-reveal]{transition:none}
+${G} .cx-os-note[data-cx-intro]{--cx-delay:1.9s;--cx-stagger:.2s;--cx-dur:.9s;--cx-dist:16px}
+}
 ${NARROW}{
 ${G} .cx-os-note[data-cx-reveal],${G} .cx-os-note[data-cx-intro]{--cx-delay:0s}
 }

@@ -146,14 +146,18 @@ describe('pattern-band', () => {
     expect(PATTERN_BAND_CSS).toContain(':is(:lang(ar),[data-cx-script="arabic"]){font-size:13px;letter-spacing:0;margin-inline-end:0;text-transform:none}');
   });
 
-  it('the hidden start state exists only behind the gate and the band state; the weave is stepped and never loops', () => {
-    const hidden = PATTERN_BAND_CSS.split('}').filter((rule) => /clip-path:inset\(0 (100% 0 0|0 0 100%)\)/.test(rule) && !rule.includes('from{'));
+  it('the hidden start state exists only behind the gate and the band state; one continuous soft wipe, never stepped, never looping', () => {
+    // Hidden = the mask parked at its closed position (LTR 100% 0, RTL 0 0 with the mirrored gradient).
+    const hidden = PATTERN_BAND_CSS.split('}').filter((rule) => /mask:linear-gradient\((90deg[^;]*\) 100% 0|270deg[^;]*\) 0 0)\//.test(rule));
     expect(hidden).toHaveLength(2);
-    expect(hidden[0]).toContain(`${G} .cx-pb-band[data-cx-reveal][data-cx-state="pending"] .cx-pb-row`);
-    expect(hidden[1]).toContain(`${G_RTL} .cx-pb-band[data-cx-reveal][data-cx-state="pending"] .cx-pb-row`);
-    expect(PATTERN_BAND_CSS).toContain('transition:clip-path 1.4s steps(14,end)');
-    expect(PATTERN_BAND_CSS).toContain('.cx-pb-row+.cx-pb-row{transition-delay:.2s}');
-    expect(PATTERN_BAND_CSS).toContain('transition-timing-function:steps(10,end)');
+    expect(hidden[0]).toContain(`${G} .cx-pb-band[data-cx-reveal][data-cx-state="pending"]{opacity:1;`);
+    expect(hidden[1]).toContain(`${G_RTL} .cx-pb-band[data-cx-reveal][data-cx-state="pending"]{`);
+    // Every rule that carries a mask or moves sits behind the gate.
+    for (const rule of PATTERN_BAND_CSS.split('}').filter((r) => /mask:linear-gradient|animation:cx-pb/.test(r))) {
+      expect(rule).toContain(G.slice(0, 20));
+    }
+    expect(PATTERN_BAND_CSS).toContain('transition:-webkit-mask-position 1.6s var(--cx-ease-io,cubic-bezier(.65,0,.35,1)),mask-position 1.6s var(--cx-ease-io,cubic-bezier(.65,0,.35,1))');
+    expect(PATTERN_BAND_CSS).not.toMatch(/steps\(|clip-path:inset/);
     expect(PATTERN_BAND_CSS).not.toMatch(/infinite|translateX|marquee/);
   });
 
