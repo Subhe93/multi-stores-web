@@ -10,6 +10,12 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type Height = 'md' | 'lg' | 'full';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -22,7 +28,8 @@ const HEIGHT_CLASS: Record<Height, string> = {
 // behind the headline. The blobs animate their cx/cy/r (not transforms), heavily
 // blurred so they read as a living gradient. Degrades gracefully: under reduced
 // motion the blobs simply rest in place.
-export function AuroraHero({ settings, content }: SectionRenderProps) {
+// `phase`: the store motion value (`motion` is the framer import here).
+export function AuroraHero({ settings, content, motion: phase }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -93,13 +100,13 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
 
       <div className="relative z-10 flex max-w-3xl flex-col items-center gap-5">
         {eyebrow && (
-          <Heading level={eyebrowTag} original="span" look="body" className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
+          <Heading level={eyebrowTag} original="span" look="body" className={withMotion(phase, 'text-xs font-semibold uppercase tracking-[0.2em]', 'cx-hero-t')} style={{ color: eyebrowColor }} {...rise(phase)}>
             {eyebrow}
           </Heading>
         )}
         {heading && (
           <Heading level={headingLevel}
-            className="leading-[1.05]"
+            className={withMotion(phase, 'leading-[1.05]', 'cx-hero-h')}
             style={{
               fontFamily: 'var(--theme-font-heading)',
               fontSize: 'var(--theme-scale-h1)',
@@ -108,23 +115,37 @@ export function AuroraHero({ settings, content }: SectionRenderProps) {
               color: headingColor,
             }}
           >
-            {heading}
+            <MotionText motion={phase} text={heading} />
           </Heading>
         )}
         {subheading && (
-          <Heading level={subheadingTag} look="body" className="max-w-prose" style={{ color: subheadingColor, fontSize: 'var(--theme-scale-body)', lineHeight: 'var(--theme-line-body)' }}>
+          <Heading level={subheadingTag} look="body" className={withMotion(phase, 'max-w-prose', 'cx-hero-t')} style={{ color: subheadingColor, fontSize: 'var(--theme-scale-body)', lineHeight: 'var(--theme-line-body)' }} {...rise(phase, { i: 2 })}>
             {subheading}
           </Heading>
         )}
         {(ctaText || ctaSecondaryText) && (
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             {ctaText && (
-              <a href={ctaUrl} className="inline-flex items-center justify-center px-8 py-3 transition-all hover:opacity-90 hover:-translate-y-px" style={{ ...primaryBtn, fontWeight: 'var(--theme-weight-bold)' }}>
+              <a
+                href={ctaUrl}
+                className={withMotion(phase, 'inline-flex items-center justify-center px-8 py-3 transition-all hover:opacity-90 hover:-translate-y-px', 'cx-hero-t cx-hero-btn')}
+                style={{ ...primaryBtn, fontWeight: 'var(--theme-weight-bold)' }}
+                {...rise(phase, { i: 3 })}
+                {...hover(phase, 'press')}
+                {...magnetic(phase)}
+              >
                 {ctaText}
               </a>
             )}
             {ctaSecondaryText && (
-              <a href={ctaSecondaryUrl} className="inline-flex items-center justify-center px-8 py-3 transition hover:opacity-90" style={{ ...secondaryBtn, fontWeight: 'var(--theme-weight-bold)' }}>
+              <a
+                href={ctaSecondaryUrl}
+                className={withMotion(phase, 'inline-flex items-center justify-center px-8 py-3 transition hover:opacity-90', 'cx-hero-t cx-hero-btn')}
+                style={{ ...secondaryBtn, fontWeight: 'var(--theme-weight-bold)' }}
+                {...rise(phase, { i: 4 })}
+                {...hover(phase, 'press')}
+                {...magnetic(phase)}
+              >
                 {ctaSecondaryText}
               </a>
             )}

@@ -20,6 +20,14 @@ import { ctaDefaults, ctaToneValue } from './_shared/cta';
 import { headingLines, headingOneLine, multilineStyle } from './_shared/headingLines';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
+import { EMBLEM_FIELDS } from './_shared/emblemFields';
+import { HeroEmblem } from './_shared/HeroEmblem';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type SplitHeight = 'sm' | 'md' | 'lg';
 type ImageSide = 'start' | 'end';
@@ -33,7 +41,7 @@ const HEIGHT_CLASS: Record<SplitHeight, string> = {
 };
 
 function HeroSplit(props: SectionRenderProps) {
-  const { settings, content, locale } = props;
+  const { settings, content, locale, motion } = props;
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -125,14 +133,23 @@ function HeroSplit(props: SectionRenderProps) {
           {resolvedImage ? (
             // Plain <img> keeps the natural-ratio desktop sizing; optimized
             // srcset + high priority since the hero sits above the fold.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
-              alt={(content.alt as string) || heading || ''}
-              fetchPriority="high"
-              className={`w-full aspect-[4/5] object-cover ${HEIGHT_CLASS[height]} md:h-full md:aspect-auto`}
+            // With the motion style the frame (radius and shadow) moves to the
+            // mask, so the image settles inside rounded corners.
+            <MotionMedia
+              motion={motion}
+              dir={imageSide === 'end' ? 'end' : 'start'}
+              className="cx-hero-media"
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
-            />
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
+                alt={(content.alt as string) || heading || ''}
+                fetchPriority="high"
+                className={`w-full aspect-[4/5] object-cover ${HEIGHT_CLASS[height]} md:h-full md:aspect-auto`}
+                style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
+              />
+            </MotionMedia>
           ) : (
             <div
               className={`w-full aspect-[4/5] ${HEIGHT_CLASS[height]}`}
@@ -147,11 +164,13 @@ function HeroSplit(props: SectionRenderProps) {
         {/* Content column — generous whitespace, serif-friendly scale. */}
         <div className={imageSide === 'end' ? 'md:order-1' : ''}>
           <StaggerGroup immediate step={0.1} className="flex flex-col gap-5 max-w-xl py-4 md:py-8">
+            <HeroEmblem settings={settings} motion={motion} />
             {eyebrow && (
               <StaggerItem>
                 <Heading level={eyebrowTag} original="span" look="body"
-                  className="text-xs font-semibold uppercase tracking-[0.2em]"
+                  className={withMotion(motion, 'text-xs font-semibold uppercase tracking-[0.2em]', 'cx-hero-t')}
                   style={{ color: eyebrowColor }}
+                  {...rise(motion)}
                 >
                   {eyebrow}
                 </Heading>
@@ -160,7 +179,7 @@ function HeroSplit(props: SectionRenderProps) {
             {heading && (
               <StaggerItem>
                 <Heading level={headingLevel}
-                  className="leading-[1.08]"
+                  className={withMotion(motion, 'leading-[1.08]', 'cx-hero-h')}
                   style={{
                     fontFamily: 'var(--theme-font-heading)',
                     fontSize: 'var(--theme-scale-h1)',
@@ -169,7 +188,7 @@ function HeroSplit(props: SectionRenderProps) {
                     color: headingColor,
                   }}
                 >
-                  {heading}
+                  <MotionText motion={motion} text={heading} />
                   <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
                 </Heading>
               </StaggerItem>
@@ -177,12 +196,13 @@ function HeroSplit(props: SectionRenderProps) {
             {subheading && (
               <StaggerItem>
                 <Heading level={subheadingTag} look="body"
-                  className="max-w-prose"
+                  className={withMotion(motion, 'max-w-prose', 'cx-hero-t')}
                   style={{
                     fontSize: 'var(--theme-scale-body)',
                     lineHeight: 'var(--theme-line-body)',
                     color: subheadingColor,
                   }}
+                  {...rise(motion, { i: 2 })}
                 >
                   {subheading}
                 </Heading>
@@ -193,12 +213,19 @@ function HeroSplit(props: SectionRenderProps) {
                 {ctaText && (
                   <a
                     href={ctaUrl}
-                    className="inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px"
+                    className={withMotion(
+                      motion,
+                      'inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px',
+                      'cx-hero-t cx-hero-btn',
+                    )}
                     style={{
                       ...primaryBtn,
                       fontWeight: 'var(--theme-weight-bold)',
                       boxShadow: 'var(--theme-shadow-md)',
                     }}
+                    {...rise(motion, { i: 3 })}
+                    {...hover(motion, 'press')}
+                    {...magnetic(motion)}
                   >
                     {ctaText}
                   </a>
@@ -206,11 +233,18 @@ function HeroSplit(props: SectionRenderProps) {
                 {ctaSecondaryText && (
                   <a
                     href={ctaSecondaryUrl}
-                    className="inline-flex items-center justify-center px-8 py-3 transition duration-300 hover:opacity-80"
+                    className={withMotion(
+                      motion,
+                      'inline-flex items-center justify-center px-8 py-3 transition duration-300 hover:opacity-80',
+                      'cx-hero-t cx-hero-btn',
+                    )}
                     style={{
                       ...secondaryBtn,
                       fontWeight: 'var(--theme-weight-bold)',
                     }}
+                    {...rise(motion, { i: 4 })}
+                    {...hover(motion, 'press')}
+                    {...magnetic(motion)}
                   >
                     {ctaSecondaryText}
                   </a>
@@ -229,7 +263,7 @@ function HeroSplit(props: SectionRenderProps) {
  * no radius or shadow, the text lines up with the page container. Rendered
  * only when there is something to show (the caller keeps the empty state).
  */
-function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -286,7 +320,11 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
       radius: 'var(--theme-radius-full)',
     },
   );
-  const buttonClass = `inline-flex items-center justify-center gap-2 px-8 py-3 motion-safe:transition-opacity motion-safe:duration-300 hover:opacity-90 ${FOCUS_RING}`;
+  const buttonClass = withMotion(
+    motion,
+    `inline-flex items-center justify-center gap-2 px-8 py-3 motion-safe:transition-opacity motion-safe:duration-300 hover:opacity-90 ${FOCUS_RING}`,
+    'cx-hero-t cx-hero-btn',
+  );
 
   return (
     <BleedSplit
@@ -301,18 +339,21 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
       blend={colors.blend}
       media={
         resolvedImage ? (
-          // The hero sits above the fold: this image is the LCP candidate.
-          <StoreImage
-            src={resolvedImage}
-            alt={alt}
-            fill
-            preload
-            fetchPriority="high"
-            sizes={wide ? '(min-width: 768px) 58vw, 100vw' : '(min-width: 768px) 50vw, 100vw'}
-            unoptimized={isSvgSrc(resolvedImage)}
-            className="object-cover"
-            style={{ objectPosition: focusPosition(settings.image_focus) }}
-          />
+          // The hero sits above the fold: this image is the LCP candidate
+          // (as the first section it only settles, never clipped or hidden).
+          <MotionMedia motion={motion} fill dir={imageSide} className="cx-hero-media">
+            <StoreImage
+              src={resolvedImage}
+              alt={alt}
+              fill
+              preload
+              fetchPriority="high"
+              sizes={wide ? '(min-width: 768px) 58vw, 100vw' : '(min-width: 768px) 50vw, 100vw'}
+              unoptimized={isSvgSrc(resolvedImage)}
+              className="object-cover"
+              style={{ objectPosition: focusPosition(settings.image_focus) }}
+            />
+          </MotionMedia>
         ) : builderPreview ? (
           // Builder only: keep the image half visible until one is uploaded.
           <BleedMediaPlaceholder />
@@ -320,11 +361,13 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
       }
     >
       <StaggerGroup immediate step={0.1} className="flex flex-col gap-5">
+        <HeroEmblem settings={settings} motion={motion} />
         {eyebrow && (
           <StaggerItem>
             <Heading level={eyebrowTag} original="span" look="body"
-              className="text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal"
+              className={withMotion(motion, 'text-xs font-semibold uppercase tracking-[0.2em] rtl:tracking-normal', 'cx-hero-t')}
               style={{ color: colorOr(settings.eyebrow_color, colors.eyebrow) }}
+              {...rise(motion)}
             >
               {eyebrow}
             </Heading>
@@ -333,7 +376,7 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
         {heading && (
           <StaggerItem>
             <Heading level={headingLevel}
-              className="leading-[1.08]"
+              className={withMotion(motion, 'leading-[1.08]', 'cx-hero-h')}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h1)',
@@ -343,7 +386,7 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
                 ...multilineStyle(heading),
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
               <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
             </Heading>
           </StaggerItem>
@@ -351,12 +394,13 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
         {subheading && (
           <StaggerItem>
             <Heading level={subheadingTag} look="body"
-              className="max-w-prose"
+              className={withMotion(motion, 'max-w-prose', 'cx-hero-t')}
               style={{
                 fontSize: 'var(--theme-scale-body)',
                 lineHeight: 'var(--theme-line-body)',
                 color: colorOr(settings.subheading_color, colors.muted),
               }}
+              {...rise(motion, { i: 2 })}
             >
               {subheading}
             </Heading>
@@ -369,6 +413,9 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
                 href={ctaHref}
                 className={buttonClass}
                 style={{ ...primaryBtn, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                {...rise(motion, { i: 3 })}
+                {...hover(motion, 'press')}
+                {...magnetic(motion)}
               >
                 {ctaText}
                 {settings.cta_arrow === true && <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />}
@@ -379,6 +426,9 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
                 href={ctaSecondaryHref}
                 className={buttonClass}
                 style={{ ...secondaryBtn, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
+                {...rise(motion, { i: 4 })}
+                {...hover(motion, 'press')}
+                {...magnetic(motion)}
               >
                 {ctaSecondaryText}
               </a>
@@ -550,6 +600,8 @@ export const heroSplitSection: SectionDefinition = {
       { key: 'cta_secondary_border_color', type: 'color', label: { en: 'Button border color (secondary)', ar: 'لون حدود الزر (ثانوي)' } },
       { key: 'cta_secondary_border_width', type: 'number', label: { en: 'Button border width (px) (secondary)', ar: 'سماكة حدود الزر (px) (ثانوي)' }, min: 0, max: 8, defaultValue: 0 },
       { key: 'cta_secondary_border_radius', type: 'number', label: { en: 'Button corner radius (px) (secondary)', ar: 'انحناء زوايا الزر (px) (ثانوي)' }, min: 0, max: 100 },
+      // Optional decor, always last (see emblemFields.ts).
+      ...EMBLEM_FIELDS,
     ],
   },
   Component: HeroSplit,

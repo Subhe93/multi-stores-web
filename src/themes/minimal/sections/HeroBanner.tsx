@@ -9,6 +9,14 @@ import { Heading } from './_shared/Heading';
 import { HeadingAccent } from './_shared/HeadingAccent';
 import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, parallax, rise } from '../../creative/recipes';
+import { EMBLEM_FIELDS } from './_shared/emblemFields';
+import { HeroEmblem } from './_shared/HeroEmblem';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type HeroLayout = 'centered' | 'image-background' | 'side-by-side';
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
@@ -20,7 +28,7 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
   full: 'min-h-[calc(100vh-80px)]',
 };
 
-function HeroBanner({ settings, content }: SectionRenderProps) {
+function HeroBanner({ settings, content, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -87,11 +95,13 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   // across the three layouts.
   const textBlock = (
     <StaggerGroup immediate step={0.1} className={`flex flex-col gap-4 max-w-2xl ${alignClass}`}>
+      <HeroEmblem settings={settings} motion={motion} centered={alignment === 'center'} />
       {eyebrow && (
         <StaggerItem>
           <Heading level={eyebrowTag} original="span" look="body"
-            className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70"
+            className={withMotion(motion, 'text-xs font-semibold uppercase tracking-[0.2em] opacity-70', 'cx-hero-t')}
             style={{ color: eyebrowColor }}
+            {...rise(motion)}
           >
             {eyebrow}
           </Heading>
@@ -100,7 +110,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
       {heading && (
         <StaggerItem>
           <Heading level={headingLevel}
-            className="leading-[1.05]"
+            className={withMotion(motion, 'leading-[1.05]', 'cx-hero-h')}
             style={{
               fontFamily: 'var(--theme-font-heading)',
               fontSize: 'var(--theme-scale-h1)',
@@ -109,7 +119,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
               color: headingColor,
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
             <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
           </Heading>
         </StaggerItem>
@@ -117,12 +127,13 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
       {subheading && (
         <StaggerItem>
           <Heading level={subheadingTag} look="body"
-            className="max-w-prose"
+            className={withMotion(motion, 'max-w-prose', 'cx-hero-t')}
             style={{
               fontSize: 'var(--theme-scale-body)',
               color: subheadingColor,
               lineHeight: 'var(--theme-line-body)',
             }}
+            {...rise(motion, { i: 2 })}
           >
             {subheading}
           </Heading>
@@ -133,12 +144,19 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
           {ctaText && (
             <a
               href={ctaUrl}
-              className="inline-flex items-center justify-center px-8 py-3 transition-all hover:opacity-90 hover:-translate-y-px"
+              className={withMotion(
+                motion,
+                'inline-flex items-center justify-center px-8 py-3 transition-all hover:opacity-90 hover:-translate-y-px',
+                'cx-hero-t cx-hero-btn',
+              )}
               style={{
                 ...primaryBtn,
                 fontWeight: 'var(--theme-weight-bold)',
                 boxShadow: 'var(--theme-shadow-md)',
               }}
+              {...rise(motion, { i: 3 })}
+              {...hover(motion, 'press')}
+              {...magnetic(motion)}
             >
               {ctaText}
             </a>
@@ -146,11 +164,18 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
           {ctaSecondaryText && (
             <a
               href={ctaSecondaryUrl}
-              className="inline-flex items-center justify-center px-8 py-3 transition hover:opacity-90"
+              className={withMotion(
+                motion,
+                'inline-flex items-center justify-center px-8 py-3 transition hover:opacity-90',
+                'cx-hero-t cx-hero-btn',
+              )}
               style={{
                 ...secondaryBtn,
                 fontWeight: 'var(--theme-weight-bold)',
               }}
+              {...rise(motion, { i: 4 })}
+              {...hover(motion, 'press')}
+              {...magnetic(motion)}
             >
               {ctaSecondaryText}
             </a>
@@ -158,6 +183,20 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
         </StaggerItem>
       )}
     </StaggerGroup>
+  );
+
+  const backgroundImage = (
+    <StoreImage
+      src={resolvedImage}
+      alt=""
+      fill
+      preload
+      fetchPriority="high"
+      sizes="100vw"
+      unoptimized={isSvgSrc(resolvedImage)}
+      className="object-cover"
+      style={{ zIndex: 0 }}
+    />
   );
 
   // Layout A: full-bleed image background with overlay + centered text.
@@ -177,18 +216,20 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
           marginRight: 'calc(50% - 50vw)',
         }}
       >
-        {resolvedImage && (
-          <StoreImage
-            src={resolvedImage}
-            alt=""
-            fill
-            preload
-            fetchPriority="high"
-            sizes="100vw"
-            unoptimized={isSvgSrc(resolvedImage)}
-            className="object-cover"
-            style={{ zIndex: 0 }}
-          />
+        {resolvedImage && !motion && backgroundImage}
+        {resolvedImage && motion && (
+          // The background travels a little slower than the page (desktop
+          // only). As the first section it also settles from a slight zoom;
+          // it is never clipped or hidden, here or further down the page.
+          <div className="absolute inset-0" style={{ zIndex: 0 }} {...parallax(motion, -6)}>
+            {motion === 'intro' ? (
+              <MotionMedia motion={motion} priority fill>
+                {backgroundImage}
+              </MotionMedia>
+            ) : (
+              backgroundImage
+            )}
+          </div>
         )}
         <div
           className="absolute inset-0"
@@ -207,20 +248,29 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   }
 
   // Layout B: image on one side, text on the other.
+  // From 768 px the image is always in the first column (the alignment only
+  // changes the stacking order on phones), so its mask opens from the start.
   if (layout === 'side-by-side') {
     const imageOnLeft = alignment !== 'right';
     return (
       <section className="grid md:grid-cols-2 gap-8 lg:gap-12 py-10 items-center">
         {imageOnLeft && resolvedImage && (
           <div className="order-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
-              alt=""
-              fetchPriority="high"
-              className="w-full h-full max-h-150 object-cover"
+            <MotionMedia
+              motion={motion}
+              dir="start"
+              className="cx-hero-media"
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
-            />
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
+                alt=""
+                fetchPriority="high"
+                className="w-full h-full max-h-150 object-cover"
+                style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
+              />
+            </MotionMedia>
           </div>
         )}
         <div className={`flex ${imageOnLeft ? 'order-2' : 'order-1 md:order-2'}`}>
@@ -228,14 +278,21 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
         </div>
         {!imageOnLeft && resolvedImage && (
           <div className="order-2 md:order-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
-              alt=""
-              fetchPriority="high"
-              className="w-full h-full max-h-150 object-cover"
+            <MotionMedia
+              motion={motion}
+              dir="start"
+              className="cx-hero-media"
               style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
-            />
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...responsiveImgProps(resolvedImage, '(min-width: 768px) 50vw, 100vw')}
+                alt=""
+                fetchPriority="high"
+                className="w-full h-full max-h-150 object-cover"
+                style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-lg)' }}
+              />
+            </MotionMedia>
           </div>
         )}
       </section>
@@ -246,14 +303,20 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
   return (
     <section className="py-16 md:py-24 flex flex-col items-center text-center gap-8">
       {resolvedImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          {...responsiveImgProps(resolvedImage, '(min-width: 768px) 768px, 100vw')}
-          alt=""
-          fetchPriority="high"
-          className="max-h-96 object-cover w-full max-w-3xl"
+        <MotionMedia
+          motion={motion}
+          className="cx-hero-media w-full max-w-3xl"
           style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-md)' }}
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            {...responsiveImgProps(resolvedImage, '(min-width: 768px) 768px, 100vw')}
+            alt=""
+            fetchPriority="high"
+            className="max-h-96 object-cover w-full max-w-3xl"
+            style={{ borderRadius: 'var(--theme-radius-lg)', boxShadow: 'var(--theme-shadow-md)' }}
+          />
+        </MotionMedia>
       )}
       <div className="w-full flex justify-center">{textBlock}</div>
     </section>
@@ -330,6 +393,8 @@ export const heroBannerSection: SectionDefinition = {
       { key: 'cta_secondary_border_color', type: 'color', label: { en: 'Button border color (secondary)', ar: 'لون حدود الزر (ثانوي)' } },
       { key: 'cta_secondary_border_width', type: 'number', label: { en: 'Button border width (px) (secondary)', ar: 'سماكة حدود الزر (px) (ثانوي)' }, min: 0, max: 8, defaultValue: 0 },
       { key: 'cta_secondary_border_radius', type: 'number', label: { en: 'Button corner radius (px) (secondary)', ar: 'انحناء زوايا الزر (px) (ثانوي)' }, min: 0, max: 100 },
+      // Optional decor, always last (see emblemFields.ts).
+      ...EMBLEM_FIELDS,
     ],
   },
   Component: HeroBanner,

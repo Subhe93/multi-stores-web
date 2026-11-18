@@ -14,6 +14,12 @@ import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { HeadingAccent } from './_shared/HeadingAccent';
 import { isSvgSrc, optimizedImageUrl } from '@/lib/storeMedia';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type Height = 'md' | 'lg' | 'full';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -22,7 +28,7 @@ const HEIGHT_CLASS: Record<Height, string> = {
   full: 'min-h-[calc(100vh-80px)]',
 };
 
-export function HeroVideo({ settings, content }: SectionRenderProps) {
+export function HeroVideo({ settings, content, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -129,8 +135,9 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
             {eyebrow && (
               <StaggerItem>
                 <Heading level={eyebrowTag} original="span" look="body"
-                  className="text-xs font-semibold uppercase tracking-[0.2em]"
+                  className={withMotion(motion, 'text-xs font-semibold uppercase tracking-[0.2em]', 'cx-hero-t')}
                   style={{ color: eyebrowColor }}
+                  {...rise(motion)}
                 >
                   {eyebrow}
                 </Heading>
@@ -139,7 +146,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
             {heading && (
               <StaggerItem>
                 <Heading level={headingLevel}
-                  className="leading-[1.05]"
+                  className={withMotion(motion, 'leading-[1.05]', 'cx-hero-h')}
                   style={{
                     fontFamily: 'var(--theme-font-heading)',
                     fontSize: 'var(--theme-scale-h1)',
@@ -148,7 +155,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
                     color: headingColor,
                   }}
                 >
-                  {heading}
+                  <MotionText motion={motion} text={heading} />
                   <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
                 </Heading>
               </StaggerItem>
@@ -156,12 +163,13 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
             {subheading && (
               <StaggerItem>
                 <Heading level={subheadingTag} look="body"
-                  className="max-w-prose"
+                  className={withMotion(motion, 'max-w-prose', 'cx-hero-t')}
                   style={{
                     fontSize: 'var(--theme-scale-body)',
                     lineHeight: 'var(--theme-line-body)',
                     color: subheadingColor,
                   }}
+                  {...rise(motion, { i: 2 })}
                 >
                   {subheading}
                 </Heading>
@@ -171,12 +179,19 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
               <StaggerItem className={`flex ${justifyClass}`}>
                 <a
                   href={ctaUrl}
-                  className="inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px"
+                  className={withMotion(
+                    motion,
+                    'inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px',
+                    'cx-hero-t cx-hero-btn',
+                  )}
                   style={{
                     ...ctaBtn,
                     fontWeight: 'var(--theme-weight-bold)',
                     boxShadow: 'var(--theme-shadow-md)',
                   }}
+                  {...rise(motion, { i: 3 })}
+                  {...hover(motion, 'press')}
+                  {...magnetic(motion)}
                 >
                   {ctaText}
                 </a>

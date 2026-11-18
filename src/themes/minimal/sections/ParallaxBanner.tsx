@@ -7,6 +7,12 @@ import { Heading } from './_shared/Heading';
 import { HeadingAccent } from './_shared/HeadingAccent';
 import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { optimizedImageUrl } from '@/lib/storeMedia';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, parallax, rise } from '../../creative/recipes';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type Height = 'sm' | 'md' | 'lg';
 const HEIGHT_CLASS: Record<Height, string> = {
@@ -15,7 +21,7 @@ const HEIGHT_CLASS: Record<Height, string> = {
   lg: 'min-h-[560px]',
 };
 
-function ParallaxBanner({ settings, content }: SectionRenderProps) {
+function ParallaxBanner({ settings, content, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -53,7 +59,9 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
 
   return (
     <section
-      className={`ms-parallax-bg relative flex items-center justify-center overflow-hidden px-6 py-16 ${HEIGHT_CLASS[height]}`}
+      // With the motion style the image moves to its own layer below (the
+      // engine drives it); the section keeps the dark ground only.
+      className={`${motion ? '' : 'ms-parallax-bg '}relative flex items-center justify-center overflow-hidden px-6 py-16 ${HEIGHT_CLASS[height]}`}
       style={{
         // Solid dark ground keeps the text readable while the image loads
         // (and when no image is set yet).
@@ -85,12 +93,25 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         }
       `}</style>
 
+      {motion && (
+        // Scroll-linked layer instead of the fixed background: it travels 6 %
+        // of its height while the banner crosses the viewport (desktop only;
+        // a still cover image on phones, with reduced motion and without
+        // JavaScript). Same images and breakpoint as the rule above.
+        <div
+          aria-hidden="true"
+          className="ms-parallax-bg absolute inset-0"
+          style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'scroll' }}
+          {...parallax(motion, -6)}
+        />
+      )}
+
       <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }} />
 
       <StaggerGroup immediate step={0.1} className="relative z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
         {eyebrow && (
           <StaggerItem>
-            <Heading level={eyebrowTag} original="span" look="body" className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: eyebrowColor }}>
+            <Heading level={eyebrowTag} original="span" look="body" className={withMotion(motion, 'text-xs font-semibold uppercase tracking-[0.2em]', 'cx-hero-t')} style={{ color: eyebrowColor }} {...rise(motion)}>
               {eyebrow}
             </Heading>
           </StaggerItem>
@@ -98,6 +119,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         {heading && (
           <StaggerItem>
             <Heading level={headingLevel}
+              className={motion ? 'cx-hero-h' : undefined}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h2)',
@@ -107,7 +129,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
                 color: headingColor,
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
               <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="center" />
             </Heading>
           </StaggerItem>
@@ -115,12 +137,13 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
         {subheading && (
           <StaggerItem>
             <Heading level={subheadingTag} look="body"
-              className="max-w-prose"
+              className={withMotion(motion, 'max-w-prose', 'cx-hero-t')}
               style={{
                 fontSize: 'var(--theme-scale-body)',
                 lineHeight: 'var(--theme-line-body)',
                 color: subheadingColor,
               }}
+              {...rise(motion, { i: 2 })}
             >
               {subheading}
             </Heading>
@@ -130,8 +153,15 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
           <StaggerItem>
             <a
               href={ctaUrl}
-              className="mt-2 inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px"
+              className={withMotion(
+                motion,
+                'mt-2 inline-flex items-center justify-center px-8 py-3 transition-all duration-300 hover:opacity-90 hover:-translate-y-px',
+                'cx-hero-t cx-hero-btn',
+              )}
               style={{ ...ctaBtn, fontWeight: 'var(--theme-weight-bold)', boxShadow: 'var(--theme-shadow-md)' }}
+              {...rise(motion, { i: 3 })}
+              {...hover(motion, 'press')}
+              {...magnetic(motion)}
             >
               {ctaText}
             </a>

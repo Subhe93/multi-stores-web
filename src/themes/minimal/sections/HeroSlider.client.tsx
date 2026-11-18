@@ -15,6 +15,12 @@ import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { HeadingAccent } from './_shared/HeadingAccent';
 import { isSvgSrc } from '@/lib/storeMedia';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the slide got a motion value, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
 type Alignment = 'left' | 'center' | 'right';
@@ -36,7 +42,7 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
   full: 'min-h-[calc(100vh-80px)]',
 };
 
-export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
+export function HeroSlider({ settings, content, locale, motion }: SectionRenderProps) {
   // First slide carries the section's heading level (default h1: a slider
   // usually opens the page); later slides step down to h2 when it is h1.
   const firstHeading = headingTag(settings.heading_level, 'h1');
@@ -107,28 +113,42 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
           : 'text-center items-center';
 
     const SlideHeading = slideHeading(i);
+    // Store motion style: the first slide enters like any hero; the other
+    // slides are already complete when the visitor reaches them, and a slide
+    // change keeps the slider's own native transition.
+    const m = i === 0 ? motion : undefined;
+    const slideImage = resolvedImage ? (
+      // First slide is the LCP candidate: preload it. The next slide loads
+      // eagerly too (it can sit outside the lazy threshold until autoplay
+      // reaches it); the rest lazy-load.
+      <StoreImage
+        src={resolvedImage}
+        alt={slide.heading || ''}
+        fill
+        sizes="100vw"
+        preload={i === 0}
+        fetchPriority={i === 0 ? 'high' : undefined}
+        loading={i === 0 ? undefined : i === 1 ? 'eager' : 'lazy'}
+        unoptimized={isSvgSrc(resolvedImage)}
+        className="object-cover"
+        style={{ zIndex: 0 }}
+      />
+    ) : null;
     return (
       <div
         key={i}
         className={`relative overflow-hidden flex px-6 sm:px-12 ${HEIGHT_CLASS[height]}`}
         style={{ color: '#fff' }}
       >
-        {resolvedImage && (
-          // First slide is the LCP candidate: preload it. The next slide loads
-          // eagerly too (it can sit outside the lazy threshold until autoplay
-          // reaches it); the rest lazy-load.
-          <StoreImage
-            src={resolvedImage}
-            alt={slide.heading || ''}
-            fill
-            sizes="100vw"
-            preload={i === 0}
-            fetchPriority={i === 0 ? 'high' : undefined}
-            loading={i === 0 ? undefined : i === 1 ? 'eager' : 'lazy'}
-            unoptimized={isSvgSrc(resolvedImage)}
-            className="object-cover"
-            style={{ zIndex: 0 }}
-          />
+        {m === 'intro' ? (
+          // Settles from a slight zoom; never clipped or hidden (LCP).
+          slideImage && (
+            <MotionMedia motion={m} priority fill>
+              {slideImage}
+            </MotionMedia>
+          )
+        ) : (
+          slideImage
         )}
         <div
           className="absolute inset-0"
@@ -140,15 +160,16 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
         <div className={`relative w-full max-w-5xl mx-auto flex flex-col justify-center gap-4 ${alignClass}`} style={{ zIndex: 2 }}>
           {slide.eyebrow && (
             <Heading level={eyebrowTag} original="span" look="body"
-              className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80"
+              className={withMotion(m, 'text-xs font-semibold uppercase tracking-[0.2em] opacity-80', 'cx-hero-t')}
               style={{ color: colorOr(settings.eyebrow_color, 'var(--theme-colors-accent)') }}
+              {...rise(m)}
             >
               {slide.eyebrow}
             </Heading>
           )}
           {slide.heading && (
             <Heading level={SlideHeading}
-              className="leading-[1.05] tracking-tight max-w-3xl"
+              className={withMotion(m, 'leading-[1.05] tracking-tight max-w-3xl', 'cx-hero-h')}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
                 fontSize: 'var(--theme-scale-h1)',
@@ -156,18 +177,19 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
                 color: colorOr(settings.heading_color, '#fff'),
               }}
             >
-              {slide.heading}
+              <MotionText motion={m} text={slide.heading} />
               <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
             </Heading>
           )}
           {slide.subheading && (
             <Heading level={subheadingTag} look="body"
-              className="max-w-2xl"
+              className={withMotion(m, 'max-w-2xl', 'cx-hero-t')}
               style={{
                 fontSize: 'var(--theme-scale-body)',
                 color: colorOr(settings.subheading_color, 'rgba(255,255,255,0.88)'),
                 lineHeight: 'var(--theme-line-body)',
               }}
+              {...rise(m, { i: 2 })}
             >
               {slide.subheading}
             </Heading>
@@ -175,7 +197,11 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
           {slide.cta_text && (
             <a
               href={storeHref(slide.cta_url || '#')}
-              className="inline-flex items-center justify-center px-8 py-3 mt-2 transition-all hover:opacity-90 hover:-translate-y-px self-start"
+              className={withMotion(
+                m,
+                'inline-flex items-center justify-center px-8 py-3 mt-2 transition-all hover:opacity-90 hover:-translate-y-px self-start',
+                'cx-hero-t cx-hero-btn',
+              )}
               style={{
                 ...ctaStyle,
                 fontWeight: 'var(--theme-weight-bold)',
@@ -183,6 +209,9 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
                 alignSelf:
                   alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
               }}
+              {...rise(m, { i: 3 })}
+              {...hover(m, 'press')}
+              {...magnetic(m)}
             >
               {slide.cta_text}
             </a>

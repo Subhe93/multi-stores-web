@@ -3,11 +3,19 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { HeadingAccent } from '../../minimal/sections/_shared/HeadingAccent';
 import { HEADING_ACCENT_FIELDS } from '../../minimal/sections/_shared/headingAccentFields';
+import { EMBLEM_FIELDS } from '../../minimal/sections/_shared/emblemFields';
+import { HeroEmblem } from '../../minimal/sections/_shared/HeroEmblem';
+import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
+import { hover, magnetic, rise } from '../../creative/recipes';
+
+// Class hooks of the hero rules in creative/css/hero.css.ts. Added only when
+// the section got a `motion` prop, so the markup is unchanged without it.
+const withMotion = (motion: unknown, base: string, hook: string) => (motion ? `${base} ${hook}` : base);
 
 // Classic hero: framed image with serif heading underneath. More editorial-feel
 // than Minimal's centered hero. Schema stays identical so creators can switch
 // themes without re-entering content.
-function HeroBanner({ settings, content }: SectionRenderProps) {
+function HeroBanner({ settings, content, motion }: SectionRenderProps) {
   const image = settings.image as string | undefined;
   // Storefront stores upload URLs as relative paths like `/uploads/foo.png` —
   // they live on the API host, not the storefront host (which may be on a
@@ -33,21 +41,24 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
             boxShadow: 'var(--theme-shadow-md)',
           }}
         >
-          <StoreImage
-            src={resolvedImage}
-            alt=""
-            fill
-            preload
-            fetchPriority="high"
-            sizes="100vw"
-            className="object-cover"
-          />
+          <MotionMedia motion={motion} fill className="cx-hero-media">
+            <StoreImage
+              src={resolvedImage}
+              alt=""
+              fill
+              preload
+              fetchPriority="high"
+              sizes="100vw"
+              className="object-cover"
+            />
+          </MotionMedia>
         </div>
       )}
       <div className={align}>
+        <HeroEmblem settings={settings} motion={motion} centered={alignment === 'center'} className="mb-5" />
         {heading && (
           <h1
-            className="mb-3"
+            className={withMotion(motion, 'mb-3', 'cx-hero-h')}
             style={{
               fontFamily: 'var(--theme-font-heading)',
               fontSize: 'var(--theme-scale-h1)',
@@ -57,18 +68,19 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
               letterSpacing: '-0.01em',
             }}
           >
-            {heading}
+            <MotionText motion={motion} text={heading} />
             <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
           </h1>
         )}
         {subheading && (
           <p
-            className="max-w-2xl mx-auto italic"
+            className={withMotion(motion, 'max-w-2xl mx-auto italic', 'cx-hero-t')}
             style={{
               fontSize: 'var(--theme-scale-body)',
               color: 'var(--theme-colors-muted)',
               fontFamily: 'var(--theme-font-heading)',
             }}
+            {...rise(motion, { i: 2 })}
           >
             {subheading}
           </p>
@@ -76,7 +88,10 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
         {ctaText && (
           <a
             href={ctaUrl}
-            className="inline-block mt-8 px-10 py-3 transition hover:opacity-90"
+            {...rise(motion, { i: 3 })}
+            {...hover(motion, 'press')}
+            {...magnetic(motion)}
+            className={withMotion(motion, 'inline-block mt-8 px-10 py-3 transition hover:opacity-90', 'cx-hero-t cx-hero-btn')}
             style={{
               backgroundColor: 'var(--theme-colors-primary)',
               color: 'var(--theme-colors-primaryContrast, #fff)',
@@ -126,6 +141,8 @@ export const classicHeroBannerSection: SectionDefinition = {
           { value: 'right', label: { en: 'Right', ar: 'يمين' } },
         ],
       },
+      // Optional decor, always last (see emblemFields.ts).
+      ...EMBLEM_FIELDS,
     ],
   },
   Component: HeroBanner,
