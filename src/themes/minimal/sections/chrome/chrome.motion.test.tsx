@@ -47,7 +47,8 @@ vi.mock('@/components/cart/UnavailableInMarket', () => ({ RemoveUnavailableHint:
 vi.mock('@/lib/useApiError', () => ({ useCodedApiError: () => () => '' }));
 vi.mock('@/lib/cartAvailability', () => ({ availableLines: (x: unknown) => x }));
 vi.mock('@/lib/requiresShipping', () => ({ cartRequiresShipping: () => true }));
-vi.mock('@/lib/productQuantity', () => ({ lineMaxQty: () => 9 }));
+// The drawer reads the per-line cap (per-order limit and stock) from here.
+vi.mock('@/lib/productQuantity', () => ({ lineMaxQty: () => 9, lineQuantityCap: () => ({ max: 9, stock: null }) }));
 
 import { SectionRenderer } from '../../../SectionRenderer';
 import { minimalTheme } from '../../theme';
