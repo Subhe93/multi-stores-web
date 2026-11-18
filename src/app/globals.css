@@ -214,11 +214,11 @@ html, body {
 [data-reveal][data-reveal-state="pending"] {
   opacity: 0;
 }
-[data-reveal="up"][data-reveal-state="pending"] { transform: translateY(22px); }
-[data-reveal="down"][data-reveal-state="pending"] { transform: translateY(-22px); }
-[data-reveal="left"][data-reveal-state="pending"] { transform: translateX(22px); }
-[data-reveal="right"][data-reveal-state="pending"] { transform: translateX(-22px); }
-[data-reveal="scale"][data-reveal-state="pending"] { transform: scale(0.96); }
+[data-reveal="up"][data-reveal-state="pending"] { transform: translateY(var(--reveal-distance, 22px)); }
+[data-reveal="down"][data-reveal-state="pending"] { transform: translateY(calc(-1 * var(--reveal-distance, 22px))); }
+[data-reveal="left"][data-reveal-state="pending"] { transform: translateX(var(--reveal-distance, 22px)); }
+[data-reveal="right"][data-reveal-state="pending"] { transform: translateX(calc(-1 * var(--reveal-distance, 22px))); }
+[data-reveal="scale"][data-reveal-state="pending"] { transform: scale(var(--reveal-scale, 0.96)); }
 [data-reveal][data-reveal-state="shown"] {
   transition:
     opacity var(--reveal-duration, 0.6s) cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
@@ -237,19 +237,137 @@ html, body {
    index in its group, --stagger-step the per-item delay. */
 [data-stagger-item][data-stagger-state="pending"] {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(var(--stagger-distance, 18px));
 }
 [data-stagger-item][data-stagger-state="shown"] {
   transition:
-    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s)),
-    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
+    opacity var(--stagger-duration, 0.55s) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s)),
+    transform var(--stagger-duration, 0.55s) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
 }
 @media (prefers-reduced-motion: reduce) {
   [data-stagger-item][data-stagger-state="pending"] { transform: none; }
   [data-stagger-item][data-stagger-state="shown"] {
-    transition: opacity 0.55s ease calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
+    transition: opacity var(--stagger-duration, 0.55s) ease calc(var(--stagger-i, 0) * var(--stagger-step, 0.08s));
   }
 }
+
+/* Store-wide motion profile (theme_customizations.motion). The store layout
+   puts data-motion-reveal / data-motion-zoom on .store-root only for the
+   non-default values (themes/tokens.ts motionAttrs), so a store that never
+   chose a profile matches none of the rules below. All of them are unlayered
+   on purpose: they must win over Tailwind's layered utilities. */
+
+/* "calm": shorter travel, slower and softer. A reveal nested in another
+   reveal only fades (the outer one already moves). */
+.store-root[data-motion-reveal="calm"] {
+  --reveal-distance: 12px;
+  --reveal-duration: 0.9s;
+  --reveal-scale: 0.98;
+  --stagger-distance: 10px;
+  --stagger-duration: 0.8s;
+  --stagger-step: 0.12s;
+}
+.store-root[data-motion-reveal="calm"] [data-reveal] [data-reveal][data-reveal-state="pending"] {
+  transform: none;
+}
+
+/* "off": armed elements are simply visible. The JS side (count-up, framer
+   sections) reads the same attribute in themes/_motion/inView.ts. */
+.store-root[data-motion-reveal="off"] [data-reveal][data-reveal-state],
+.store-root[data-motion-reveal="off"] [data-stagger-item][data-stagger-state] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* Hover zoom, media only: images and videos that carry one of the scale
+   hover utilities (Tailwind v4 writes them with the `scale` property), and
+   the product tile lift. Swatches, social icons and play buttons keep their
+   own hover. */
+.store-root[data-motion-zoom="subtle"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+.store-root[data-motion-zoom="subtle"] :is(img, video)[class*="hover:scale-"]:hover {
+  scale: 1.03;
+}
+.store-root[data-motion-zoom="off"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+.store-root[data-motion-zoom="off"] :is(img, video)[class*="hover:scale-"]:hover {
+  scale: none;
+}
+.store-root:is([data-motion-zoom="subtle"], [data-motion-zoom="off"]) .group:hover .card-media-lift {
+  transform: none;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* "subtle" must not add a zoom where the motion-safe utilities give none. */
+  .store-root[data-motion-zoom="subtle"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+  .store-root[data-motion-zoom="subtle"] :is(img, video)[class*="hover:scale-"]:hover {
+    scale: none;
+  }
+}
+
+/* Compact header on scroll (header-bar `compact_on_scroll`). The attributes
+   exist only when the owner turned the setting on; HeaderScrollState sets
+   data-scrolled. The row gets 0.75rem lower and the header gains the same
+   0.75rem as a block-end margin, with one duration and timing function, so
+   the header's in-flow box keeps its size and nothing below it moves. */
+header[data-compact-header] {
+  transition: margin-block-end 0.2s ease;
+}
+header[data-compact-header] [data-header-row] {
+  transition: height 0.2s ease;
+}
+header[data-compact-header] [data-header-brand] {
+  transform-origin: left center;
+  transition: transform 0.2s ease, opacity 0.15s ease;
+}
+[dir="rtl"] header[data-compact-header] [data-header-brand] {
+  transform-origin: right center;
+}
+header[data-compact-header][data-scrolled="true"] {
+  margin-block-end: 0.75rem;
+}
+header[data-compact-header][data-scrolled="true"] [data-header-row] {
+  height: 3.25rem;
+}
+header[data-compact-header][data-scrolled="true"] [data-header-brand] {
+  transform: scale(0.8);
+}
+@media (prefers-reduced-motion: reduce) {
+  header[data-compact-header],
+  header[data-compact-header] [data-header-row],
+  header[data-compact-header] [data-header-brand] {
+    transition: none;
+  }
+}
+
+/* Heading accent (themes/minimal/sections/_shared/HeadingAccent.tsx): a
+   decorative line or brush stroke under a big heading. It sits inside the
+   heading element, so `em` follows the heading size. The colour is always an
+   inline style on the element. */
+.heading-accent {
+  display: block;
+  margin-block-start: 0.18em;
+}
+.heading-accent[data-variant="line"] {
+  width: 3em;
+  height: 3px;
+  background: currentColor;
+}
+.heading-accent[data-variant="brush"] {
+  width: min(4.5em, 60%);
+  height: 0.22em;
+}
+.heading-accent[data-variant="brush"] > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.heading-accent[data-align="center"] { margin-inline: auto; }
+.heading-accent[data-align="end"] { margin-inline-start: auto; }
+/* Sections that store a physical alignment (hero banner, slider, video). */
+.heading-accent[data-align="left"] { margin-right: auto; }
+.heading-accent[data-align="right"] { margin-left: auto; }
+/* The stroke tapers in the reading direction. */
+[dir="rtl"] .heading-accent[data-variant="brush"] { transform: scaleX(-1); }
 
 /* Soft hover lift for cards/tiles — pairs with the rounded theme tokens.
    Only for elements that actually have a surface (background + padding);

@@ -122,6 +122,12 @@ export type ThemeCustomizations = {
   };
   product?: Partial<ProductTokens>;
   /**
+   * Store-wide motion profile. Absent or 'default' = today's motion. Read
+   * through motionAttrs (tokens.ts), which turns the other values into
+   * data attributes on .store-root; the behaviour is CSS in globals.css.
+   */
+  motion?: { reveal?: 'default' | 'calm' | 'off'; zoom?: 'default' | 'subtle' | 'off' };
+  /**
    * Store-wide custom CSS written by the owner (theme customizer). Owner
    * content, not a design token: mergeTokens ignores it and the store layout
    * renders it through sanitizeCustomCss (lib/customCss.ts).

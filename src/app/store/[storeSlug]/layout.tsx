@@ -37,7 +37,7 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
 import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, tokenArabicFamilies, arabicBodyCss, themeButtonCss, storePrimaryContrast } from '@/themes/tokens';
+import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, tokenArabicFamilies, arabicBodyCss, themeButtonCss, storePrimaryContrast, motionAttrs } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
@@ -608,6 +608,7 @@ export default async function StoreLayout({
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}
           data-theme={activeTheme.key}
+          {...motionAttrs(store.theme_customizations)}
           className="store-root min-h-screen flex flex-col"
           style={{
             ...themeCssVars,

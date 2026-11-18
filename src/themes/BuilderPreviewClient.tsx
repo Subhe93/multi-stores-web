@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
-import { arabicBodyCss, mergeTokens, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
+import { arabicBodyCss, mergeTokens, motionAttrs, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
@@ -409,6 +409,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       data-theme={theme.key}
       dir={state.locale === 'ar' ? 'rtl' : 'ltr'}
       lang={state.locale}
+      {...motionAttrs(state.customizations)}
       className="store-root"
       style={cssVars as CSSProperties}
     >

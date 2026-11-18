@@ -6,12 +6,19 @@
 // Context only: server and client markup stay identical.
 
 import { MotionConfig } from 'framer-motion';
-import type { ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
+import { storeMotionOff } from './inView';
 
 export function withReducedMotion<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   function WithReducedMotion(props: P) {
+    // A store that switched motion off gets "always". Read after mount, so
+    // the server and the first client render both use "user".
+    const [mode, setMode] = useState<'user' | 'always'>('user');
+    useEffect(() => {
+      if (storeMotionOff()) setMode('always');
+    }, []);
     return (
-      <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion={mode}>
         <Component {...props} />
       </MotionConfig>
     );

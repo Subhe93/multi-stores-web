@@ -60,9 +60,25 @@ export function isInViewport(el: Element): boolean {
   return r.top < vh && r.bottom > 0;
 }
 
-/** Visitor asked for reduced motion (false on the server / without matchMedia). */
-export function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/**
+ * The store switched its motion off (theme_customizations.motion.reveal =
+ * 'off'): the store root carries data-motion-reveal="off". False on the
+ * server and for every store that never set it.
+ */
+export function storeMotionOff(): boolean {
+  return typeof document !== 'undefined'
+    ? document.querySelector('.store-root[data-motion-reveal="off"]') !== null
     : false;
+}
+
+/**
+ * No movement wanted: the visitor asked for reduced motion, or the store
+ * switched motion off (false on the server / without matchMedia).
+ */
+export function prefersReducedMotion(): boolean {
+  const visitor =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+  return visitor || storeMotionOff();
 }

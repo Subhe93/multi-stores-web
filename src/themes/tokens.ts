@@ -65,6 +65,27 @@ export function storePrimaryContrast(
   return readableTextOn(storePrimary);
 }
 
+export interface MotionAttrs {
+  'data-motion-reveal'?: 'calm' | 'off';
+  'data-motion-zoom'?: 'subtle' | 'off';
+}
+
+/**
+ * Store-wide motion profile as attributes for the .store-root element.
+ * Only the non-default values produce an attribute: an unset store, the
+ * value 'default' and anything unknown give an empty object, so the root
+ * element is rendered exactly as before.
+ */
+export function motionAttrs(c?: ThemeCustomizations | null): MotionAttrs {
+  const motion: unknown = c?.motion;
+  if (!motion || typeof motion !== 'object' || Array.isArray(motion)) return {};
+  const { reveal, zoom } = motion as { reveal?: unknown; zoom?: unknown };
+  const attrs: MotionAttrs = {};
+  if (reveal === 'calm' || reveal === 'off') attrs['data-motion-reveal'] = reveal;
+  if (zoom === 'subtle' || zoom === 'off') attrs['data-motion-zoom'] = zoom;
+  return attrs;
+}
+
 const FONT_SLOTS = ['heading', 'body'] as const;
 
 /**
