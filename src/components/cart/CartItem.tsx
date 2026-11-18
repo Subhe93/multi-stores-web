@@ -8,6 +8,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
+import { insufficientStockAvailable } from '@/lib/productQuantity';
 import { UnavailableInMarketNotice } from './UnavailableInMarket';
 // Direct module imports (not the barrel) keep the evaluator out of the cart chunk (M5 D24).
 import { hasPersonalizationGroups } from '@multi-stores/core/personalization/display';
@@ -89,14 +90,20 @@ interface CartItemProps {
   maxQuantity?: number | null;
   /** The product's per-order limit, for the "max per order" hint. */
   maxPerOrder?: number;
+  /** Set when stock is what bounds the line (`lineQuantityCap`): the hint
+   *  then reads "Only N left". */
+  stockLeft?: number | null;
 }
 
-export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQuantity = null, maxPerOrder }: CartItemProps) {
+export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQuantity = null, maxPerOrder, stockLeft = null }: CartItemProps) {
   const t = useTranslations();
   const [updating, setUpdating] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   // Set by the first quantity change while the store motion style runs: the new number then fades in.
   const [swap, setSwap] = useState(false);
+  // Units the API said are left when it refused a raise (stock moved since
+  // the cart was loaded).
+  const [refusedLeft, setRefusedLeft] = useState<number | null>(null);
   const display = useDisplayPrice();
   const currency = item.currency || 'EUR';
   // Company view (b2b app) shows the net line total; persons the gross.
@@ -120,8 +127,18 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
     if (qty < 1) return;
     if (flowMotionLive(rowRef.current)) setSwap(true);
     setUpdating(true);
-    try { await onUpdateQuantity(item.id, qty); } finally { setUpdating(false); }
+    setRefusedLeft(null);
+    try {
+      await onUpdateQuantity(item.id, qty);
+    } catch (err) {
+      const left = insufficientStockAvailable(err);
+      if (left === null) throw err;
+      setRefusedLeft(left);
+    } finally {
+      setUpdating(false);
+    }
   }
+  const onlyLeft = refusedLeft ?? (atLimit ? stockLeft : null);
 
   // With the store motion style the line closes first (0.25 s), then leaves.
   async function handleRemove() {
@@ -280,7 +297,9 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
           </button>
         </div>
         )}
-        {atLimit && typeof maxPerOrder === 'number' && (
+        {typeof onlyLeft === 'number' ? (
+          <p role="status" className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
+        ) : atLimit && typeof maxPerOrder === 'number' && (
           <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}
       </div>

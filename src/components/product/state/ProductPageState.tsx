@@ -16,7 +16,7 @@ import { uploadCustomerFile, UPLOAD_RATE_LIMITED } from '@/lib/customerUpload';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useApiError } from '@/lib/useApiError';
 import { computeBundlePricing } from '@/lib/bundle';
-import { clampQty, effectiveMax, readMaxPerOrder, readQtyParam, simpleProductStock } from '@/lib/productQuantity';
+import { clampQty, effectiveMax, productStockBound, readMaxPerOrder, readQtyParam, simpleProductStock } from '@/lib/productQuantity';
 import {
   buildGalleryMedia,
   toGalleryVideoItems,
@@ -435,6 +435,10 @@ function useProductPageStateValue({
   const [customFieldError, setCustomFieldError] = useState('');
 
   const needsShipping = productRequiresShipping(product);
+  // Stock of the row this add draws on (selected variant, or a tracked
+  // product without variants); null when untracked. It goes on the line so
+  // the cart never takes more than there is.
+  const lineStock = useMemo(() => productStockBound(product, selectedVariant), [product, selectedVariant]);
   // What both add paths (fields / design) know about the line (M5 D31).
   const lineSource = useMemo<LineSource>(
     () => ({
@@ -458,11 +462,13 @@ function useProductPageStateValue({
       customerFile: customerFileUrl ?? undefined,
       // Kept on guest lines so the cart steppers respect it (B2).
       ...(maxPerOrder !== null && product._type !== 'custom_product' ? { maxPerOrder } : {}),
+      // Kept on guest lines so the cart caps them at the stock (item 9).
+      ...(lineStock !== null ? { stockOnHand: lineStock } : {}),
       // Service / digital product: the guest line needs no shipping. A later
       // per-variant override reads the selected variant here.
       ...(needsShipping ? {} : { requiresShipping: false as const }),
     }),
-    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder, needsShipping],
+    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder, needsShipping, lineStock],
   );
 
   const handleAddToCart = useCallback(async () => {

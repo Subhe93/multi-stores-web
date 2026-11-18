@@ -10,6 +10,7 @@ import {
 import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
 import { marketPublicHostname } from '@/lib/storeUrl';
 import { creativeDemoEnabled, isCreativeDemoPath } from '@/themes/creative/demo/demoGate';
+import { storeFaviconRewritePath } from '@/lib/storeFavicon';
 import { isPlatformHost, platformHosts, platformSubdomainOf, primaryPlatformDomain } from '@/lib/platformHosts';
 import {
   isApiUnavailableStatus,
@@ -448,6 +449,22 @@ export async function proxy(request: NextRequest) {
   const route = lookup;
   const storeSlug = route?.slug ?? null;
 
+  // `/favicon.ico` on a store host: the store route answers with the store's
+  // own favicon (or the platform file when it has none). A platform host
+  // falls through to the static bypass below and serves `public/favicon.ico`.
+  const faviconPath = storeFaviconRewritePath(pathname, storeSlug);
+  if (faviconPath && storeSlug) {
+    const newUrl = request.nextUrl.clone();
+    newUrl.pathname = faviconPath;
+    const requestHeaders = stripMarketHeaders(new Headers(request.headers));
+    requestHeaders.set('x-store-slug', storeSlug);
+    if (route?.market) {
+      requestHeaders.set('x-market', route.market.key);
+      if (route.preview) requestHeaders.set('x-market-preview', '1');
+    }
+    return NextResponse.rewrite(newUrl, { request: { headers: requestHeaders } });
+  }
+
   // Store redirects (M4.4 §6.4): only when the host lookup reported a
   // `redirects_version`, so stores without redirects make no extra fetch.
   // Matching ignores the query; the Location keeps it. Fails open.
@@ -710,5 +727,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // `/favicon.ico` is NOT excluded: a store host answers it with the store's
+  // own icon (see `storeFaviconRewritePath`).
+  matcher: ['/((?!_next/static|_next/image).*)'],
 };

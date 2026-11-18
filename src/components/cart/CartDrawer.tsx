@@ -7,10 +7,11 @@ import { useLocale, useTranslations } from 'next-intl';
 import { X, ShoppingCart } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
-import { lineMaxQty } from '@/lib/productQuantity';
+import { lineQuantityCap } from '@/lib/productQuantity';
 import { CartSummary } from './CartSummary';
 import { availableLines } from '@/lib/cartAvailability';
 import { cartRequiresShipping } from '@/lib/requiresShipping';
@@ -156,7 +157,7 @@ export function CartDrawer({ isOpen, onClose, motion }: CartDrawerProps) {
                   <span className="flex-1">
                     {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
                     {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
-                    {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
+                    {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
                   </span>
                   <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="p-0.5 hover:opacity-70">
                     <X className="w-3.5 h-3.5" />
@@ -165,7 +166,10 @@ export function CartDrawer({ isOpen, onClose, motion }: CartDrawerProps) {
               )}
               {/* Items list */}
               <div className="flex-1 overflow-y-auto px-6" {...(motion ? { 'data-cx-rows': '' } : null)}>
-                {items.map((item) => (
+                {items.map((item) => {
+                  // Per-order limit and stock, whichever is lower.
+                  const cap = lineQuantityCap(item, items);
+                  return (
                   <CartItem
                     key={item.id}
                     item={{
@@ -187,10 +191,12 @@ export function CartDrawer({ isOpen, onClose, motion }: CartDrawerProps) {
                     onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     onRemove={(id) => removeItem(id)}
                     locale={locale}
-                    maxQuantity={lineMaxQty(item, items)}
+                    maxQuantity={cap.max}
                     maxPerOrder={item.maxPerOrder}
+                    stockLeft={cap.stock}
                   />
-                ))}
+                  );
+                })}
               </div>
 
               {/* Footer with summary */}

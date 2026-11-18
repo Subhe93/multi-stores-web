@@ -14,20 +14,11 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { api } from '@/lib/api';
 import { readStripeReturn, type StripeReturnState } from '@/lib/stripeElements';
 import { CheckCircle2, Clock, UserRound, XCircle } from 'lucide-react';
-import { guestAccountNoteKey } from '@/lib/checkoutAccount';
+import { orderReadPath, paymentPaths, readGuestAccountExists, readGuestOrderToken } from '@/lib/guestOrder';
 import { OrderReceipt, type OrderReceiptOrder } from '@/components/checkout/OrderReceipt';
 import { purchaseFromOrder, trackPurchase } from '@/lib/trackEvents';
 
 const noopSubscribe = () => () => {};
-
-function readGuestAccountEmail(orderId: string | null): string | null {
-  if (!orderId) return null;
-  try {
-    return sessionStorage.getItem(guestAccountNoteKey(orderId));
-  } catch {
-    return null; // storage unavailable: no note
-  }
-}
 
 export default function OrderConfirmationPage() {
   const motion = useFlowMotion();
@@ -50,17 +41,27 @@ export default function OrderConfirmationPage() {
   // A Stripe return without a session (Swish / BankID finished in another
   // browser or app): the URL's redirect_status cannot be verified here, so
   // a neutral "we're confirming" state is shown instead of trusting it.
-  const unverifiedReturn = (urlPaymentState !== null && !authLoading && !token) || serverUnverified;
+  // Guest order (placed without a session): its order-bound guest token, kept
+  // by the checkout for this browser (a redirect payment may return in
+  // another tab). Read on the client only. With it the order
+  // and its payment are read through the guest routes, session or not.
+  const guestToken = useSyncExternalStore(
+    noopSubscribe,
+    () => readGuestOrderToken(orderId),
+    () => null,
+  );
+  const unverifiedReturn = (urlPaymentState !== null && !authLoading && !token && !guestToken) || serverUnverified;
   const paymentState = unverifiedReturn ? null : (serverPaymentState ?? urlPaymentState);
   const cartClearedRef = useRef(false);
-  // Store without customer accounts: no password email is sent, so the note
-  // that announces it is not shown either.
+  // Store without customer accounts: there is no account to point to, so the
+  // note below is not shown.
   const noAccounts = useCheckoutSettings().no_customer_accounts === true;
-  // Email of the guest account created for this order (set by checkout).
+  // The buyer asked for an account but the email already has one they could
+  // not sign in to: the order went through as a guest order (set by checkout).
   // Read on the client only; the server snapshot renders no note.
-  const guestEmail = useSyncExternalStore(
+  const accountExistsEmail = useSyncExternalStore(
     noopSubscribe,
-    () => readGuestAccountEmail(orderId),
+    () => readGuestAccountExists(orderId),
     () => null,
   );
 
@@ -70,7 +71,11 @@ export default function OrderConfirmationPage() {
   // Then fetch the full order so the receipt can render line items inline —
   // before this users had to click "View order" to see what they bought.
   useEffect(() => {
-    if (!orderId || !token) return;
+    // The guest token opens only this order; a session reads its own orders.
+    const guest = Boolean(guestToken);
+    const authToken = guestToken || token;
+    if (!orderId || !authToken) return;
+    const pay = paymentPaths(guest);
     let cancelled = false;
     (async () => {
       try {
@@ -79,9 +84,9 @@ export default function OrderConfirmationPage() {
           editHintToken: readEditHintToken(),
           sessionToken: readStoredAccessToken(),
         }));
-        const reconciled = await api<{ payment_status?: string; code?: string }>('/payments/confirm', {
+        const reconciled = await api<{ payment_status?: string; code?: string }>(pay.confirm, {
           method: 'POST',
-          token,
+          token: authToken,
           headers: viewerHeaders,
           body: JSON.stringify({ order_id: orderId }),
         }).catch(() => null /* webhook will reconcile as a fallback */);
@@ -93,7 +98,7 @@ export default function OrderConfirmationPage() {
           if (ps === 'paid') setServerPaymentState('succeeded');
           else if (ps === 'failed') setServerPaymentState('failed');
         }
-        const data = await api<OrderReceiptOrder>(`/orders/${orderId}`, { token });
+        const data = await api<OrderReceiptOrder>(orderReadPath(orderId, guest), { token: authToken });
         if (!cancelled) setOrder(data);
       } catch {
         /* swallow — the page still shows the success message + buttons */
@@ -101,7 +106,7 @@ export default function OrderConfirmationPage() {
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `urlPaymentState` is derived from the URL, read once per order
-  }, [orderId, token]);
+  }, [orderId, token, guestToken]);
 
   // A redirect payment returns here with the cart still filled (checkout
   // only clears it for inline payments). Placed orders empty it once; a
@@ -202,14 +207,16 @@ export default function OrderConfirmationPage() {
           )}
         </div>
 
-        {/* Guest checkout: the server created the account and emailed the
-            password with a one-click login link. */}
-        {guestEmail && !noAccounts && (
+        {/* Guest order of an email that already has an account: nobody was
+            signed in; the buyer can choose a password to reach the account. */}
+        {accountExistsEmail && !noAccounts && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-gray-700">
             <UserRound className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
             <div>
-              <p>{t('checkout.accountCreatedNote', { email: guestEmail })}</p>
-              <p className="mt-1">{t('checkout.accountEmailedNote')}</p>
+              <p>{t('checkout.accountExistsNote', { email: accountExistsEmail })}</p>
+              <Link href={lp('/auth/forgot-password')} className="mt-1 inline-block font-medium underline underline-offset-2 hover:opacity-80">
+                {t('auth.emailExistsChoosePasswordLink')}
+              </Link>
             </div>
           </div>
         )}
@@ -221,6 +228,7 @@ export default function OrderConfirmationPage() {
           order={order}
           orderId={orderId}
           motion={motion}
+          showOrderLink={!guestToken}
           externalReturn={orderSettled ? { orderNumber: order.order_number, orderId: order.id } : null}
         />
       </div>

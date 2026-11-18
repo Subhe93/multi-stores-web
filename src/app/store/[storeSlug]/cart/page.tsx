@@ -28,8 +28,9 @@ import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import { couponDiscount } from '@/lib/couponDiscount';
-import { lineMaxQty } from '@/lib/productQuantity';
+import { insufficientStockAvailable, lineQuantityCap } from '@/lib/productQuantity';
 import { useCartQuote } from '@/hooks/useCartQuote';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { quoteTotalBeforeTax } from '@/lib/cartQuote';
 import { cartRequiresShipping } from '@/lib/requiresShipping';
 import { availableLines } from '@/lib/cartAvailability';
@@ -140,9 +141,12 @@ interface CartItemRowProps {
   maxQuantity?: number | null;
   /** The product's per-order limit, for the "max per order" hint. */
   maxPerOrder?: number;
+  /** Set when stock is what bounds the line (`lineQuantityCap`): the hint
+   *  then reads "Only N left". */
+  stockLeft?: number | null;
 }
 
-function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuantity = null, maxPerOrder }: CartItemRowProps) {
+function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuantity = null, maxPerOrder, stockLeft = null }: CartItemRowProps) {
   const t = useTranslations();
   const locale = useLocale();
   const { currency } = useCart();
@@ -152,6 +156,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
   const rowRef = useRef<HTMLDivElement>(null);
   // Set by the first quantity change while motion runs: the new number then fades in.
   const [swap, setSwap] = useState(false);
+  // Units the API said are left when it refused a raise.
+  const [refusedLeft, setRefusedLeft] = useState<number | null>(null);
   const title = item.title || item.name || t('cart.productFallback');
   // Designer lines: the proof replaces the product image once it exists.
   const designInfo = useCartDesign(item.design, item.id.startsWith('local_'));
@@ -175,8 +181,19 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
     if (qty < 1) return;
     if (flowMotionLive(rowRef.current)) setSwap(true);
     setUpdating(true);
-    try { await onUpdateQuantity(item.id, qty); } finally { setUpdating(false); }
+    setRefusedLeft(null);
+    try {
+      await onUpdateQuantity(item.id, qty);
+    } catch (err) {
+      // Stock moved since the cart was loaded: say how many are left.
+      const left = insufficientStockAvailable(err);
+      if (left === null) throw err;
+      setRefusedLeft(left);
+    } finally {
+      setUpdating(false);
+    }
   }
+  const onlyLeft = refusedLeft ?? (atLimit ? stockLeft : null);
 
   // With the store motion style the line closes first (0.25 s), then leaves.
   async function remove() {
@@ -321,7 +338,9 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
             {t('cart.remove')}
           </button>
         </div>
-        {!unavailable && atLimit && typeof maxPerOrder === 'number' && (
+        {!unavailable && typeof onlyLeft === 'number' ? (
+          <p role="status" className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
+        ) : !unavailable && atLimit && typeof maxPerOrder === 'number' && (
           <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}
       </div>
@@ -448,7 +467,7 @@ export default function StoreCartPage() {
             <span className="flex-1">
               {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
               {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
-              {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
+              {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
             </span>
             <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="text-xs underline hover:opacity-70">
               {t('market.suggest.dismiss')}
@@ -468,8 +487,9 @@ export default function StoreCartPage() {
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeItem}
                   onClearBundle={clearBundle}
-                  maxQuantity={lineMaxQty(item, items)}
+                  maxQuantity={lineQuantityCap(item, items).max}
                   maxPerOrder={item.maxPerOrder}
+                  stockLeft={lineQuantityCap(item, items).stock}
                 />
               ))}
             </div>

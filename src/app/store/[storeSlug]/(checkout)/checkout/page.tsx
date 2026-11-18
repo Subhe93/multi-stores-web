@@ -9,8 +9,13 @@ import type { Stripe, StripeElements, StripeElementsOptions, StripeError } from 
 import { Lock, Loader2, ShoppingBag, ChevronDown, ChevronUp, ChevronRight, Plus, Check, AlertTriangle } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth, isNotCustomerAccountError, isStoreMismatchError, readStoredAccessToken } from '@/hooks/useAuth';
-import { createCheckoutAccount, guestAccountNoteKey } from '@/lib/checkoutAccount';
+import { createCheckoutAccount } from '@/lib/checkoutAccount';
+import {
+  buildGuestOrderBody, canReusePending, checkoutIdentity, paymentPaths, readGuestOrderResponse,
+  registerFailureOutcome, rememberGuestAccountExists, rememberGuestOrderToken,
+} from '@/lib/guestOrder';
 import { useCart } from '@/hooks/useCart';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
 import { marketBody, marketQuery } from '@/lib/market';
@@ -50,7 +55,7 @@ import { isLineErrorCode } from '@/lib/checkoutLineErrors';
 import { validateEmail, validatePhone } from '@/lib/validators';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
-import { guestEmailExistsNeedsPasswordSetup, resolvePayButtonLabel } from '@/lib/checkoutSettings';
+import { resolvePayButtonLabel } from '@/lib/checkoutSettings';
 import { useContinueShoppingLink } from '@/hooks/useFocusedStorefront';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import {
@@ -78,6 +83,7 @@ import {
 } from '@/lib/checkoutCountries';
 import { useDefaultQuoteCountry } from '@/hooks/useCartQuote';
 import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
+import { storeOffersCod } from '@/lib/codPolicy';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
@@ -97,7 +103,10 @@ interface PaymentConfig {
 // without changing anything (no second order for the same cart).
 interface PendingStripeOrder {
   signature: string;
+  /** Session token of a signed-in order; the order's guest token otherwise. */
   token: string;
+  /** Placed through `POST /orders/guest` (no session): paid with the guest routes. */
+  guest?: boolean;
   orderId: string;
   /** Null until create-intent succeeded for this order. */
   clientSecret: string | null;
@@ -285,14 +294,6 @@ const COUNTRIES = [
 // custom domains: "shop.merchant.com" yielded "shop", getStore 404'd, and on
 // an independent store the connected Stripe account was never resolved.
 
-// Flag the order for the confirmation page's "we emailed your login" note.
-// Best-effort: storage may be unavailable (private mode).
-function rememberGuestAccount(orderId: string, email: string) {
-  try {
-    sessionStorage.setItem(guestAccountNoteKey(orderId), email);
-  } catch { /* the note is optional */ }
-}
-
 // Build the payment-config endpoint, scoped to the current store when known so
 // the API can return the store's connected-account details (independent stores)
 // and, for market stores, to the request market (`?market=`, `&preview=1` on a
@@ -316,7 +317,7 @@ function paymentConfigFetchOptions(storeSlug: string): { token?: string; cache: 
 
 // The same viewer token as a header on create-intent / confirm, so the API
 // picks owner test mode exactly as it did for /payments/config. Read at call
-// time (a guest account created mid-submit is the session from then on).
+// time (an account created mid-submit is the session from then on).
 function paymentViewerHeaders(storeSlug: string): Record<string, string> {
   return storefrontViewerHeaders(checkoutViewerToken(storeSlug, {
     editHintToken: readEditHintToken(),
@@ -539,9 +540,13 @@ function CheckoutForm({
   const [error, setError] = useState('');
   // The error concerns a cart line (personalization): the box links to the cart.
   const [errorCartLink, setErrorCartLink] = useState(false);
-  // Store without customer accounts: the email already has an account the
-  // buyer never got a password for, so the box links to "choose a password".
+  // The email already has an account the buyer could not sign in to: the box
+  // links to "choose a password" (every store).
   const [errorPasswordLink, setErrorPasswordLink] = useState(false);
+  // Email whose "create an account" attempt found an existing account while
+  // the captcha token was spent: the next submit goes through as a guest
+  // order without trying to register again.
+  const guestFallbackEmailRef = useRef<string | null>(null);
   // `loading` only disables the button on the next render, so a fast double
   // click (or Enter + click) can enter handleSubmit twice and place two orders
   // — two charges on the same card. This ref rejects re-entry synchronously.
@@ -1125,8 +1130,12 @@ function CheckoutForm({
     setLoading(true);
 
     let activeToken = token;
-    // Set when this submit created a guest account (server-made password).
-    let createdGuestAccount = false;
+    // This submit goes through `POST /orders/guest` (no session, no account).
+    let placeGuestOrder = false;
+    // The typed email already has an account the shopper could not sign in to.
+    let accountExists = false;
+    // Set once a guest order call was made: its line errors carry `line_index`.
+    let guestAttempt = false;
     const fullName = `${form.first_name} ${form.last_name}`.trim();
     // Billing details for the Payment Element: the selected saved address,
     // else what was typed. The billing address is the order address.
@@ -1155,6 +1164,8 @@ function CheckoutForm({
       form, saved: usingSavedAddress ? selectedAddressId : null, lines: quoteLinesKey,
       shipping: shippingMethodBody, coupon: coupon?.code ?? null, notes: orderNotes,
       b2b: b2bBody(), market: market?.key ?? null, total: displayTotal, currency: paymentCurrency,
+      // Not signed in: asking for an account is a different attempt.
+      account: token ? null : wantAccount && accountPassword.length >= 8,
     });
     // Handles captured for this attempt (a remount mid-submit must not mix
     // two Stripe.js instances).
@@ -1165,9 +1176,10 @@ function CheckoutForm({
       setErrorFocusTick((n) => n + 1);
     };
     const pendingCandidate = pendingStripeRef.current;
+    // A session order is reused by the same session, a guest order while
+    // nobody is signed in (`canReusePending`).
     const reusable =
-      paymentMethod === 'stripe' && token && pendingCandidate &&
-      pendingCandidate.signature === stripeSignature && pendingCandidate.token === token
+      paymentMethod === 'stripe' && pendingCandidate && canReusePending(pendingCandidate, stripeSignature, token)
         ? pendingCandidate
         : null;
 
@@ -1187,86 +1199,155 @@ function CheckoutForm({
         }
       }
 
-      // Guest: auto-register then sync cart
-      if (!activeToken) {
-        // No password is made in the browser: without a chosen password the
-        // server generates one and emails it with a one-click login link.
-        try {
-          const created = await createCheckoutAccount(
-            {
-              wantAccount, password: accountPassword,
-              email: form.email, first_name: form.first_name, last_name: form.last_name,
-              phone: form.phone || undefined,
-              storeSlug, hostname: window.location.hostname, locale,
-              turnstileToken: captchaToken,
-            },
-            { register, registerGuest },
-          );
-          activeToken = created.token;
-          createdGuestAccount = created.guest;
-        } catch (regErr: unknown) {
-          // The captcha token was spent by this attempt.
-          if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
-          // Accounts are per store: "email exists" means it exists in this
-          // store, so the shopper is asked to log in here.
-          const regCode = (regErr as { code?: string } | null)?.code;
-          // Store without customer accounts: no password was ever emailed, so
-          // the buyer is sent to "choose a password" instead of "log in".
-          const needsPassword = guestEmailExistsNeedsPasswordSetup(regCode, checkoutSettings);
-          const regMessage = needsPassword
-            ? t('auth.emailExistsChoosePassword')
-            : regCode === 'AUTH_EMAIL_EXISTS'
-              ? t('auth.emailExistsInStore')
-              : apiError(regErr);
-          if (wantAccount && accountPassword) {
+      // Not signed in. An account is created only when the shopper asked
+      // for one ("create an account" + a password); everybody else places a
+      // guest order: `POST /orders/guest` finds or creates the customer
+      // record itself, signs nobody in and mails no credentials.
+      if (reusable?.guest) {
+        // Retrying the same unpaid guest order: nothing to create.
+      } else if (!activeToken) {
+        const typedEmail = form.email.trim().toLowerCase();
+        let identity = checkoutIdentity({ loggedIn: false, wantAccount, password: accountPassword });
+        if (identity === 'register' && guestFallbackEmailRef.current === typedEmail) {
+          // The previous submit found an account for this email (see below).
+          identity = 'guest';
+          accountExists = true;
+        }
+        if (identity === 'register') {
+          try {
+            const created = await createCheckoutAccount(
+              {
+                wantAccount, password: accountPassword,
+                email: form.email, first_name: form.first_name, last_name: form.last_name,
+                phone: form.phone || undefined,
+                storeSlug, hostname: window.location.hostname, locale,
+                turnstileToken: captchaToken,
+              },
+              { register, registerGuest },
+            );
+            activeToken = created.token;
+          } catch (regErr: unknown) {
+            // The captcha token was spent by this attempt.
+            if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
+            const regCode = (regErr as { code?: string } | null)?.code;
             try {
               // Same store context as the register call (useAuth adds it).
               await login(form.email, accountPassword);
               activeToken = readStoredAccessToken();
             } catch {
-              setError(regMessage);
-              setErrorPasswordLink(needsPassword);
-              setLoading(false);
-              return;
+              // Accounts are per store: "email exists" means it exists in
+              // this store. The typed password is not its password, so the
+              // order continues as a guest order: a returning buyer is never
+              // blocked, and nobody is signed in to the existing account.
+              const outcome = registerFailureOutcome(regCode, CUSTOMER_CAPTCHA_ON);
+              if (outcome === 'error') {
+                setError(apiError(regErr));
+                return;
+              }
+              if (outcome === 'guest_after_captcha') {
+                // The guest order needs a fresh captcha token: ask for one
+                // more submit, which then skips the register call.
+                guestFallbackEmailRef.current = typedEmail;
+                setError(t('checkout.accountExistsRetryAsGuest'));
+                setErrorPasswordLink(true);
+                return;
+              }
+              identity = 'guest';
+              accountExists = true;
             }
-          } else {
-            setError(regMessage);
-            setErrorPasswordLink(needsPassword);
-            setLoading(false);
+          }
+        }
+        if (identity === 'guest') {
+          placeGuestOrder = true;
+        } else {
+          if (!activeToken) {
+            setError(t('checkout.authFailed'));
+            return;
+          }
+          // Lines the server refuses (personalization or stock) stay in the
+          // guest cart: stop before any payment and send the buyer to the cart.
+          const dropped = await syncGuestCartToServer(activeToken);
+          if (dropped.length > 0) {
+            const first = dropped[0]!;
+            const reason = codedError(first.error);
+            setError([
+              t(migrationDropMessageKey(first.error), { count: dropped.length }),
+              reason ? withProduct(first.item.title, reason) : '',
+            ].filter(Boolean).join(' '));
+            setErrorCartLink(true);
             return;
           }
         }
+      }
 
+      // A guest order carries its lines and address in one call: no cart
+      // sync, no address row, no profile update, no session.
+      const isGuestOrder = placeGuestOrder || Boolean(reusable?.guest);
+      let sessionToken = '';
+      if (!isGuestOrder) {
         if (!activeToken) {
           setError(t('checkout.authFailed'));
-          setLoading(false);
           return;
         }
-        // Lines the server rejects for their personalization stay in the
-        // guest cart: stop before any payment and send the buyer to the cart.
-        const dropped = await syncGuestCartToServer(activeToken);
-        if (dropped.length > 0) {
-          const first = dropped[0]!;
-          const reason = codedError(first.error);
-          setError([
-            t('cart.linesNotMoved', { count: dropped.length }),
-            reason ? withProduct(first.item.title, reason) : '',
-          ].filter(Boolean).join(' '));
-          setErrorCartLink(true);
-          return;
-        }
+        sessionToken = activeToken;
       }
+      const pay = paymentPaths(isGuestOrder);
+      // Fields every order call shares (session and guest).
+      const orderFields = {
+        ...orderMarketBody(),
+        ...b2bBody(),
+        ...shippingMethodBody,
+        ...(coupon?.code ? { coupon_code: coupon.code } : {}),
+        ...(orderNotes ? { notes: orderNotes } : {}),
+        ...trackingBody(),
+      };
+      const placeGuest = async (method: 'STRIPE' | 'COD') => {
+        guestAttempt = true;
+        const company = isCompany ? companyPayload() : null;
+        let raw: unknown;
+        try {
+          raw = await api<unknown>('/orders/guest', {
+            method: 'POST', headers: paymentViewerHeaders(storeSlug),
+            body: JSON.stringify(buildGuestOrderBody({
+              form,
+              storeId: storeId!,
+              storeSlug,
+              hostname: window.location.hostname,
+              locale,
+              paymentMethod: method,
+              lines: JSON.parse(quoteLinesKey) as unknown[],
+              turnstileToken: captchaToken,
+              addressCompany: company
+                ? { company_name: company.company_name, org_number: company.org_number, buyer_reference: company.buyer_reference }
+                : null,
+              orderFields,
+            })),
+          });
+        } finally {
+          // The captcha token was spent by this call, whatever it answered.
+          if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
+        }
+        const placed = readGuestOrderResponse(raw);
+        if (!placed) throw new Error(t('common.error'));
+        // The guest token only opens this order: kept for the confirmation
+        // page, never stored as the session.
+        rememberGuestOrderToken(placed.orderId, placed.guestToken);
+        if (accountExists) rememberGuestAccountExists(placed.orderId, form.email.trim());
+        guestFallbackEmailRef.current = null;
+        return placed;
+      };
 
       // 1. Resolve shipping address
       let addressId = '';
-      if (reusable) {
-        // Retrying the same unpaid order: its address already exists.
+      if (reusable || isGuestOrder) {
+        // Retrying the same unpaid order: its address already exists. A guest
+        // order sends the typed address with the order itself.
       } else if (usingSavedAddress) {
         addressId = selectedAddressId!;
       } else {
         const company = isCompany ? companyPayload() : null;
         const address = await api<AddressResponse>('/customers/me/addresses', {
-          method: 'POST', token: activeToken,
+          method: 'POST', token: sessionToken,
           body: JSON.stringify({
             full_name: fullName, line1: form.line1,
             line2: form.line2 || undefined, city: form.city,
@@ -1283,11 +1364,11 @@ function CheckoutForm({
 
       // 1b. b2b app: remember the company defaults on the customer (prefill
       // for the next checkout). Best-effort — the order carries the snapshot.
-      if (isCompany && !reusable) {
+      if (isCompany && !reusable && !isGuestOrder) {
         try {
           const company = companyPayload();
           await api('/customers/me', {
-            method: 'PUT', token: activeToken,
+            method: 'PUT', token: sessionToken,
             body: JSON.stringify({
               customer_type: 'COMPANY',
               company_name: company.company_name,
@@ -1306,29 +1387,28 @@ function CheckoutForm({
         // derives the charge amount + the Stripe account, then pay for it.
         let pending = reusable;
         if (!pending) {
-          const order = await api<OrderResponse>('/orders', {
-            method: 'POST', token: activeToken, headers: paymentViewerHeaders(storeSlug),
-            body: JSON.stringify({
-              address_id: addressId,
-              store_id: storeId,
-              payment_method: 'STRIPE',
-              ...orderMarketBody(),
-              ...b2bBody(),
-              ...shippingMethodBody,
-              ...(coupon?.code ? { coupon_code: coupon.code } : {}),
-              ...(orderNotes ? { notes: orderNotes } : {}),
-              ...trackingBody(),
-            }),
-          });
-          pending = { signature: stripeSignature, token: activeToken, orderId: order.id, clientSecret: null };
+          if (placeGuestOrder) {
+            const placed = await placeGuest('STRIPE');
+            pending = { signature: stripeSignature, token: placed.guestToken, guest: true, orderId: placed.orderId, clientSecret: null };
+          } else {
+            const order = await api<OrderResponse>('/orders', {
+              method: 'POST', token: sessionToken, headers: paymentViewerHeaders(storeSlug),
+              body: JSON.stringify({
+                address_id: addressId,
+                store_id: storeId,
+                payment_method: 'STRIPE',
+                ...orderFields,
+              }),
+            });
+            pending = { signature: stripeSignature, token: sessionToken, orderId: order.id, clientSecret: null };
+          }
           pendingStripeRef.current = pending;
         }
         const orderId = pending.orderId;
-        // Set before confirming: a redirect method leaves this page.
-        if (createdGuestAccount) rememberGuestAccount(orderId, form.email);
         const confirmationPath = (extra: string) =>
           lp(`/checkout/confirmation?orderId=${encodeURIComponent(orderId)}${extra}`);
-        const tokenForOrder = activeToken;
+        // The session token, or the order's guest token (guest routes).
+        const tokenForOrder = pending.token;
         // The order is placed (paid, or a payment that settles later).
         const finishPlaced = async (state: 'paid' | 'processing') => {
           pendingStripeRef.current = null;
@@ -1336,7 +1416,7 @@ function CheckoutForm({
             // Finalize the order server-side immediately (don't depend on
             // the webhook arriving). The webhook remains as a backup.
             try {
-              await api('/payments/confirm', {
+              await api(pay.confirm, {
                 method: 'POST', token: tokenForOrder, headers: paymentViewerHeaders(storeSlug),
                 body: JSON.stringify({ order_id: orderId }),
               });
@@ -1354,9 +1434,9 @@ function CheckoutForm({
         let clientSecret = pending.clientSecret;
         if (!clientSecret) {
           const intent = await api<CreateIntentResponse>(
-            '/payments/create-intent',
+            pay.createIntent,
             {
-              method: 'POST', token: activeToken, headers: paymentViewerHeaders(storeSlug),
+              method: 'POST', token: tokenForOrder, headers: paymentViewerHeaders(storeSlug),
               body: JSON.stringify({ order_id: orderId }),
             },
           );
@@ -1421,7 +1501,7 @@ function CheckoutForm({
             .catch(() => null);
           const reconciled = retrieved
             ? null
-            : await api<ReconcileResponse>('/payments/confirm', {
+            : await api<ReconcileResponse>(pay.confirm, {
                 method: 'POST', token: tokenForOrder, headers: paymentViewerHeaders(storeSlug),
                 body: JSON.stringify({ order_id: orderId }),
               }).catch(() => null);
@@ -1449,23 +1529,23 @@ function CheckoutForm({
         if (placed === 'failed') pendingStripeRef.current = null;
         failPayment(t('checkout.paymentFailed'));
       } else {
-        const order = await api<OrderResponse>('/orders', {
-          method: 'POST', token: activeToken, headers: paymentViewerHeaders(storeSlug),
-          body: JSON.stringify({
-            address_id: addressId,
-            store_id: storeId,
-            payment_method: 'COD',
-            ...orderMarketBody(),
-            ...b2bBody(),
-            ...shippingMethodBody,
-            ...(coupon?.code ? { coupon_code: coupon.code } : {}),
-            ...(orderNotes ? { notes: orderNotes } : {}),
-            ...trackingBody(),
-          }),
-        });
+        let placedOrderId: string;
+        if (placeGuestOrder) {
+          placedOrderId = (await placeGuest('COD')).orderId;
+        } else {
+          const order = await api<OrderResponse>('/orders', {
+            method: 'POST', token: sessionToken, headers: paymentViewerHeaders(storeSlug),
+            body: JSON.stringify({
+              address_id: addressId,
+              store_id: storeId,
+              payment_method: 'COD',
+              ...orderFields,
+            }),
+          });
+          placedOrderId = order.id;
+        }
         await clearCart();
-        if (createdGuestAccount) rememberGuestAccount(order.id, form.email);
-        navigateRespectingClarity(lp(`/checkout/confirmation?orderId=${order.id}`), (href) => router.push(href));
+        navigateRespectingClarity(lp(`/checkout/confirmation?orderId=${placedOrderId}`), (href) => router.push(href));
       }
     } catch (err: unknown) {
       const code = (err as { code?: string } | null)?.code;
@@ -1511,8 +1591,9 @@ function CheckoutForm({
         // A cart line's personalization fails the field rules (M4.0 K2, or
         // the personalization app's evaluator) or its uploaded file expired:
         // the message names the product line (the order is created from the
-        // server cart) and links back to the cart.
-        setError(lineErrorMessage(err as ApiError, false));
+        // server cart, or from the local lines of a guest order) and links
+        // back to the cart.
+        setError(lineErrorMessage(err as ApiError, guestAttempt));
         setErrorCartLink(true);
       } else if (code && code.startsWith('B2B_') && t.has(`errors.${code}`)) {
         // b2b app: the API rejected the company data (format / app off).
@@ -2300,6 +2381,7 @@ function CheckoutRouter() {
             id: string;
             card_payments_enabled?: boolean;
             cod_enabled?: boolean;
+            store_type?: string;
             kustom_enabled?: boolean;
             preview?: boolean;
           };
@@ -2311,7 +2393,8 @@ function CheckoutRouter() {
           flags.card = store.card_payments_enabled !== false;
           // Cash on delivery is opt-in per store (off by default server-side):
           // strict check so COD stays hidden for stores that haven't enabled it.
-          flags.cod = store.cod_enabled === true;
+          // Never offered by a MARKETPLACE store (platform rule).
+          flags.cod = storeOffersCod(store);
           flags.kustom = store.kustom_enabled !== false;
         } catch { /* ignore */ }
       }

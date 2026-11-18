@@ -9,6 +9,8 @@ import {
   safeStorageWrite,
   guestLineToServerBody,
   isMigrationDropError,
+  isMigrationStockError,
+  migrationDropMessageKey,
   mergeHandoffLines,
   migrateGuestLines,
   newGuestLineId,
@@ -132,6 +134,26 @@ describe('guest → login migration', () => {
     expect(isMigrationDropError(coded(400, 'CART_ITEM_NOT_FOUND'))).toBe(false);
     expect(isMigrationDropError(coded(500, 'CUSTOM_FIELD_REQUIRED'))).toBe(false);
     expect(isMigrationDropError(new TypeError('Failed to fetch'))).toBe(false);
+  });
+
+  it('a stock refusal of the cart is a reported drop with its own message', async () => {
+    const stock = Object.assign(coded(400, 'CART_INSUFFICIENT_STOCK'), { available: 8 });
+    expect(isMigrationDropError(stock)).toBe(true);
+    expect(isMigrationStockError(stock)).toBe(true);
+    expect(isMigrationStockError(coded(500, 'CART_INSUFFICIENT_STOCK'))).toBe(false);
+    expect(isMigrationStockError(coded(400, 'CUSTOM_FIELD_REQUIRED'))).toBe(false);
+    expect(migrationDropMessageKey(stock)).toBe('cart.linesNotMovedStock');
+    expect(migrationDropMessageKey(coded(400, 'CUSTOM_FIELD_REQUIRED'))).toBe('cart.linesNotMoved');
+    expect(migrationDropMessageKey(null)).toBe('cart.linesNotMoved');
+    // A x1 moves, B x9 (8 left) is refused: reported, never silent.
+    const items = [line({ id: 'a', productId: 'pA' }), line({ id: 'b', productId: 'pB', quantity: 9 })];
+    const result = await migrateGuestLines(items, async (body) => {
+      if (body.product_id === 'pB') throw stock;
+      return {};
+    });
+    expect(result.moved.map((i) => i.id)).toEqual(['a']);
+    expect(result.dropped).toEqual([{ item: items[1], error: stock }]);
+    expect(result.failed).toEqual([]);
   });
 
   it('posts every line with the pre-M4.0 body and sorts moved / dropped / failed', async () => {

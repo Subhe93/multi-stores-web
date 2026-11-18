@@ -148,3 +148,130 @@ export function assertGuestAdd(
   if (limit === null || isCustomProduct) return;
   if (productUnitsInCart(productId, lines) + adding > limit) throw maxPerOrderError(productId, limit);
 }
+
+// ── Stock bound of a cart line (fix batch item 9) ─────────────────────────────
+//
+// The cart may not hold more units of one stock row than the row has. The API
+// refuses it for signed-in carts (`CART_INSUFFICIENT_STOCK`, with the units
+// still `available`); guest carts are capped here from the product payload
+// captured when the line was added. A stock row is a variant with a stock
+// number, or a product without variants that tracks inventory (imported
+// products included: their payload carries the base product's stock).
+// Untracked rows have no bound and behave exactly as before.
+
+export const CART_INSUFFICIENT_STOCK = 'CART_INSUFFICIENT_STOCK';
+
+/** The storefront API serves the stock of an untracked variant as this number. */
+export const UNTRACKED_VARIANT_STOCK = 999;
+
+/** A stock number (0 or more), or null (absent / malformed = no bound). */
+export function readStockAvailable(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : null;
+}
+
+/**
+ * Stock of the row a product page would add: the selected variant's number
+ * (null for the untracked placeholder), else the product's own number when it
+ * has no variants and tracks inventory. Null = the line has no stock bound.
+ */
+export function productStockBound(
+  product: Omit<SimpleStockInput, '_type'>,
+  variant?: { stock?: number | null } | null,
+): number | null {
+  if (variant) {
+    const stock = readStockAvailable(variant.stock);
+    return stock === null || stock === UNTRACKED_VARIANT_STOCK ? null : stock;
+  }
+  if ((product.variants?.length ?? 0) > 0) return null;
+  if (!product.track_inventory) return null;
+  return readStockAvailable(product.stock_quantity);
+}
+
+/** The cart line fields the stock bound reads. */
+export interface StockLine extends LimitLine {
+  variantId?: string;
+  /** Server lines (`GET /cart` `stock_available`): the highest quantity this
+   *  line may take, i.e. its row's stock minus the same row on the cart's
+   *  other lines, as computed by the API. Absent = untracked. */
+  stockAvailable?: number;
+  /** Guest lines: the stock of the line's row, read from the product payload
+   *  when the line was added. Absent = untracked. */
+  stockOnHand?: number;
+}
+
+/** Lines with the same key draw on the same stock row. */
+export function stockRowKey(line: Pick<StockLine, 'productId' | 'variantId' | 'customProductId'>): string {
+  if (line.variantId) return `v:${line.variantId}`;
+  return line.customProductId ? `c:${line.customProductId}` : `p:${line.productId}`;
+}
+
+/** Units of a stock row on the cart's lines, `exceptId` left out. */
+export function stockRowUnitsInCart(rowKey: string, lines: readonly StockLine[], exceptId?: string): number {
+  return lines
+    .filter((l) => l.id !== exceptId && stockRowKey(l) === rowKey)
+    .reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+}
+
+/**
+ * Highest quantity this line may take for its stock. A server line carries
+ * the answer (`stockAvailable`); a guest line carries its row's stock, from
+ * which the units of the same row on the other lines are taken off, never
+ * below 0. Null when the line has no known stock.
+ */
+export function lineStockMax(line: StockLine, lines: readonly StockLine[]): number | null {
+  const room = readStockAvailable(line.stockAvailable);
+  if (room !== null) return room;
+  const stock = readStockAvailable(line.stockOnHand);
+  if (stock === null) return null;
+  return Math.max(0, stock - stockRowUnitsInCart(stockRowKey(line), lines, line.id));
+}
+
+/**
+ * What the cart stepper of a line may reach: the smaller of its per-order
+ * share (`lineMaxQty`) and its stock (`lineStockMax`). `stock` is set only
+ * when stock is the binding bound (the hint then reads "Only N left").
+ */
+export function lineQuantityCap(line: StockLine, lines: readonly StockLine[]): { max: number | null; stock: number | null } {
+  const limit = lineMaxQty(line, lines);
+  const stock = lineStockMax(line, lines);
+  if (stock === null) return { max: limit, stock: null };
+  if (limit !== null && limit < stock) return { max: limit, stock: null };
+  return { max: stock, stock };
+}
+
+type InsufficientStockError = Error & { code: string; status: number; available: number; params: { available: number } };
+
+/** The API's `CART_INSUFFICIENT_STOCK` error, raised locally for guest carts. */
+export function insufficientStockError(available: number): InsufficientStockError {
+  const left = Math.max(0, Math.floor(available));
+  const err = new Error(`Only ${left} in stock.`) as InsufficientStockError;
+  err.code = CART_INSUFFICIENT_STOCK;
+  err.status = 400;
+  err.available = left;
+  err.params = { available: left };
+  return err;
+}
+
+/**
+ * Throws `CART_INSUFFICIENT_STOCK` when adding `adding` units would put more
+ * of a stock row in the guest cart than `stock` (the API checks signed-in
+ * carts). No known stock = never throws.
+ */
+export function assertGuestStock(
+  target: Pick<StockLine, 'productId' | 'variantId' | 'customProductId'>,
+  adding: number,
+  stock: number | null | undefined,
+  lines: readonly StockLine[],
+): void {
+  const bound = readStockAvailable(stock);
+  if (bound === null) return;
+  const inCart = stockRowUnitsInCart(stockRowKey(target), lines);
+  if (inCart + adding > bound) throw insufficientStockError(bound - inCart);
+}
+
+/** Units still available named by a `CART_INSUFFICIENT_STOCK` error, else null. */
+export function insufficientStockAvailable(err: unknown): number | null {
+  const e = err as { code?: unknown; available?: unknown; params?: { available?: unknown } } | null;
+  if (!e || e.code !== CART_INSUFFICIENT_STOCK) return null;
+  return readStockAvailable(e.available ?? e.params?.available);
+}

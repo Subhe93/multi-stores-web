@@ -30,6 +30,9 @@ export default function StoreRegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  // The email already has an account in this store, possibly one made by a
+  // guest order (no password was ever sent): offer "choose a password".
+  const [emailExists, setEmailExists] = useState(false);
   const [loading, setLoading] = useState(false);
   // Turnstile (only when switched on for storefront customers).
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -38,6 +41,7 @@ export default function StoreRegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setEmailExists(false);
 
     if (password !== confirmPassword) {
       setError(t('passwordsNoMatch'));
@@ -69,6 +73,7 @@ export default function StoreRegisterPage() {
     } catch (err: unknown) {
       const code = (err as { code?: string } | null)?.code;
       setError(code === 'AUTH_EMAIL_EXISTS' ? t('emailExistsInStore') : apiError(err));
+      setEmailExists(code === 'AUTH_EMAIL_EXISTS');
       // The token was spent by this attempt.
       if (CUSTOMER_CAPTCHA_ON) setCaptchaReset((n) => n + 1);
     } finally {
@@ -103,6 +108,11 @@ export default function StoreRegisterPage() {
       {error && (
         <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
+          {emailExists && (
+            <Link href={lp('/auth/forgot-password')} className="mt-1 block font-medium underline underline-offset-2 hover:opacity-80">
+              {t('emailExistsChoosePasswordLink')}
+            </Link>
+          )}
         </div>
       )}
 
