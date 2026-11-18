@@ -19,6 +19,7 @@ import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
+import { hover, surface } from '../../../creative/recipes';
 import { HeaderBarMobileMenu, type MobileMenuItem } from './HeaderBarMobileMenu.client';
 import { HeaderBarDesktopNav, type DesktopNavItem } from './HeaderBarDesktopNav.client';
 import { ActiveLink } from './ActiveLink.client';
@@ -98,7 +99,7 @@ const STICKY_CLASS: Record<StickyMode, string> = {
 //              full-width column panel, the rest keep a simple dropdown.
 type SubmenuStyle = 'dropdown' | 'mega';
 
-function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: SectionRenderProps) {
+function HeaderBar({ settings, content, locale, primaryLocale, storeContext, motion }: SectionRenderProps) {
   const ctx = storeContext;
   // Shared (non-async) component: next-intl's hook works both in the RSC
   // storefront and in the client-rendered builder preview.
@@ -181,6 +182,10 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const navItems: NavNode[] =
     menuTree.length > 0 ? menuTree : customItems.length > 0 ? customItems : fallbackItems;
 
+  // Motion style: plain nav links get the underline sweep (attributes only
+  // when the store switched it on). The pill look keeps its filled hover.
+  const navLink = motion && activeVariant !== 'pill' ? { ...hover(motion, 'underline'), 'data-cx-nav': '' } : null;
+
   const homeUrl = lp || '/';
   const cartUrl = `${lp}/cart`;
   const accountUrl = `${lp}/account`;
@@ -189,6 +194,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const header = (
     <header
       {...compactHeaderAttr}
+      {...surface(motion, 'header')}
       className={`${STICKY_CLASS[stickyMode]} backdrop-blur-sm`}
       style={{
         backgroundColor: bg,
@@ -206,6 +212,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               fg={fg}
               bg={bg}
               ariaLabel={t('nav.openMenu')}
+              motion={motion}
             />
           )}
 
@@ -261,6 +268,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               borderColor={borderColor}
               accent={accent}
               activeVariant={activeVariant}
+              motion={motion}
             />
           )}
           {navItems.length > 0 && submenuStyle === 'dropdown' && (
@@ -273,6 +281,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                       key={i}
                       href={item.url || '#'}
                       {...newTabProps(item.open_in_new_tab)}
+                      {...navLink}
                       className={`${navLook.itemClass} text-sm font-medium hover:bg-black/5 transition`}
                       activeStyle={navLook.activeStyle}
                       activeClassName={navLook.activeClassName}
@@ -297,7 +306,10 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                     </ActiveLink>
                     {/* Drops the focus that keeps this panel open after a click. */}
                     <BlurOnNavigate />
-                    <div className="absolute inset-s-0 top-full hidden pt-1 group-hover:block group-focus-within:block z-50 min-w-48">
+                    <div
+                      {...(motion ? { 'data-cx-menu': 'drop' } : null)}
+                      className="absolute inset-s-0 top-full hidden pt-1 group-hover:block group-focus-within:block z-50 min-w-48"
+                    >
                       <div
                         className="rounded-md border py-1 shadow-lg"
                         style={{ backgroundColor: bg, borderColor }}
@@ -369,6 +381,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                 bg={bg}
                 fg={fg}
                 borderColor={borderColor}
+                motion={motion}
               />
             )}
             {showCart && (
@@ -377,6 +390,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
                 href={cartUrl}
                 ariaLabel={t('common.cart')}
                 accent={accent}
+                motion={motion}
               />
             )}
           </div>

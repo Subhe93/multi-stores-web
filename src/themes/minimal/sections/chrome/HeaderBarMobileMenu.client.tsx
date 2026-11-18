@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { OPEN_MOBILE_MENU_EVENT } from './mobileMenuEvent';
+import { DRAWER_EXIT_MS, useExit, type ChromeMotion } from './chromeMotion.client';
 
 export interface MobileMenuItem {
   label: string;
@@ -36,11 +37,14 @@ export function HeaderBarMobileMenu({
   fg,
   bg,
   ariaLabel,
+  motion,
 }: {
   items: MobileMenuItem[];
   fg: string;
   bg: string;
   ariaLabel: string;
+  /** Store motion style: the drawer slides, its rows rise, the close plays out. */
+  motion?: ChromeMotion;
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
@@ -57,6 +61,11 @@ export function HeaderBarMobileMenu({
   // backdrop-filter containing block (the reason we portal at all). Resolved
   // when the drawer opens (the DOM is only known after mount).
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
+  // Motion style only: the closed drawer stays in the tree (inert, hidden
+  // from assistive tech) while it slides out. Focus, scroll lock and
+  // aria-expanded follow `open` at once, whatever the animation does.
+  const closing = useExit(open, motion, DRAWER_EXIT_MS);
+  const exitAttrs = closing ? { 'data-cx-closing': '', 'aria-hidden': true, inert: true } : null;
 
   const openMenu = useCallback(() => {
     const active = document.activeElement;
@@ -146,7 +155,7 @@ export function HeaderBarMobileMenu({
           header's height instead of the viewport. Portaling to `.store-root`
           (see portalTarget) escapes that while keeping the theme color
           variables in scope. */}
-      {open && portalTarget && createPortal(
+      {(open || closing) && portalTarget && createPortal(
         <>
           {/* Backdrop — click anywhere outside the panel to close. Not a tab
               stop: the dialog has its own close button. */}
@@ -156,6 +165,8 @@ export function HeaderBarMobileMenu({
             aria-label={t('nav.closeMenu')}
             onClick={() => setOpen(false)}
             className="md:hidden fixed inset-0 z-40 bg-black/40"
+            {...(motion ? { 'data-cx-backdrop': '' } : null)}
+            {...exitAttrs}
           />
           {/* Drawer — anchored to the start edge (LTR: left, RTL: right). */}
           <div
@@ -166,6 +177,8 @@ export function HeaderBarMobileMenu({
             aria-modal="true"
             aria-label={t('nav.menu')}
             onKeyDown={trapTab}
+            {...(motion ? { 'data-cx-drawer': 'start', 'data-cx-tier': 'fast' } : null)}
+            {...exitAttrs}
           >
             <div
               className="flex items-center justify-end p-3 border-b"
@@ -183,7 +196,7 @@ export function HeaderBarMobileMenu({
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
               {items.map((item, i) => (
-                <MobileRow key={i} item={item} onNavigate={() => setOpen(false)} />
+                <MobileRow key={i} item={item} onNavigate={() => setOpen(false)} rise={motion ? i : undefined} />
               ))}
             </nav>
           </div>
@@ -204,10 +217,13 @@ function MobileRow({
   item,
   depth = 0,
   onNavigate,
+  rise,
 }: {
   item: MobileMenuItem;
   depth?: number;
   onNavigate: () => void;
+  /** Motion style: place of a top-level row in the entrance (fast timing, five steps at most). */
+  rise?: number;
 }) {
   const t = useTranslations('nav');
   const [expanded, setExpanded] = useState(false);
@@ -220,6 +236,11 @@ function MobileRow({
   const rowClass = depth === 0 ? 'py-3 text-base font-medium' : 'py-2.5 text-sm';
   const rowBorder = depth === 0 ? 'border-b' : '';
   const borderStyle = depth === 0 ? { borderColor: 'rgba(0,0,0,0.06)' } : {};
+  // CSS only (data-cx-intro plays when the drawer mounts); starts 0.1 s after the panel.
+  const riseAttrs =
+    rise === undefined
+      ? null
+      : { 'data-cx-intro': 'rise', 'data-cx-d': '1', ...(rise > 0 ? { 'data-cx-i': String(Math.min(rise, 5)) } : null) };
 
   if (children.length === 0) {
     return (
@@ -228,6 +249,7 @@ function MobileRow({
         href={item.url}
         onClick={onNavigate}
         {...external}
+        {...riseAttrs}
         className={`block pe-5 ${rowClass} ${rowBorder} hover:bg-black/5 transition`}
         style={{ ...indent, ...borderStyle }}
       >
@@ -237,7 +259,7 @@ function MobileRow({
   }
 
   return (
-    <div className={rowBorder} style={borderStyle}>
+    <div className={rowBorder} style={borderStyle} {...riseAttrs}>
       <div className="flex items-stretch">
         {item.url && item.url !== '#' ? (
           <Link

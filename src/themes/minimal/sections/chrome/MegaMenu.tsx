@@ -67,7 +67,7 @@ const MEGA_MENU_CSS = `
 .mega-menu-mobile details > summary { list-style: none; }
 `;
 
-function MegaMenu({ settings, content, locale, primaryLocale }: SectionRenderProps) {
+function MegaMenu({ settings, content, locale, primaryLocale, motion }: SectionRenderProps) {
   const triggers = ((content.triggers as MegaMenuTrigger[]) || []).filter((t) => t.label);
   const alignment = (settings.alignment as 'start' | 'center' | 'end') || 'center';
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
@@ -123,6 +123,7 @@ function MegaMenu({ settings, content, locale, primaryLocale }: SectionRenderPro
                 // z-45: above a sticky HeaderBar (z-40) whichever section comes
                 // first, below the mobile drawer and the cart drawer (z-50).
                 <div
+                  {...(motion ? { 'data-cx-menu': 'hover' } : null)}
                   className="mega-menu-panel absolute inset-x-0 top-full shadow-xl border-t z-45"
                   style={{
                     backgroundColor: panelBg,

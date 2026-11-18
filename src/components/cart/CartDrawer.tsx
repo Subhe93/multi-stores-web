@@ -22,9 +22,17 @@ const subscribeNoop = () => () => {};
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Store motion style (passed by the header only when the store switched it
+   * on): the panel slides over 0.6 s, the backdrop fades, the lines rise in a
+   * short cascade and the close takes 0.35 s. Attributes only; the rules live
+   * in themes/creative/css/chrome.css.ts. Totals and the checkout button
+   * never animate.
+   */
+  motion?: 'intro' | 'scroll';
 }
 
-export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+export function CartDrawer({ isOpen, onClose, motion }: CartDrawerProps) {
   const t = useTranslations();
   // Money in the storefront locale, like the cart page ("275,00 kr").
   const locale = useLocale();
@@ -68,6 +76,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   if (!mounted) return null;
 
+  const openAttr = motion && isOpen ? { 'data-cx-open': '' } : null;
+
   return createPortal(
     <>
       {/* Backdrop overlay */}
@@ -77,6 +87,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         }`}
         onClick={onClose}
         aria-hidden="true"
+        {...(motion ? { 'data-cx-backdrop': 'cart' } : null)}
+        {...openAttr}
       />
 
       {/* Drawer panel.
@@ -86,6 +98,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           `:root` custom properties the layout emits for the same reason. */}
       <div
         data-clarity-mask="True"
+        {...(motion ? { 'data-cx-drawer': 'cart' } : null)}
+        {...openAttr}
         className={`store-overlay fixed top-0 inset-e-0 z-50 h-full w-full max-w-md shadow-xl transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
         }`}
@@ -150,7 +164,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </div>
               )}
               {/* Items list */}
-              <div className="flex-1 overflow-y-auto px-6">
+              <div className="flex-1 overflow-y-auto px-6" {...(motion ? { 'data-cx-rows': '' } : null)}>
                 {items.map((item) => (
                   <CartItem
                     key={item.id}

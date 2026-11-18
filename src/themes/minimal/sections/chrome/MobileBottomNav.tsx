@@ -78,7 +78,7 @@ function defaultUrl(type: ItemKey, lp: string): string {
 // clears it.
 const NAV_HEIGHT_PX = { labels: 58, icons: 40 };
 
-function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRenderProps) {
+function MobileBottomNav({ settings, content, locale, primaryLocale, motion }: SectionRenderProps) {
   const t = useTranslations();
   const lp = storeLocalePrefix(locale, primaryLocale);
   // Legacy 'wishlist' items only render when the creator gave them a URL:
@@ -125,7 +125,7 @@ function MobileBottomNav({ settings, content, locale, primaryLocale }: SectionRe
                 <Icon className="size-5" style={{ color: 'currentColor' }} />
                 {/* Only the cart tab carries a live count; the badge is a
                     client island so the rest of the nav stays server-rendered. */}
-                {type === 'cart' && <BottomNavCartBadge accent={activeFg} />}
+                {type === 'cart' && <BottomNavCartBadge accent={activeFg} motion={motion} />}
                 {showLabels && <span style={{ color: 'currentColor' }}>{label}</span>}
               </>
             );

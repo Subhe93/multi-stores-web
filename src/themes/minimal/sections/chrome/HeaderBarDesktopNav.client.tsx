@@ -29,6 +29,7 @@ import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { ActiveLink, useIsActiveHref, usePrefetchOnIntent } from './ActiveLink.client';
 import { navActiveLook, type NavActiveLook, type NavActiveStyle } from './navActiveLook';
+import type { ChromeMotion } from './chromeMotion.client';
 
 export interface DesktopNavItem {
   label: string;
@@ -80,6 +81,7 @@ export function HeaderBarDesktopNav({
   borderColor,
   accent,
   activeVariant = 'text',
+  motion,
 }: {
   items: DesktopNavItem[];
   bg: string;
@@ -87,6 +89,8 @@ export function HeaderBarDesktopNav({
   accent: string;
   /** Active top-level item look: accent text or a filled pill. */
   activeVariant?: NavActiveStyle;
+  /** Store motion style: underline sweep on plain links, panels fade and rise. */
+  motion?: ChromeMotion;
 }) {
   const look = navActiveLook(activeVariant, accent);
   // Index of the open top-level item; only one submenu is open at a time.
@@ -157,6 +161,7 @@ export function HeaderBarDesktopNav({
               href={item.url || '#'}
               {...newTabProps(item.open_in_new_tab)}
               {...intentProps(prefetch, item.url, item.open_in_new_tab)}
+              {...(motion && look.style !== 'pill' ? { 'data-cx-hover': 'underline', 'data-cx-nav': '' } : null)}
               className={`${look.itemClass} text-sm font-medium hover:bg-black/5 transition`}
               activeStyle={look.activeStyle}
               activeClassName={look.activeClassName}
@@ -180,6 +185,7 @@ export function HeaderBarDesktopNav({
             borderColor={borderColor}
             accent={accent}
             look={look}
+            motion={motion}
           />
         );
       })}
@@ -200,6 +206,7 @@ function SubmenuItem({
   borderColor,
   accent,
   look,
+  motion,
 }: {
   item: DesktopNavItem;
   open: boolean;
@@ -213,7 +220,11 @@ function SubmenuItem({
   borderColor: string;
   accent: string;
   look: NavActiveLook;
+  motion?: ChromeMotion;
 }) {
+  // Motion style: the panel's open state as an attribute for the stylesheet.
+  const menuAttrs = (kind: 'mega' | 'drop') =>
+    motion ? { 'data-cx-menu': kind, ...(open ? { 'data-cx-open': '' } : null) } : null;
   const panelId = useId();
   // Pill look wraps trigger + chevron together, so the wrapper owns the state.
   const pill = look.style === 'pill';
@@ -303,6 +314,7 @@ function SubmenuItem({
       {mega ? (
         <div
           id={panelId}
+          {...menuAttrs('mega')}
           className={`absolute inset-x-0 top-full z-50 border-t shadow-xl transition-opacity duration-150 ${
             open ? 'visible opacity-100' : 'invisible opacity-0'
           }`}
@@ -357,6 +369,7 @@ function SubmenuItem({
       ) : (
         <div
           id={panelId}
+          {...menuAttrs('drop')}
           className={`absolute inset-s-0 top-full z-50 pt-1 min-w-48 ${open ? 'block' : 'hidden'}`}
           aria-hidden={!open}
         >

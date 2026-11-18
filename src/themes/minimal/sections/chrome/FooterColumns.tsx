@@ -10,6 +10,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr } from '../../../elementStyles';
 import { CompanyDetails } from '@/components/layout/CompanyDetails';
+import { hover, item, rise, stagger, surface } from '../../../creative/recipes';
 
 interface FooterLink {
   label?: string;
@@ -25,7 +26,7 @@ interface FooterColumn {
   links?: FooterLink[];
 }
 
-function FooterColumns({ settings, content, locale, primaryLocale, storeContext, chrome }: SectionRenderProps) {
+function FooterColumns({ settings, content, locale, primaryLocale, storeContext, chrome, motion }: SectionRenderProps) {
   const rawColumns = ((content.columns as FooterColumn[]) || []);
   // Locale prefix for the canonical storefront URL scheme (same rule as HeaderBar).
   const lp = storeLocalePrefix(locale, primaryLocale);
@@ -75,17 +76,18 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext,
   }
 
   return (
-    <div style={{ backgroundColor: bg, color: fg }}>
+    <div style={{ backgroundColor: bg, color: fg }} {...surface(motion, 'footer')}>
       <div
         className="mx-auto w-full px-4 sm:px-6 lg:px-8 py-12"
         style={{ maxWidth: 'var(--theme-container-max)' }}
       >
         <div
           className="grid gap-8"
+          {...stagger(motion)}
           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(160px, 1fr))` }}
         >
           {columns.map((col, i) => (
-            <div key={i} className="space-y-3">
+            <div key={i} className="space-y-3" {...item(motion, i)}>
               {col.heading && (
                 <h3
                   className="text-sm font-semibold uppercase tracking-wider"
@@ -104,6 +106,7 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext,
                           prefetch={false}
                           href={localizeStoreUrl(link.url, lp, locale)}
                           {...(link.open_in_new_tab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                          {...hover(motion, 'underline')}
                           className="text-sm hover:opacity-70 transition-opacity"
                           style={{ color: linkColor }}
                         >
@@ -116,7 +119,7 @@ function FooterColumns({ settings, content, locale, primaryLocale, storeContext,
             </div>
           ))}
         </div>
-        {companyDetails}
+        {companyDetails && motion ? <div {...rise(motion)}>{companyDetails}</div> : companyDetails}
       </div>
     </div>
   );

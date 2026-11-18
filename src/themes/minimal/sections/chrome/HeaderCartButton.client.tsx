@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { useCountPulse, type ChromeMotion } from './chromeMotion.client';
 
 interface HeaderCartButtonProps {
   mode: 'page' | 'popup';
@@ -21,10 +22,13 @@ interface HeaderCartButtonProps {
   ariaLabel: string;
   /** Badge background colour (header accent). */
   accent: string;
+  /** Store motion style: the badge pulses once when the count changes, the drawer moves with the motion timing. */
+  motion?: ChromeMotion;
 }
 
-export function HeaderCartButton({ mode, href, ariaLabel, accent }: HeaderCartButtonProps) {
+export function HeaderCartButton({ mode, href, ariaLabel, accent, motion }: HeaderCartButtonProps) {
   const { itemCount } = useCart();
+  const badgeRef = useCountPulse<HTMLSpanElement>(itemCount, motion);
   const [open, setOpen] = useState(false);
   // Track whether the drawer has ever been opened so we can keep it mounted
   // afterwards (preserves its close animation) without mounting it up front.
@@ -33,6 +37,7 @@ export function HeaderCartButton({ mode, href, ariaLabel, accent }: HeaderCartBu
   const badge =
     itemCount > 0 ? (
       <span
+        ref={badgeRef}
         className="absolute -top-0.5 -end-0.5 min-w-[16px] h-[16px] px-1 flex items-center justify-center text-[9px] font-bold rounded-full text-white leading-none"
         style={{ backgroundColor: accent }}
       >
@@ -68,7 +73,7 @@ export function HeaderCartButton({ mode, href, ariaLabel, accent }: HeaderCartBu
         <ShoppingBag className="size-4" />
         {badge}
       </button>
-      {mounted && <CartDrawer isOpen={open} onClose={() => setOpen(false)} />}
+      {mounted && <CartDrawer isOpen={open} onClose={() => setOpen(false)} motion={motion} />}
     </>
   );
 }

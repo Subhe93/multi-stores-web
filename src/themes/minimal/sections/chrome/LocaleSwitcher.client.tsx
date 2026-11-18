@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Globe } from 'lucide-react';
 import { resolveLocaleMeta } from '@/lib/localeMeta';
+import { MENU_EXIT_MS, useExit, type ChromeMotion } from './chromeMotion.client';
 
 // Small flag image with a globe fallback (unknown locale or a failed load).
 //
@@ -46,6 +47,7 @@ export function LocaleSwitcher({
   bg,
   fg,
   borderColor,
+  motion,
 }: {
   current: string;
   primary: string;
@@ -56,10 +58,14 @@ export function LocaleSwitcher({
   bg: string;
   fg: string;
   borderColor: string;
+  /** Store motion style: the list fades and rises in, and plays its close. */
+  motion?: ChromeMotion;
 }) {
   const all = Array.from(new Set([primary, ...others].filter(Boolean)));
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // Motion style only: the closed list stays for its 0.2 s exit (inert).
+  const closing = useExit(open, motion, MENU_EXIT_MS);
 
   const currentMeta = resolveLocaleMeta(current);
 
@@ -119,9 +125,11 @@ export function LocaleSwitcher({
           className={`size-3.5 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      {open && (
+      {(open || closing) && (
         <div
           role="menu"
+          {...(motion ? { 'data-cx-menu': 'list' } : null)}
+          {...(closing ? { 'data-cx-closing': '', 'aria-hidden': true, inert: true } : null)}
           className="absolute inset-e-0 top-full mt-1.5 min-w-44 rounded-lg border shadow-lg py-1 z-50"
           style={{ backgroundColor: bg, color: fg, borderColor }}
         >

@@ -4,10 +4,11 @@
 
 import type { SectionDefinition, SectionRenderProps } from '../../../types';
 import { colorOr } from '../../../elementStyles';
+import { fade, surface } from '../../../creative/recipes';
 
 type Alignment = 'start' | 'center' | 'end' | 'between';
 
-function CopyrightBar({ settings, content, locale, storeContext }: SectionRenderProps) {
+function CopyrightBar({ settings, content, locale, storeContext, motion }: SectionRenderProps) {
   const rawText = (content.text as string) || '';
   const storeName = storeContext?.storeName || '';
   const year = new Date().getFullYear();
@@ -38,6 +39,7 @@ function CopyrightBar({ settings, content, locale, storeContext }: SectionRender
 
   return (
     <div
+      {...surface(motion, 'footer')}
       style={{
         backgroundColor: bg,
         color: fg,
@@ -48,7 +50,7 @@ function CopyrightBar({ settings, content, locale, storeContext }: SectionRender
         className={`mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center gap-3 ${justify}`}
         style={{ maxWidth: 'var(--theme-container-max)' }}
       >
-        <p className="text-xs">{text}</p>
+        <p className="text-xs" {...fade(motion)}>{text}</p>
         {showPaymentIcons && paymentMethods.length > 0 && (
           <div className="flex items-center gap-2">
             {paymentMethods.map((label, i) => (

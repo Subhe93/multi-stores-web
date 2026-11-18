@@ -63,7 +63,7 @@ function writeFlag(key: string): void {
   }
 }
 
-export function AnnouncementBar({ settings, content, locale, primaryLocale, storeSlug }: SectionRenderProps) {
+export function AnnouncementBar({ settings, content, locale, primaryLocale, storeSlug, motion }: SectionRenderProps) {
   const t = useTranslations('nav');
   const messages = useMemo(
     () =>
@@ -221,6 +221,8 @@ export function AnnouncementBar({ settings, content, locale, primaryLocale, stor
                 aria-hidden={i !== activeIdx}
                 // Hidden messages may hold links: keep them out of the tab order.
                 inert={i !== activeIdx}
+                // Motion style: the cross-fade takes the store's timing (0.45 s).
+                {...(motion ? { 'data-cx-swap': '' } : null)}
                 className="[grid-area:1/1] transition-opacity duration-500"
                 style={{ opacity: i === activeIdx ? 1 : 0 }}
               >

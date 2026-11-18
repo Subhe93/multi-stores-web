@@ -5,11 +5,14 @@ import { ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { useCountPulse } from '@/themes/minimal/sections/chrome/chromeMotion.client';
 
-export function CartBadge() {
+export function CartBadge({ motion }: { motion?: 'intro' | 'scroll' } = {}) {
   const t = useTranslations('common');
   const { itemCount } = useCart();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Motion style: one pulse when the count changes.
+  const badgeRef = useCountPulse<HTMLSpanElement>(itemCount, motion);
 
   return (
     <>
@@ -22,6 +25,7 @@ export function CartBadge() {
         <ShoppingCart className="w-5 h-5" />
         {itemCount > 0 && (
           <span
+            ref={badgeRef}
             className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 leading-none animate-in zoom-in duration-200"
             style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
           >
@@ -30,7 +34,7 @@ export function CartBadge() {
         )}
       </button>
 
-      <CartDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <CartDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} motion={motion} />
     </>
   );
 }

@@ -38,6 +38,8 @@ interface StoreFooterProps {
   primaryLocale?: string;
   /** Admin-configured platform name — inherited, never hardcoded. */
   platformName?: string;
+  /** Store motion style (set by the layout only when the store switched it on). */
+  motion?: 'intro' | 'scroll';
 }
 
 const LEGAL_KEYWORDS = ['privacy', 'terms', 'return', 'refund', 'shipping'];
@@ -102,6 +104,7 @@ export function StoreFooter({
   currentLang = 'en',
   primaryLocale = 'en',
   platformName = 'ShopsDoor',
+  motion,
 }: StoreFooterProps) {
   const t = useTranslations();
   const lp = useLocalePath();
@@ -136,6 +139,9 @@ export function StoreFooter({
 
   return (
     <footer
+      // Motion style: an engine surface with the default treatment (columns
+      // cascade, the bottom line follows).
+      {...(motion ? { 'data-cx-section': 'footer', 'data-cx-auto': '' } : null)}
       className="mt-auto text-white"
       style={{
         background: `linear-gradient(160deg, ${primaryColor || '#1e293b'} 0%, color-mix(in srgb, ${primaryColor || '#1e293b'} 60%, black) 100%)`,

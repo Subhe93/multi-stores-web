@@ -49,6 +49,8 @@ interface StoreHeaderProps {
   currentLang?: string;
   showStoreName?: boolean;
   logoSize?: number;
+  /** Store motion style (set by the layout only when the store switched it on). */
+  motion?: 'intro' | 'scroll';
 }
 
 // Resolve the best available translation for a page: requested language, then
@@ -517,6 +519,7 @@ export function StoreHeader({
   currentLang = 'en',
   showStoreName = true,
   logoSize = 32,
+  motion,
 }: StoreHeaderProps) {
   const t = useTranslations();
   const lp = useLocalePath();
@@ -539,7 +542,11 @@ export function StoreHeader({
   const nameVisible = showStoreName || !logoUrl;
 
   return (
-    <header className="store-surface store-bd border-b sticky top-0 z-50">
+    <header
+      // Motion style: the bar itself never animates; the attribute only marks the surface.
+      {...(motion ? { 'data-cx-section': 'header' } : null)}
+      className="store-surface store-bd border-b sticky top-0 z-50"
+    >
       <div
         className="container mx-auto px-4 flex items-center justify-between gap-4 relative"
         style={{ height: barHeight }}
@@ -632,7 +639,7 @@ export function StoreHeader({
           <UserMenu />
 
           {/* Cart icon with live item count badge */}
-          <CartBadge />
+          <CartBadge motion={motion} />
 
           {/* Mobile hamburger — handles its own open/close state */}
           <MobileMenu
