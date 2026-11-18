@@ -23,6 +23,7 @@ import { HeaderBarMobileMenu, type MobileMenuItem } from './HeaderBarMobileMenu.
 import { HeaderBarDesktopNav, type DesktopNavItem } from './HeaderBarDesktopNav.client';
 import { ActiveLink } from './ActiveLink.client';
 import { navActiveLook, parseNavActiveStyle } from './navActiveLook';
+import { headerLogoBox, parseLogoFit } from './headerLogo';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
 import { BlurOnNavigate } from './BlurOnNavigate.client';
@@ -127,6 +128,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const submenuStyle: SubmenuStyle = settings.submenu_style === 'mega' ? 'mega' : 'dropdown';
 
   const logoSize = numberOr(settings.logo_size, 32);
+  // Square box (stored headers) or natural proportions under a height
+  // (`logo_fit: 'height'`), see ./headerLogo.ts.
+  const logoBox = headerLogoBox(parseLogoFit(settings.logo_fit), logoSize);
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
   const fg = colorOr(settings.text_color, 'var(--theme-colors-text)');
   const borderColor = colorOr(settings.border_color, 'var(--theme-colors-border)');
@@ -199,26 +203,26 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
               <StoreImage
                 src={resolveMediaUrl(logoUrl)}
                 alt={storeName}
-                width={logoSize}
-                height={logoSize}
-                sizes={`${logoSize}px`}
+                width={logoBox.width}
+                height={logoBox.height}
+                sizes={logoBox.sizes}
                 loading="eager"
                 unoptimized={isSvgSrc(resolveMediaUrl(logoUrl))}
-                style={{ width: logoSize, height: logoSize }}
-                className={`object-contain shrink-0 ${logoUrlMobile ? 'hidden md:block' : ''}`}
+                style={logoBox.style}
+                className={`${logoBox.className} ${logoUrlMobile ? 'hidden md:block' : ''}`}
               />
             )}
             {showLogo && logoUrlMobile && (
               <StoreImage
                 src={resolveMediaUrl(logoUrlMobile)}
                 alt={storeName}
-                width={logoSize}
-                height={logoSize}
-                sizes={`${logoSize}px`}
+                width={logoBox.width}
+                height={logoBox.height}
+                sizes={logoBox.sizes}
                 loading="eager"
                 unoptimized={isSvgSrc(resolveMediaUrl(logoUrlMobile))}
-                style={{ width: logoSize, height: logoSize }}
-                className="object-contain shrink-0 md:hidden"
+                style={logoBox.style}
+                className={`${logoBox.className} md:hidden`}
               />
             )}
             {showStoreName && storeName && (
@@ -387,6 +391,20 @@ export const headerBarSection: SectionDefinition = {
       { key: 'logo_url_mobile', type: 'image', label: { en: 'Mobile logo (optional)', ar: 'شعار الجوال (اختياري)' } },
       { key: 'store_name_override', type: 'text', label: { en: 'Store name override (optional)', ar: 'استبدال اسم المتجر (اختياري)' } },
       { key: 'logo_size', type: 'number', label: { en: 'Logo size (px)', ar: 'حجم الشعار (px)' }, min: 16, max: 96, defaultValue: 32 },
+      {
+        key: 'logo_fit',
+        type: 'select',
+        label: { en: 'Logo fit', ar: 'ملاءمة الشعار' },
+        description: {
+          en: 'For a wide wordmark choose "Keep proportions": the logo is as tall as the logo size (at most 56 px) and as wide as it needs, up to five times its height.',
+          ar: 'للشعار العريض اختر «الحفاظ على النِّسب»: يكون ارتفاع الشعار بحجم الشعار (56 بكسل كحد أقصى) وعرضه بحسب حاجته حتى خمسة أضعاف ارتفاعه.',
+        },
+        defaultValue: 'box',
+        options: [
+          { value: 'box', label: { en: 'Inside a square', ar: 'داخل مربع' } },
+          { value: 'height', label: { en: 'Keep proportions', ar: 'الحفاظ على النِّسب' } },
+        ],
+      },
       // Action icons
       { key: 'show_search', type: 'boolean', label: { en: 'Show search', ar: 'إظهار البحث' }, defaultValue: true },
       { key: 'show_cart', type: 'boolean', label: { en: 'Show cart', ar: 'إظهار السلة' }, defaultValue: true },
@@ -475,5 +493,8 @@ export const headerBarSection: SectionDefinition = {
     submenu_style: 'dropdown',
     active_style: 'text',
     logo_size: 32,
+    // New headers keep a wide wordmark readable; stored headers have no
+    // value and read as 'box'.
+    logo_fit: 'height',
   },
 };
