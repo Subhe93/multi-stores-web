@@ -69,8 +69,10 @@ function TrustBadges({ settings, content, locale }: SectionRenderProps) {
       <section className={padClass}>
         <ul
           role="list"
-          className="grid grid-cols-4 gap-y-6 lg:grid-cols-[repeat(calc(var(--tb-n)*2),minmax(0,1fr))]"
-          style={{ '--tb-n': perRow, '--tb-w': perRow >= 3 ? '13rem' : '20rem' } as CSSProperties}
+          className="grid grid-cols-4 gap-y-6 lg:grid-cols-[repeat(var(--tb-c),minmax(0,1fr))]"
+          // --tb-c: the half-columns of a row from 1024px, as a plain number
+          // (a calc() inside repeat() is not accepted by every browser).
+          style={{ '--tb-n': perRow, '--tb-c': perRow * 2, '--tb-w': perRow >= 3 ? '13rem' : '20rem' } as CSSProperties}
         >
           {visible.map((b, i) => {
             const Icon = trustBadgeIcon(b.icon);

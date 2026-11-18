@@ -93,7 +93,9 @@ describe('trust-badges strip layout', () => {
     // row), twice the items per row from there. Every item spans two.
     expect(tokens).toContain('grid-cols-4');
     expect(tokens).not.toContain('grid-cols-2');
-    expect(tokens).toContain('lg:grid-cols-[repeat(calc(var(--tb-n)*2),minmax(0,1fr))]');
+    // The count is a plain variable: no calc() inside repeat().
+    expect(tokens).toContain('lg:grid-cols-[repeat(var(--tb-c),minmax(0,1fr))]');
+    expect(tokens.filter((c) => c.includes('calc('))).toEqual([]);
     expect(tokens).toContain('lg:justify-center');
     for (const li of liClasses(out)) expect(li).toContain('col-span-2');
     // Nothing switches at 768px.
@@ -172,11 +174,12 @@ describe('trust-badges strip layout', () => {
 
   it('sets the items per row and the widest description', () => {
     const vars = (n: number) => /<ul[^>]*style="([^"]*)"/.exec(strip(many(n)))?.[1];
-    expect(vars(1)).toBe('--tb-n:1;--tb-w:20rem');
-    expect(vars(2)).toBe('--tb-n:2;--tb-w:20rem');
-    expect(vars(3)).toBe('--tb-n:3;--tb-w:13rem');
-    expect(vars(4)).toBe('--tb-n:4;--tb-w:13rem');
-    expect(vars(7)).toBe('--tb-n:4;--tb-w:13rem');
+    // --tb-c is the grid of a row from 1024px in half-columns (twice --tb-n).
+    expect(vars(1)).toBe('--tb-n:1;--tb-c:2;--tb-w:20rem');
+    expect(vars(2)).toBe('--tb-n:2;--tb-c:4;--tb-w:20rem');
+    expect(vars(3)).toBe('--tb-n:3;--tb-c:6;--tb-w:13rem');
+    expect(vars(4)).toBe('--tb-n:4;--tb-c:8;--tb-w:13rem');
+    expect(vars(7)).toBe('--tb-n:4;--tb-c:8;--tb-w:13rem');
   });
 
   it('from 1024px the description does not widen the text block', () => {
