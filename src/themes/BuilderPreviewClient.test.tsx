@@ -251,3 +251,81 @@ describe('BuilderPreviewClient product blocks', () => {
     expect(root().style.getPropertyValue('--store-primary')).toBe('#e11d48');
   });
 });
+
+// Optional theme tokens: an Arabic-script fallback font and a button radius.
+describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
+  const fontLink = () => document.getElementById('builder-preview-fonts') as HTMLLinkElement | null;
+  const buttonStyle = (container: HTMLElement) => container.querySelector('style[data-theme-button-css]');
+  // The minimal theme's own fonts: the link the preview always built.
+  const BASE_HREF =
+    'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap';
+
+  it('unset or invalid: the font link is unchanged and no extra style is rendered', async () => {
+    const { container, unmount } = renderPreview();
+    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    expect(buttonStyle(container)).toBeNull();
+    const root = container.querySelector('.store-root') as HTMLElement;
+    const hasButtonRule = () => (container.textContent ?? '').includes('--theme-radius-button');
+    expect(hasButtonRule()).toBe(false);
+    expect(root.style.getPropertyValue('--theme-font-heading')).toBe('"Playfair Display", system-ui, sans-serif');
+    expect(root.style.getPropertyValue('--theme-radius-button')).toBe('');
+    // Invalid stored values read as unset.
+    post({
+      type: 'UPDATE_SECTIONS',
+      sections,
+      customizations: {
+        typography: { fontFamilyArabic: { heading: 'Comic Sans', body: '' } },
+        spacing: { radius: { button: '1px;}body{' } },
+      },
+    });
+    await waitFor(() => expect(container.querySelector('[data-section-id="row1"]')).not.toBeNull());
+    expect(fontLink()?.href).toBe(BASE_HREF);
+    expect(buttonStyle(container)).toBeNull();
+    expect(hasButtonRule()).toBe(false);
+    expect(root.style.getPropertyValue('--theme-font-heading')).toBe('"Playfair Display", system-ui, sans-serif');
+    expect(root.style.getPropertyValue('--theme-radius-button')).toBe('');
+    unmount();
+  });
+
+  it('set: the Arabic family is appended to the font link and the stack', async () => {
+    const { container, unmount } = renderPreview();
+    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    post({
+      type: 'UPDATE_SECTIONS',
+      sections,
+      customizations: { typography: { fontFamilyArabic: { heading: 'Noto Naskh Arabic', body: 'Noto Naskh Arabic' } } },
+    });
+    await waitFor(() =>
+      expect(fontLink()?.href).toBe(
+        BASE_HREF.replace('&display=swap', '&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap'),
+      ),
+    );
+    const root = container.querySelector('.store-root') as HTMLElement;
+    expect(root.style.getPropertyValue('--theme-font-heading')).toBe(
+      '"Playfair Display", "Noto Naskh Arabic", system-ui, sans-serif',
+    );
+    expect(root.style.getPropertyValue('--theme-font-body')).toBe('"Inter", "Noto Naskh Arabic", system-ui, sans-serif');
+    // Cleared again: back to the original link.
+    post({ type: 'UPDATE_SECTIONS', sections, customizations: {} });
+    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    unmount();
+  });
+
+  it('set: the button radius variable and its one rule appear, and go away when cleared', async () => {
+    const { container, unmount } = renderPreview();
+    expect(buttonStyle(container)).toBeNull();
+    post({ type: 'UPDATE_SECTIONS', sections, customizations: { spacing: { radius: { button: '0px' } } } });
+    await waitFor(() => expect(buttonStyle(container)).not.toBeNull());
+    const css = buttonStyle(container)!.textContent ?? '';
+    expect(css).toContain('.store-root [data-section-key="hero-banner"] a,');
+    expect(css).toContain('{--theme-radius-full:var(--theme-radius-button);--theme-radius-sm:var(--theme-radius-button)}');
+    const root = container.querySelector('.store-root') as HTMLElement;
+    expect(root.style.getPropertyValue('--theme-radius-button')).toBe('0px');
+    // The theme's own pill radius is not rewritten on the root.
+    expect(root.style.getPropertyValue('--theme-radius-full')).toBe('9999px');
+    post({ type: 'UPDATE_SECTIONS', sections, customizations: {} });
+    await waitFor(() => expect(buttonStyle(container)).toBeNull());
+    expect(root.style.getPropertyValue('--theme-radius-button')).toBe('');
+    unmount();
+  });
+});

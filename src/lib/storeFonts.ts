@@ -137,6 +137,42 @@ export function pickPreloadUrls(css: string, families: (string | undefined | nul
   return out;
 }
 
+const FONT_FACE_RE = /@font-face\s*\{[^}]*\}/g;
+
+function faceFamily(block: string): string | undefined {
+  return /font-family:\s*['"]?([^;'"]+)['"]?\s*;/.exec(block)?.[1]?.trim();
+}
+
+// Google's "arabic" subset starts at U+0600-06FF.
+function isArabicFace(block: string): boolean {
+  return /unicode-range:\s*U\+0600-06FF/i.test(block);
+}
+
+/**
+ * For the given families only, keep just the faces of Google's "arabic"
+ * subset. Such a family is a fallback behind a Latin font (theme token
+ * `typography.fontFamilyArabic`): with its Latin subsets not declared, it can
+ * never draw (or flash, during font-display: swap) a Latin character, and
+ * the browser fetches its file only when Arabic text is rendered.
+ *
+ * A family left without any face keeps all its blocks. An empty list returns
+ * the string as it is.
+ */
+export function keepArabicFaces(css: string, families: readonly string[]): string {
+  if (!families.length) return css;
+  const wanted = new Set(families);
+  const filterable = new Set<string>();
+  for (const block of css.match(FONT_FACE_RE) ?? []) {
+    const family = faceFamily(block);
+    if (family && wanted.has(family) && isArabicFace(block)) filterable.add(family);
+  }
+  if (!filterable.size) return css;
+  return css.replace(FONT_FACE_RE, (block) => {
+    const family = faceFamily(block);
+    return family && filterable.has(family) && !isArabicFace(block) ? '' : block;
+  });
+}
+
 export interface InlineFonts {
   css: string;
   preloads: string[];
@@ -146,11 +182,15 @@ export interface InlineFonts {
  * Fetch the Google CSS for `href` (Next data cache, weekly) and return it
  * rewritten for the same-origin proxy. Null on any failure: the caller then
  * keeps the classic <link rel="stylesheet">.
+ *
+ * `arabicOnly`: families requested only as an Arabic-script fallback; their
+ * other subsets are dropped (keepArabicFaces). They are never preloaded.
  */
 export async function loadInlineFonts(
   href: string,
   preloadFamilies: (string | undefined | null)[],
   fetchImpl: typeof fetch = fetch,
+  arabicOnly: readonly string[] = [],
 ): Promise<InlineFonts | null> {
   if (!isAllowedGoogleCssUrl(href)) return null;
   if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) return null;
@@ -167,9 +207,14 @@ export async function loadInlineFonts(
     if (!res.ok) return fail();
     const raw = await res.text();
     if (raw.length > MAX_CSS_BYTES) return null;
-    const css = rewriteFontCss(raw);
-    if (!css) return null;
-    return { css, preloads: pickPreloadUrls(css, preloadFamilies) };
+    const rewritten = rewriteFontCss(raw);
+    if (!rewritten) return null;
+    const css = keepArabicFaces(rewritten, arabicOnly);
+    // An Arabic-only family is never a preload candidate.
+    const preloadable = arabicOnly.length
+      ? preloadFamilies.filter((f) => !f || !arabicOnly.includes(f))
+      : preloadFamilies;
+    return { css, preloads: pickPreloadUrls(css, preloadable) };
   } catch {
     return fail();
   }

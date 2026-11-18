@@ -35,7 +35,7 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
 import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens, tokensToCssVars, tokenFonts, storePrimaryContrast } from '@/themes/tokens';
+import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, themeButtonCss, storePrimaryContrast } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
@@ -436,6 +436,9 @@ export default async function StoreLayout({
   ]
     .map(([k, v]) => `  ${k}: ${cssSafe(String(v))};`)
     .join('\n')}\n}`;
+  // Optional theme button radius: one rule that makes the main buttons of
+  // the page sections follow it. Empty (no element at all) when unset.
+  const buttonCss = themeButtonCss(resolvedTokens);
 
   // Scope typography under `.store-root main` so colors don't leak into the
   // dark-bg footer (text-white) or into the dashboard. The header has its own
@@ -459,7 +462,7 @@ export default async function StoreLayout({
   // Combine every font the user has selected so the browser actually loads them.
   // Theme fonts come first so they're always loaded; legacy per-element fonts
   // are appended so existing stores keep their custom typography.
-  const fontsHref = buildGoogleFontsHref([
+  const primaryFonts = [
     ...themeFonts,
     fontFamily,
     typography.heading?.fontFamily,
@@ -467,15 +470,27 @@ export default async function StoreLayout({
     typography.button?.fontFamily,
     typography.link?.fontFamily,
     typography.header?.fontFamily,
-  ]);
+  ];
+  // Optional Arabic-script fallback fonts (theme customizer). They go last,
+  // so a store without them builds the same URL (and the same cached fetch).
+  const arabicFonts = tokenArabicFonts(resolvedTokens);
+  const fontsHref = buildGoogleFontsHref([...primaryFonts, ...arabicFonts]);
   // Self-hosted fonts: the Google CSS is inlined with same-origin font URLs
   // (no render-blocking request, no visitor IP sent to Google). Null keeps
   // the classic <link> below as a fallback.
   const inlineFonts = fontsHref
-    ? await loadInlineFonts(fontsHref, [
-        typography.body?.fontFamily || fontFamily || resolvedTokens.typography.fontFamily.body,
-        typography.heading?.fontFamily || resolvedTokens.typography.fontFamily.heading || fontFamily,
-      ])
+    ? await loadInlineFonts(
+        fontsHref,
+        [
+          typography.body?.fontFamily || fontFamily || resolvedTokens.typography.fontFamily.body,
+          typography.heading?.fontFamily || resolvedTokens.typography.fontFamily.heading || fontFamily,
+        ],
+        undefined,
+        // Only their Arabic subset is kept, unless the family is also one of
+        // the store's main fonts. Never preloaded: the browser fetches the
+        // file only when Arabic text is rendered.
+        arabicFonts.filter((f) => !primaryFonts.includes(f)),
+      )
     : null;
   for (const href of inlineFonts?.preloads ?? []) {
     preload(href, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
@@ -604,6 +619,8 @@ export default async function StoreLayout({
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
+        {/* Theme button radius: rendered only for a store that set one. */}
+        {buttonCss && <style dangerouslySetInnerHTML={{ __html: buttonCss }} />}
         {/* Market preview host or a request the proxy flagged noindex (M6.1
             `x-store-noindex`): never indexable (React hoists the meta into
             <head>; the proxy also sends X-Robots-Tag). Pages own `robots` in

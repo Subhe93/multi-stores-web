@@ -45,6 +45,12 @@ export interface FontFamilies {
 
 export interface TypographyTokens {
   fontFamily: FontFamilies;
+  /**
+   * Optional font for Arabic-script text, per slot. It follows the Latin
+   * family in the font stack, so it only draws characters that family lacks.
+   * Values come from the curated list in lib/arabicFonts.ts.
+   */
+  fontFamilyArabic?: Partial<FontFamilies>;
   // Multipliers applied to a 16px base (e.g. 2.5 → 40px).
   scale: {
     h1: number;
@@ -73,6 +79,8 @@ export interface SpacingTokens {
     md: string;
     lg: string;
     full: string;
+    /** Optional button radius (a px string); unset = each button's own default. */
+    button?: string;
   };
   shadow: {
     sm: string;
@@ -101,6 +109,7 @@ export type ThemeCustomizations = {
   colors?: Partial<ColorTokens>;
   typography?: {
     fontFamily?: Partial<FontFamilies>;
+    fontFamilyArabic?: Partial<FontFamilies>;
     scale?: Partial<TypographyTokens['scale']>;
     lineHeight?: Partial<TypographyTokens['lineHeight']>;
     fontWeight?: Partial<TypographyTokens['fontWeight']>;

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { mergeTokens, storePrimaryContrast, tokensToCssVars } from './tokens';
+import {
+  THEME_BUTTON_SELECTORS,
+  buttonRadiusOrNull,
+  mergeTokens,
+  storePrimaryContrast,
+  themeButtonCss,
+  tokenArabicFonts,
+  tokenFonts,
+  tokensToCssVars,
+} from './tokens';
 import { minimalTokens } from './minimal/tokens';
-import type { ThemeTokens } from './types';
+import type { ThemeCustomizations, ThemeTokens } from './types';
 
 const DARK = '#111827';
 const vars = (t: ThemeTokens) => tokensToCssVars(t) as Record<string, string>;
@@ -108,5 +117,161 @@ describe('swatch shape token', () => {
   it('square swatches come from the store customization; unknown values fall back', () => {
     expect(vars(mergeTokens(minimalTokens, { product: { swatchShape: 'square' } }))['--theme-swatch-radius']).toBe('0.5rem');
     expect(mergeTokens(minimalTokens, { product: { swatchShape: 'hex' as never } }).product?.swatchShape).toBe('circle');
+  });
+});
+
+// ── Arabic font fallback and theme button radius (both optional) ────────
+
+const LATIN_HEADING = minimalTokens.typography.fontFamily.heading;
+const BUTTON_RULE =
+  '.store-root [data-section-key="hero-banner"] a,.store-root [data-section-key="hero-split"] a,.store-root [data-section-key="image-with-text"] a,.store-root [data-section-key="call-to-action"] a,.store-root [data-section-key="newsletter-signup"] form>*{--theme-radius-full:var(--theme-radius-button);--theme-radius-sm:var(--theme-radius-button)}';
+
+// Stored values that all mean "not set".
+const UNSET_INPUTS: Array<[string, ThemeCustomizations | undefined]> = [
+  ['undefined', undefined],
+  ['{}', {}],
+  ['fontFamilyArabic: {}', { typography: { fontFamilyArabic: {} } }],
+  ["heading: ''", { typography: { fontFamilyArabic: { heading: '' } } }],
+  ['heading: an unknown family', { typography: { fontFamilyArabic: { heading: 'Comic Sans' } } }],
+  ['heading: the same as the Latin family', { typography: { fontFamilyArabic: { heading: LATIN_HEADING } } }],
+  ['body: a wrong type', { typography: { fontFamilyArabic: { body: 12 as never } } }],
+  ['fontFamilyArabic: a wrong type', { typography: { fontFamilyArabic: 'Cairo' as never } }],
+  ["radius.button: ''", { spacing: { radius: { button: '' } } }],
+  ["radius.button: '12'", { spacing: { radius: { button: '12' } } }],
+  ['radius.button: CSS injection', { spacing: { radius: { button: '1px;}body{' } } }],
+  ['radius.button: a wrong type', { spacing: { radius: { button: 8 as never } } }],
+  ['radius.button: five digits', { spacing: { radius: { button: '10000px' } } }],
+  ['radius.button: padded', { spacing: { radius: { button: ' 8px' } } }],
+];
+
+describe('Arabic font and button radius: unset equals unchanged', () => {
+  const baseline = mergeTokens(minimalTokens, undefined);
+  const baselineVars = vars(baseline);
+  // The explicit-merge path builds a fresh object; `{}` is its baseline.
+  const mergedBaseline = mergeTokens(minimalTokens, {});
+
+  for (const [name, input] of UNSET_INPUTS) {
+    it(`${name}: tokens and CSS variables equal those of an untouched store`, () => {
+      const merged = mergeTokens(minimalTokens, input);
+      expect(merged).toEqual(baseline);
+      expect(merged.typography).not.toHaveProperty('fontFamilyArabic');
+      expect(merged.spacing.radius).not.toHaveProperty('button');
+      // Same keys in the same order, nested objects included.
+      expect(JSON.stringify(merged.typography)).toBe(JSON.stringify(baseline.typography));
+      expect(JSON.stringify(merged.spacing)).toBe(JSON.stringify(baseline.spacing));
+      if (input) expect(JSON.stringify(merged)).toBe(JSON.stringify(mergedBaseline));
+      const out = vars(merged);
+      expect(out).toEqual(baselineVars);
+      expect(Object.keys(out)).toEqual(Object.keys(baselineVars));
+      expect(JSON.stringify(out)).toBe(JSON.stringify(baselineVars));
+      expect(tokenFonts(merged)).toEqual(tokenFonts(baseline));
+      expect(tokenArabicFonts(merged)).toEqual([]);
+      expect(themeButtonCss(merged)).toBe('');
+    });
+  }
+
+  it('pins the font variables of an untouched store', () => {
+    expect(baselineVars['--theme-font-heading']).toBe('"Playfair Display", system-ui, sans-serif');
+    expect(baselineVars['--theme-font-body']).toBe('"Inter", system-ui, sans-serif');
+    expect(baselineVars).not.toHaveProperty('--theme-radius-button');
+    expect(Object.keys(baselineVars).at(-1)).toBe('--theme-swatch-radius');
+  });
+
+  it('tokens that skipped mergeTokens are validated again', () => {
+    const raw: ThemeTokens = {
+      ...minimalTokens,
+      typography: { ...minimalTokens.typography, fontFamilyArabic: { heading: 'x", serif;}body{' } },
+      spacing: { ...minimalTokens.spacing, radius: { ...minimalTokens.spacing.radius, button: 'calc(1px)' } },
+    };
+    expect(vars(raw)).toEqual(vars(minimalTokens));
+    expect(tokenArabicFonts(raw)).toEqual([]);
+    expect(themeButtonCss(raw)).toBe('');
+  });
+});
+
+describe('Arabic font fallback token', () => {
+  it('puts the Arabic family after the Latin one, per slot', () => {
+    const t = mergeTokens(minimalTokens, {
+      typography: { fontFamilyArabic: { heading: 'Noto Naskh Arabic', body: 'Noto Sans Arabic' } },
+    });
+    expect(t.typography.fontFamilyArabic).toEqual({ heading: 'Noto Naskh Arabic', body: 'Noto Sans Arabic' });
+    expect(vars(t)['--theme-font-heading']).toBe('"Playfair Display", "Noto Naskh Arabic", system-ui, sans-serif');
+    expect(vars(t)['--theme-font-body']).toBe('"Inter", "Noto Sans Arabic", system-ui, sans-serif');
+    expect(tokenArabicFonts(t)).toEqual(['Noto Naskh Arabic', 'Noto Sans Arabic']);
+    // The Latin families and their request are untouched.
+    expect(t.typography.fontFamily).toEqual(minimalTokens.typography.fontFamily);
+    expect(tokenFonts(t)).toEqual(['Playfair Display', 'Inter']);
+    // No new variable: only the two font stacks differ.
+    const base = vars(mergeTokens(minimalTokens, undefined));
+    expect(Object.keys(vars(t))).toEqual(Object.keys(base));
+    const changed = Object.keys(base).filter((k) => vars(t)[k] !== base[k]);
+    expect(changed).toEqual(['--theme-font-heading', '--theme-font-body']);
+  });
+
+  it('one slot only: the other keeps its exact stack', () => {
+    const t = mergeTokens(minimalTokens, { typography: { fontFamilyArabic: { body: ' Cairo ' } } });
+    expect(t.typography.fontFamilyArabic).toEqual({ body: 'Cairo' });
+    expect(vars(t)['--theme-font-heading']).toBe('"Playfair Display", system-ui, sans-serif');
+    expect(vars(t)['--theme-font-body']).toBe('"Inter", "Cairo", system-ui, sans-serif');
+    expect(tokenArabicFonts(t)).toEqual(['Cairo']);
+  });
+
+  it('one family for both slots is requested once', () => {
+    const t = mergeTokens(minimalTokens, {
+      typography: { fontFamilyArabic: { heading: 'Noto Naskh Arabic', body: 'Noto Naskh Arabic' } },
+    });
+    expect(tokenArabicFonts(t)).toEqual(['Noto Naskh Arabic']);
+  });
+
+  it('drops a slot whose Arabic family is its own Latin family, and invalid slots', () => {
+    const t = mergeTokens(minimalTokens, {
+      typography: {
+        fontFamily: { heading: 'Cairo' },
+        fontFamilyArabic: { heading: 'Cairo', body: 'Noto Kufi Arabic' },
+      },
+    });
+    expect(t.typography.fontFamilyArabic).toEqual({ body: 'Noto Kufi Arabic' });
+    expect(vars(t)['--theme-font-heading']).toBe('"Cairo", system-ui, sans-serif');
+    const mixed = mergeTokens(minimalTokens, {
+      typography: { fontFamilyArabic: { heading: 'Amiri', body: 'Markazi Text' } },
+    });
+    expect(mixed.typography.fontFamilyArabic).toEqual({ body: 'Markazi Text' });
+    expect(vars(mixed)['--theme-font-heading']).toBe('"Playfair Display", system-ui, sans-serif');
+  });
+});
+
+describe('theme button radius token', () => {
+  it('emits the variable last and the re-scoping rule, only for a px value', () => {
+    for (const value of ['0px', '4px', '8px', '9999px']) {
+      const t = mergeTokens(minimalTokens, { spacing: { radius: { button: value } } });
+      expect(t.spacing.radius.button).toBe(value);
+      const out = vars(t);
+      expect(out['--theme-radius-button']).toBe(value);
+      expect(Object.keys(out).at(-1)).toBe('--theme-radius-button');
+      expect(themeButtonCss(t)).toBe(BUTTON_RULE);
+    }
+  });
+
+  it('leaves every other variable and its order as they were', () => {
+    const base = vars(mergeTokens(minimalTokens, undefined));
+    const out = vars(mergeTokens(minimalTokens, { spacing: { radius: { button: '0px' } } }));
+    expect(Object.keys(out).slice(0, -1)).toEqual(Object.keys(base));
+    for (const k of Object.keys(base)) expect(out[k], k).toBe(base[k]);
+    // The sibling radius tokens are not replaced by it.
+    expect(out['--theme-radius-full']).toBe('9999px');
+    expect(out['--theme-radius-sm']).toBe('10px');
+  });
+
+  it('pins the selectors the rule is built from', () => {
+    expect([...THEME_BUTTON_SELECTORS]).toEqual([
+      '.store-root [data-section-key="hero-banner"] a',
+      '.store-root [data-section-key="hero-split"] a',
+      '.store-root [data-section-key="image-with-text"] a',
+      '.store-root [data-section-key="call-to-action"] a',
+      '.store-root [data-section-key="newsletter-signup"] form>*',
+    ]);
+    expect(buttonRadiusOrNull('12px')).toBe('12px');
+    expect(buttonRadiusOrNull('1.5px')).toBeNull();
+    expect(buttonRadiusOrNull('1rem')).toBeNull();
   });
 });

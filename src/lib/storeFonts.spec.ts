@@ -4,12 +4,16 @@ import {
   fontContentType,
   isAllowedGoogleCssUrl,
   isValidFontPath,
+  keepArabicFaces,
   loadInlineFonts,
   resetFontFailureBackoff,
   pickPreloadUrls,
   rewriteFontCss,
 } from './storeFonts';
 import { GET } from '@/app/fonts-cdn/[...path]/route';
+import { mergeTokens, tokenArabicFonts, tokenFonts } from '@/themes/tokens';
+import { minimalTokens } from '@/themes/minimal/tokens';
+import type { ThemeCustomizations } from '@/themes/types';
 
 const CSS = `/* latin-ext */
 @font-face {
@@ -153,6 +157,161 @@ describe('loadInlineFonts', () => {
     const ok = vi.fn();
     expect(await loadInlineFonts(href, [], ok as unknown as typeof fetch)).toBeNull();
     expect(ok).not.toHaveBeenCalled();
+  });
+});
+
+// ── Optional Arabic-script fallback fonts (theme token) ─────────────────
+
+// The shape Google answers for a family with an Arabic subset: one face per
+// subset and weight.
+const face = (family: string, weight: number, file: string, range: string) => `@font-face {
+  font-family: '${family}';
+  font-style: normal;
+  font-weight: ${weight};
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/${file}.woff2) format('woff2');
+  unicode-range: ${range};
+}
+`;
+const ARABIC_RANGE = 'U+0600-06FF, U+0750-077F, U+0870-088E, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC';
+const LATIN_EXT_RANGE = 'U+0100-02BA, U+02BD-02C5';
+const LATIN_RANGE = 'U+0000-00FF, U+0131, U+0152-0153';
+const NASKH_CSS = [400, 700]
+  .map(
+    (w) =>
+      `/* arabic */\n${face('Noto Naskh Arabic', w, 'notonaskharabic/v1/arabic', ARABIC_RANGE)}` +
+      `/* latin-ext */\n${face('Noto Naskh Arabic', w, 'notonaskharabic/v1/latin-ext', LATIN_EXT_RANGE)}` +
+      `/* latin */\n${face('Noto Naskh Arabic', w, 'notonaskharabic/v1/latin', LATIN_RANGE)}`,
+  )
+  .join('');
+const CSS_WITH_ARABIC = `${CSS}${NASKH_CSS}`;
+
+const faceBlocks = (css: string) => css.match(/@font-face\{[^}]*\}/g) ?? [];
+const blocksOf = (css: string, family: string) => faceBlocks(css).filter((b) => b.includes(`font-family:'${family}'`));
+
+describe('Arabic fallback fonts: no new font request when unset', () => {
+  const href = (customizations?: ThemeCustomizations) => {
+    const tokens = mergeTokens(minimalTokens, customizations);
+    return buildGoogleFontsHref([...tokenFonts(tokens), ...tokenArabicFonts(tokens)]);
+  };
+  const today = buildGoogleFontsHref(tokenFonts(mergeTokens(minimalTokens, undefined)));
+
+  it('builds the identical URL without the token or with an invalid one', () => {
+    expect(today).toBe(
+      'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap',
+    );
+    const unset: Array<ThemeCustomizations | undefined> = [
+      undefined,
+      {},
+      { typography: { fontFamilyArabic: {} } },
+      { typography: { fontFamilyArabic: { heading: '', body: '' } } },
+      { typography: { fontFamilyArabic: { heading: 'Comic Sans' } } },
+      { typography: { fontFamilyArabic: { heading: 'Playfair Display', body: 'Inter' } } },
+      { typography: { fontFamilyArabic: { heading: 12 as never } } },
+      { spacing: { radius: { button: '0px' } } },
+    ];
+    for (const customizations of unset) expect(href(customizations), JSON.stringify(customizations)).toBe(today);
+  });
+
+  it('appends the Arabic family last when set, in an allow-listed URL', () => {
+    const set = href({ typography: { fontFamilyArabic: { heading: 'Noto Naskh Arabic', body: 'Noto Naskh Arabic' } } })!;
+    expect(set).toBe(
+      'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap',
+    );
+    expect(isAllowedGoogleCssUrl(set)).toBe(true);
+  });
+});
+
+describe('keepArabicFaces / loadInlineFonts with Arabic-only families', () => {
+  beforeEach(() => resetFontFailureBackoff());
+
+  const href = buildGoogleFontsHref(['Open Sans', 'Playfair Display', 'Noto Naskh Arabic'])!;
+
+  it('an empty list returns the same CSS from one fetch of the same URL', async () => {
+    const plainHref = buildGoogleFontsHref(['Open Sans'])!;
+    const before = vi.fn(async () => ok(CSS));
+    const after = vi.fn(async () => ok(CSS));
+    const a = await loadInlineFonts(plainHref, ['Open Sans'], before as unknown as typeof fetch);
+    const b = await loadInlineFonts(plainHref, ['Open Sans'], after as unknown as typeof fetch, []);
+    expect(b).toEqual(a);
+    expect(b?.css).toBe(rewriteFontCss(CSS));
+    expect(after).toHaveBeenCalledTimes(1);
+    expect((after.mock.calls[0] as unknown as [string])[0]).toBe((before.mock.calls[0] as unknown as [string])[0]);
+    // Same request options (the abort signal is a fresh object per call).
+    const init = (fn: typeof before) => {
+      const rest = { ...(fn.mock.calls[0] as unknown as [string, RequestInit])[1] };
+      delete rest.signal;
+      return rest;
+    };
+    expect(init(after)).toEqual(init(before));
+    // The pure helper too: the very same string.
+    const css = rewriteFontCss(CSS)!;
+    expect(keepArabicFaces(css, [])).toBe(css);
+    // A listed family that is not in the CSS changes nothing either.
+    expect(keepArabicFaces(css, ['Noto Naskh Arabic'])).toBe(css);
+  });
+
+  it('keeps only the Arabic faces of an Arabic-only family and leaves the others intact', async () => {
+    const fetchImpl = vi.fn(async () => ok(CSS_WITH_ARABIC));
+    const res = await loadInlineFonts(
+      href,
+      ['Open Sans', 'Playfair Display'],
+      fetchImpl as unknown as typeof fetch,
+      ['Noto Naskh Arabic'],
+    );
+    const full = rewriteFontCss(CSS_WITH_ARABIC)!;
+    expect(blocksOf(full, 'Noto Naskh Arabic')).toHaveLength(6);
+    const naskh = blocksOf(res!.css, 'Noto Naskh Arabic');
+    expect(naskh).toHaveLength(2);
+    for (const block of naskh) {
+      expect(block).toContain('unicode-range:U+0600-06FF');
+      expect(block).toContain('/fonts-cdn/s/notonaskharabic/v1/arabic.woff2');
+    }
+    expect(res!.css).not.toContain('notonaskharabic/v1/latin');
+    // The store's own fonts keep every face, byte for byte.
+    expect(blocksOf(res!.css, 'Open Sans')).toEqual(blocksOf(full, 'Open Sans'));
+    expect(blocksOf(res!.css, 'Playfair Display')).toEqual(blocksOf(full, 'Playfair Display'));
+    expect(res!.css.startsWith(rewriteFontCss(CSS)!)).toBe(true);
+    // Preloads are the same two Latin files; never an Arabic one.
+    expect(res!.preloads).toEqual([
+      '/fonts-cdn/s/opensans/v40/latin.woff2',
+      '/fonts-cdn/s/playfairdisplay/v37/pf.woff2',
+    ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('without the list the family is loaded whole (it is also a main font of the store)', async () => {
+    const fetchImpl = vi.fn(async () => ok(CSS_WITH_ARABIC));
+    const res = await loadInlineFonts(href, ['Open Sans'], fetchImpl as unknown as typeof fetch);
+    expect(res!.css).toBe(rewriteFontCss(CSS_WITH_ARABIC));
+    expect(blocksOf(res!.css, 'Noto Naskh Arabic')).toHaveLength(6);
+  });
+
+  it('a family that would be left with no face keeps all its blocks', () => {
+    const css = rewriteFontCss(CSS)!;
+    // Open Sans has no Arabic subset in this answer.
+    expect(keepArabicFaces(css, ['Open Sans'])).toBe(css);
+    const mixed = rewriteFontCss(CSS_WITH_ARABIC)!;
+    const out = keepArabicFaces(mixed, ['Open Sans', 'Noto Naskh Arabic']);
+    expect(blocksOf(out, 'Open Sans')).toEqual(blocksOf(mixed, 'Open Sans'));
+    expect(blocksOf(out, 'Noto Naskh Arabic')).toHaveLength(2);
+  });
+
+  it('never preloads an Arabic-only family, even when it is named as a preload family', async () => {
+    const fetchImpl = vi.fn(async () => ok(CSS_WITH_ARABIC));
+    const res = await loadInlineFonts(
+      href,
+      ['Noto Naskh Arabic', 'Open Sans'],
+      fetchImpl as unknown as typeof fetch,
+      ['Noto Naskh Arabic'],
+    );
+    expect(res!.preloads).toEqual(['/fonts-cdn/s/opensans/v40/latin.woff2']);
+    expect(res!.preloads.join()).not.toContain('notonaskharabic');
+    // pickPreloadUrls itself only ever picks a Latin face.
+    expect(pickPreloadUrls(rewriteFontCss(CSS_WITH_ARABIC)!, ['Noto Naskh Arabic'])).toEqual([
+      '/fonts-cdn/s/notonaskharabic/v1/latin.woff2',
+    ]);
+    expect(pickPreloadUrls(res!.css, ['Noto Naskh Arabic'])).toEqual([]);
   });
 });
 

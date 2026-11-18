@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
-import { mergeTokens, storePrimaryContrast, tokensToCssVars } from './tokens';
+import { mergeTokens, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
@@ -353,12 +353,18 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   // its font <link> from the server layout, which this iframe never renders —
   // without this, picking a font in the builder silently fell back to a system
   // font and looked like the setting did nothing.
+  // The optional Arabic-script fallback fonts go last (joined into one string
+  // so the effect below depends on a stable value). Empty when unset: the
+  // link is then the one the preview always had.
+  const arabicFontList = useMemo(() => tokenArabicFonts(tokens).join('|'), [tokens]);
   useEffect(() => {
     const families = Array.from(
       new Set(
-        [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body].filter(
-          (f): f is string => !!f && GOOGLE_FONT_SET.has(f),
-        ),
+        [
+          tokens.typography.fontFamily.heading,
+          tokens.typography.fontFamily.body,
+          ...(arabicFontList ? arabicFontList.split('|') : []),
+        ].filter((f): f is string => !!f && GOOGLE_FONT_SET.has(f)),
       ),
     );
     const id = 'builder-preview-fonts';
@@ -380,7 +386,9 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
     link.rel = 'stylesheet';
     link.href = href;
     document.head.appendChild(link);
-  }, [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body]);
+  }, [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body, arabicFontList]);
+  // Theme button radius, as in the live store layout: one rule, only when set.
+  const buttonCss = useMemo(() => themeButtonCss(tokens), [tokens]);
 
   // Only [a-zA-Z0-9_-] can appear in section ids (uuids); strip anything else
   // so the injected CSS selector cannot be broken out of.
@@ -406,6 +414,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           corner glow on the selected section so the creator always knows
           what they're editing, and a dashed frame on its parent container. */}
       <style>{HOVER_CSS}</style>
+      {buttonCss && <style data-theme-button-css="">{buttonCss}</style>}
       {selectedCss && <style>{selectedCss}</style>}
       {safeSelectedId && (
         <SectionToolbar

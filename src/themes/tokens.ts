@@ -2,8 +2,9 @@
 // them into CSS custom properties that get injected into the storefront root.
 
 import type { CSSProperties } from 'react';
-import type { ColorTokens, ProductTokens, ThemeCustomizations, ThemeTokens } from './types';
+import type { ColorTokens, FontFamilies, ProductTokens, ThemeCustomizations, ThemeTokens } from './types';
 import { isUnreadable, readableTextOn } from '@/lib/readableText';
+import { arabicFontOrNull } from '@/lib/arabicFonts';
 
 type ContrastKey = 'primaryContrast' | 'secondaryContrast' | 'accentContrast';
 const CONTRAST_PAIRS: [ContrastKey, 'primary' | 'secondary' | 'accent'][] = [
@@ -64,23 +65,68 @@ export function storePrimaryContrast(
   return readableTextOn(storePrimary);
 }
 
+const FONT_SLOTS = ['heading', 'body'] as const;
+
+/**
+ * The Arabic-script fonts that take effect, per slot: an allow-listed family
+ * (lib/arabicFonts.ts) that differs from the slot's own Latin family. The
+ * sources are read in order and the first valid value of a slot wins. Null
+ * when no slot is left, so callers add nothing at all for a store that has
+ * not set one.
+ */
+function arabicFamilies(
+  latin: FontFamilies,
+  ...sources: (Partial<Record<keyof FontFamilies, unknown>> | undefined)[]
+): Partial<FontFamilies> | null {
+  const out: Partial<FontFamilies> = {};
+  for (const slot of FONT_SLOTS) {
+    for (const source of sources) {
+      const family = arabicFontOrNull(source?.[slot]);
+      if (!family) continue;
+      if (family !== latin[slot]) out[slot] = family;
+      break;
+    }
+  }
+  return out.heading || out.body ? out : null;
+}
+
+// A px string, like the sibling radius tokens (0px to 9999px).
+const BUTTON_RADIUS_RE = /^\d{1,4}px$/;
+
+/** The theme button radius when it is a valid px string, else null (unset). */
+export function buttonRadiusOrNull(raw: unknown): string | null {
+  return typeof raw === 'string' && BUTTON_RADIUS_RE.test(raw) ? raw : null;
+}
+
 /**
  * Deep-merge `customizations` over `base`. Only known token shapes are merged;
  * unknown keys are ignored to keep the contract strict.
  */
 export function mergeTokens(base: ThemeTokens, customizations?: ThemeCustomizations): ThemeTokens {
   if (!customizations) return { ...base, colors: mergeColors(base.colors), product: mergeProduct(base.product) };
+  const fontFamily = { ...base.typography.fontFamily, ...(customizations.typography?.fontFamily || {}) };
+  // Optional: the key is added only when a slot holds a valid Arabic font, so
+  // a store without one gets the same token object as before.
+  const fontFamilyArabic = arabicFamilies(
+    fontFamily,
+    customizations.typography?.fontFamilyArabic,
+    base.typography.fontFamilyArabic,
+  );
+  const radius = { ...base.spacing.radius, ...(customizations.spacing?.radius || {}) };
+  // Optional button radius: anything but a plain px value means "not set".
+  if ('button' in radius && !buttonRadiusOrNull(radius.button)) delete radius.button;
   return {
     colors: mergeColors(base.colors, customizations.colors),
     product: mergeProduct(base.product, customizations.product),
     typography: {
-      fontFamily: { ...base.typography.fontFamily, ...(customizations.typography?.fontFamily || {}) },
+      fontFamily,
       scale: { ...base.typography.scale, ...(customizations.typography?.scale || {}) },
       lineHeight: { ...base.typography.lineHeight, ...(customizations.typography?.lineHeight || {}) },
       fontWeight: { ...base.typography.fontWeight, ...(customizations.typography?.fontWeight || {}) },
+      ...(fontFamilyArabic ? { fontFamilyArabic } : {}),
     },
     spacing: {
-      radius: { ...base.spacing.radius, ...(customizations.spacing?.radius || {}) },
+      radius,
       shadow: { ...base.spacing.shadow, ...(customizations.spacing?.shadow || {}) },
       containerMaxWidth: customizations.spacing?.containerMaxWidth ?? base.spacing.containerMaxWidth,
     },
@@ -102,7 +148,19 @@ function fluidRem(rem: number): string {
   return `clamp(${min}rem, ${base}rem + 2.2vw, ${max}rem)`;
 }
 
+/**
+ * Font stack of one slot. The Latin family is always first, so every
+ * character it can draw still comes from it; the optional Arabic family sits
+ * behind it and only draws what the Latin font lacks. Without an Arabic
+ * family the string is the one this variable always had.
+ */
+function fontStack(latin: string, arabic?: string): string {
+  return arabic ? `"${latin}", "${arabic}", system-ui, sans-serif` : `"${latin}", system-ui, sans-serif`;
+}
+
 export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
+  // Validated again here: tokens may not have gone through mergeTokens.
+  const arabic = arabicFamilies(tokens.typography.fontFamily, tokens.typography.fontFamilyArabic);
   const vars: Record<string, string> = {
     '--theme-colors-primary': tokens.colors.primary,
     '--theme-colors-secondary': tokens.colors.secondary,
@@ -117,8 +175,8 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
     '--theme-colors-primaryContrast': tokens.colors.primaryContrast || readableTextOn(tokens.colors.primary),
     '--theme-colors-secondaryContrast': tokens.colors.secondaryContrast || readableTextOn(tokens.colors.secondary),
     '--theme-colors-accentContrast': tokens.colors.accentContrast || readableTextOn(tokens.colors.accent),
-    '--theme-font-heading': `"${tokens.typography.fontFamily.heading}", system-ui, sans-serif`,
-    '--theme-font-body': `"${tokens.typography.fontFamily.body}", system-ui, sans-serif`,
+    '--theme-font-heading': fontStack(tokens.typography.fontFamily.heading, arabic?.heading),
+    '--theme-font-body': fontStack(tokens.typography.fontFamily.body, arabic?.body),
     '--theme-scale-h1': fluidRem(tokens.typography.scale.h1),
     '--theme-scale-h2': fluidRem(tokens.typography.scale.h2),
     '--theme-scale-h3': fluidRem(tokens.typography.scale.h3),
@@ -168,7 +226,40 @@ export function tokensToCssVars(tokens: ThemeTokens): CSSProperties {
   if (shadow && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i.test(shadow)) {
     vars['--theme-price-shadow'] = `0 0 1px ${shadow}`;
   }
+  // Optional button radius, last so the order of the other variables is
+  // untouched. Read by themeButtonCss below and by the newer sections
+  // (`var(--theme-radius-button, var(--theme-radius-full))`).
+  const buttonRadius = buttonRadiusOrNull(tokens.spacing.radius.button);
+  if (buttonRadius) vars['--theme-radius-button'] = buttonRadius;
   return vars as CSSProperties;
+}
+
+/**
+ * The buttons that follow the theme button radius: the call-to-action links
+ * of the sections below, and the newsletter form's input wrapper + submit
+ * button (designed as a pair). `data-section-key` is set by SectionRenderer
+ * on every section wrapper.
+ */
+export const THEME_BUTTON_SELECTORS = [
+  '.store-root [data-section-key="hero-banner"] a',
+  '.store-root [data-section-key="hero-split"] a',
+  '.store-root [data-section-key="image-with-text"] a',
+  '.store-root [data-section-key="call-to-action"] a',
+  '.store-root [data-section-key="newsletter-signup"] form>*',
+] as const;
+
+/**
+ * One rule that makes those buttons follow `--theme-radius-button`, or '' when
+ * the store has not set one (then no <style> is rendered at all).
+ *
+ * The sections keep their inline `border-radius: var(--theme-radius-full)`
+ * (the classic theme uses `--theme-radius-sm`), so their HTML is the same for
+ * every store; the rule re-scopes those two variables on the buttons only. A
+ * per-section corner radius is an inline `border-radius: Npx` and still wins.
+ */
+export function themeButtonCss(tokens: ThemeTokens): string {
+  if (!buttonRadiusOrNull(tokens.spacing.radius.button)) return '';
+  return `${THEME_BUTTON_SELECTORS.join(',')}{--theme-radius-full:var(--theme-radius-button);--theme-radius-sm:var(--theme-radius-button)}`;
 }
 
 /**
@@ -180,4 +271,15 @@ export function tokenFonts(tokens: ThemeTokens): string[] {
     tokens.typography.fontFamily.heading,
     tokens.typography.fontFamily.body,
   ]));
+}
+
+/**
+ * The Arabic-script families of a token set (unique, heading first), added to
+ * the same font request. Empty for a store that has not set one, so its
+ * request is unchanged.
+ */
+export function tokenArabicFonts(tokens: ThemeTokens): string[] {
+  const arabic = arabicFamilies(tokens.typography.fontFamily, tokens.typography.fontFamilyArabic);
+  if (!arabic) return [];
+  return Array.from(new Set([arabic.heading, arabic.body].filter((f): f is string => !!f)));
 }

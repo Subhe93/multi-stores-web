@@ -67,6 +67,11 @@ describe('fonts', () => {
     expect(primaryFontFamily("'Open Sans', Arial")).toBe('Open Sans');
     expect(primaryFontFamily('')).toBeNull();
   });
+  it('a stack with an Arabic fallback still reads the Latin family', () => {
+    // --theme-font-body when the store set an Arabic body font (themes/tokens.ts).
+    expect(primaryFontFamily('"Inter", "Noto Sans Arabic", system-ui, sans-serif')).toBe('Inter');
+    expect(primaryFontFamily('"Playfair Display", "Noto Naskh Arabic", system-ui, sans-serif')).toBe('Playfair Display');
+  });
   it('builds a Google Fonts source only for web fonts', () => {
     expect(stripeFontSources('"Open Sans", system-ui')).toEqual([
       { cssSrc: 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap' },
