@@ -179,6 +179,9 @@
   outline: 2px solid var(--theme-colors-text, #111827);
   outline-offset: 2px;
 }
+.qadd-close:focus-visible {
+  outline-offset: -4px;
+}
 
 .qadd-vendor {
   margin: 0;
@@ -226,6 +229,11 @@
 }
 .qadd-buy button {
   min-height: 3rem;
+}
+/* Label colour on the store's primary fill (the product page sets it from
+   its own scope). */
+.qadd-buy button[data-on-primary] {
+  color: var(--store-primary-contrast, #fff);
 }
 .qadd[data-corners='square'] .qadd-buy button,
 .qadd[data-corners='square'] .qadd-primary,

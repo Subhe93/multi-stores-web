@@ -139,6 +139,9 @@ export function QuickAddDialog({ anchor, productSlug, title, href, currency = 'E
     return () => {
       root.style.overflow = prevOverflow;
       root.style.paddingInlineEnd = prevPad;
+      // Leave the top layer before the element is removed (the opener then
+      // takes the focus back, see QuickAddButton).
+      if (el.open && typeof el.close === 'function') el.close();
     };
   }, []);
 

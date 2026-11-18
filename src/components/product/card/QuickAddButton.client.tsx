@@ -8,7 +8,7 @@
 // is a sibling of the card's stretched link (never inside it) and sits above
 // it through the `.pcard-actions` layer of the card.
 
-import { useCallback, useRef, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, Plus } from 'lucide-react';
 import type { QuickAddDialogProps } from './QuickAddDialog.client';
@@ -59,11 +59,15 @@ export function QuickAddButton({ productSlug, title, href, card, currency }: Qui
     }
   }, [pending, href]);
 
-  const handleClose = useCallback(() => {
-    setOpen(false);
-    // Focus goes back to the button that opened the dialog.
-    buttonRef.current?.focus();
-  }, []);
+  const handleClose = useCallback(() => setOpen(false), []);
+
+  // Focus goes back to the button that opened the dialog, once the dialog
+  // has left the page (a parent effect runs after the child's cleanup).
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) buttonRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
 
   // Nothing to add on a sold-out product: the card says so, no button.
   if (card?.stock?.soldOut) return null;
