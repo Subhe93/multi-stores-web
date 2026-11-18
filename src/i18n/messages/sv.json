@@ -357,7 +357,11 @@
     "couponBelowCost": "Rabattkoden {code} kan inte användas på den här produkten",
     "couponMinAmount": "Gäller vid köp för minst {amount}",
     "couponMinQuantity": "Gäller vid köp av minst {count} artiklar",
-    "couponNotApplicable": "Rabattkoden {code} gäller inte för den här produkten"
+    "couponNotApplicable": "Rabattkoden {code} gäller inte för den här produkten",
+    "loadMore": "Visa fler",
+    "loadingMore": "Laddar fler produkter…",
+    "loadMoreError": "Det gick inte att ladda fler produkter. Försök igen.",
+    "shownOfTotal": "Visar {shown} av {total} produkter"
   },
   "personalization": {
     "counter": "{count} / {max}",

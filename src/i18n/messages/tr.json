@@ -357,7 +357,11 @@
     "couponBelowCost": "{code} indirim kodu bu üründe kullanılamaz",
     "couponMinAmount": "En az {amount} tutarındaki siparişlerde geçerlidir",
     "couponMinQuantity": "En az {count} ürün alındığında geçerlidir",
-    "couponNotApplicable": "{code} indirim kodu bu ürün için geçerli değil"
+    "couponNotApplicable": "{code} indirim kodu bu ürün için geçerli değil",
+    "loadMore": "Daha fazla yükle",
+    "loadingMore": "Daha fazla ürün yükleniyor…",
+    "loadMoreError": "Daha fazla ürün yüklenemedi. Lütfen tekrar deneyin.",
+    "shownOfTotal": "{total} üründen {shown} tanesi gösteriliyor"
   },
   "personalization": {
     "counter": "{count} / {max}",

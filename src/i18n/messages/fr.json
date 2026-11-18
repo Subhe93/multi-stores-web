@@ -357,7 +357,11 @@
     "couponBelowCost": "Le code promo {code} ne peut pas être utilisé pour ce produit",
     "couponMinAmount": "Valable dès {amount} d’achat",
     "couponMinQuantity": "Valable dès {count} articles achetés",
-    "couponNotApplicable": "Le code promo {code} ne s’applique pas à ce produit"
+    "couponNotApplicable": "Le code promo {code} ne s’applique pas à ce produit",
+    "loadMore": "Charger plus",
+    "loadingMore": "Chargement d'autres produits…",
+    "loadMoreError": "Impossible de charger d'autres produits. Veuillez réessayer.",
+    "shownOfTotal": "{shown} produits affichés sur {total}"
   },
   "personalization": {
     "counter": "{count} / {max}",

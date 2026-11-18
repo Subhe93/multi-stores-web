@@ -357,7 +357,11 @@
     "couponBelowCost": "لا يمكن استخدام كود الخصم {code} على هذا المنتج",
     "couponMinAmount": "يسري على الطلبات بقيمة {amount} على الأقل",
     "couponMinQuantity": "يسري عند شراء {count} قطع على الأقل",
-    "couponNotApplicable": "كود الخصم {code} لا يسري على هذا المنتج"
+    "couponNotApplicable": "كود الخصم {code} لا يسري على هذا المنتج",
+    "loadMore": "تحميل المزيد",
+    "loadingMore": "جارٍ تحميل المزيد من المنتجات…",
+    "loadMoreError": "تعذّر تحميل المزيد من المنتجات. حاول مرة أخرى.",
+    "shownOfTotal": "عرض {shown} من أصل {total} منتج"
   },
   "personalization": {
     "counter": "{count} / {max}",

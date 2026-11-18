@@ -357,7 +357,11 @@
     "couponBelowCost": "Der Rabattcode {code} kann für dieses Produkt nicht verwendet werden",
     "couponMinAmount": "Gilt ab einem Bestellwert von {amount}",
     "couponMinQuantity": "Gilt ab {count} Artikeln",
-    "couponNotApplicable": "Der Rabattcode {code} gilt nicht für dieses Produkt"
+    "couponNotApplicable": "Der Rabattcode {code} gilt nicht für dieses Produkt",
+    "loadMore": "Mehr laden",
+    "loadingMore": "Weitere Produkte werden geladen…",
+    "loadMoreError": "Weitere Produkte konnten nicht geladen werden. Bitte erneut versuchen.",
+    "shownOfTotal": "{shown} von {total} Produkten"
   },
   "personalization": {
     "counter": "{count} / {max}",

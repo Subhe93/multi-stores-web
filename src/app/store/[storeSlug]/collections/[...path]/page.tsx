@@ -16,7 +16,9 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
-import { toListingProduct } from '@/lib/listing';
+import { toListingCard, toListingProduct } from '@/lib/listing';
+import { loadListing } from '@/lib/listingLoad';
+import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
 import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
@@ -176,23 +178,29 @@ export default async function CollectionPage({
   const currency = storeData?.currency;
 
   // Pull products filtered by this collection (backend resolves MANUAL vs TAGS).
+  // A collection above LISTING_SERVER_THRESHOLD is paginated by the API
+  // (server mode: first page only, sorted by the API); at or below it the
+  // route makes today's exact request and renders as before.
   const queryParams: Record<string, string> = { locale, creator_category: handle };
   if (search) queryParams.search = search;
-  const products = (await storefront.getProducts(
-    storeSlug,
-    queryParams,
-    marketRef,
-  )) as Product[];
+  const loaded = await loadListing<Product>(storeSlug, { queryParams, sort }, marketRef);
+  const products = loaded.products;
+  const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
+  // Server mode counts every matching product, not just the first page.
+  const productCount = pagination ? pagination.total : products.length;
 
-  // Sort client-side (cheap, mirrors /products page behavior)
-  if (sort === 'price_asc') {
-    products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
-  } else if (sort === 'price_desc') {
-    products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
-  } else if (sort === 'newest') {
-    products.sort((a, b) =>
-      (b.created_at || '').localeCompare(a.created_at || ''),
-    );
+  // Sort client-side (cheap, mirrors /products page behavior); legacy mode
+  // only, in server mode the API already sorted them.
+  if (loaded.mode === 'legacy') {
+    if (sort === 'price_asc') {
+      products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
+    } else if (sort === 'price_desc') {
+      products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
+    } else if (sort === 'newest') {
+      products.sort((a, b) =>
+        (b.created_at || '').localeCompare(a.created_at || ''),
+      );
+    }
   }
 
   const isRTL = locale === 'ar';
@@ -271,7 +279,7 @@ export default async function CollectionPage({
     const listing: ListingContext = {
       kind: 'collection',
       // Card-level projection only — see lib/listing.ts.
-      products: products.map(toListingProduct),
+      products: pagination ? products.map(toListingCard) : products.map(toListingProduct),
       // The tree only feeds the catalog pills; a collection page reads
       // `collection.children` instead, so it stays out of the RSC payload.
       collections: [],
@@ -281,6 +289,7 @@ export default async function CollectionPage({
       hero: storeData?.theme?.hero?.collections,
       basePath: collectionBase,
       isFiltered: !!search,
+      ...(pagination ? { pagination } : {}),
     };
     return (
       <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
@@ -394,8 +403,8 @@ export default async function CollectionPage({
 
             {hero.showCount && products.length > 0 && (
               <p className="mt-4 text-xs font-semibold opacity-70" style={{ color: hero.textColor }}>
-                {products.length}{' '}
-                {products.length === 1
+                {productCount}{' '}
+                {productCount === 1
                   ? t('store.productSingular')
                   : t('store.productsCount')}
               </p>
@@ -502,6 +511,20 @@ export default async function CollectionPage({
               {t('common.viewAll')}
             </Link>
           </div>
+        ) : pagination ? (
+          // Server mode: first page from the server, next pages by "load more".
+          <ListingPagedGrid
+            storeSlug={storeSlug}
+            initial={products.map(toListingCard)}
+            pagination={pagination}
+            locale={locale}
+            lp={lp}
+            currency={currency}
+            gridClassName="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+            variant="collection"
+            // Banner image is the LCP when shown; else the first cards.
+            priorityFirst={!(hero.enabled && heroImage)}
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {products.map((product, index) => {

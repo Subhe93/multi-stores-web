@@ -10,7 +10,7 @@
 // arrives through `listing` — this component only renders it, exactly like
 // `product-page` renders from `product`.
 
-import { useId } from 'react';
+import { useId, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -23,7 +23,11 @@ import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
 import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
 import { isUsableSlug } from '@/lib/slugRoute';
+import { useListingPages } from '@/hooks/useListingPages';
+import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
+
+const NO_PRODUCTS: ListingProduct[] = [];
 
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
@@ -73,12 +77,17 @@ const SORT_KEYS = [
   { value: 'newest', key: 'product.sortNewest' },
 ] as const;
 
-export function ProductListingMagic({ settings, content, locale, primaryLocale, listing, currency }: SectionRenderProps) {
+export function ProductListingMagic({ settings, content, locale, primaryLocale, storeSlug, listing, currency }: SectionRenderProps) {
   const t = useTranslations();
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other instances on the same page.
   // Hooks run before the early return to keep call order stable.
   const scopeClass = `pl-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  // Server mode (large catalogue): the route sent the first page and the
+  // section appends the next ones. Without `pagination` this returns
+  // `listing.products` as is and never fetches.
+  const pages = useListingPages({ storeSlug, initial: listing?.products ?? NO_PRODUCTS, pagination: listing?.pagination });
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // No listing in context (e.g. builder preview before data loads, or a
   // collection preview on a store with no collections) — show a recognisable
@@ -107,7 +116,10 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   }
 
   const isCollection = listing.kind === 'collection';
-  const { products, query, basePath, isFiltered } = listing;
+  const { query, basePath, isFiltered, pagination } = listing;
+  const products = pages.products;
+  // Server mode counts every matching product, not just the loaded ones.
+  const productCount = pagination ? pages.total : products.length;
   const { search, sort, category, creator_category } = query;
 
   // Secondary locales get a path prefix AND a `lang` query param (the proxy
@@ -271,7 +283,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
 
   const countLine = (
     <>
-      {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
+      {productCount} {productCount === 1 ? t('store.productSingular') : t('store.productsCount')}
     </>
   );
 
@@ -351,7 +363,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   );
 
   const grid = (
-    <div className={`grid gap-4 md:gap-6 ${scopeClass}`}>
+    <div ref={gridRef} className={`grid gap-4 md:gap-6 ${scopeClass}`}>
       {products.map((product, index) => {
         const translation =
           product.translations.find((tr) => tr.locale === locale) ||
@@ -685,6 +697,19 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
 
         {/* Products grid */}
         {products.length === 0 ? emptyState : grid}
+
+        {/* Server mode: count of loaded products and the "load more" button. */}
+        {pagination && products.length > 0 && (
+          <ListingLoadMore
+            shown={products.length}
+            total={pages.total}
+            hasMore={pages.hasMore}
+            loading={pages.loading}
+            error={pages.error}
+            onLoadMore={pages.loadMore}
+            gridRef={gridRef}
+          />
+        )}
 
         {/* M6.2: long SEO description below the products (default position).
             HTML is sanitised on write by the API; `dir` is inherited from the

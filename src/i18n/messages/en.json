@@ -357,7 +357,11 @@
     "couponBelowCost": "Discount code {code} cannot be used on this product",
     "couponMinAmount": "Applies to orders of at least {amount}",
     "couponMinQuantity": "Applies when you buy at least {count} items",
-    "couponNotApplicable": "Discount code {code} does not apply to this product"
+    "couponNotApplicable": "Discount code {code} does not apply to this product",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more products…",
+    "loadMoreError": "Could not load more products. Please try again.",
+    "shownOfTotal": "Showing {shown} of {total} products"
   },
   "personalization": {
     "counter": "{count} / {max}",

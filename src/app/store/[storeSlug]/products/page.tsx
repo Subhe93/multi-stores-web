@@ -13,7 +13,9 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
-import { toListingProduct } from '@/lib/listing';
+import { toListingCard, toListingProduct } from '@/lib/listing';
+import { loadListing } from '@/lib/listingLoad';
+import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { isUsableSlug } from '@/lib/slugRoute';
@@ -151,8 +153,11 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
 
   // Only the creator's own collections are shown on the storefront — admin/provider
   // taxonomy categories live at the platform level and don't belong on the store page.
-  const [products, creatorCategories, template] = await Promise.all([
-    storefront.getProducts(storeSlug, queryParams, marketKey) as Promise<Product[]>,
+  // A catalogue above LISTING_SERVER_THRESHOLD is paginated by the API
+  // (server mode: first page only, sorted by the API); at or below it the
+  // route makes today's exact request and renders as before.
+  const [loaded, creatorCategories, template] = await Promise.all([
+    loadListing<Product>(storeSlug, { queryParams, sort }, marketKey),
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup
@@ -161,6 +166,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
       snapshot?: { sections?: SectionInstance[] };
     } | null>,
   ]);
+  const products = loaded.products;
+  const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
+  // Server mode counts every matching product, not just the first page.
+  const productCount = pagination ? pagination.total : products.length;
   const currency = storeData?.currency;
 
   // Hero/banner settings (configurable from store settings → Page Banners).
@@ -179,13 +188,15 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     }
   }
 
-  // Sort products
-  if (sort === 'price_asc') {
-    products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
-  } else if (sort === 'price_desc') {
-    products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
-  } else if (sort === 'newest') {
-    products.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  // Sort products (legacy mode; in server mode the API already sorted them)
+  if (loaded.mode === 'legacy') {
+    if (sort === 'price_asc') {
+      products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
+    } else if (sort === 'price_desc') {
+      products.sort((a, b) => Number(b.base_price) - Number(a.base_price));
+    } else if (sort === 'newest') {
+      products.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    }
   }
 
   const isFiltered = !!(search || category || creator_category);
@@ -232,12 +243,13 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     const listing: ListingContext = {
       kind: 'catalog',
       // Card-level projection only — see lib/listing.ts.
-      products: products.map(toListingProduct),
+      products: pagination ? products.map(toListingCard) : products.map(toListingProduct),
       collections: creatorCategories || [],
       query: { search, sort, category, creator_category },
       hero: storeData?.theme?.hero?.products,
       basePath: '/products',
       isFiltered,
+      ...(pagination ? { pagination } : {}),
     };
     return (
       <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
@@ -308,7 +320,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             </h1>
             {hero.showCount && products.length > 0 && (
               <p className="text-sm mt-2 opacity-70" style={{ color: hero.textColor }}>
-                {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
+                {productCount} {productCount === 1 ? t('store.productSingular') : t('store.productsCount')}
               </p>
             )}
           </div>
@@ -454,7 +466,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             // on narrow screens, and an unwrapped row would overflow the page.
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
               <p className="text-sm text-gray-500 shrink-0">
-                {products.length} {products.length === 1 ? t('store.productSingular') : t('store.productsCount')}
+                {productCount} {productCount === 1 ? t('store.productSingular') : t('store.productsCount')}
               </p>
               <div className="flex items-center gap-1.5 min-w-0">
                 <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -496,6 +508,18 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
               </Link>
             )}
           </div>
+        ) : pagination ? (
+          // Server mode: first page from the server, next pages by "load more".
+          <ListingPagedGrid
+            storeSlug={storeSlug}
+            initial={products.map(toListingCard)}
+            pagination={pagination}
+            locale={locale}
+            lp={lp}
+            currency={currency}
+            gridClassName="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+            variant="catalog"
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => {

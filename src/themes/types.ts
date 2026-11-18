@@ -4,6 +4,7 @@ import type { TraderDetails } from '@/lib/traderDetails';
 
 import type { ComponentType, ReactNode } from 'react';
 import type { HeroPageConfig } from '@/lib/hero';
+import type { ListingPagination } from '@/lib/listingPaging';
 import type { StorefrontApps } from '@/lib/storeApps';
 import type { MarketRoute } from '@/lib/market';
 import type { ChildLayout } from './sectionTree';
@@ -315,6 +316,12 @@ export interface ListingContext {
   /** '/products' or `/collections/<root>/<child>/<self>` (M6.7 hierarchical path, no locale prefix). */
   basePath: string;
   isFiltered: boolean;
+  /**
+   * Server mode only (catalogue above LISTING_SERVER_THRESHOLD): `products`
+   * is the first page and the section appends the next ones. Absent on a
+   * legacy listing, which then renders exactly as before.
+   */
+  pagination?: ListingPagination;
 }
 
 // A single navigation menu item. `parent_id` enables nesting (dropdowns /
