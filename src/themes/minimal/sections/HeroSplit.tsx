@@ -84,8 +84,12 @@ function HeroSplit(props: SectionRenderProps) {
     },
   );
 
+  // The bleed variant renders the normalized heading, so spaces or blank
+  // lines alone are an empty heading there (the framed check is unchanged).
+  const shownHeading = settings.variant === 'bleed' ? headingLines(content.heading) : heading;
+
   // Stay visible while empty so creators can see placement in the builder.
-  if (!resolvedImage && !heading && !subheading) {
+  if (!resolvedImage && !shownHeading && !subheading) {
     return (
       <section className="py-12">
         <div

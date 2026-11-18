@@ -95,22 +95,42 @@ export function resolveSectionContent(
   );
 }
 
+/** Runs of white space (line breaks included) as one space, ends trimmed. */
+function squash(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 /**
  * Path of the content field whose text equals `text`: a top-level string
  * (`[key]`) or a string inside a repeater item (`[key, index, subKey]`).
+ *
+ * An exact match wins. Otherwise the texts are compared with their white
+ * space collapsed: a multi-line heading is stored as typed ("A \n\n B"),
+ * while the page shows it normalized ("A\nB") or, in a section that does
+ * not keep breaks, on one line ("A B").
  */
 export function findEditablePath(
   content: Record<string, unknown>,
   text: string,
 ): (string | number)[] | null {
+  return (
+    matchEditablePath(content, (value) => value.trim() === text) ??
+    matchEditablePath(content, (value) => squash(value) === squash(text))
+  );
+}
+
+function matchEditablePath(
+  content: Record<string, unknown>,
+  matches: (value: string) => boolean,
+): (string | number)[] | null {
   for (const [key, value] of Object.entries(content)) {
-    if (typeof value === 'string' && value.trim() && value.trim() === text) return [key];
+    if (typeof value === 'string' && value.trim() && matches(value)) return [key];
     if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
         const item = value[i];
         if (!item || typeof item !== 'object') continue;
         for (const [subKey, subValue] of Object.entries(item as Record<string, unknown>)) {
-          if (typeof subValue === 'string' && subValue.trim() && subValue.trim() === text) {
+          if (typeof subValue === 'string' && subValue.trim() && matches(subValue)) {
             return [key, i, subKey];
           }
         }

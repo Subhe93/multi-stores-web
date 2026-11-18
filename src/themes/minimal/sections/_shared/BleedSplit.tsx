@@ -34,6 +34,12 @@ const OUTER_PAD = 'max(var(--g), calc((100vw - var(--theme-container-max, 1200px
 // once the two sit side by side.
 const INNER_VARS = '[--bs-in:var(--g)] md:[--bs-in:clamp(1.5rem,4vw,4rem)]';
 
+// The text box. `overflow-wrap: anywhere` lets a word that is wider than the
+// column (a long compound word in a large heading on a phone) break instead
+// of widening the stacked single-column grid past the viewport; a word that
+// fits is never broken.
+const TEXT_BOX = 'w-full max-w-xl py-10 md:py-16 [overflow-wrap:anywhere]';
+
 const cx = (...parts: Array<string | false>) => parts.filter(Boolean).join(' ');
 
 /**
@@ -103,7 +109,7 @@ export function BleedSplit({
         }}
         data-bleed-split="contained"
       >
-        <div className="w-full max-w-xl py-10 md:py-16">{children}</div>
+        <div className={TEXT_BOX}>{children}</div>
       </section>
     );
   }
@@ -159,7 +165,7 @@ export function BleedSplit({
           className={cx('flex items-center', atEnd && 'md:order-1', GUTTER_VARS, INNER_VARS)}
           style={textPadding}
         >
-          <div className="w-full max-w-xl py-10 md:py-16">{children}</div>
+          <div className={TEXT_BOX}>{children}</div>
         </div>
       </div>
     </section>

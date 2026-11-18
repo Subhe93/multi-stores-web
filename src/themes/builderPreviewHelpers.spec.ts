@@ -13,6 +13,7 @@ import {
   safeSectionId,
   selectionCss,
 } from './builderPreviewHelpers';
+import { headingLines } from './minimal/sections/_shared/headingLines';
 import type { ProductContext, SectionInstance } from './types';
 
 function s(id: string, extra: Partial<SectionInstance> = {}): SectionInstance {
@@ -95,6 +96,28 @@ describe('inline edit lookup', () => {
     expect(findEditablePath(content, 'Hello')).toEqual(['heading']);
     expect(findEditablePath(content, 'One')).toEqual(['items', 0, 'title']);
     expect(findEditablePath(content, 'Missing')).toBeNull();
+  });
+
+  it('finds a multi-line heading from the text the page shows', () => {
+    // Stored as typed: padding around the break, an empty line, six lines.
+    const content = {
+      heading: 'Every Purchase. \n\n A Chance to Learn.',
+      long: 'l1\nl2\nl3\nl4\nl5\nl6',
+      items: [{ title: 'One\r\nTwo' }],
+    };
+    // A section that keeps the breaks shows the normalized heading.
+    expect(findEditablePath(content, headingLines(content.heading))).toEqual(['heading']);
+    expect(findEditablePath(content, headingLines(content.long))).toEqual(['long']);
+    // A section that does not keep them shows one line.
+    expect(findEditablePath(content, 'Every Purchase. A Chance to Learn.')).toEqual(['heading']);
+    expect(findEditablePath(content, 'One Two')).toEqual(['items', 0, 'title']);
+    expect(findEditablePath(content, 'Every Purchase.')).toBeNull();
+  });
+
+  it('prefers an exact match over a white-space-insensitive one', () => {
+    const content = { a: 'Hello  world', b: 'Hello world' };
+    expect(findEditablePath(content, 'Hello world')).toEqual(['b']);
+    expect(findEditablePath(content, 'Hello  world')).toEqual(['a']);
   });
 });
 

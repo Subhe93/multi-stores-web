@@ -284,6 +284,20 @@ describe('hero-split manual line breaks', () => {
   const H1_OPEN =
     '<h1 data-text-look="heading" style="font-family:var(--theme-font-heading);font-size:var(--theme-scale-h1);font-weight:var(--theme-weight-heading);letter-spacing:var(--theme-tracking-heading);color:var(--theme-colors-text)" class="leading-[1.08]">';
 
+  it('bleed: a heading of only spaces and blank lines is an empty section, not an empty panel', () => {
+    const blank = html({ settings: { variant: 'bleed' }, content: { heading: ' \n \r\n  ' } });
+    expect(blank).toBe(html({ settings: { variant: 'bleed' }, content: {} }));
+    expect(blank).not.toContain('data-bleed-split');
+  });
+
+  it('bleed: a word wider than the text column may break (with and without an image)', () => {
+    const withImage = html({ settings: BLEED, content: CONTENT });
+    const contained = html({ settings: { variant: 'bleed' }, content: CONTENT });
+    for (const out of [withImage, contained]) expect(out).toContain('[overflow-wrap:anywhere]');
+    // The framed variant is untouched.
+    expect(html({ settings: {}, content: CONTENT })).not.toContain('overflow-wrap');
+  });
+
   it('bleed: keeps the typed breaks as one text node with white-space: pre-line', () => {
     const out = html({ settings: BLEED, content: { ...CONTENT, heading: TWO } });
     expect(out).toContain(
