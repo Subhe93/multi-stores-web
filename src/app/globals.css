@@ -296,6 +296,20 @@ html, body {
   }
 }
 
+/* In the base layer (as the cursor rule above), so a numeric utility on a
+   specific element still wins; --tw-numeric-figure lets tabular-nums on the
+   same element compose to "lining-nums tabular-nums". */
+@layer base {
+  /* store-heading-figures: headings draw lining figures. Display serifs such
+     as Playfair Display default to old-style digits ("1oo"). No effect on
+     fonts whose default figures are lining or that have no lining set. */
+  .store-root :is(h1, h2, h3, h4, h5, h6, [data-text-look="heading"], [style*="--theme-font-heading"]):not([data-text-look="body"]),
+  .store-overlay :is(h1, h2, h3, h4, h5, h6, [style*="--theme-font-heading"]) {
+    --tw-numeric-figure: lining-nums;
+    font-variant-numeric: lining-nums;
+  }
+}
+
 /* Theme-aware surfaces for storefront chrome and account/cart/checkout pages
    that were originally built with hard-coded white/gray. Applying these classes
    makes their backgrounds, borders and text follow the active theme tokens
