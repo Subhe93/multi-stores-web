@@ -8,7 +8,9 @@ import { getPlatformName } from '@/lib/platform';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { preload } from 'react-dom';
-import { buildGoogleFontsHref, loadInlineFonts } from '@/lib/storeFonts';
+import { buildGoogleFontsHref, loadInlineFonts, type ArabicPreload } from '@/lib/storeFonts';
+import { isArabicScriptLocale } from '@/lib/arabicFonts';
+import { buildTypographyCss, cssSafe, type TypographyStyle } from '@/lib/storeTypography';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { StoreProviders } from '@/components/providers/StoreProviders';
@@ -35,7 +37,7 @@ import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
 import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, themeButtonCss, storePrimaryContrast } from '@/themes/tokens';
+import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, tokenArabicFamilies, arabicBodyCss, themeButtonCss, storePrimaryContrast } from '@/themes/tokens';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
@@ -71,12 +73,6 @@ interface StoreTranslation {
   description?: string;
   metaTitle?: string;
   metaDescription?: string;
-}
-
-interface TypographyStyle {
-  fontFamily?: string;
-  color?: string;
-  fontSize?: number;
 }
 
 interface Store {
@@ -151,32 +147,6 @@ interface Store {
     };
     translations?: Record<string, StoreTranslation>;
   };
-}
-
-// Escape `</style>` and backslashes when injecting user-supplied values into a <style> block.
-function cssSafe(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/<\/style/gi, '<\\/style');
-}
-
-// Quote a font family name so values like "Playfair Display" survive the CSS parser.
-function quoteFont(name: string): string {
-  const escaped = cssSafe(name).replace(/"/g, '\\"');
-  return `"${escaped}"`;
-}
-
-// Build a scoped <style> rule body for a typography element.
-function typoBlock(selector: string, style?: TypographyStyle): string {
-  if (!style) return '';
-  const parts: string[] = [];
-  if (style.fontFamily) parts.push(`font-family: ${quoteFont(style.fontFamily)}, system-ui, sans-serif;`);
-  if (style.color) parts.push(`color: ${cssSafe(style.color)};`);
-  if (typeof style.fontSize === 'number' && style.fontSize > 0) {
-    // Clamp into a sane range so a stray edit can't break layout.
-    const px = Math.max(8, Math.min(160, style.fontSize));
-    parts.push(`font-size: ${px}px;`);
-  }
-  if (!parts.length) return '';
-  return `${selector} { ${parts.join(' ')} }`;
 }
 
 // ---------- Layout props ----------
@@ -440,24 +410,20 @@ export default async function StoreLayout({
   // the page sections follow it. Empty (no element at all) when unset.
   const buttonCss = themeButtonCss(resolvedTokens);
 
-  // Scope typography under `.store-root main` so colors don't leak into the
-  // dark-bg footer (text-white) or into the dashboard. The header has its own
-  // rule because it lives outside <main>. `.store-overlay` covers the portaled
-  // cart drawer, which is visually part of the store but not a DOM descendant.
-  const typographyCss = [
-    // A section text carries data-text-look (builder-chosen tag): style it by
-    // its role, not by the tag, so changing the tag never changes the look.
-    // :where() keeps the old (0,1,2) specificity, so overrides such as
-    // .store-muted and the designer opt-out still win.
-    typoBlock('.store-root main :is(h1, h2, h3, h4, h5, h6):where(:not([data-text-look="body"])), .store-root main :where([data-text-look="heading"])', typography.heading),
-    typoBlock('.store-root main :is(p, li, span):where(:not([data-text-look="heading"])), .store-root main :where([data-text-look="body"])', typography.body),
-    typoBlock('.store-root main button', typography.button),
-    typoBlock('.store-root main a', typography.link),
-    typoBlock('.store-root header, .store-root header *', typography.header),
-    typoBlock('.store-overlay p, .store-overlay li, .store-overlay span', typography.body),
-    typoBlock('.store-overlay button', typography.button),
-    typoBlock('.store-overlay a', typography.link),
-  ].filter(Boolean).join('\n');
+  // Optional Arabic-script families (theme token), per slot. Null for a store
+  // that has not set one: then nothing below adds a string, a rule, a preload
+  // or an element.
+  const arabicFamilies = tokenArabicFamilies(resolvedTokens);
+  // The Arabic body family on <body> itself, for text outside the theme
+  // layout (mobile menu drawer, lightboxes, preview bar, consent UI).
+  const arabicCss = arabicBodyCss(resolvedTokens);
+
+  // Scoped rules of the legacy per-element typography (lib/storeTypography.ts);
+  // with an Arabic family its stacks carry that family too.
+  const typographyCss = buildTypographyCss(typography, arabicFamilies);
+
+  // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
+  const currentLang = urlLocale || primaryLocale;
 
   // Combine every font the user has selected so the browser actually loads them.
   // Theme fonts come first so they're always loaded; legacy per-element fonts
@@ -475,6 +441,15 @@ export default async function StoreLayout({
   // so a store without them builds the same URL (and the same cached fetch).
   const arabicFonts = tokenArabicFonts(resolvedTokens);
   const fontsHref = buildGoogleFontsHref([...primaryFonts, ...arabicFonts]);
+  const arabicPreload: ArabicPreload[] = [];
+  if (arabicFamilies && isArabicScriptLocale(currentLang)) {
+    if (arabicFamilies.body) {
+      arabicPreload.push({ family: arabicFamilies.body, weight: resolvedTokens.typography.fontWeight.body });
+    }
+    if (arabicFamilies.heading) {
+      arabicPreload.push({ family: arabicFamilies.heading, weight: resolvedTokens.typography.fontWeight.heading });
+    }
+  }
   // Self-hosted fonts: the Google CSS is inlined with same-origin font URLs
   // (no render-blocking request, no visitor IP sent to Google). Null keeps
   // the classic <link> below as a fallback.
@@ -487,9 +462,12 @@ export default async function StoreLayout({
         ],
         undefined,
         // Only their Arabic subset is kept, unless the family is also one of
-        // the store's main fonts. Never preloaded: the browser fetches the
-        // file only when Arabic text is rendered.
+        // the store's main fonts. On a Latin page they are not preloaded: the
+        // browser fetches the file only when Arabic text is rendered.
         arabicFonts.filter((f) => !primaryFonts.includes(f)),
+        // An Arabic-script page draws them at once: their files are requested
+        // early, like the Latin ones (body first, then heading).
+        arabicPreload,
       )
     : null;
   for (const href of inlineFonts?.preloads ?? []) {
@@ -499,9 +477,6 @@ export default async function StoreLayout({
   // Owner's store-wide custom CSS (theme customizer). Sanitized so it cannot
   // close the <style> element; the raw value is never rendered.
   const customCss = sanitizeCustomCss(store.theme_customizations?.customCss);
-
-  // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
-  const currentLang = urlLocale || primaryLocale;
 
   // Resolve translated store name and description for current locale
   const storeTranslations = store.theme?.translations || {};
@@ -619,6 +594,8 @@ export default async function StoreLayout({
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
+        {/* Arabic body family on <body>: rendered only for a store that set one. */}
+        {arabicCss && <style dangerouslySetInnerHTML={{ __html: arabicCss }} />}
         {/* Theme button radius: rendered only for a store that set one. */}
         {buttonCss && <style dangerouslySetInnerHTML={{ __html: buttonCss }} />}
         {/* Market preview host or a request the proxy flagged noindex (M6.1
@@ -642,7 +619,13 @@ export default async function StoreLayout({
             '--store-primary-contrast': primaryContrast,
             '--store-secondary': secondaryColor,
             '--store-logo-size': `${logoSize}px`,
-            ...(fontFamily ? { fontFamily: `"${fontFamily}", system-ui, sans-serif` } : {}),
+            ...(fontFamily
+              ? {
+                  fontFamily: arabicFamilies?.body
+                    ? `"${fontFamily}", "${arabicFamilies.body}", system-ui, sans-serif`
+                    : `"${fontFamily}", system-ui, sans-serif`,
+                }
+              : {}),
           } as React.CSSProperties}
         >
           {typographyCss && (

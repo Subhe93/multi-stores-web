@@ -28,3 +28,18 @@ export function arabicFontOrNull(raw: unknown): ArabicFont | null {
   const name = raw.trim();
   return ARABIC_FONT_SET.has(name) ? (name as ArabicFont) : null;
 }
+
+/**
+ * Locales written in the Arabic script. On their pages the Arabic font files
+ * are requested early (preload), like the Latin ones on every page.
+ */
+export const ARABIC_SCRIPT_LOCALES = ['ar', 'fa', 'ur', 'ps', 'ckb', 'sd', 'ug'] as const;
+
+const ARABIC_SCRIPT_LOCALE_SET: ReadonlySet<string> = new Set(ARABIC_SCRIPT_LOCALES);
+
+/** True for an Arabic-script locale tag: `ar`, `ar-SA`, `fa_IR`, any case. */
+export function isArabicScriptLocale(locale: unknown): boolean {
+  if (typeof locale !== 'string') return false;
+  const base = locale.trim().toLowerCase().split(/[-_]/)[0];
+  return ARABIC_SCRIPT_LOCALE_SET.has(base);
+}

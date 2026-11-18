@@ -100,6 +100,7 @@ interface FontFace {
   style: string;
   src: string;
   latin: boolean;
+  arabic: boolean;
 }
 
 function parseFaces(css: string): FontFace[] {
@@ -116,6 +117,8 @@ function parseFaces(css: string): FontFace[] {
       src: src.replace(/^['"]|['"]$/g, ''),
       // Google's "latin" subset starts at U+0000-00FF (latin-ext does not).
       latin: /^\s*U\+0000-00FF/i.test(range),
+      // Google's "arabic" subset starts at U+0600-06FF.
+      arabic: /^\s*U\+0600-06FF/i.test(range),
     });
   }
   return faces;
@@ -133,6 +136,50 @@ export function pickPreloadUrls(css: string, families: (string | undefined | nul
     const own = faces.filter((f) => f.family === family);
     const face = own.find((f) => f.weight === '400') ?? own[0];
     if (face && !out.includes(face.src)) out.push(face.src);
+  }
+  return out;
+}
+
+/** An Arabic-script family to preload, with the weight the page draws it in. */
+export interface ArabicPreload {
+  family: string;
+  /** Preferred weight; 400 when omitted. */
+  weight?: number;
+}
+
+// Distance of a face's `font-weight` (one value, or a "min max" range of a
+// variable font) from the wanted weight, and the weight used to break a tie.
+function weightDistance(faceWeight: string, wanted: number): { distance: number; weight: number } {
+  const nums = faceWeight.split(/\s+/).map(Number).filter((n) => Number.isFinite(n));
+  if (!nums.length) return { distance: Math.abs(400 - wanted), weight: 400 };
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  if (wanted >= min && wanted <= max) return { distance: 0, weight: wanted };
+  const nearest = wanted < min ? min : max;
+  return { distance: Math.abs(nearest - wanted), weight: nearest };
+}
+
+/**
+ * Up to two woff2 URLs of Google's "arabic" subset worth preloading on an
+ * Arabic-script page: per wanted family the normal-style face whose weight is
+ * closest to the wanted one (a tie goes to the heavier), in the given order,
+ * deduped (variable fonts share one file). Never a Latin face.
+ */
+export function pickArabicPreloadUrls(css: string, wanted: readonly ArabicPreload[]): string[] {
+  if (!wanted.length) return [];
+  const faces = parseFaces(css).filter((f) => f.arabic && f.style === 'normal');
+  const out: string[] = [];
+  for (const { family, weight = 400 } of wanted) {
+    if (!family || out.length >= 2) continue;
+    let best: { src: string; distance: number; weight: number } | null = null;
+    for (const face of faces) {
+      if (face.family !== family) continue;
+      const d = weightDistance(face.weight, weight);
+      if (!best || d.distance < best.distance || (d.distance === best.distance && d.weight > best.weight)) {
+        best = { src: face.src, ...d };
+      }
+    }
+    if (best && !out.includes(best.src)) out.push(best.src);
   }
   return out;
 }
@@ -184,13 +231,19 @@ export interface InlineFonts {
  * keeps the classic <link rel="stylesheet">.
  *
  * `arabicOnly`: families requested only as an Arabic-script fallback; their
- * other subsets are dropped (keepArabicFaces). They are never preloaded.
+ * other subsets are dropped (keepArabicFaces). They are never preloaded as
+ * a Latin font.
+ *
+ * `arabicPreload`: passed on an Arabic-script page only. The "arabic" faces
+ * of these families are added after the Latin preloads (at most two), so the
+ * files start loading with the HTML. Empty: the result is the same as before.
  */
 export async function loadInlineFonts(
   href: string,
   preloadFamilies: (string | undefined | null)[],
   fetchImpl: typeof fetch = fetch,
   arabicOnly: readonly string[] = [],
+  arabicPreload: readonly ArabicPreload[] = [],
 ): Promise<InlineFonts | null> {
   if (!isAllowedGoogleCssUrl(href)) return null;
   if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) return null;
@@ -214,7 +267,11 @@ export async function loadInlineFonts(
     const preloadable = arabicOnly.length
       ? preloadFamilies.filter((f) => !f || !arabicOnly.includes(f))
       : preloadFamilies;
-    return { css, preloads: pickPreloadUrls(css, preloadable) };
+    const preloads = pickPreloadUrls(css, preloadable);
+    for (const url of pickArabicPreloadUrls(css, arabicPreload)) {
+      if (!preloads.includes(url)) preloads.push(url);
+    }
+    return { css, preloads };
   } catch {
     return fail();
   }

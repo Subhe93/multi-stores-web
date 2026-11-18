@@ -18,7 +18,7 @@ import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
 import { resolveTheme } from '@/themes/registry';
-import { mergeTokens, storePrimaryContrast } from '@/themes/tokens';
+import { mergeTokens, storePrimaryContrast, tokenArabicFamilies } from '@/themes/tokens';
 import type { ThemeCustomizations } from '@/themes/types';
 
 interface Store {
@@ -79,6 +79,9 @@ export default async function CheckoutLayout({
   const primaryColor = store.theme?.primaryColor || resolvedTokens.colors.primary;
   const secondaryColor = store.theme?.secondaryColor || resolvedTokens.colors.secondary;
   const fontFamily = store.theme?.fontFamily;
+  // Optional Arabic-script body family (theme token): it follows the legacy
+  // store font here too. Undefined for a store that has not set one.
+  const arabicBody = tokenArabicFamilies(resolvedTokens)?.body;
   const primaryLocale = store.language_config?.primary_locale || 'en';
   const currentLang = urlLocale || primaryLocale;
 
@@ -139,7 +142,7 @@ export default async function CheckoutLayout({
             '--store-primary': primaryColor,
             '--store-primary-contrast': storePrimaryContrast(primaryColor, resolvedTokens, store.theme_customizations),
             '--store-secondary': secondaryColor,
-            ...(fontFamily ? { fontFamily } : {}),
+            ...(fontFamily ? { fontFamily: arabicBody ? `"${fontFamily}", "${arabicBody}"` : fontFamily } : {}),
           } as React.CSSProperties}
         >
           <MarketPreviewBanner />

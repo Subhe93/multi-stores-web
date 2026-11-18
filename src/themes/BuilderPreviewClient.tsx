@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
-import { mergeTokens, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
+import { arabicBodyCss, mergeTokens, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
@@ -389,6 +389,9 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
   }, [tokens.typography.fontFamily.heading, tokens.typography.fontFamily.body, arabicFontList]);
   // Theme button radius, as in the live store layout: one rule, only when set.
   const buttonCss = useMemo(() => themeButtonCss(tokens), [tokens]);
+  // Arabic body family on <body> itself (text outside the theme layout), as
+  // in the live store layout: one rule, only when set.
+  const arabicCss = useMemo(() => arabicBodyCss(tokens), [tokens]);
 
   // Only [a-zA-Z0-9_-] can appear in section ids (uuids); strip anything else
   // so the injected CSS selector cannot be broken out of.
@@ -415,6 +418,7 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
           what they're editing, and a dashed frame on its parent container. */}
       <style>{HOVER_CSS}</style>
       {buttonCss && <style data-theme-button-css="">{buttonCss}</style>}
+      {arabicCss && <style data-theme-arabic-body-css="">{arabicCss}</style>}
       {selectedCss && <style>{selectedCss}</style>}
       {safeSelectedId && (
         <SectionToolbar

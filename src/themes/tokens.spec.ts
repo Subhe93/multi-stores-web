@@ -1,10 +1,14 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   THEME_BUTTON_SELECTORS,
+  arabicBodyCss,
   buttonRadiusOrNull,
   mergeTokens,
   storePrimaryContrast,
   themeButtonCss,
+  tokenArabicFamilies,
   tokenArabicFonts,
   tokenFonts,
   tokensToCssVars,
@@ -166,6 +170,8 @@ describe('Arabic font and button radius: unset equals unchanged', () => {
       expect(JSON.stringify(out)).toBe(JSON.stringify(baselineVars));
       expect(tokenFonts(merged)).toEqual(tokenFonts(baseline));
       expect(tokenArabicFonts(merged)).toEqual([]);
+      expect(tokenArabicFamilies(merged)).toBeNull();
+      expect(arabicBodyCss(merged)).toBe('');
       expect(themeButtonCss(merged)).toBe('');
     });
   }
@@ -273,5 +279,50 @@ describe('theme button radius token', () => {
     expect(buttonRadiusOrNull('12px')).toBe('12px');
     expect(buttonRadiusOrNull('1.5px')).toBeNull();
     expect(buttonRadiusOrNull('1rem')).toBeNull();
+  });
+});
+
+// The Arabic body family on <body> itself: text outside the theme layout
+// (mobile menu drawer, lightboxes, consent UI) inherits the body font.
+describe('Arabic body font rule', () => {
+  const withArabic = (fontFamilyArabic: Record<string, unknown>) =>
+    mergeTokens(minimalTokens, { typography: { fontFamilyArabic: fontFamilyArabic as never } });
+
+  it('is one exact rule when the body slot holds a family', () => {
+    const t = withArabic({ heading: 'Noto Kufi Arabic', body: 'Noto Naskh Arabic' });
+    expect(arabicBodyCss(t)).toBe(`body{font-family:'Inter',"Noto Naskh Arabic",system-ui,-apple-system,sans-serif}`);
+    expect(tokenArabicFamilies(t)).toEqual({ heading: 'Noto Kufi Arabic', body: 'Noto Naskh Arabic' });
+    expect(arabicBodyCss(withArabic({ body: 'Cairo' }))).toBe(
+      `body{font-family:'Inter',"Cairo",system-ui,-apple-system,sans-serif}`,
+    );
+  });
+
+  it('is empty without a body family: heading only, invalid, or the Latin family itself', () => {
+    expect(arabicBodyCss(withArabic({ heading: 'Cairo' }))).toBe('');
+    expect(tokenArabicFamilies(withArabic({ heading: 'Cairo' }))).toEqual({ heading: 'Cairo' });
+    for (const body of ['', 'Comic Sans', 'x",serif}html{', minimalTokens.typography.fontFamily.body, 12, null]) {
+      expect(arabicBodyCss(withArabic({ body })), String(body)).toBe('');
+    }
+    expect(arabicBodyCss(minimalTokens)).toBe('');
+    expect(tokenArabicFamilies(minimalTokens)).toBeNull();
+  });
+
+  it('validates tokens that skipped mergeTokens', () => {
+    const raw: ThemeTokens = {
+      ...minimalTokens,
+      typography: { ...minimalTokens.typography, fontFamilyArabic: { body: 'x", serif;}body{' } },
+    };
+    expect(arabicBodyCss(raw)).toBe('');
+    expect(tokenArabicFamilies(raw)).toBeNull();
+  });
+
+  it('mirrors the body rule of globals.css (update arabicBodyCss when that rule changes)', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/app/globals.css'), 'utf8');
+    const body = /(?:^|\n)body\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const fontFamily = /font-family:\s*([^;]+);/.exec(body)?.[1]?.trim();
+    expect(fontFamily).toBe("'Inter', system-ui, -apple-system, sans-serif");
+    // The same stack with the Arabic family placed after its Latin font.
+    const rule = arabicBodyCss(withArabic({ body: 'Cairo' }));
+    expect(rule.replace('"Cairo",', '')).toBe(`body{font-family:${fontFamily!.replace(/,\s+/g, ',')}}`);
   });
 });

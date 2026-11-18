@@ -328,4 +328,31 @@ describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
     expect(root.style.getPropertyValue('--theme-radius-button')).toBe('');
     unmount();
   });
+
+  it('the Arabic body rule is rendered only while the body slot holds a family', async () => {
+    const arabicStyle = (container: HTMLElement) => container.querySelector('style[data-theme-arabic-body-css]');
+    const { container, unmount } = renderPreview();
+    expect(arabicStyle(container)).toBeNull();
+    expect(container.textContent ?? '').not.toContain('body{font-family');
+    // The heading slot alone, or an invalid body value: still no rule.
+    post({
+      type: 'UPDATE_SECTIONS',
+      sections,
+      customizations: { typography: { fontFamilyArabic: { heading: 'Noto Kufi Arabic', body: 'Comic Sans' } } },
+    });
+    await waitFor(() => expect(container.querySelector('[data-section-id="row1"]')).not.toBeNull());
+    expect(arabicStyle(container)).toBeNull();
+    post({
+      type: 'UPDATE_SECTIONS',
+      sections,
+      customizations: { typography: { fontFamilyArabic: { body: 'Noto Naskh Arabic' } } },
+    });
+    await waitFor(() => expect(arabicStyle(container)).not.toBeNull());
+    expect(arabicStyle(container)!.textContent).toBe(
+      `body{font-family:'Inter',"Noto Naskh Arabic",system-ui,-apple-system,sans-serif}`,
+    );
+    post({ type: 'UPDATE_SECTIONS', sections, customizations: {} });
+    await waitFor(() => expect(arabicStyle(container)).toBeNull());
+    unmount();
+  });
 });

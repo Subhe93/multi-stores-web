@@ -283,3 +283,27 @@ export function tokenArabicFonts(tokens: ThemeTokens): string[] {
   if (!arabic) return [];
   return Array.from(new Set([arabic.heading, arabic.body].filter((f): f is string => !!f)));
 }
+
+/**
+ * The validated Arabic-script family of each slot (the same rule as
+ * tokensToCssVars), or null for a store that has not set one.
+ */
+export function tokenArabicFamilies(tokens: ThemeTokens): Partial<FontFamilies> | null {
+  return arabicFamilies(tokens.typography.fontFamily, tokens.typography.fontFamilyArabic);
+}
+
+/**
+ * One rule that adds the Arabic body family to the font of <body> itself, or
+ * '' without one (then no <style> is rendered at all). Text outside the theme
+ * layout (the mobile menu drawer, lightboxes, the preview bar, the consent
+ * banner and dialog) inherits the body font, not `--theme-font-body`.
+ *
+ * The stack mirrors the body rule of globals.css with the family placed
+ * after its Latin font. The family comes from the allow-list, so it is safe
+ * inside CSS.
+ */
+export function arabicBodyCss(tokens: ThemeTokens): string {
+  const family = tokenArabicFamilies(tokens)?.body;
+  if (!family) return '';
+  return `body{font-family:'Inter',"${family}",system-ui,-apple-system,sans-serif}`;
+}
