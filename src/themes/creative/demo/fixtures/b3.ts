@@ -5,7 +5,8 @@
 
 import type { DemoSection } from './types';
 
-const PAD = { top: 'xl', bottom: 'xl' };
+// Section padding is stored per breakpoint.
+const PAD = { desktop: { top: 'xl', bottom: 'xl' }, mobile: { top: 'lg', bottom: 'lg' } };
 
 export const FIXTURES: DemoSection[] = [
   // Centred wave, cards alternating, travelling artwork, dark scene with

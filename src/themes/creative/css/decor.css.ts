@@ -9,9 +9,10 @@ import { G, minifyCss } from './base.css';
 export const PARTICLE_COUNT = 14;
 
 // Scene on a section wrapper. The wrapper keeps its width: the colour bleeds
-// to the viewport edges through a spread shadow that the clip cuts above and
-// below (no layout change). A nested section (inside a column) does not
-// bleed: it only gets the `cx-scene-wrap` class.
+// to the viewport edges through a border image that is outset on the inline
+// axis only (paint only: no layout change, nothing clipped, no seam at the
+// box edge; html and body clip the horizontal overflow). A nested section
+// (inside a column) does not bleed: it only gets the `cx-scene-wrap` class.
 //
 // Typography: a store with literal heading / body colours (lib/
 // storeTypography.ts, specificity 0,1,2) would keep them inside the scene.
@@ -20,7 +21,7 @@ export const PARTICLE_COUNT = 14;
 // read the re-scoped theme variables), text that is white on a photo or an
 // overlay, and status colours.
 const SCENE_WRAP = `
-.cx-scene-bleed{box-shadow:0 0 0 100vmax var(--cx-bg);clip-path:inset(0 -100vmax)}
+.cx-scene-bleed{border-image:conic-gradient(var(--cx-bg) 0 0) fill 0/0/0 100vmax}
 .store-root .cx-scene-wrap :where(h1,h2,h3,h4,h5,h6,p,li,span):where(:not([style*="color"],[class^="cx-"],[class*=" cx-"],[class*="text-white"],[class*="text-red-"],[class*="text-green-"],[class*="text-amber-"],[class*="text-blue-"],.store-muted)){color:inherit}
 `;
 
@@ -95,7 +96,7 @@ ${G} .cx-bd[data-cx-bd="particles"]:not([data-cx-still])>i{animation:cx-bd-rise 
 // the compositor only).
 const PAUSE = `
 ${G} [data-cx-section][data-cx-watch]:not([data-cx-inview]) .cx-bd::before,${G} [data-cx-section][data-cx-watch]:not([data-cx-inview]) .cx-bd::after,${G} [data-cx-section][data-cx-watch]:not([data-cx-inview]) .cx-bd>i{animation-play-state:paused}
-@media print{.cx-bd{display:none}.cx-scene-bleed{box-shadow:none;clip-path:none}}
+@media print{.cx-bd{display:none}.cx-scene-bleed{border-image:none}}
 `;
 
 export const DECOR_CSS: string = minifyCss(SCENE_WRAP + HOST + DOTS + GLOW + PARTICLES + PAUSE);

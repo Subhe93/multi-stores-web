@@ -161,8 +161,8 @@ describe('decor stylesheet', () => {
   });
 
   it('the scene colour bleeds without changing the layout', () => {
-    expect(DECOR_CSS).toContain('.cx-scene-bleed{box-shadow:0 0 0 100vmax var(--cx-bg);clip-path:inset(0 -100vmax)}');
-    expect(DECOR_CSS).not.toMatch(/\.cx-scene-(?:wrap|bleed)\{[^}]*(?:width|inline-size|margin)/);
+    expect(DECOR_CSS).toContain('.cx-scene-bleed{border-image:conic-gradient(var(--cx-bg) 0 0) fill 0/0/0 100vmax}');
+    expect(DECOR_CSS).not.toMatch(/\.cx-scene-(?:wrap|bleed)\{[^}]*(?:width|inline-size|margin|padding|position)/);
   });
 });
 
