@@ -1,14 +1,21 @@
-// Page curtain between brand pages (contract 4.11). Optional store switch,
-// default off; mounted by runtime/store.ts on brand pages only.
+// Page curtain between brand pages. Optional store switch, default off;
+// mounted by runtime/store.ts on brand pages only.
 //
-// A client-only fixed panel appended to <body>. A capture-phase click
+// One flat panel in the theme background (with the store logo, small, when
+// there is one), client-only and appended to <body>. A capture-phase click
 // listener recognises a plain same-origin link to another brand page and
 // lets the panel cover the page IN PARALLEL with the navigation: the click
 // is never delayed and never prevented, so links, prefetching and the
-// router behave exactly as without the curtain. The panel lifts when the
-// runtime reports the new route (`arrived()`), not before 450 ms, and in any
-// case after 2.5 s. It never shows on first load or on back / forward
-// (neither is a link click).
+// router behave exactly as without the curtain.
+//
+// Timing: the panel waits 120 ms before it moves, so a page that is ready
+// at once (prefetched, cached) changes without any curtain; it then closes
+// in 0.5 s and opens in 0.6 s on one in-out curve. It lifts when the runtime
+// reports the new route (`arrived()`), never before it has fully closed, and
+// in any case after 2.5 s. It never shows on first load or on back / forward
+// (neither is a link click), never takes focus and never traps it.
+
+import { OVERLAY_SELECTOR } from '../constants';
 
 export interface CurtainOptions {
   push(href: string): void;
@@ -24,19 +31,21 @@ export interface CurtainHandle {
   destroy(): void;
 }
 
-const COVER_MS = 450;
-const LIFT_MS = 700;
-const MIN_COVERED_MS = 450;
+/** A destination that renders within this time gets no curtain at all. */
+const ARM_MS = 120;
+/** The panel has barely moved this long after it started: it may still back out unseen. */
+const BACK_OUT_MS = 80;
+const COVER_MS = 500;
+const LIFT_MS = 600;
 const HARD_CAP_MS = 2500;
-const EASE = 'cubic-bezier(.76,0,.24,1)';
-/** Links inside these never start the curtain (dialogs, drawers, the mobile menu). */
-const INSIDE_OVERLAY = '[role="dialog"], [aria-modal="true"], .store-overlay';
+/** --cx-ease-io of the motion stylesheet. */
+const EASE = 'cubic-bezier(.65,0,.35,1)';
 
 const BELOW = 'translateY(100%)';
 const COVERING = 'translateY(0)';
 const ABOVE = 'translateY(-100%)';
 
-type Phase = 'idle' | 'covering' | 'lifting';
+type Phase = 'idle' | 'armed' | 'covering' | 'lifting';
 
 /** The destination of a click that should run the curtain, else null. */
 function destinationOf(e: MouseEvent, isBrandPath: (pathname: string) => boolean): URL | null {
@@ -50,7 +59,7 @@ function destinationOf(e: MouseEvent, isBrandPath: (pathname: string) => boolean
   if (anchor.hasAttribute('download') || anchor.closest('[data-no-transition]')) return null;
   // A link that acts as a button is handled by its own script.
   if (anchor.getAttribute('role') === 'button') return null;
-  if (anchor.closest(INSIDE_OVERLAY)) return null;
+  if (anchor.closest(OVERLAY_SELECTOR)) return null;
   let url: URL;
   try {
     url = new URL(anchor.href, window.location.href);
@@ -99,12 +108,9 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
     logo.alt = '';
     logo.decoding = 'async';
     // Never mirrored, whatever the page direction.
-    Object.assign(logo.style, { blockSize: 'clamp(40px, 6vh, 56px)', inlineSize: 'auto', maxInlineSize: '60vw' });
+    Object.assign(logo.style, { blockSize: 'clamp(32px, 5vh, 48px)', inlineSize: 'auto', maxInlineSize: '50vw' });
     panel.appendChild(logo);
   }
-  const hairline = document.createElement('span');
-  Object.assign(hairline.style, { display: 'block', inlineSize: '72px', blockSize: '1px', background: 'currentColor', opacity: '0.5' });
-  panel.appendChild(hairline);
 
   // Screen readers get one polite line while the page is covered.
   const status = document.createElement('div');
@@ -125,6 +131,7 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
   let phase: Phase = 'idle';
   let coveredAt = 0;
   let animation: Animation | null = null;
+  let armTimer: ReturnType<typeof setTimeout> | undefined;
   let liftTimer: ReturnType<typeof setTimeout> | undefined;
   let capTimer: ReturnType<typeof setTimeout> | undefined;
   let busyMain: HTMLElement | null = null;
@@ -147,6 +154,7 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
   };
 
   const reset = () => {
+    clearTimeout(armTimer);
     clearTimeout(liftTimer);
     clearTimeout(capTimer);
     animation?.cancel();
@@ -175,6 +183,7 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
 
   const cover = () => {
     if (phase === 'covering') return;
+    clearTimeout(armTimer);
     clearTimeout(liftTimer);
     clearTimeout(capTimer);
     phase = 'covering';
@@ -190,8 +199,13 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
 
   const onClick = (e: MouseEvent) => {
     if (!destinationOf(e, opts.isBrandPath)) return;
-    // No preventDefault: the navigation starts now, the panel covers meanwhile.
-    cover();
+    // No preventDefault: the navigation starts now. The panel follows only
+    // if the destination is not there within ARM_MS.
+    if (phase === 'armed' || phase === 'covering') return;
+    clearTimeout(armTimer);
+    if (phase === 'lifting') reset();
+    phase = 'armed';
+    armTimer = setTimeout(cover, ARM_MS);
   };
 
   // A page restored from the back/forward cache must not come back covered.
@@ -204,8 +218,18 @@ export function mountCurtain(opts: CurtainOptions): CurtainHandle {
 
   return {
     arrived() {
+      // Ready before the panel moved, or while it is still out of sight.
+      if (phase === 'armed') {
+        reset();
+        return;
+      }
       if (phase !== 'covering') return;
-      const wait = Math.max(0, MIN_COVERED_MS - (performance.now() - coveredAt));
+      const covered = performance.now() - coveredAt;
+      if (covered < BACK_OUT_MS) {
+        reset();
+        return;
+      }
+      const wait = Math.max(0, COVER_MS - covered);
       clearTimeout(liftTimer);
       liftTimer = setTimeout(lift, wait);
     },

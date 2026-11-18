@@ -44,7 +44,8 @@ export function Cx() {
 }
 
 /**
- * Store-level runtime (smooth scrolling, magnetic buttons, page curtain).
+ * Store-level runtime (smooth scrolling, magnetic buttons, page curtain,
+ * scroll progress bar, cursor dot).
  * Mounted by the store layout only when the store switched creative motion
  * on. Renders nothing; everything is decided in runtime/store per route.
  */
@@ -64,7 +65,7 @@ export function CreativeBoot({
   const segment = segmentOverride === undefined ? layoutSegment : segmentOverride;
   const pathname = usePathname();
   const router = useRouter();
-  const { smooth, magnetic, curtain } = options;
+  const { smooth, magnetic, curtain, progress, cursor } = options;
 
   useLayoutEffect(() => {
     setMotionFlag();
@@ -76,7 +77,7 @@ export function CreativeBoot({
       .then((m) => {
         if (cancelled) return;
         m.sync({
-          options: { smooth, magnetic, curtain },
+          options: { smooth, magnetic, curtain, progress: !!progress, cursor: !!cursor },
           segment,
           pathname: pathname || '/',
           curtainLabel,
@@ -89,7 +90,7 @@ export function CreativeBoot({
     return () => {
       cancelled = true;
     };
-  }, [smooth, magnetic, curtain, segment, pathname, curtainLabel, logoUrl, router]);
+  }, [smooth, magnetic, curtain, progress, cursor, segment, pathname, curtainLabel, logoUrl, router]);
 
   useEffect(
     () => () => {

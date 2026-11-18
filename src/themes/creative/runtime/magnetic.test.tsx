@@ -31,6 +31,15 @@ function mount() {
       <section data-section-key="add-to-cart"><a id="in-cart" data-cx-magnetic>Add</a></section>
       <form><a id="in-form" data-cx-magnetic>Send</a></form>
       <div role="dialog"><a id="in-dialog" data-cx-magnetic>Close</a></div>
+      <div class="store-overlay"><a id="in-drawer" data-cx-magnetic>Menu link</a></div>
+      <div aria-modal="true"><a id="in-modal" data-cx-magnetic>Ok</a></div>
+      <section data-section-key="featured-products" data-cx-tier="fast"><a id="in-fast" data-cx-magnetic>Quick add</a></section>
+      <section data-section-key="call-to-action">
+        <a id="to-cart" href="/sv/cart" data-cx-magnetic>Cart</a>
+        <a id="to-checkout" href="/checkout" data-cx-magnetic>Checkout</a>
+        <button id="submit" type="submit" data-cx-magnetic>Pay</button>
+        <label><span id="in-label" data-cx-magnetic>Choose</span></label>
+      </section>
     </main>
     <footer><a id="in-footer" data-cx-magnetic>Top</a></footer>`;
   document.body.appendChild(root);
@@ -113,10 +122,26 @@ describe('mountMagnetic', () => {
     off();
   });
 
-  it('never pulls buy controls, forms, the store chrome, dialogs, disabled or plain elements', () => {
+  it('never pulls buy controls, form controls, the store chrome, drawers, dialogs, disabled or plain elements', () => {
     const { root, el } = mount();
     const off = mountMagnetic(root);
-    for (const id of ['in-header', 'in-footer', 'in-product', 'in-cart', 'in-form', 'in-dialog', 'off', 'plain']) {
+    for (const id of [
+      'in-header',
+      'in-footer',
+      'in-product',
+      'in-cart',
+      'in-form',
+      'in-dialog',
+      'in-drawer',
+      'in-modal',
+      'in-fast',
+      'to-cart',
+      'to-checkout',
+      'submit',
+      'in-label',
+      'off',
+      'plain',
+    ]) {
       pointer('pointerover', el(id), 260, 140);
       expect(frames).toHaveLength(0);
       expect(pull(el(id))).toEqual(['', '']);

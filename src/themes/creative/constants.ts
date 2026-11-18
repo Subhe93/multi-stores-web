@@ -72,6 +72,15 @@ export function isBrandPath(pathname: string): boolean {
 
 /** Buttons that take the magnetic pull (set by PillButton). */
 export const MAGNETIC_SELECTOR = '[data-cx-magnetic]';
-/** Never magnetic: buy controls, forms, the store chrome and dialogs. */
+/** Dialogs, drawers and the mobile menu: page-level effects stay out of them. */
+export const OVERLAY_SELECTOR = '[role="dialog"], [aria-modal="true"], .store-overlay';
+/**
+ * Never magnetic: buy controls (product blocks, every fast-tier surface,
+ * links to the cart and the checkout, submit buttons), form controls, the
+ * store chrome and everything inside a drawer or dialog.
+ */
 export const MAGNETIC_EXCLUDE =
-  '[data-section-key^="product"], [data-section-key="add-to-cart"], form, header, footer, [role="dialog"]';
+  '[data-section-key^="product"], [data-section-key="add-to-cart"], [data-cx-tier="fast"], ' +
+  'form, label, input, select, textarea, [type="submit"], [contenteditable], ' +
+  'a[href*="/cart"], a[href*="/checkout"], header, footer, ' +
+  OVERLAY_SELECTOR;

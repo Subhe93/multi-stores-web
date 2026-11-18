@@ -1,6 +1,7 @@
 // Store switch of the creative engine: theme_customizations.motion.creative.
 // Absent = off. Only `enabled: true` turns it on; unset options mean "on"
-// (smooth scrolling, magnetic buttons) or "off" (page transition).
+// (smooth scrolling, magnetic buttons) or "off" (page transition, scroll
+// progress bar, cursor dot).
 
 import type { ThemeCustomizations } from '../types';
 
@@ -8,6 +9,10 @@ export interface CreativeOptions {
   smooth: boolean;
   magnetic: boolean;
   curtain: boolean;
+  /** A 2 px reading-progress bar at the top of brand and shop pages. */
+  progress: boolean;
+  /** A small dot that follows a fine pointer on brand pages. */
+  cursor: boolean;
 }
 
 /** The stored switch as options; null unless `enabled === true`. */
@@ -16,9 +21,15 @@ export function readCreative(c?: ThemeCustomizations | null): CreativeOptions | 
   if (!motion || typeof motion !== 'object' || Array.isArray(motion)) return null;
   const creative: unknown = (motion as { creative?: unknown }).creative;
   if (!creative || typeof creative !== 'object' || Array.isArray(creative)) return null;
-  const { enabled, smooth, magnetic, transition } = creative as Record<string, unknown>;
+  const { enabled, smooth, magnetic, transition, progress, cursor } = creative as Record<string, unknown>;
   if (enabled !== true) return null;
-  return { smooth: smooth !== 'off', magnetic: magnetic !== 'off', curtain: transition === 'curtain' };
+  return {
+    smooth: smooth !== 'off',
+    magnetic: magnetic !== 'off',
+    curtain: transition === 'curtain',
+    progress: progress === 'bar',
+    cursor: cursor === 'dot',
+  };
 }
 
 /** The store switched its motion style on (sections then get the `motion` prop). */
@@ -37,6 +48,8 @@ export function creativeAttrs(c?: ThemeCustomizations | null): Record<string, st
   if (!options.smooth) attrs['data-creative-smooth'] = 'off';
   if (!options.magnetic) attrs['data-creative-magnetic'] = 'off';
   if (options.curtain) attrs['data-creative-transition'] = 'curtain';
+  if (options.progress) attrs['data-creative-progress'] = 'bar';
+  if (options.cursor) attrs['data-creative-cursor'] = 'dot';
   return attrs;
 }
 

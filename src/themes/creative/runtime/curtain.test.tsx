@@ -64,12 +64,22 @@ describe('mountCurtain', () => {
     expect(logo.alt).toBe('');
     expect(status()?.textContent).toBe('');
     expect(main.hasAttribute('aria-busy')).toBe(false);
+    // One flat panel: the optional logo and nothing else.
+    expect(el.children).toHaveLength(1);
+    handle?.destroy();
+    mount();
+    expect(panel()?.children).toHaveLength(0);
+    expect(panel()?.querySelector('a, button, [tabindex]')).toBeNull();
   });
 
   it('covers on a plain link to another brand page without touching the click', () => {
     const opts = mount();
     const event = click(link('/our-story'));
     // The listener runs in the capture phase and never prevents the navigation.
+    // The panel waits 120 ms before it moves.
+    expect(covering()).toBe(false);
+    expect(status()?.textContent).toBe('');
+    vi.advanceTimersByTime(120);
     expect(covering()).toBe(true);
     expect(panel()?.style.pointerEvents).toBe('auto');
     expect(panel()?.style.transform).toBe('translateY(0)');
@@ -82,10 +92,36 @@ describe('mountCurtain', () => {
     expect(click(link('/en/landing')).defaultPrevented).toBe(false);
   });
 
-  it('lifts after arrived(), not before 450 ms, and ends hidden and inert', () => {
+  it('a destination that is ready within 120 ms gets no curtain at all', () => {
     mount();
     click(link('/our-story'));
     vi.advanceTimersByTime(100);
+    handle?.arrived();
+    vi.advanceTimersByTime(3000);
+    expect(covering()).toBe(false);
+    expect(status()?.textContent).toBe('');
+    expect(main.hasAttribute('aria-busy')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('a destination that arrives while the panel has barely moved backs it out unseen', () => {
+    mount();
+    click(link('/our-story'));
+    vi.advanceTimersByTime(120);
+    expect(covering()).toBe(true);
+    vi.advanceTimersByTime(50);
+    handle?.arrived();
+    expect(covering()).toBe(false);
+    expect(panel()?.style.transform).toBe('translateY(100%)');
+    expect(main.hasAttribute('aria-busy')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('lifts after arrived(), not before it has closed (0.5 s), and ends hidden and inert', () => {
+    mount();
+    click(link('/our-story'));
+    vi.advanceTimersByTime(120);
+    vi.advanceTimersByTime(150);
     handle?.arrived();
     vi.advanceTimersByTime(300);
     expect(covering()).toBe(true);
@@ -101,11 +137,37 @@ describe('mountCurtain', () => {
   it('a slow navigation lifts at the 2.5 s cap', () => {
     mount();
     click(link('/our-story'));
-    vi.advanceTimersByTime(2400);
+    vi.advanceTimersByTime(120 + 2400);
     expect(covering()).toBe(true);
     vi.advanceTimersByTime(150);
     expect(covering()).toBe(false);
     expect(main.hasAttribute('aria-busy')).toBe(false);
+  });
+
+  it('a second click while armed or covering starts nothing new', () => {
+    mount();
+    const a = link('/our-story');
+    click(a);
+    click(a);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(120);
+    click(a);
+    // Only the 2.5 s cap is pending.
+    expect(vi.getTimerCount()).toBe(1);
+    expect(covering()).toBe(true);
+  });
+
+  it('never takes or traps focus', () => {
+    mount({ logoUrl: '/uploads/logo.svg' });
+    const a = link('/our-story');
+    a.focus();
+    click(a);
+    vi.advanceTimersByTime(300);
+    expect(covering()).toBe(true);
+    expect(document.activeElement).toBe(a);
+    expect(panel()?.getAttribute('aria-hidden')).toBe('true');
+    expect(panel()?.hasAttribute('tabindex')).toBe(false);
+    expect(status()?.getAttribute('aria-live')).toBe('polite');
   });
 
   it('arrived() without a covered click does nothing (first load, back / forward)', () => {
@@ -124,6 +186,7 @@ describe('mountCurtain', () => {
     click(a, { shiftKey: true });
     click(a, { altKey: true });
     click(a, { button: 1 });
+    vi.advanceTimersByTime(200);
     expect(covering()).toBe(false);
   });
 
@@ -132,6 +195,7 @@ describe('mountCurtain', () => {
     for (const href of ['/products/tumbler', '/collections/home', '/cart', '/checkout', '/account', '/sv/products', '/legal/terms']) {
       click(link(href));
     }
+    vi.advanceTimersByTime(200);
     expect(covering()).toBe(false);
   });
 
@@ -140,9 +204,11 @@ describe('mountCurtain', () => {
     click(link('#story'));
     click(link('/about?tab=1#team'));
     click(link('/about?tab=1'));
+    vi.advanceTimersByTime(200);
     expect(covering()).toBe(false);
     // Another query string on the same path is a navigation.
     click(link('/about?tab=2'));
+    vi.advanceTimersByTime(120);
     expect(covering()).toBe(true);
   });
 
@@ -157,6 +223,7 @@ describe('mountCurtain', () => {
     const button = document.createElement('button');
     main.appendChild(button);
     click(button);
+    vi.advanceTimersByTime(200);
     expect(covering()).toBe(false);
   });
 
@@ -168,12 +235,14 @@ describe('mountCurtain', () => {
       main.appendChild(holder);
       click(link('/our-story', {}, holder.firstElementChild as Element));
     }
+    vi.advanceTimersByTime(200);
     expect(covering()).toBe(false);
   });
 
   it('a page restored from the back/forward cache comes back uncovered', () => {
     mount();
     click(link('/our-story'));
+    vi.advanceTimersByTime(120);
     expect(covering()).toBe(true);
     const event = new Event('pageshow');
     Object.defineProperty(event, 'persisted', { value: true });
@@ -190,6 +259,7 @@ describe('mountCurtain', () => {
     const winRemoved = vi.spyOn(window, 'removeEventListener');
     mount();
     click(link('/our-story'));
+    vi.advanceTimersByTime(120);
     handle?.destroy();
     handle = null;
     expect(panel()).toBeNull();
@@ -200,5 +270,14 @@ describe('mountCurtain', () => {
     expect(vi.getTimerCount()).toBe(0);
     click(link('/our-story'));
     expect(panel()).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('destroy while armed cancels the pending cover', () => {
+    mount();
+    click(link('/our-story'));
+    handle?.destroy();
+    handle = null;
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

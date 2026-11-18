@@ -29,7 +29,13 @@ describe('creative store switch', () => {
   );
 
   it('enabled alone: smooth and magnetic on, no curtain, one attribute', () => {
-    expect(readCreative(c({ enabled: true }))).toEqual({ smooth: true, magnetic: true, curtain: false });
+    expect(readCreative(c({ enabled: true }))).toEqual({
+      smooth: true,
+      magnetic: true,
+      curtain: false,
+      progress: false,
+      cursor: false,
+    });
     expect(creativeAttrs(c({ enabled: true }))).toEqual({ 'data-creative': '' });
   });
 
@@ -50,7 +56,34 @@ describe('creative store switch', () => {
       smooth: false,
       magnetic: false,
       curtain: true,
+      progress: false,
+      cursor: false,
     });
+  });
+
+  it('scroll progress bar and cursor dot: off unless stored, one attribute each', () => {
+    expect(creativeAttrs(c({ enabled: true, progress: 'bar' }))).toEqual({
+      'data-creative': '',
+      'data-creative-progress': 'bar',
+    });
+    expect(creativeAttrs(c({ enabled: true, cursor: 'dot' }))).toEqual({
+      'data-creative': '',
+      'data-creative-cursor': 'dot',
+    });
+    expect(readCreative(c({ enabled: true, progress: 'bar', cursor: 'dot' }))).toEqual({
+      smooth: true,
+      magnetic: true,
+      curtain: false,
+      progress: true,
+      cursor: true,
+    });
+    // Anything but the two stored values reads as off.
+    expect(readCreative(c({ enabled: true, progress: true, cursor: 'ring' }))).toMatchObject({
+      progress: false,
+      cursor: false,
+    });
+    // Without the switch the options alone do nothing.
+    expect(creativeAttrs(c({ progress: 'bar', cursor: 'dot' }))).toEqual({});
   });
 
   it('unknown option values keep the defaults', () => {
@@ -58,6 +91,8 @@ describe('creative store switch', () => {
       smooth: true,
       magnetic: true,
       curtain: false,
+      progress: false,
+      cursor: false,
     });
   });
 

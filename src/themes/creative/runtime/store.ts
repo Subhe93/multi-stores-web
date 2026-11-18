@@ -4,7 +4,9 @@
 //   the sections the renderer marked. Observers only, no frame loop.
 // - Brand and shop pages (home, content pages, product lists, product
 //   pages): smooth scrolling (Lenis) on a desktop with a fine pointer.
-// - Brand pages only: magnetic buttons and the optional page curtain.
+// - Brand and shop pages: the optional scroll progress bar (passive).
+// - Brand pages only: magnetic buttons, the optional page curtain and the
+//   optional cursor dot.
 // - Flow pages (cart, checkout, account, sign-in, legal): nothing but the
 //   scan. No frame loop ever runs there.
 
@@ -43,8 +45,6 @@ let stopBase: Cleanup | null = null;
 // History navigation (back / forward): the browser restores the position.
 let popped = false;
 
-// ── Lenis ───────────────────────────────────────────────────────────────
-
 // ── Section scan ───────────────────────────────────────────────────────
 
 let stopScan: Cleanup | null = null;
@@ -74,6 +74,8 @@ function endSections(): void {
   stopScan = null;
 }
 
+// ── Lenis ───────────────────────────────────────────────────────────────
+
 let lenis: LenisInstance | null = null;
 let lenisTicket = 0;
 let lenisLoading = false;
@@ -90,7 +92,11 @@ function bindLoop(): void {
     // One loop only: with GSAP on the page Lenis rides its ticker, so
     // ScrollTrigger reads the position Lenis just wrote.
     const onScroll = () => g.ScrollTrigger.update();
-    const tick = (time: number) => instance.raf(time * 1000);
+    // Always the page clock, never GSAP's own (seconds since GSAP started):
+    // the loop moves onto this ticker while the page may be gliding, and a
+    // change of clock would hand the running glide a negative time step and
+    // freeze it for as long as the two clocks differ.
+    const tick = () => instance.raf(performance.now());
     instance.on('scroll', onScroll);
     g.gsap.ticker.add(tick);
     g.gsap.ticker.lagSmoothing(0);
@@ -103,8 +109,8 @@ function bindLoop(): void {
     return;
   }
   let frame = 0;
-  const loop = (time: number) => {
-    instance.raf(time);
+  const loop = () => {
+    instance.raf(performance.now());
     frame = requestAnimationFrame(loop);
   };
   const onVisibility = () => {
@@ -135,27 +141,42 @@ function sameDocumentHash(anchor: HTMLAnchorElement): string | null {
 }
 
 function mountLenisExtras(instance: LenisInstance): Cleanup {
-  // Scroll locks: the page must not glide under an open drawer or dialog.
+  // A same-page link clicked inside an open drawer: glide once it closed.
+  let pendingAnchor: HTMLElement | null = null;
+  const glideTo = (target: HTMLElement) => {
+    if (target.isConnected) instance.scrollTo(target, { offset: -headerHeight(), force: true });
+  };
+
+  // Scroll locks (cart drawer, mobile menu, lightbox, dialogs): the page
+  // must not glide under them, and resumes exactly where it was.
   let unlockFrame = 0;
   const stopLock = subscribeScrollLock((locked) => {
     cancelAnimationFrame(unlockFrame);
     if (locked) {
       instance.stop();
     } else {
+      // One frame later: lib/scrollLock.ts restores the position on release.
       unlockFrame = requestAnimationFrame(() => {
         instance.resize();
         instance.scrollTo(window.scrollY, { immediate: true, force: true });
         instance.start();
+        const target = pendingAnchor;
+        pendingAnchor = null;
+        if (target) glideTo(target);
       });
     }
   });
   if (isScrollLocked()) instance.stop();
 
-  // Same-page anchors: glide there, below the sticky header.
+  // Same-page anchors: glide there, below the sticky header. Capture phase
+  // and preventDefault only: the link's own handlers (a menu that closes)
+  // still run, the browser and the router skip their instant jump.
   const onClick = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const anchor = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
-    if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+    if (!anchor || anchor.hasAttribute('download')) return;
+    const frame = anchor.getAttribute('target');
+    if (frame && frame !== '_self') return;
     const hash = sameDocumentHash(anchor);
     if (!hash) return;
     let target: HTMLElement | null = null;
@@ -166,17 +187,41 @@ function mountLenisExtras(instance: LenisInstance): Cleanup {
     }
     if (!target) return;
     e.preventDefault();
-    instance.scrollTo(target, { offset: -headerHeight(), force: true });
-    window.history.replaceState(window.history.state, '', hash);
-    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
-    target.focus({ preventScroll: true });
+    if (window.location.hash !== hash) window.history.replaceState(window.history.state, '', hash);
+    // Inside an open drawer or menu the glide waits for the unlock.
+    if (isScrollLocked()) pendingAnchor = target;
+    else glideTo(target);
+    // A pointer click keeps its focus. Keyboard activation (detail 0) moves
+    // on to the target like the browser's own fragment navigation does.
+    if (e.detail === 0) {
+      const el = target;
+      if (!el.hasAttribute('tabindex')) {
+        el.setAttribute('tabindex', '-1');
+        el.addEventListener('blur', () => el.removeAttribute('tabindex'), { once: true });
+      }
+      el.focus({ preventScroll: true });
+    }
   };
-  document.addEventListener('click', onClick);
+  document.addEventListener('click', onClick, true);
+
+  // The address bar or back / forward moved between fragments of this page:
+  // the browser placed the page, a running glide must not pull it back.
+  let hashFrame = 0;
+  const onHashChange = () => {
+    cancelAnimationFrame(hashFrame);
+    hashFrame = requestAnimationFrame(() => {
+      if (!isScrollLocked()) instance.scrollTo(window.scrollY, { immediate: true, force: true });
+    });
+  };
+  window.addEventListener('hashchange', onHashChange);
 
   return () => {
     cancelAnimationFrame(unlockFrame);
+    cancelAnimationFrame(hashFrame);
+    pendingAnchor = null;
     stopLock();
-    document.removeEventListener('click', onClick);
+    document.removeEventListener('click', onClick, true);
+    window.removeEventListener('hashchange', onHashChange);
   };
 }
 
@@ -280,6 +325,44 @@ function endCurtain(): void {
   curtain = null;
 }
 
+// ── Scroll progress bar and cursor dot (separate chunks) ───────────────
+
+/** A feature that lives in its own chunk and mounts on the store root. */
+function lazyFeature(load: () => Promise<(root: HTMLElement) => Cleanup>) {
+  let stop: Cleanup | null = null;
+  let ticket = 0;
+  let loading = false;
+  return {
+    start(): void {
+      if (stop || loading) return;
+      loading = true;
+      const mine = ++ticket;
+      load()
+        .then((mount) => {
+          loading = false;
+          if (mine !== ticket) {
+            // Ended while the chunk was in flight; maybe wanted again since.
+            if (state) sync(state);
+            return;
+          }
+          const root = document.querySelector<HTMLElement>('.store-root');
+          if (root) stop = mount(root);
+        })
+        .catch(() => {
+          loading = false;
+        });
+    },
+    end(): void {
+      ticket += 1;
+      stop?.();
+      stop = null;
+    },
+  };
+}
+
+const progress = lazyFeature(() => import('./progress').then((m) => m.mountProgress));
+const cursor = lazyFeature(() => import('./cursor').then((m) => m.mountCursor));
+
 // ── Lifecycle ───────────────────────────────────────────────────────────
 
 function startBase(): void {
@@ -344,7 +427,8 @@ export function sync(next: StoreRuntimeState): void {
   startBase();
 
   // Reveals also run under the calm profile (softened in CSS).
-  if (motionAllowed() && !isBuilder()) startSections();
+  const allowed = motionAllowed() && !isBuilder();
+  if (allowed) startSections();
   else endSections();
 
   const active = motionAllowed() && !isCalm() && !isBuilder();
@@ -361,6 +445,13 @@ export function sync(next: StoreRuntimeState): void {
   if (brand && next.options.curtain) startCurtain();
   else endCurtain();
 
+  // The bar only mirrors the scroll position: it stays under the calm profile.
+  if (allowed && scope !== 'flow' && next.options.progress) progress.start();
+  else progress.end();
+
+  if (brand && next.options.cursor && fine) cursor.start();
+  else cursor.end();
+
   if (previous && (previous.pathname !== next.pathname || previous.segment !== next.segment)) onNavigate();
 }
 
@@ -370,6 +461,8 @@ export function destroy(): void {
   stopLenis();
   endMagnetic();
   endCurtain();
+  progress.end();
+  cursor.end();
   stopBase?.();
   state = null;
   popped = false;
