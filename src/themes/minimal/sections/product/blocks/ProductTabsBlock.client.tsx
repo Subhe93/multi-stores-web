@@ -14,6 +14,7 @@ import { useOptionalProductPageState } from '@/components/product/state/ProductP
 import type { ProductData } from '@/components/product/ProductDetailClient';
 import type { SectionRenderProps } from '../../../../types';
 import { blockLabel, ProductBlockPlaceholder, ProductBlockScope } from './b2Shared';
+import { pd, useProductMotion } from '@/components/product/productMotion';
 
 export type ProductBlockTabId = 'description' | 'specifications' | 'faq' | 'shipping' | 'returns';
 
@@ -60,6 +61,10 @@ export function ProductTabsBlock({ settings, content, locale, product: productCo
   const t = useTranslations();
   const state = useOptionalProductPageState();
   const [active, setActive] = useState<ProductBlockTabId | null>(null);
+  // Store motion style: only a tab the shopper picked animates, never the
+  // one shown on load.
+  const m = useProductMotion();
+  const tabMotion = active !== null ? m : undefined;
 
   if (!state) {
     return <ProductBlockPlaceholder builderPreview={builderPreview ?? !productContext} label={blockLabel(locale, 'Product tabs', 'تبويبات المنتج')} />;
@@ -105,7 +110,7 @@ export function ProductTabsBlock({ settings, content, locale, product: productCo
   const current = active && tabs.some((tb) => tb.id === active) ? active : tabs[0].id;
 
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       <div className="flex border-b border-gray-200 overflow-x-auto" role="tablist">
         {tabs.map((tab) => (
           <button
@@ -121,13 +126,13 @@ export function ProductTabsBlock({ settings, content, locale, product: productCo
             {tab.label}
             {tab.count !== undefined && <span className="ms-1.5 text-xs text-gray-400">({tab.count})</span>}
             {current === tab.id && (
-              <span className="absolute bottom-0 inset-x-0 h-0.5" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} />
+              <span className="absolute bottom-0 inset-x-0 h-0.5" style={{ backgroundColor: 'var(--store-primary, #2563eb)' }} {...pd(tabMotion, 'tab-line')} />
             )}
           </button>
         ))}
       </div>
 
-      <div className="py-6 px-5 bg-white rounded-xl border border-gray-100" role="tabpanel">
+      <div className="py-6 px-5 bg-white rounded-xl border border-gray-100" role="tabpanel" {...pd(tabMotion, 'panel')}>
         {current === 'description' && translation?.description && (
           <div
             className="prose prose-gray prose-sm max-w-none text-gray-600 leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto [&_iframe]:max-w-full [&_pre]:overflow-x-auto"
@@ -159,7 +164,7 @@ export function ProductTabsBlock({ settings, content, locale, product: productCo
         )}
 
         {current === 'faq' && (
-          <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 overflow-hidden max-w-2xl">
+          <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 overflow-hidden max-w-2xl" {...pd(m, 'details')}>
             {faqs.map((faq, i) => {
               const faqTrans = faq.translations.find((ft) => ft.locale === lang) || faq.translations[0];
               return (

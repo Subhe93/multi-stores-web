@@ -24,7 +24,7 @@ export function ProductTrustBlock({ settings, content, locale, product, builderP
   }
   const columns = settings.columns === '1' ? 'grid-cols-1' : 'grid-cols-2';
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       <div className={`grid ${columns} gap-3`}>
         {badges.map((badge, i) => {
           const Icon = (badge.icon && TRUST_BADGE_ICONS[badge.icon]) || ShieldCheck;

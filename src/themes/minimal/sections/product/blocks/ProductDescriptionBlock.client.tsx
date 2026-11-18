@@ -27,7 +27,7 @@ export function ProductDescriptionBlock({ settings, content, locale, product, bu
   }
   const showHeading = settings?.show_heading !== false;
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       {showHeading && (
         <ProductBlockHeading level={settings?.heading_level}>
           {headingText(content, 'heading', t('product.description'))}

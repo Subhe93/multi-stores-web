@@ -7,6 +7,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { VariantCards, type VariantCardsConfig } from '@/components/product/personalization/VariantCards';
+import { press, useProductMotion } from '@/components/product/productMotion';
 
 // ── Color utilities ────────────────────────────────────
 
@@ -146,6 +147,8 @@ export function VariantSelector({
 }: VariantSelectorProps) {
   const t = useTranslations('common');
   const tProduct = useTranslations('product');
+  // Store motion style (product page only): chips sink a little while pressed.
+  const m = useProductMotion();
   const errorIdBase = useId();
 
   // What the variants actually offer, then arranged the way the seller set it
@@ -323,6 +326,7 @@ export function VariantSelector({
                           type="button"
                           disabled={!available}
                           onClick={() => handleSelect(key, value)}
+                      {...press(m, 'chip')}
                           title={value}
                           className={`relative size-11 transition-all duration-200 ${
                             !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
@@ -368,6 +372,7 @@ export function VariantSelector({
                       type="button"
                       disabled={!available}
                       onClick={() => handleSelect(key, value)}
+                      {...press(m, 'chip')}
                       className={`min-h-11 px-4 py-2 text-sm rounded-lg border-2 font-medium transition-all duration-200 ${
                         isSelected
                           ? 'border-transparent'
@@ -398,6 +403,7 @@ export function VariantSelector({
                         type="button"
                         disabled={!available}
                         onClick={() => handleSelect(key, value)}
+                      {...press(m, 'chip')}
                         title={value}
                         className={`relative w-20 h-20 rounded-xl overflow-hidden transition-all duration-200 ${
                           !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer'
@@ -482,6 +488,7 @@ export function VariantSelector({
                       type="button"
                       disabled={!available}
                       onClick={() => handleSelect(key, value)}
+                      {...press(m, 'chip')}
                       className={`min-w-12 min-h-11 px-4 py-2.5 text-sm rounded-lg border-2 font-medium text-center transition-all duration-200 ${
                         isSelected
                           ? 'border-transparent'

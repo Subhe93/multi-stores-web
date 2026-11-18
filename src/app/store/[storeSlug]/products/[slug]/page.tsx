@@ -21,6 +21,7 @@ import { ProductPageStateProvider } from '@/components/product/state/ProductPage
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { surface, type MotionProp } from '@/themes/creative/recipes';
 import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/ProductBlocksWarmup';
 import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
 import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
@@ -299,7 +300,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             primaryLocale={primaryLocale}
             currency={storeCurrency}
           >
-            <FocusedProductLayout storeSlug={storeSlug} sellerPhone={sellerDetailsOf(storeData)?.phone ?? null} />
+            <FocusedProductLayout
+              storeSlug={storeSlug}
+              sellerPhone={sellerDetailsOf(storeData)?.phone ?? null}
+              {...(storeMotionOf(storeData) ? { motion: 'scroll' as const } : null)}
+            />
           </ProductPageStateProvider>
         </DesignerSessionProvider>
       </div>
@@ -483,8 +488,13 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // had never been called from anywhere.
   const faqLd = buildFaqPageFromProduct(product, locale, ldPrimary);
 
+  // Store motion style on the built-in product page (no PRODUCT_TEMPLATE):
+  // one fast surface of the motion engine. Undefined without the switch, so
+  // the page keeps exactly its markup.
+  const motion: MotionProp = storeMotionOf(storeData) ? 'scroll' : undefined;
+
   return (
-    <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="container mx-auto px-4 py-6 lg:py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'} {...surface(motion, 'product', true)}>
       {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
       {focus && <FocusedBackCapture />}
       {/* Markets app: translated slugs for the country switcher / banner. */}
@@ -547,6 +557,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         primaryLocale={ldPrimary}
         currency={storeCurrency}
         langPrefix={lp}
+        {...(motion ? { motion } : null)}
       />
     </div>
   );

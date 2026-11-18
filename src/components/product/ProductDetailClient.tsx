@@ -30,6 +30,9 @@ import {
 import { TRUST_BADGE_ICONS, type TrustBadgeItem } from '@/lib/trustBadgeIcons';
 import { useHydrated } from '@/hooks/useHydrated';
 import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
+import type { MotionProp } from '@/themes/creative/recipes';
+import { AddedLabel, ProductMotionScope, belowFold, pd, press, useProductMotion } from '@/components/product/productMotion';
+import { useState } from 'react';
 import {
   ChevronDown, ShoppingCart, Check, Truck, Globe, Package,
   ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
@@ -233,6 +236,11 @@ interface ProductDetailClientProps {
   currency?: string;
   langPrefix?: string;
   options?: ProductDetailOptions;
+  /**
+   * Store motion style (themes/creative): the section's `motion` prop, or
+   * the store switch on the built-in product route. Absent = today's page.
+   */
+  motion?: MotionProp;
 }
 
 /**
@@ -259,10 +267,13 @@ function ProductTabs({
   tabs,
   activeTab,
   onTabChange,
+  lineMotion,
 }: {
   tabs: { id: TabId; label: string; count?: number }[];
   activeTab: TabId;
   onTabChange: (id: TabId) => void;
+  /** Store motion style, after the shopper picked a tab: the marker draws. */
+  lineMotion?: MotionProp;
 }) {
   return (
     <div className="flex border-b border-gray-200 overflow-x-auto">
@@ -285,6 +296,7 @@ function ProductTabs({
             <span
               className="absolute bottom-0 inset-x-0 h-0.5"
               style={{ backgroundColor: 'var(--store-primary, #2563eb)' }}
+              {...pd(lineMotion, 'tab-line')}
             />
           )}
         </button>
@@ -312,7 +324,9 @@ export function ProductDetailClient(props: ProductDetailClientProps) {
         primaryLocale={props.primaryLocale ?? 'en'}
         currency={props.currency ?? 'EUR'}
       >
-        <ProductDetailBody {...props} />
+        <ProductMotionScope motion={props.motion}>
+          <ProductDetailBody {...props} />
+        </ProductMotionScope>
       </ProductPageStateProvider>
     </DesignerSessionProvider>
   );
@@ -411,6 +425,11 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
   // disabled, store colour kept, spinner + aria-busy, so the shopper sees it
   // is not ready yet instead of losing the tap silently.
   const busy = !useHydrated();
+  // Store motion style (undefined without it: every helper returns nothing).
+  // The tab shown on load never animates; only a tab the shopper picked does.
+  const m = useProductMotion();
+  const [tabPicked, setTabPicked] = useState(false);
+  const tabMotion = tabPicked ? m : undefined;
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -901,6 +920,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                         : { backgroundColor: 'var(--store-primary, #2563eb)' }
                   }
                   data-on-primary={addedToCart || isAddBlocked || buttonStyle === 'outline' ? undefined : ''}
+                  {...press(m, 'buy')}
                 >
                   {busy && !isAddBlocked && !addedToCart && !addingToCart ? (
                     <>
@@ -913,10 +933,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                       {t('product.addingToCart')}
                     </>
                   ) : addedToCart ? (
-                    <>
+                    <AddedLabel>
                       <Check className="w-4 h-4" />
                       {t('cart.itemAdded')}
-                    </>
+                    </AddedLabel>
                   ) : simpleSoldOut && !isDraftPreview ? (
                     t('product.outOfStock')
                   ) : (
@@ -949,7 +969,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
           {/* Trust badges — only the owner's own claims, never defaults */}
           {trustBadges.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3" {...belowFold(m)}>
               {trustBadges.map((badge, i) => {
                 const Icon = (badge.icon && TRUST_BADGE_ICONS[badge.icon]) || ShieldCheck;
                 return (
@@ -969,7 +989,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
           {/* Shipping & Delivery */}
           {showShipping && product.shipping_profile && product.shipping_profile.zones.length > 0 && (
-            <div>
+            <div {...belowFold(m)}>
               <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Truck className="w-4 h-4" style={{ color: 'var(--store-primary, #2563eb)' }} />
                 {t('product.shippingAndDelivery')}
@@ -1050,10 +1070,15 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
       {/* ─── Bottom Section: Tabs ─── */}
       {showTabs && tabList.length > 0 && (
-        <div className="mt-12 lg:mt-16">
-          <ProductTabs tabs={tabList} activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="mt-12 lg:mt-16" {...belowFold(m)}>
+          <ProductTabs
+            tabs={tabList}
+            activeTab={activeTab}
+            onTabChange={m ? (id) => { setTabPicked(true); setActiveTab(id); } : setActiveTab}
+            lineMotion={tabMotion}
+          />
 
-          <div className="py-6 px-5 bg-white rounded-xl border border-gray-100">
+          <div className="py-6 px-5 bg-white rounded-xl border border-gray-100" {...pd(tabMotion, 'panel')}>
             {/* Description tab */}
             {activeTab === 'description' && translation?.description && (
               <div
@@ -1090,7 +1115,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
 
             {/* FAQ tab */}
             {activeTab === 'faq' && product.faqs && product.faqs.length > 0 && (
-              <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 overflow-hidden max-w-2xl">
+              <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 overflow-hidden max-w-2xl" {...pd(m, 'details')}>
                 {product.faqs.map((faq, i) => {
                   const faqTrans =
                     faq.translations.find((ft) => ft.locale === locale) || faq.translations[0];

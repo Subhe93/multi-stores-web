@@ -19,6 +19,7 @@ import { useDesignerSession } from '@/components/designer/DesignerSession';
 import { useHydrated } from '@/hooks/useHydrated';
 import type { ProductPageState } from '@/components/product/state/ProductPageState';
 import type { SectionRenderProps } from '../../../../types';
+import { AddedLabel, press, useProductMotion } from '@/components/product/productMotion';
 import {
   B1Placeholder,
   B1Scope,
@@ -53,6 +54,8 @@ export function StateAddToCartButton({
   // with a spinner: the shopper sees it is not ready yet instead of losing
   // the tap silently, and taps again once it turns active.
   const busy = !useHydrated();
+  // Store motion style: press response and the "added" feedback (inert without it).
+  const m = useProductMotion();
   const style: CSSProperties | undefined =
     addedToCart || isAddBlocked
       ? undefined
@@ -83,6 +86,7 @@ export function StateAddToCartButton({
       }`}
       style={style}
       data-on-primary={addedToCart || isAddBlocked || buttonStyle === 'outline' ? undefined : ''}
+      {...press(m, 'buy')}
     >
       {busy && !isAddBlocked && !addedToCart && !addingToCart ? (
         <>
@@ -95,10 +99,10 @@ export function StateAddToCartButton({
           {t('product.addingToCart')}
         </>
       ) : addedToCart ? (
-        <>
+        <AddedLabel>
           <Check className="w-4 h-4" />
           {t('cart.itemAdded')}
-        </>
+        </AddedLabel>
       ) : simpleSoldOut && !isDraftPreview ? (
         t('product.outOfStock')
       ) : (

@@ -9,6 +9,7 @@ import type { GalleryItem } from '@/lib/productVideo';
 import { holdAutoplay } from '@/lib/videoAutoplay';
 import { ProductVideoSlide } from './video/ProductVideoSlide';
 import { LightboxImage } from './LightboxImage';
+import { pd, useProductMotion } from './productMotion';
 
 // Full-screen product media viewer for products WITH videos: the monolith's
 // ProductMediaGallery and each product-gallery block layout. A product
@@ -60,6 +61,8 @@ export function ProductLightbox({
   startAt,
 }: ProductLightboxProps) {
   const t = useTranslations();
+  // Store motion style: the backdrop fades and the media settles (CSS only).
+  const m = useProductMotion();
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchInVideo = useRef(false);
@@ -144,6 +147,7 @@ export function ProductLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={isVideo ? t('product.mediaViewer') : t('product.imageViewer')}
+      {...pd(m, 'lightbox')}
     >
       <button
         type="button"
@@ -159,6 +163,7 @@ export function ProductLightbox({
           className="relative isolate max-h-[90vh] max-w-[92vw] overflow-hidden rounded-lg bg-black"
           style={{ width: `min(92vw, calc(90vh * ${ratio.toFixed(4)}))`, aspectRatio: ratio.toFixed(4) }}
           onClick={(e) => { e.stopPropagation(); didSwipe.current = false; }}
+          {...pd(m, 'lightbox-media')}
         >
           <ProductVideoSlide
             key={current.id}

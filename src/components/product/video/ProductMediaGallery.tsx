@@ -17,6 +17,8 @@ import { readDirection } from '../readDirection';
 import { ProductVideoSlide } from './ProductVideoSlide';
 import { ProductVideoThumbBadge } from './ProductVideoThumbBadge';
 import { NO_POSTER_BG } from './noPoster';
+import { item as cxItem, stagger } from '@/themes/creative/recipes';
+import { pd, useImageSwap, useProductMotion } from '../productMotion';
 
 interface GalleryImage {
   id: string;
@@ -91,6 +93,13 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
 
   // Use controlled or internal index
   const selectedIndex = activeIndex !== undefined ? activeIndex : internalIndex;
+
+  // Store motion style: thumbnails enter in sequence and the main image
+  // cross-fades when it changes (image to image only, never a video slide).
+  const m = useProductMotion();
+  const swapItem = media?.[selectedIndex] || media?.[0];
+  const swapImage: { id: string; url: string } | null = swapItem && !isVideoItem(swapItem) ? swapItem : null;
+  const swap = useImageSwap(swapImage, swapImage ? swapImage.id : null);
 
   const setIndex = useCallback((idx: number) => {
     setInternalIndex(idx);
@@ -247,6 +256,22 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
         onMouseLeave={handleMouseLeave}
         onClick={handleMainClick}
       >
+        {/* Outgoing image of a cross-fade (store motion style only): same key
+            as when it was the current one, so its element stays in place. */}
+        {swap.prev && (
+          <StoreImage
+            key={swap.prev.id}
+            src={swap.prev.url}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            loading="eager"
+            unoptimized={isSvgSrc(swap.prev.url)}
+            className="object-cover transition-opacity duration-300"
+            draggable={false}
+          />
+        )}
         {isVideoItem(currentImage) ? (
           // Video slide: poster + Play (server-rendered); the player mounts on
           // Play. Its tile stops clicks, so tapping it never opens the
@@ -277,6 +302,9 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
             unoptimized={isSvgSrc(currentImage.url)}
             className="object-cover transition-opacity duration-300"
             draggable={false}
+            onLoad={swap.onLoad}
+          onError={swap.onLoad}
+            {...swap.attrs}
           />
         )}
 
@@ -364,6 +392,8 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
           <div
             ref={thumbRef}
             className="flex gap-2 overflow-x-auto scrollbar-none pb-1 scroll-smooth"
+            {...stagger(m)}
+            {...pd(m, 'thumbs')}
           >
             {media.map((image, index) => (
               <button
@@ -371,6 +401,7 @@ export function ProductMediaGallery({ items, storeSlug = '', activeIndex, onInde
                 type="button"
                 onClick={() => setIndex(index)}
                 aria-label={t('product.viewImage', { number: index + 1 })}
+                {...cxItem(m, index)}
                 className={`relative shrink-0 w-[72px] h-[72px] overflow-hidden rounded-xl border-2 transition-all duration-200 ${
                   index === selectedIndex
                     ? 'opacity-100 scale-100 shadow-sm'

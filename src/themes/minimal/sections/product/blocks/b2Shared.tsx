@@ -7,6 +7,7 @@
 // the same variant, price and choices as the monolith `product-page`.
 
 import type { CSSProperties, ReactNode } from 'react';
+import { belowFold, pd, useProductMotion } from '@/components/product/productMotion';
 
 /**
  * Maps the theme's primary token onto the `--store-primary` variable the
@@ -18,10 +19,31 @@ export const productBlockScopeStyle = {
   ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
 } as CSSProperties;
 
-/** Wrapper carrying the theme colour mapping. */
-export function ProductBlockScope({ children, className }: { children: ReactNode; className?: string }) {
+/**
+ * Wrapper carrying the theme colour mapping. With the store motion style on
+ * (product motion scope), `reveal` lets a block below the buy box rise when
+ * it scrolls into view and `hook` names the block for the product motion
+ * stylesheet; both add nothing without it.
+ */
+export function ProductBlockScope({
+  children,
+  className,
+  reveal = false,
+  hook,
+}: {
+  children: ReactNode;
+  className?: string;
+  reveal?: boolean;
+  hook?: string;
+}) {
+  const m = useProductMotion();
   return (
-    <div className={className} style={productBlockScopeStyle}>
+    <div
+      className={className}
+      style={productBlockScopeStyle}
+      {...(reveal ? belowFold(m) : null)}
+      {...(hook ? pd(m, hook) : null)}
+    >
       {children}
     </div>
   );

@@ -20,7 +20,7 @@ import type { SectionRenderProps } from '../../../types';
 
 type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
 
-export function ProductPageMagic({ settings, content, locale, primaryLocale, product, currency }: SectionRenderProps) {
+export function ProductPageMagic({ settings, content, locale, primaryLocale, product, currency, motion }: SectionRenderProps) {
   const t = useTranslations();
   const focused = useFocusedStorefront();
   // No product in context (e.g. builder preview before a sample loads) — show a
@@ -123,6 +123,8 @@ export function ProductPageMagic({ settings, content, locale, primaryLocale, pro
         primaryLocale={primaryLocale}
         currency={currency}
         langPrefix={langPrefix}
+        // Store motion style (themes/creative); absent = today's page.
+        motion={motion}
         // Legacy `show_tags` / `show_trust_badges` may still exist in old page
         // snapshots; both are ignored (tags retired 2026-11-02, the hardcoded
         // trust claims retired 2026-11-03 — badges are now owner-written content).

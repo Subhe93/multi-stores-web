@@ -45,11 +45,15 @@ import { ProductPriceBlock } from '@/themes/minimal/sections/product/blocks/Prod
 import { ProductPromotionsBlock } from '@/themes/minimal/sections/product/blocks/ProductPromotionsBlock.client';
 import { AttributeValue } from '@/themes/minimal/sections/product/blocks/ProductTabsBlock.client';
 import type { ProductContext, SectionRenderProps } from '@/themes/types';
+import { surface, type MotionProp } from '@/themes/creative/recipes';
+import { ProductMotionScope } from '@/components/product/productMotion';
 
 interface FocusedProductLayoutProps {
   storeSlug: string;
   /** Phone of the seller of record, shown under the price when known. */
   sellerPhone?: string | null;
+  /** Store motion style (the store switch, from the product route). Absent = today's page. */
+  motion?: MotionProp;
 }
 
 const CARD_STYLE: CSSProperties = {
@@ -73,7 +77,20 @@ function Eyebrow({ children, rule = false }: { children: ReactNode; rule?: boole
   );
 }
 
-export function FocusedProductLayout({ storeSlug, sellerPhone }: FocusedProductLayoutProps) {
+/**
+ * The focused product page. With the store motion style on, the page is one
+ * fast surface of the motion engine and its shared product parts (variant
+ * chips, quantity, buy button) get their press and feedback motion.
+ */
+export function FocusedProductLayout(props: FocusedProductLayoutProps) {
+  return (
+    <ProductMotionScope motion={props.motion}>
+      <FocusedProductBody {...props} />
+    </ProductMotionScope>
+  );
+}
+
+function FocusedProductBody({ storeSlug, sellerPhone, motion }: FocusedProductLayoutProps) {
   const t = useTranslations();
   const state = useProductPageState();
   const {
@@ -138,7 +155,7 @@ export function FocusedProductLayout({ storeSlug, sellerPhone }: FocusedProductL
   const hasMore = tabList.length > 0;
 
   return (
-    <div className="py-8 md:py-10 lg:py-14" style={{ ...B1_SCOPE_STYLE, color: TEXT }} data-focused-product="">
+    <div className="py-8 md:py-10 lg:py-14" style={{ ...B1_SCOPE_STYLE, color: TEXT }} data-focused-product="" {...surface(motion, 'product', true)}>
       <div className="grid grid-cols-1 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:gap-x-14 lg:gap-y-8 xl:gap-x-20">
         {/* ─── Intro ─── */}
         <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-1" data-focused-intro="">

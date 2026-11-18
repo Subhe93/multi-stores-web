@@ -37,7 +37,7 @@ export function ProductSpecificationsBlock({ settings, content, locale, product,
   const showHeading = settings?.show_heading !== false;
 
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       {showHeading && (
         <ProductBlockHeading level={settings?.heading_level}>
           {headingText(content, 'heading', t('product.specifications'))}

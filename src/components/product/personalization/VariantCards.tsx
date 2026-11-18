@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Truck } from 'lucide-react';
+import { press, useProductMotion } from '@/components/product/productMotion';
 import { formatPrice } from '@/lib/format';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import {
@@ -124,6 +125,8 @@ export function VariantCards({
   settings,
 }: VariantCardsProps) {
   const t = useTranslations('personalization');
+  // Store motion style (product page only): cards sink a little while pressed.
+  const m = useProductMotion();
   const display = useDisplayPrice();
   const groupRef = useRef<HTMLDivElement | null>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -269,6 +272,7 @@ export function VariantCards({
     disabled: !c.available,
     onClick: () => onSelect(c.value),
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => onKeyDown(e, i),
+    ...press(m, 'chip'),
   });
 
   if (list) {

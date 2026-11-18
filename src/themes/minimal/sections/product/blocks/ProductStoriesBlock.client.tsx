@@ -194,7 +194,7 @@ export function ProductStoriesBlock({
   const labelAttrs = s.showHeading ? { 'aria-labelledby': headingId } : { 'aria-label': heading };
 
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       <section data-product-stories="" data-layout={s.layout} {...labelAttrs}>
         {s.layout === 'slider' ? (
           <StoriesSlider cards={cards} header={header} labelAttrs={labelAttrs} {...cardProps} />

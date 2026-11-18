@@ -69,7 +69,7 @@ export function ProductShippingBlock({ settings, locale, product, builderPreview
   const showHeading = settings.show_heading !== false;
 
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal>
       {showHeading && (
         <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <Truck className="w-4 h-4" style={{ color: 'var(--store-primary, #2563eb)' }} />

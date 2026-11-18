@@ -96,7 +96,7 @@ export function ProductFaqBlock({ settings, content, locale, product, builderPre
   };
 
   return (
-    <ProductBlockScope>
+    <ProductBlockScope reveal hook="acc">
       {showHeading && (
         <ProductBlockHeading level={settings?.heading_level} id={headingId}>
           {headingText(content, 'heading', t('product.faq'))}

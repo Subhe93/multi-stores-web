@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { press, useProductMotion } from './productMotion';
 
 interface QuantitySelectorProps {
   value: number;
@@ -13,6 +14,8 @@ interface QuantitySelectorProps {
 
 export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: QuantitySelectorProps) {
   const t = useTranslations('common');
+  // Store motion style (product page only): the steps sink a little while pressed.
+  const m = useProductMotion();
   const canDecrement = value - step >= min;
   const canIncrement = max === undefined || value + step <= max;
 
@@ -23,6 +26,7 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         onClick={() => canDecrement && onChange(value - step)}
         disabled={!canDecrement}
         aria-label={t('decreaseQuantity')}
+        {...press(m, 'step')}
         className="size-11 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         &minus;
@@ -37,6 +41,7 @@ export function QuantitySelector({ value, onChange, min = 1, max, step = 1 }: Qu
         onClick={() => canIncrement && onChange(value + step)}
         disabled={!canIncrement}
         aria-label={t('increaseQuantity')}
+        {...press(m, 'step')}
         className="size-11 flex items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:text-gray-200 disabled:cursor-not-allowed"
       >
         +

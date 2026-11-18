@@ -9,6 +9,8 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { lockScroll } from '@/lib/scrollLock';
 import { LightboxImage } from './LightboxImage';
+import { item as cxItem, stagger } from '@/themes/creative/recipes';
+import { pd, useImageSwap, useProductMotion } from './productMotion';
 import type { GalleryItem } from '@/lib/productVideo';
 
 // Product video: a product WITH videos renders ProductMediaGallery (images +
@@ -68,6 +70,12 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
 
   // Use controlled or internal index
   const selectedIndex = activeIndex !== undefined ? activeIndex : internalIndex;
+
+  // Store motion style: thumbnails enter in sequence and the main image
+  // cross-fades when it changes. Both are inert without it.
+  const m = useProductMotion();
+  const swapImage = images?.[selectedIndex] || images?.[0] || null;
+  const swap = useImageSwap(swapImage, swapImage ? swapImage.id : null);
 
   const setIndex = useCallback((idx: number) => {
     setInternalIndex(idx);
@@ -215,6 +223,22 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
         onMouseLeave={handleMouseLeave}
         onClick={guardedClick(() => setLightboxOpen(true))}
       >
+        {/* Outgoing image of a cross-fade (store motion style only): same key
+            as when it was the current one, so its element stays in place. */}
+        {swap.prev && (
+          <StoreImage
+            key={swap.prev.id}
+            src={swap.prev.url}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            loading="eager"
+            unoptimized={isSvgSrc(swap.prev.url)}
+            className="object-cover transition-opacity duration-300"
+            draggable={false}
+          />
+        )}
         {/* Product image — the lead image is the page's LCP, so preload it. */}
         <StoreImage
           key={currentImage.id}
@@ -228,6 +252,9 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
           unoptimized={isSvgSrc(currentImage.url)}
           className="object-cover transition-opacity duration-300"
           draggable={false}
+          onLoad={swap.onLoad}
+          onError={swap.onLoad}
+          {...swap.attrs}
         />
 
         {/* Zoom overlay (desktop hover) */}
@@ -312,6 +339,8 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
           <div
             ref={thumbRef}
             className="flex gap-2 overflow-x-auto scrollbar-none pb-1 scroll-smooth"
+            {...stagger(m)}
+            {...pd(m, 'thumbs')}
           >
             {images.map((image, index) => (
               <button
@@ -319,6 +348,7 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
                 type="button"
                 onClick={() => setIndex(index)}
                 aria-label={t('product.viewImage', { number: index + 1 })}
+                {...cxItem(m, index)}
                 className={`relative shrink-0 w-[72px] h-[72px] overflow-hidden rounded-xl border-2 transition-all duration-200 ${
                   index === selectedIndex
                     ? 'opacity-100 scale-100 shadow-sm'
@@ -363,6 +393,7 @@ function ImageOnlyGallery({ images, activeIndex, onIndexChange, aspect = 'square
           role="dialog"
           aria-modal="true"
           aria-label={t('product.imageViewer')}
+          {...pd(m, 'lightbox')}
         >
           <button
             type="button"

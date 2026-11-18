@@ -39,7 +39,7 @@ export function ProductShippingReturnsBlock({ settings, content, locale, builder
   ].filter((p) => p.html);
 
   return (
-    <ProductBlockScope className="flex flex-col gap-6">
+    <ProductBlockScope className="flex flex-col gap-6" reveal>
       {parts.map((part) => (
         <div key={part.id} data-shipping-returns-part={part.id}>
           {showHeadings && <ProductBlockHeading level={settings?.heading_level}>{part.heading}</ProductBlockHeading>}

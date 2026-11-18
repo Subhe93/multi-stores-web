@@ -25,6 +25,7 @@ import { DesignerFormSlot, useDesignerAddonsTotal, useDesignerSession } from '@/
 import { formatPrice } from '@/lib/format';
 import { useHydrated } from '@/hooks/useHydrated';
 import type { SectionRenderProps } from '../../../types';
+import { AddedLabel, press, useProductMotion } from '@/components/product/productMotion';
 import {
   B1Placeholder,
   B1_SCOPE_STYLE,
@@ -39,6 +40,8 @@ import {
 export function AddToCartMagic(props: SectionRenderProps) {
   const { settings, content, locale, primaryLocale } = props;
   const t = useTranslations();
+  // Store motion style: press response and the "added" feedback (inert without it).
+  const m = useProductMotion();
   const state = useBlockState(props);
   // Designer app (M4.2 / M5.5): the inline form replaces the fields and the
   // add button; the canvas renders in the gallery section (shared session).
@@ -102,8 +105,10 @@ export function AddToCartMagic(props: SectionRenderProps) {
           fontWeight: 'var(--theme-weight-bold)',
         }}
       >
-        <Check className="w-4 h-4" />
-        {t('cart.itemAdded')}
+        <AddedLabel>
+          <Check className="w-4 h-4" />
+          {t('cart.itemAdded')}
+        </AddedLabel>
       </span>
       <Link
         href={`${langPrefix}/cart`}
@@ -140,6 +145,7 @@ export function AddToCartMagic(props: SectionRenderProps) {
           onClick={() => canDecrement && state.handleQuantityChange(quantity - step)}
           disabled={!canDecrement}
           aria-label={t('common.decreaseQuantity')}
+          {...press(m, 'step')}
           className="size-11 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ color: 'var(--theme-colors-text)' }}
         >
@@ -156,6 +162,7 @@ export function AddToCartMagic(props: SectionRenderProps) {
           onClick={() => canIncrement && state.handleQuantityChange(quantity + step)}
           disabled={!canIncrement}
           aria-label={t('common.increaseQuantity')}
+          {...press(m, 'step')}
           className="size-11 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ color: 'var(--theme-colors-text)' }}
         >
@@ -197,6 +204,7 @@ export function AddToCartMagic(props: SectionRenderProps) {
           : 'hover:opacity-90 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0'
       } ${fullWidth ? 'w-full' : ''}`}
       style={primaryButton}
+      {...press(m, 'buy')}
     >
       {hydrating ? (
         <>

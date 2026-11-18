@@ -32,6 +32,8 @@ import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { DesignerCanvasSlot, useDesignerSession } from '@/components/designer/DesignerSession';
 import type { SectionRenderProps } from '../../../types';
 import { B1Placeholder, isBlockPreview, useBlockState } from './blocks/b1Shared';
+import { item as cxItem, stagger } from '../../../creative/recipes';
+import { useImageSwap, useProductMotion } from '@/components/product/productMotion';
 
 type Layout = 'classic' | 'main-thumbnails' | 'grid' | 'stacked' | 'carousel';
 type Aspect = 'square' | 'portrait' | 'landscape';
@@ -211,6 +213,18 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
     if (playingRef.current) stopVideo(playingRef.current);
   }, [variantKey, playingRef, stopVideo]);
 
+  // Store motion style: thumbnails and tiles enter in sequence and the main
+  // image cross-fades when it changes (image to image only). Inert without it.
+  const m = useProductMotion();
+  const swapList: { url: string; kind?: string }[] = state
+    ? state.hasVideos === true
+      ? state.galleryMedia
+      : state.galleryImages
+    : [];
+  const swapItem = swapList[Math.min(state?.activeGalleryIndex ?? 0, Math.max(swapList.length - 1, 0))];
+  const swapImage = swapItem && swapItem.kind !== 'video' ? swapItem : null;
+  const swap = useImageSwap(swapImage, swapImage ? swapImage.url : null);
+
   if (!state) {
     return <B1Placeholder preview={isBlockPreview(props)} locale={locale} label={{ en: 'Product gallery', ar: 'معرض المنتج' }} />;
   }
@@ -359,6 +373,20 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
         onMouseLeave={() => setZoom(null)}
         onClick={hasVideos ? () => openLightbox(index) : undefined}
       >
+        {/* Outgoing image of a cross-fade (store motion style only): same key
+            as when it was the current one, so its element stays in place. */}
+        {swap.prev && (
+          <StoreImage
+            key={swap.prev.url}
+            src={swap.prev.url}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            unoptimized={isSvgSrc(swap.prev.url)}
+            className="object-cover transition-transform duration-300"
+          />
+        )}
         <StoreImage
           key={img.url}
           src={img.url}
@@ -369,6 +397,9 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
           fetchPriority={lead ? 'high' : undefined}
           unoptimized={isSvgSrc(img.url)}
           className="object-cover transition-transform duration-300"
+          onLoad={swap.onLoad}
+          onError={swap.onLoad}
+          {...swap.attrs}
           style={
             enableZoom && zoom
               ? {
@@ -399,10 +430,11 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
     const eagerImages = grid ? 2 : 1;
     let imageOrdinal = 0;
     return (
-      <section ref={sectionRef} className={grid ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
+      <section ref={sectionRef} className={grid ? 'grid grid-cols-2 gap-3' : 'space-y-3'} {...stagger(m)}>
         {items.map((img, i) => (
           <div
             key={keyOf(img)}
+            {...cxItem(m, i)}
             className={`relative w-full overflow-hidden ${ASPECT[aspect]}`}
             style={{
               borderRadius: 'var(--theme-radius-md)',
@@ -498,10 +530,11 @@ export function ProductGalleryMagic(props: SectionRenderProps) {
     <section ref={sectionRef}>
       {renderMainImage(active)}
       {count > 1 && (
-        <div className="grid grid-cols-5 gap-2 mt-3">
+        <div className="grid grid-cols-5 gap-2 mt-3" {...stagger(m)}>
           {items.slice(0, 10).map((img, i) => (
             <button
               key={keyOf(img)}
+              {...cxItem(m, i)}
               type="button"
               onClick={() => setActive(i)}
               aria-label={`Image ${i + 1}`}
