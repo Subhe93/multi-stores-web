@@ -227,7 +227,11 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
     </>
   );
 
-  if (!split) {
+  // The compact card. Also the split layout without an image on the live
+  // store: a contained, centred block instead of a half-empty screen. In the
+  // builder the image half stays as a box, so the owner sees an image can be
+  // added.
+  if (!split || (!resolvedImage && !builderPreview)) {
     return (
       <section className="py-10 md:py-14">
         <div
@@ -240,8 +244,6 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
     );
   }
 
-  // Split without an image: one contained text column on the live store; in
-  // the builder the image half stays as a box so the layout is visible.
   const media = resolvedImage ? (
     <StoreImage
       src={resolvedImage}
@@ -252,9 +254,9 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
       className="object-cover"
       style={{ objectPosition: focusPosition(settings.image_focus) }}
     />
-  ) : builderPreview ? (
+  ) : (
     <BleedMediaPlaceholder />
-  ) : null;
+  );
 
   return (
     <BleedSplit

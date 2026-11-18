@@ -158,6 +158,23 @@ describe('progress-spotlight status', () => {
   });
 });
 
+// With an image the split layout is untouched. The snapshots were recorded
+// before the image-less split was changed and must stay byte-identical.
+describe('progress-spotlight split with an image (unchanged)', () => {
+  const IMAGE = { ...DEFAULTS, image: '/uploads/pages/goal.jpg', goal: 100, reached: 60, cta_url: '/learn-more' };
+
+  it('image at the start', () => {
+    expect(html({ settings: IMAGE, content: { ...CONTENT, alt: 'A classroom' } })).toMatchSnapshot();
+  });
+
+  it('image at the end, in the builder preview too', () => {
+    const settings = { ...IMAGE, image_side: 'end', tone: 'primary', status: 'planned' };
+    const live = html({ settings });
+    expect(live).toMatchSnapshot();
+    expect(html({ settings, builderPreview: true })).toBe(live);
+  });
+});
+
 describe('progress-spotlight layout', () => {
   it('split with an image: edge to edge, hard edge, alt text', () => {
     const out = html({ settings: { ...DEFAULTS, image: '/uploads/pages/goal.jpg' }, content: { ...CONTENT, alt: 'A classroom' } });
@@ -171,14 +188,30 @@ describe('progress-spotlight layout', () => {
     expect(imgAlts(html({ settings: { ...DEFAULTS, image: '/uploads/pages/goal.jpg' } }))).toEqual(['']);
   });
 
-  it('split without an image: one contained column live, a box in the builder', () => {
+  it('split without an image: the compact card live, the image box in the builder', () => {
+    // Live: exactly the "Compact card" layout, whatever the tone.
+    const card = (extra: Record<string, unknown> = {}) => html({ settings: { ...DEFAULTS, ...extra, layout: 'card' } });
+    expect(html({ settings: DEFAULTS })).toBe(card());
+    for (const extra of [{ tone: 'none' }, { tone: 'primary' }, { tone: 'accent' }, { bg_color: '#f2f2f2' }, { image_side: 'end' }]) {
+      expect(html({ settings: { ...DEFAULTS, ...extra } }), JSON.stringify(extra)).toBe(card(extra));
+    }
+    // A layout that was never stored reads as split too.
+    const noLayout: Record<string, unknown> = { ...DEFAULTS };
+    delete noLayout.layout;
+    expect(html({ settings: noLayout })).toBe(card());
     const live = html({});
-    expect(live).toContain('data-bleed-split="contained"');
+    expect(live).not.toContain('data-bleed-split');
     expect(live).not.toContain('100vw');
+    expect(live).not.toContain('data-bleed-placeholder');
+    expect(classTokens(live)).toEqual(expect.arrayContaining(['mx-auto', 'max-w-3xl']));
+    // Builder: the edge-to-edge split with the dashed image box stays.
     const preview = html({ builderPreview: true });
     expect(preview).toContain('data-bleed-split="bleed"');
     expect(preview).toContain('data-bleed-placeholder');
     expect(preview).not.toContain('<img');
+    expect(preview).not.toBe(live);
+    // The card layout itself has no image box in the builder.
+    expect(html({ settings: { ...DEFAULTS, layout: 'card' }, builderPreview: true })).toBe(card());
   });
 
   it('card layout: one centred panel, the image is ignored', () => {

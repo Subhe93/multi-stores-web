@@ -87,12 +87,124 @@ describe('trust-badges strip layout', () => {
   });
 
   it('stays two per row on a tablet: four across only from 1024px', () => {
-    const tokens = classTokens(strip(ITEMS));
-    expect(tokens).toContain('grid-cols-2');
-    expect(tokens).toContain('lg:grid-cols-[repeat(var(--tb-n),minmax(0,1fr))]');
+    const out = strip(ITEMS);
+    const tokens = classTokens(out);
+    // The grid is counted in half-columns: four below 1024px (two items per
+    // row), twice the items per row from there. Every item spans two.
+    expect(tokens).toContain('grid-cols-4');
+    expect(tokens).not.toContain('grid-cols-2');
+    expect(tokens).toContain('lg:grid-cols-[repeat(calc(var(--tb-n)*2),minmax(0,1fr))]');
     expect(tokens).toContain('lg:justify-center');
+    for (const li of liClasses(out)) expect(li).toContain('col-span-2');
     // Nothing switches at 768px.
-    expect(tokens.filter((c) => c.startsWith('md:grid-cols-') || c === 'md:border-s' || c === 'md:justify-center')).toEqual([]);
+    expect(
+      tokens.filter(
+        (c) => c.startsWith('md:grid-cols-') || c.startsWith('md:col-') || c === 'md:border-s' || c === 'md:justify-center',
+      ),
+    ).toEqual([]);
+  });
+
+  // ── A row with fewer items than columns is centred ────────────────────
+
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ icon: 'star', label: `Badge ${i + 1}`, description: i % 2 ? '' : 'A short line' }));
+  const START = /^(?:max-lg:|lg:)col-start-\d+$/;
+  /** Per item: its centring classes (empty for an item that sits in a full row). */
+  const starts = (n: number) =>
+    liClasses(strip(many(n))).map((c) => c.filter((t) => START.test(t) || t === 'max-lg:justify-center').join(' '));
+
+  it('below 1024px: an odd count centres the last item under the pairs', () => {
+    for (let n = 1; n <= 8; n++) {
+      const below = starts(n).map((s) => s.includes('max-lg:col-start-2'));
+      const expected = Array.from({ length: n }, (_, i) => n % 2 === 1 && i === n - 1);
+      expect(below, `${n} items`).toEqual(expected);
+      // The centred item also centres its content, like the desktop cells.
+      for (const [i, s] of starts(n).entries()) {
+        expect(s.includes('max-lg:justify-center'), `${n} items, item ${i}`).toBe(expected[i]);
+      }
+    }
+  });
+
+  it('from 1024px: the first item of an incomplete last row starts half-columns in', () => {
+    const lg = (n: number) => starts(n).map((s) => s.split(' ').find((t) => t.startsWith('lg:col-start-')) ?? '');
+    // Up to four items fill one row: as many columns as items, nothing to offset.
+    for (let n = 1; n <= 4; n++) expect(lg(n), `${n} items`).toEqual(Array(n).fill(''));
+    expect(lg(5)).toEqual(['', '', '', '', 'lg:col-start-4']);
+    expect(lg(6)).toEqual(['', '', '', '', 'lg:col-start-3', '']);
+    expect(lg(7)).toEqual(['', '', '', '', 'lg:col-start-2', '', '']);
+    expect(lg(8)).toEqual(Array(8).fill(''));
+  });
+
+  it('the exact classes of each item for one to eight items', () => {
+    expect(Array.from({ length: 8 }, (_, i) => starts(i + 1))).toEqual([
+      ['max-lg:col-start-2 max-lg:justify-center'],
+      ['', ''],
+      ['', '', 'max-lg:col-start-2 max-lg:justify-center'],
+      ['', '', '', ''],
+      ['', '', '', '', 'max-lg:col-start-2 max-lg:justify-center lg:col-start-4'],
+      ['', '', '', '', 'lg:col-start-3', ''],
+      ['', '', '', '', 'lg:col-start-2', '', 'max-lg:col-start-2 max-lg:justify-center'],
+      ['', '', '', '', '', '', '', ''],
+    ]);
+  });
+
+  it('the dividers still sit only between neighbours of a row', () => {
+    const dividers = (n: number) =>
+      liClasses(strip(many(n))).map((c) => [c.includes('max-lg:border-s'), c.includes('lg:border-s')]);
+    // Three items: the third is alone below 1024px (no rule), last of the row above it.
+    expect(dividers(3)).toEqual([
+      [false, false],
+      [true, true],
+      [false, true],
+    ]);
+    // Six items: the centred pair of the second desktop row has one rule, between the two.
+    expect(dividers(6).slice(4)).toEqual([
+      [false, false],
+      [true, true],
+    ]);
+    // Seven items: the centred row of three has two rules; the lone last item none below 1024px.
+    expect(dividers(7).slice(4)).toEqual([
+      [false, false],
+      [true, true],
+      [false, true],
+    ]);
+  });
+
+  it('sets the items per row and the text width floor', () => {
+    const vars = (n: number) => /<ul[^>]*style="([^"]*)"/.exec(strip(many(n)))?.[1];
+    expect(vars(1)).toBe('--tb-n:1;--tb-w:20rem');
+    expect(vars(2)).toBe('--tb-n:2;--tb-w:20rem');
+    expect(vars(3)).toBe('--tb-n:3;--tb-w:13rem');
+    expect(vars(4)).toBe('--tb-n:4;--tb-w:13rem');
+    expect(vars(7)).toBe('--tb-n:4;--tb-w:13rem');
+  });
+
+  it('from 1024px the description does not widen the text block', () => {
+    const out = strip(ITEMS);
+    const descriptions = [...out.matchAll(/<div class="([^"]*)"[^>]*>(?:Sent within two days|Encrypted checkout)<\/div>/g)].map(
+      (m) => m[1],
+    );
+    expect(descriptions).toEqual([
+      'text-xs md:text-sm leading-snug lg:w-[var(--tb-w)] lg:min-w-full lg:max-w-full',
+      'text-xs md:text-sm leading-snug lg:w-[var(--tb-w)] lg:min-w-full lg:max-w-full',
+    ]);
+    // Only from 1024px: nothing about the width below it.
+    expect(classTokens(out).filter((c) => /^(?:md:|sm:)?(?:w|min-w|max-w)-/.test(c) && c !== 'min-w-0')).toEqual([]);
+  });
+
+  it('class attributes carry no stray spaces', () => {
+    for (let n = 1; n <= 8; n++) {
+      for (const m of strip(many(n)).matchAll(/<li class="([^"]*)"/g)) {
+        expect(m[1]).toBe(m[1].trim());
+        expect(m[1]).not.toContain('  ');
+      }
+    }
+  });
+
+  it('right-to-left renders the same classes (grid columns follow the direction)', () => {
+    const items = many(5);
+    expect(html({ settings: { layout: 'strip' }, content: { items }, locale: 'ar' })).toBe(strip(items));
+    expect(physicalClasses(strip(many(7)))).toEqual([]);
   });
 
   it('one item is one cell', () => {
