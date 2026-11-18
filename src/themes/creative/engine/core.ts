@@ -323,8 +323,13 @@ function armReveals(scope: HTMLElement, state: ScopeState): void {
     const topAtEnd = top + window.scrollY - maxScroll;
     const rootMargin = topAtEnd > vh * 0.84 ? REVEAL_MARGIN_END : REVEAL_MARGIN;
     let settle: ReturnType<typeof setTimeout> | undefined;
+    // A pending mask is clipped to nothing by its own clip-path. Some browsers
+    // then report no intersection for it and the image would stay hidden, so
+    // the unclipped parent (same box) is observed instead.
+    const watched =
+      el.getAttribute('data-cx-reveal') === 'mask' && el.parentElement ? el.parentElement : el;
     const stop = observeOnce(
-      el,
+      watched,
       () => {
         el.setAttribute('data-cx-state', 'shown');
         settle = setTimeout(() => el.setAttribute('data-cx-state', 'done'), SETTLE_MS);
