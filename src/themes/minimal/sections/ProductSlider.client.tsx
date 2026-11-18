@@ -18,6 +18,8 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, rise } from '../../creative/recipes';
 
 interface ProductRow {
   id: string;
@@ -41,7 +43,7 @@ const CARD_ASPECT: Record<string, string> = {
   landscape: 'aspect-[4/3]',
 };
 
-export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+export function ProductSlider({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded, motion }: SectionRenderProps) {
   const tCommon = useTranslations('common');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -117,7 +119,12 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
       maximumFractionDigits: 2,
     }).format(n);
 
-  const slideNodes = products.map((p) => {
+  // Store motion style. The row is one reveal (css/cards.css.ts): a slide
+  // outside the visible part of the track must not wait for its own turn, so
+  // the slides cascade together when the row enters the viewport.
+  const linkMotion = motion ? { ...hover(motion, 'underline'), 'data-cx-arrow': '' } : null;
+
+  const slideNodes = products.map((p, index) => {
     // Title comes from the active locale (with primary as fallback).
     const tr =
       p.translations.find((t) => t.locale === locale) ||
@@ -132,9 +139,15 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     const url = `${localePrefix}/products/${productPath}`;
     const imageSrc = p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : '';
     return (
-      <a key={p.id} href={url} className="group block h-full">
+      <a
+        key={p.id}
+        href={url}
+        className="group block h-full"
+        {...(motion ? { 'data-cx-slide': '', 'data-cx-i': index > 0 ? String(Math.min(index, 5)) : undefined } : null)}
+      >
         <div
           className={`relative ${aspectClass} overflow-hidden`}
+          {...hover(motion, 'media')}
           style={{
             backgroundColor: 'var(--theme-colors-surface)',
             borderRadius: 'var(--theme-radius-md)',
@@ -147,7 +160,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
               fill
               sizes={imageSizes}
               unoptimized={isSvgSrc(imageSrc)}
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className={motion ? 'object-cover' : 'object-cover transition-transform duration-500 group-hover:scale-105'}
             />
           ) : null}
         </div>
@@ -182,6 +195,22 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
     );
   });
 
+  const slider = (
+    <Slider
+      slides={slideNodes}
+      slidesPerView={spvDesktop}
+      slidesPerViewTablet={spvTablet}
+      slidesPerViewMobile={spvMobile}
+      gapPx={gapPx}
+      autoplayMs={autoplayMs > 0 ? autoplayMs : undefined}
+      showArrows={showArrows}
+      showDots={showDots}
+      loop={loop}
+      dir={dir}
+      ariaLabel={locale === 'ar' ? 'سلايدر المنتجات' : 'Product slider'}
+    />
+  );
+
   return (
     <section className="py-12">
       <div className="flex items-end justify-between mb-8 gap-4">
@@ -196,11 +225,11 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
                 color: colorOr(settings.heading_color, 'var(--theme-colors-text)'),
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -208,7 +237,8 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
         {linkLabel && (
           <a
             href={linkUrl}
-            className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"
+            className={`inline-flex items-center gap-1 text-sm font-semibold shrink-0${motion ? '' : ' hover:opacity-70 transition-opacity'}`}
+            {...linkMotion}
             style={{ color: colorOr(settings.link_color, 'var(--theme-colors-link, var(--theme-colors-price, var(--theme-colors-primary)))') }}
           >
             {linkLabel}
@@ -243,20 +273,10 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
             {locale === 'ar' ? 'لا توجد منتجات لعرضها بعد' : 'No products to show yet.'}
           </p>
         </div>
+      ) : motion ? (
+        <div data-cx-reveal="slides">{slider}</div>
       ) : (
-        <Slider
-          slides={slideNodes}
-          slidesPerView={spvDesktop}
-          slidesPerViewTablet={spvTablet}
-          slidesPerViewMobile={spvMobile}
-          gapPx={gapPx}
-          autoplayMs={autoplayMs > 0 ? autoplayMs : undefined}
-          showArrows={showArrows}
-          showDots={showDots}
-          loop={loop}
-          dir={dir}
-          ariaLabel={locale === 'ar' ? 'سلايدر المنتجات' : 'Product slider'}
-        />
+        slider
       )}
     </section>
   );

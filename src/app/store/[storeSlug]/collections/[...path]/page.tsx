@@ -15,6 +15,7 @@ import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { stagger, surface, type MotionProp } from '@/themes/creative/recipes';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingCard, toListingProduct } from '@/lib/listing';
@@ -319,8 +320,12 @@ export default async function CollectionPage({
     );
   }
 
+  // Store motion style on the built-in listing: commerce timing, cards rise
+  // row by row as they enter. Unset = today's markup.
+  const m: MotionProp = storeMotionOf(storeData) ? 'scroll' : undefined;
+
   return (
-    <div className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'} {...surface(m, 'listing', true)}>
       {collectionLd && (
         <script
           type="application/ld+json"
@@ -523,12 +528,13 @@ export default async function CollectionPage({
             lp={lp}
             currency={currency}
             gridClassName="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+            motion={m}
             variant="collection"
             // Banner image is the LCP when shown; else the first cards.
             priorityFirst={!(hero.enabled && heroImage)}
           />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" {...stagger(m)}>
             {products.map((product, index) => {
               const translation =
                 product.translations.find((tr) => tr.locale === locale) ||
@@ -573,6 +579,7 @@ export default async function CollectionPage({
                       : undefined
                   }
                   vendorName={product.vendor?.company_name}
+                  motion={m}
                   sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
                   // Banner image is the LCP when shown; else the first cards.
                   priority={!(hero.enabled && heroImage) && index < 2}

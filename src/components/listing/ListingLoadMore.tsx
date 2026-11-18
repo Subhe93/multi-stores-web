@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
+import { hover, type MotionProp } from '@/themes/creative/recipes';
 
 export function ListingLoadMore({
   shown,
@@ -16,6 +17,7 @@ export function ListingLoadMore({
   error,
   onLoadMore,
   gridRef,
+  motion,
 }: {
   shown: number;
   total: number;
@@ -25,6 +27,8 @@ export function ListingLoadMore({
   onLoadMore: () => void;
   /** The grid whose children are the cards (focus moves to the first new one). */
   gridRef: RefObject<HTMLElement | null>;
+  /** Store motion style: the button sinks a little while pressed. Unset = today's markup. */
+  motion?: MotionProp;
 }) {
   const t = useTranslations('product');
   // Card count when the button was pressed; once more cards arrive, keyboard
@@ -67,6 +71,7 @@ export function ListingLoadMore({
           aria-busy={loading || undefined}
           className="min-h-11 min-w-44 px-6 py-2.5 rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:shadow focus:outline-none focus-visible:ring-2 aria-disabled:cursor-progress aria-disabled:opacity-70"
           style={{ '--tw-ring-color': 'var(--store-primary, #2563eb)' } as React.CSSProperties}
+          {...(motion ? { ...hover(motion, 'press'), 'data-cx-more-btn': '' } : null)}
         >
           {loading ? t('loadingMore') : t('loadMore')}
         </button>

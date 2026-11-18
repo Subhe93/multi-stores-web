@@ -17,6 +17,8 @@ import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { MotionText } from '../../creative/primitives/Motion';
+import { hover, item, rise, stagger } from '../../creative/recipes';
 
 interface ProductRow {
   id: string;
@@ -46,7 +48,7 @@ function gridImageSizes(desktop: number, tablet: number, mobile: number): string
   return `(max-width: 767px) ${Math.ceil(100 / mobile)}vw, (max-width: 1023px) ${Math.ceil(100 / tablet)}vw, ${Math.ceil(100 / desktop)}vw`;
 }
 
-export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded }: SectionRenderProps) {
+export function FeaturedProducts({ settings, content, locale, primaryLocale, storeSlug, currency, preloaded, motion }: SectionRenderProps) {
   const tCommon = useTranslations('common');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -122,6 +124,11 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
       maximumFractionDigits: 2,
     }).format(n);
 
+  // Store motion style. Cards always use the scroll form of the stagger:
+  // what is on screen stays at rest, rows below the fold rise as they enter.
+  const cards = motion ? 'scroll' : undefined;
+  const linkMotion = motion ? { ...hover(motion, 'underline'), 'data-cx-arrow': '' } : null;
+
   return (
     <section className="py-12">
       <div className="flex items-end justify-between mb-8 gap-4">
@@ -136,11 +143,11 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                 color: colorOr(settings.heading_color, 'var(--theme-colors-text)'),
               }}
             >
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </Heading>
           )}
           {subheading && (
-            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }}>
+            <Heading level={subheadingTag} look="body" className="text-sm mt-1" style={{ color: colorOr(settings.subheading_color, 'var(--theme-colors-muted)') }} {...rise(motion, { i: 2 })}>
               {subheading}
             </Heading>
           )}
@@ -148,7 +155,8 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
         {linkLabel && (
           <a
             href={linkUrl}
-            className="inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:opacity-70 transition-opacity"
+            className={`inline-flex items-center gap-1 text-sm font-semibold shrink-0${motion ? '' : ' hover:opacity-70 transition-opacity'}`}
+            {...linkMotion}
             style={{ color: colorOr(settings.link_color, 'var(--theme-colors-link, var(--theme-colors-price, var(--theme-colors-primary)))') }}
           >
             {linkLabel}
@@ -200,7 +208,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
           </p>
         </div>
       ) : (
-        <div className={`grid gap-4 ${scopeClass}`}>
+        <div className={`grid gap-4 ${scopeClass}`} {...stagger(cards)}>
           {products.map((p) => {
             // Title comes from the active locale (with primary as fallback).
             const tr =
@@ -220,9 +228,10 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                 ? Math.round((1 - Number(p.base_price) / Number(p.compare_at_price)) * 100)
                 : 0;
             return (
-              <a key={p.id} href={url} className="group block">
+              <a key={p.id} href={url} className="group block" {...item(cards, 0)}>
                 <div
                   className={`card-media-lift relative ${aspectClass} overflow-hidden`}
+                  {...hover(motion, 'media')}
                   style={{
                     backgroundColor: 'var(--theme-colors-surface)',
                     borderRadius: 'var(--theme-radius-md)',
@@ -242,7 +251,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                       alt={tr?.title || ''}
                       fill
                       sizes={imageSizes}
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className={motion ? 'object-cover' : 'object-cover transition-transform duration-500 group-hover:scale-105'}
                     />
                   ) : null}
                 </div>

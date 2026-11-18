@@ -7,6 +7,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { isSvgSrc } from '@/lib/storeMedia';
+import { hover, item, type MotionProp } from '@/themes/creative/recipes';
 
 interface ProductCardProps {
   title: string;
@@ -30,6 +31,17 @@ interface ProductCardProps {
   eager?: boolean;
   /** Override the image `sizes` when the grid's column count is known. */
   sizes?: string;
+  /**
+   * Store motion style (the section's `motion` prop). Unset = today's markup.
+   * Set: the card is an item of its grid's stagger and the image zooms slowly
+   * on hover instead of the plain zoom.
+   */
+  motion?: MotionProp;
+  /**
+   * Step (0..5) of a card appended by "load more": it rises once when it
+   * mounts (CSS only) instead of waiting for the grid's scroll reveal.
+   */
+  arriving?: number;
 }
 
 export function ProductCard({
@@ -47,6 +59,8 @@ export function ProductCard({
   priority = false,
   eager = false,
   sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw',
+  motion,
+  arriving,
 }: ProductCardProps) {
   const t = useTranslations('product');
   const display = useDisplayPrice();
@@ -65,12 +79,21 @@ export function ProductCard({
       ? Math.round(((comparePrice - price) / comparePrice) * 100)
       : 0;
 
+  // Cards always use the scroll form of the stagger: what is on screen when
+  // the page loads stays at rest (the first cards may be the LCP), rows below
+  // the fold rise as they enter. Appended cards play once on mount.
+  const entrance = !motion
+    ? null
+    : typeof arriving === 'number'
+      ? { ...item('intro', arriving), 'data-cx-more': '' }
+      : item('scroll', 0);
+
   return (
     // No viewport prefetch: a grid of cards would fire one dynamic RSC
     // render per product on every listing view.
-    <Link href={href} prefetch={false} className="group block">
+    <Link href={href} prefetch={false} className="group block" {...entrance}>
       {/* Image */}
-      <div className={`relative ${aspectClass} overflow-hidden rounded-2xl bg-gray-100`}>
+      <div className={`relative ${aspectClass} overflow-hidden rounded-2xl bg-gray-100`} {...hover(motion, 'media')}>
         {imageUrl ? (
           <StoreImage
             src={imageUrl}
@@ -81,7 +104,7 @@ export function ProductCard({
             fetchPriority={priority ? 'high' : undefined}
             loading={priority ? undefined : eager ? 'eager' : 'lazy'}
             unoptimized={isSvgSrc(imageUrl)}
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            className={motion ? 'object-cover' : 'object-cover transition-transform duration-500 group-hover:scale-110'}
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-gray-300">

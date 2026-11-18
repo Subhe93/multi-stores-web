@@ -11,6 +11,8 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { MotionText } from '@/themes/creative/primitives/Motion';
+import { hover, item, stagger, surface, type MotionProp } from '@/themes/creative/recipes';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
@@ -280,6 +282,12 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     { Icon: Star, label: t('store.topQuality') },
   ];
 
+  // Store motion style on the built-in home: commerce timing, cards rise row
+  // by row as they enter. Unset = today's markup.
+  const m: MotionProp = storeMotionOf(store) ? 'scroll' : undefined;
+  const viewAllMotion = m ? { ...hover(m, 'underline'), 'data-cx-arrow': '' } : null;
+  const viewAllClass = `inline-flex items-center gap-1 text-sm font-semibold shrink-0${m ? '' : ' transition-opacity hover:opacity-70'}`;
+
   return (
     <div>
       {homeLdScript}
@@ -361,11 +369,11 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
 
       {/* Featured collections — only renders when the creator has any active collections */}
       {featuredCollections.length > 0 && (
-        <section className="container mx-auto px-4 pb-4">
+        <section className="container mx-auto px-4 pb-4" {...surface(m, 'collections', true)}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {t('store.store_collections')}
+                <MotionText motion={m} text={t('store.store_collections')} />
               </h2>
               <p className="text-sm text-gray-500 mt-1">
                 {t('store.explore_collections')}
@@ -373,7 +381,8 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
             </div>
             <Link
               href={`${lp}/products`}
-              className="inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0"
+              className={m ? viewAllClass : 'inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0'}
+              {...viewAllMotion}
               style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
             >
               {t('common.viewAll')}
@@ -381,7 +390,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" {...stagger(m)}>
             {featuredCollections.map((c) => {
               const title = pickCollectionName(c);
               const thumb = c.thumbnail_url ? resolveMediaUrl(c.thumbnail_url) : undefined;
@@ -390,6 +399,8 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                   key={c.id}
                   href={`${lp}${collectionHref(c)}`}
                   className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                  {...item(m, 0)}
+                  {...hover(m, 'media')}
                 >
                   {thumb ? (
                     <StoreImage
@@ -397,7 +408,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                       alt={title}
                       fill
                       sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 17vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      className={m ? 'object-cover' : 'object-cover transition-transform duration-500 group-hover:scale-110'}
                     />
                   ) : (
                     <div
@@ -424,15 +435,18 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
       )}
 
       {/* Featured products */}
-      <section className="container mx-auto px-4 pb-24">
+      <section className="container mx-auto px-4 pb-24" {...surface(m, 'listing', true)}>
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{t('store.featuredProducts')}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              <MotionText motion={m} text={t('store.featuredProducts')} />
+            </h2>
             <p className="text-sm text-gray-500 mt-1">{t('store.featuredSubtitle')}</p>
           </div>
           <Link
             href={`${lp}/products`}
-            className="inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0"
+            className={m ? viewAllClass : 'inline-flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70 shrink-0'}
+            {...viewAllMotion}
             style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
           >
             {t('common.viewAll')}
@@ -448,7 +462,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
             <p className="text-sm">{t('common.noProducts')}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" {...stagger(m)}>
             {products.map((product) => {
               const translation =
                 product.translations.find((tr) => tr.locale === locale) ||
@@ -479,6 +493,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                   }
                   currency={store.currency}
                   vendorName={product.vendor?.company_name}
+                  motion={m}
                 />
               );
             })}

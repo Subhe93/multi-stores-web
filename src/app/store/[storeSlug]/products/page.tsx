@@ -12,6 +12,7 @@ import { resolveHero, type StoreHero } from '@/lib/hero';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { stagger, surface, type MotionProp } from '@/themes/creative/recipes';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { toListingCard, toListingProduct } from '@/lib/listing';
@@ -279,8 +280,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     );
   }
 
+  // Store motion style on the built-in listing: commerce timing, cards rise
+  // row by row as they enter. Unset = today's markup.
+  const m: MotionProp = storeMotionOf(storeData) ? 'scroll' : undefined;
+
   return (
-    <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen" dir={locale === 'ar' ? 'rtl' : 'ltr'} {...surface(m, 'listing', true)}>
       {listingLd && (
         <script
           type="application/ld+json"
@@ -520,10 +525,11 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             lp={lp}
             currency={currency}
             gridClassName="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+            motion={m}
             variant="catalog"
           />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" {...stagger(m)}>
             {products.map((product) => {
               const translation =
                 product.translations.find((tr) => tr.locale === locale) ||
@@ -566,6 +572,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
                       : undefined
                   }
                   vendorName={product.vendor?.company_name}
+                  motion={m}
                 />
               );
             })}

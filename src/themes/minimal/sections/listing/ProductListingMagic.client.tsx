@@ -25,6 +25,8 @@ import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
 import { isUsableSlug } from '@/lib/slugRoute';
 import { useListingPages } from '@/hooks/useListingPages';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
+import { MotionText } from '../../../creative/primitives/Motion';
+import { rise, stagger } from '../../../creative/recipes';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
 
 const NO_PRODUCTS: ListingProduct[] = [];
@@ -77,7 +79,7 @@ const SORT_KEYS = [
   { value: 'newest', key: 'product.sortNewest' },
 ] as const;
 
-export function ProductListingMagic({ settings, content, locale, primaryLocale, storeSlug, listing, currency }: SectionRenderProps) {
+export function ProductListingMagic({ settings, content, locale, primaryLocale, storeSlug, listing, currency, motion }: SectionRenderProps) {
   const t = useTranslations();
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other instances on the same page.
@@ -118,6 +120,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const isCollection = listing.kind === 'collection';
   const { query, basePath, isFiltered, pagination } = listing;
   const products = pages.products;
+  const firstPageCount = listing.products.length;
   // Server mode counts every matching product, not just the loaded ones.
   const productCount = pagination ? pages.total : products.length;
   const { search, sort, category, creator_category } = query;
@@ -363,7 +366,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   );
 
   const grid = (
-    <div ref={gridRef} className={`grid gap-4 md:gap-6 ${scopeClass}`}>
+    <div ref={gridRef} className={`grid gap-4 md:gap-6 ${scopeClass}`} {...stagger(motion ? 'scroll' : undefined)}>
       {products.map((product, index) => {
         const translation =
           product.translations.find((tr) => tr.locale === locale) ||
@@ -388,6 +391,9 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             sizes={cardSizes}
             priority={!heroImageShown && index < Math.min(2, columnsMobile)}
             eager={index < columns}
+            motion={motion}
+            // Cards appended by "load more" rise once as they mount, one wave per desktop row.
+            arriving={motion && pagination && index >= firstPageCount ? (index - firstPageCount) % columns : undefined}
           />
         );
       })}
@@ -441,7 +447,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${hero.overlayAlpha})` }} />
           <div className="relative container mx-auto px-4">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: hero.textColor }}>
-              {heading}
+              <MotionText motion={motion} text={heading} />
             </h1>
             {subheading && (
               <p className="mt-2 max-w-2xl mx-auto text-sm md:text-base opacity-85" style={{ color: hero.textColor }}>
@@ -509,7 +515,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             )}
 
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm" style={{ color: hero.textColor }}>
-              {collectionName}
+              <MotionText motion={motion} text={collectionName} />
             </h1>
 
             {showDescription && collectionDescription &&
@@ -565,10 +571,10 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             </nav>
           )}
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
-            {isCollection ? collectionName : heading}
+            <MotionText motion={motion} text={isCollection ? collectionName : heading} />
           </h1>
           {!isCollection && subheading && (
-            <p className="mt-2 max-w-2xl text-sm md:text-base text-gray-500">{subheading}</p>
+            <p className="mt-2 max-w-2xl text-sm md:text-base text-gray-500" {...rise(motion, { i: 2 })}>{subheading}</p>
           )}
           {isCollection && showDescription && collectionDescription &&
             (descriptionCollapsed ? (
@@ -708,6 +714,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
             error={pages.error}
             onLoadMore={pages.loadMore}
             gridRef={gridRef}
+            motion={motion}
           />
         )}
 

@@ -13,6 +13,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import type { ListingPagination } from '@/lib/listingPaging';
 import { isUsableSlug } from '@/lib/slugRoute';
 import type { ListingProduct } from '@/themes/types';
+import { stagger, type MotionProp } from '@/themes/creative/recipes';
 
 // Promotion badge text, same expression as the routes' legacy cards. The
 // card projection already holds only the first applicable promotion.
@@ -36,6 +37,7 @@ export function ListingPagedGrid({
   gridClassName,
   variant,
   priorityFirst = false,
+  motion,
 }: {
   storeSlug: string;
   /** First page, as card projections (`toListingCard`). */
@@ -49,13 +51,15 @@ export function ListingPagedGrid({
   variant: 'catalog' | 'collection';
   /** Collection variant: the first cards are the LCP (no banner image). */
   priorityFirst?: boolean;
+  /** Store motion style, from the route (`storeMotionOf`). Unset = today's markup. */
+  motion?: MotionProp;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pages = useListingPages({ storeSlug, initial, pagination });
 
   return (
     <>
-      <div ref={gridRef} className={gridClassName}>
+      <div ref={gridRef} className={gridClassName} {...stagger(motion ? 'scroll' : undefined)}>
         {pages.products.map((product, index) => {
           const translation =
             product.translations.find((tr) => tr.locale === locale) ||
@@ -76,6 +80,9 @@ export function ListingPagedGrid({
               currency={currency}
               promotionLabel={promotionLabelFor(product)}
               vendorName={product.vendor?.company_name}
+              motion={motion}
+              // Cards appended by "load more" rise once as they mount, four to a wave.
+              arriving={motion && index >= initial.length ? (index - initial.length) % 4 : undefined}
               {...(variant === 'collection'
                 ? {
                     sizes: '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw',
@@ -95,6 +102,7 @@ export function ListingPagedGrid({
         error={pages.error}
         onLoadMore={pages.loadMore}
         gridRef={gridRef}
+        motion={motion}
       />
     </>
   );
