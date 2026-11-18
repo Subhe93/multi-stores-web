@@ -27,6 +27,10 @@ import { promotionsForProduct } from '@/lib/requiresShipping';
 import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
+import { readListingSettings } from '@/lib/listingFilters/settings';
+import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
+import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
+import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 
 interface ProductPromotion {
   type?: string;
@@ -140,6 +144,9 @@ export default async function CollectionPage({
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
   // Product card settings of the store (null = the classic card, classic requests).
   const cardSettings = readProductCard(storeData?.theme_customizations);
+  // Filtered listing (opt-in per store). Null = the listing as before.
+  const listingSettings = readListingSettings(storeData?.theme_customizations);
+  const explorerState = listingSettings ? parseFilterState(query) : null;
 
   const [creatorCategoriesTree, template] = await Promise.all([
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
@@ -192,15 +199,26 @@ export default async function CollectionPage({
   if (search) queryParams.search = search;
   // Last key, only with card settings: the default request does not move.
   Object.assign(queryParams, cardQuery(cardSettings));
-  const loaded = await loadListing<Product>(storeSlug, { queryParams, sort }, marketRef);
-  const products = loaded.products;
+  // The filtered listing renders when its first page loaded; otherwise (or
+  // without the setting) the listing is loaded exactly as before.
+  const explorerPage = explorerState
+    ? await loadExplorerPage<Product>(
+        storeSlug,
+        { locale, baseCollection: handle, state: explorerState, card: Boolean(cardSettings) },
+        marketRef,
+      )
+    : null;
+  const loaded = explorerPage
+    ? ({ mode: 'legacy', products: explorerPage.items } as const)
+    : await loadListing<Product>(storeSlug, { queryParams, sort }, marketRef);
+  const products: Product[] = loaded.products;
   const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
   // Server mode counts every matching product, not just the first page.
   const productCount = pagination ? pagination.total : products.length;
 
   // Sort client-side (cheap, mirrors /products page behavior); legacy mode
   // only, in server mode the API already sorted them.
-  if (loaded.mode === 'legacy') {
+  if (loaded.mode === 'legacy' && !explorerPage) {
     if (sort === 'price_asc') {
       products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
     } else if (sort === 'price_desc') {
@@ -224,6 +242,28 @@ export default async function CollectionPage({
     : hero.imageUrl
     ? resolveMediaUrl(hero.imageUrl)
     : undefined;
+
+  const explorer: ExplorerInit | null =
+    explorerPage && listingSettings && explorerState
+      ? {
+          storeSlug,
+          locale,
+          lp,
+          lang,
+          basePath: collectionBase,
+          kind: 'collection',
+          baseCollection: handle,
+          currency,
+          settings: listingSettings,
+          state: explorerState,
+          products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard)),
+          total: explorerPage.total,
+          hasMore: explorerPage.hasMore,
+          facets: explorerPage.facets,
+          card: Boolean(cardSettings),
+          priorityFirst: !(hero.enabled && heroImage),
+        }
+      : null;
 
   // Helper to build sort URLs that preserve the active search.
   const buildSortUrl = (s: string) => {
@@ -298,8 +338,9 @@ export default async function CollectionPage({
       query: { search, sort },
       hero: storeData?.theme?.hero?.collections,
       basePath: collectionBase,
-      isFiltered: !!search,
+      isFiltered: !!search || (explorerState ? isRefinedView(explorerState) : false),
       ...(pagination ? { pagination } : {}),
+      ...(explorer ? { explorer } : {}),
     };
     return (
       <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
@@ -416,7 +457,8 @@ export default async function CollectionPage({
               />
             )}
 
-            {hero.showCount && products.length > 0 && (
+            {/* The filtered listing shows its own, live count. */}
+            {hero.showCount && !explorer && products.length > 0 && (
               <p className="mt-4 text-xs font-semibold opacity-70" style={{ color: hero.textColor }}>
                 {productCount}{' '}
                 {productCount === 1
@@ -435,6 +477,18 @@ export default async function CollectionPage({
         </div>
       )}
 
+      {explorer ? (
+        // Filtered listing: toolbar, filters, chips, grid and paging.
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <ListingExplorer init={explorer} motion={m} />
+          {collectionLongDescription && (
+            <div
+              className="mt-12 pt-10 border-t border-gray-100 prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: collectionLongDescription }}
+            />
+          )}
+        </div>
+      ) : (
       <div className="container mx-auto px-4 py-8">
         {/* Search form scoped to this collection */}
         <div className="flex flex-col md:flex-row gap-4 mb-8 items-start md:items-center justify-between">
@@ -617,6 +671,7 @@ export default async function CollectionPage({
           />
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -626,7 +681,8 @@ export async function generateMetadata({
   searchParams,
 }: CollectionPageProps) {
   const { storeSlug, path: pathSegments } = await params;
-  const { lang } = await searchParams;
+  const query = await searchParams;
+  const { lang } = query;
 
   try {
     const [tree, store] = await Promise.all([
@@ -636,6 +692,7 @@ export async function generateMetadata({
         market?: MarketRoute | null;
         markets?: MarketRoute[];
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
+        theme_customizations?: unknown;
       } | null>,
     ]);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
@@ -681,8 +738,13 @@ export async function generateMetadata({
         url: alternates.canonical,
       },
       // M4.4: a flagged collection with no published product stays out of
-      // the index (and out of the sitemap, filtered by the API).
-      ...(collectionIsNoindex(collection) ? { robots: { index: false, follow: true } } : {}),
+      // the index (and out of the sitemap, filtered by the API). A refined
+      // view of the filtered listing (filters, search, sort) too, while the
+      // canonical stays the clean collection URL.
+      ...(collectionIsNoindex(collection) ||
+      (readListingSettings(store?.theme_customizations) !== null && isRefinedView(parseFilterState(query)))
+        ? { robots: { index: false, follow: true } }
+        : {}),
     };
   } catch {
     return {};

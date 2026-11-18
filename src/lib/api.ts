@@ -3,6 +3,8 @@ import { marketQuery, type MarketRef } from './market';
 import { isStoreNotLiveError, PRODUCT_PREVIEW_COOKIE, STORE_PREVIEW_COOKIE, storeHomeHref } from './storeGate';
 import { previewFetchOptions, previewTokenFor, readBrowserPreviewCookie, resolveStorefrontFetchOptions } from './storePreview';
 import type { ListingApiSort } from './listingPaging';
+import type { ApiFilterParams, ExplorerSort } from './listingFilters/query';
+import { toListingFacets, type ListingFacets } from './listingFilters/types';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -263,6 +265,8 @@ export interface ProductsPage<T = unknown> {
   has_more: boolean;
   /** Older API answered the plain full array. */
   legacy: boolean;
+  /** Facet counts, only when the request asked `facets=1` (null = none sent). */
+  facets?: ListingFacets | null;
 }
 
 /** Parameters of a paged product list request. */
@@ -273,9 +277,13 @@ export interface ProductsPageParams {
   creator_category?: string;
   creator_category_id?: string;
   search?: string;
-  sort?: ListingApiSort;
+  /** The filtered listing also sends `name` (A to Z). */
+  sort?: ListingApiSort | ExplorerSort;
   /** Enhanced product card: asks the API for the card fields (`cardQuery`). */
   card?: '1';
+  /** Filtered listing only: shopper filters and the facet counts. */
+  filters?: ApiFilterParams;
+  facets?: '1';
 }
 
 /**
@@ -295,6 +303,7 @@ export function toProductsPage(data: unknown): ProductsPage {
       limit: Number(obj.limit),
       has_more: obj.has_more === true,
       legacy: false,
+      ...('facets' in obj ? { facets: toListingFacets((obj as { facets?: unknown }).facets) } : {}),
     };
   }
   throw new Error('Unexpected product page response');
@@ -324,6 +333,11 @@ export const storefront = {
     q.set('limit', String(params.limit));
     // After `limit`, before the market suffix: absent = the URL of before.
     if (params.card === '1') q.set('card', '1');
+    // Filtered listing only, after `card` (requests without them are unchanged).
+    if (params.filters) {
+      for (const [k, v] of Object.entries(params.filters)) if (v) q.set(k, v);
+    }
+    if (params.facets === '1') q.set('facets', '1');
     const data = await api<unknown>(
       `/storefront/${slug}/products?${q.toString()}${marketQuery(market, true)}`,
       await storefrontOpts(slug),

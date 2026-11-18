@@ -23,6 +23,10 @@ import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { isUsableSlug } from '@/lib/slugRoute';
+import { readListingSettings } from '@/lib/listingFilters/settings';
+import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
+import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
+import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 
 interface ProductPromotion {
   type?: string;
@@ -62,6 +66,8 @@ interface StoreProductsProps {
     creator_category?: string;
     lang?: string;
     sort?: string;
+    // Filtered listing (opt-in): collection, type, color, size, price_*, in_stock.
+    [key: string]: string | string[] | undefined;
   }>;
 }
 
@@ -76,7 +82,8 @@ export async function generateMetadata({
   searchParams,
 }: StoreProductsProps): Promise<Metadata> {
   const { storeSlug } = await params;
-  const { lang, search, category, creator_category, sort } = await searchParams;
+  const query = await searchParams;
+  const { lang, search, category, creator_category, sort } = query;
   try {
     const [store, t] = await Promise.all([
       storefront.getStore(storeSlug, await getRequestMarket()) as Promise<{
@@ -85,6 +92,7 @@ export async function generateMetadata({
         custom_domain?: string | null;
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
         theme?: { translations?: Record<string, { name?: string; description?: string }> };
+        theme_customizations?: unknown;
         market?: MarketRoute | null;
         markets?: MarketRoute[];
       } | null>,
@@ -108,7 +116,12 @@ export async function generateMetadata({
       storeSlug,
     });
 
-    const isFiltered = Boolean(search || category || creator_category || sort);
+    // Filtered listing: every refined view (filters, search, sort) is
+    // noindex too; the canonical stays the clean /products URL.
+    const isFiltered =
+      Boolean(search || category || creator_category || sort) ||
+      (readListingSettings(store?.theme_customizations) !== null &&
+        isRefinedView(parseFilterState(query, { legacyCollection: true })));
 
     return {
       title: `${t('common.products')} — ${storeName}`.trim(),
@@ -133,7 +146,8 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const { storeSlug } = await params;
   // Focused storefront: browsing pages lead to the external site (307).
   await redirectFocusedBrowsing(storeSlug, '/products');
-  const { search, category, creator_category, lang, sort } = await searchParams;
+  const query = await searchParams;
+  const { search, category, creator_category, lang, sort } = query;
   const t = await getTranslations();
   const lp = lang ? `/${lang}` : '';
 
@@ -152,6 +166,9 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
   // Product card settings of the store (null = the classic card, classic requests).
   const cardSettings = readProductCard(storeData?.theme_customizations);
+  // Filtered listing (opt-in per store). Null = the listing as before.
+  const listingSettings = readListingSettings(storeData?.theme_customizations);
+  const explorerState = listingSettings ? parseFilterState(query, { legacyCollection: true }) : null;
 
   const queryParams: Record<string, string> = { locale };
   if (search) queryParams.search = search;
@@ -165,8 +182,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // A catalogue above LISTING_SERVER_THRESHOLD is paginated by the API
   // (server mode: first page only, sorted by the API); at or below it the
   // route makes today's exact request and renders as before.
-  const [loaded, creatorCategories, template] = await Promise.all([
-    loadListing<Product>(storeSlug, { queryParams, sort }, marketKey),
+  const [first, creatorCategories, template] = await Promise.all([
+    explorerState
+      ? loadExplorerPage<Product>(storeSlug, { locale, state: explorerState, card: Boolean(cardSettings) }, marketKey).then(
+          (explorerPage) => ({ explorerPage }),
+        )
+      : loadListing<Product>(storeSlug, { queryParams, sort }, marketKey).then((loaded) => ({ loaded })),
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup
@@ -175,7 +196,17 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
       snapshot?: { sections?: SectionInstance[] };
     } | null>,
   ]);
-  const products = loaded.products;
+  // The filtered listing renders when its first page loaded; without the
+  // setting the listing was loaded exactly as before, and when the filtered
+  // request failed it is loaded that way now.
+  const explorerPage = 'explorerPage' in first ? first.explorerPage : null;
+  const loaded =
+    'loaded' in first
+      ? first.loaded
+      : explorerPage
+        ? ({ mode: 'legacy', products: explorerPage.items } as const)
+        : await loadListing<Product>(storeSlug, { queryParams, sort }, marketKey);
+  const products: Product[] = loaded.products;
   const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
   // Server mode counts every matching product, not just the first page.
   const productCount = pagination ? pagination.total : products.length;
@@ -198,7 +229,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   }
 
   // Sort products (legacy mode; in server mode the API already sorted them)
-  if (loaded.mode === 'legacy') {
+  if (loaded.mode === 'legacy' && !explorerPage) {
     if (sort === 'price_asc') {
       products.sort((a, b) => Number(a.base_price) - Number(b.base_price));
     } else if (sort === 'price_desc') {
@@ -208,7 +239,28 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     }
   }
 
-  const isFiltered = !!(search || category || creator_category);
+  const isFiltered = !!(search || category || creator_category) || (explorerState ? isRefinedView(explorerState) : false);
+
+  const explorer: ExplorerInit | null =
+    explorerPage && listingSettings && explorerState
+      ? {
+          storeSlug,
+          locale,
+          lp,
+          lang,
+          basePath: '/products',
+          kind: 'catalog',
+          currency: storeData?.currency,
+          settings: listingSettings,
+          state: explorerState,
+          products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard)),
+          total: explorerPage.total,
+          hasMore: explorerPage.hasMore,
+          facets: explorerPage.facets,
+          card: Boolean(cardSettings),
+          priorityFirst: !hero.enabled || !heroImage,
+        }
+      : null;
 
   // JSON-LD for the catalogue. Skipped on filtered views: those are noindex,
   // and describing a filtered subset as "the catalogue" would be inaccurate.
@@ -260,6 +312,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
       basePath: '/products',
       isFiltered,
       ...(pagination ? { pagination } : {}),
+      ...(explorer ? { explorer } : {}),
     };
     return (
       <div className="min-h-screen" dir={tplLocale === 'ar' ? 'rtl' : 'ltr'}>
@@ -333,7 +386,8 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: hero.textColor }}>
               {t('common.products')}
             </h1>
-            {hero.showCount && products.length > 0 && (
+            {/* The filtered listing shows its own, live count. */}
+            {hero.showCount && !explorer && products.length > 0 && (
               <p className="text-sm mt-2 opacity-70" style={{ color: hero.textColor }}>
                 {productCount} {productCount === 1 ? t('store.productSingular') : t('store.productsCount')}
               </p>
@@ -348,6 +402,12 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
         </div>
       )}
 
+      {explorer ? (
+        // Filtered listing: toolbar, filters, chips, grid and paging.
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <ListingExplorer init={explorer} motion={m} />
+        </div>
+      ) : (
       <div className="container mx-auto px-4 py-8">
         {/* Search + filter bar */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -596,6 +656,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

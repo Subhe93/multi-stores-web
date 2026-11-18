@@ -43,6 +43,11 @@ export interface DemoFixture {
   products: Array<Record<string, unknown>>;
   /** One row of GET /storefront/:slug/products/:productSlug (null = no product view). */
   product: Record<string, unknown> | null;
+  /**
+   * Optional collections of the filtered listing demo (rows link to them
+   * with `_collections: [slug]`). Labels per locale.
+   */
+  collections?: Array<{ slug: string; label: Record<string, string>; parent?: string | null }>;
 }
 
 export interface LoadedFixture {
@@ -85,6 +90,11 @@ export function parseFixture(raw: unknown): DemoFixture | null {
     story: isSections(raw.story) ? raw.story : [],
     products: Array.isArray(raw.products) ? raw.products.filter(isRecord) : [],
     product: isRecord(raw.product) ? raw.product : null,
+    collections: Array.isArray(raw.collections)
+      ? (raw.collections.filter(
+          (c) => isRecord(c) && typeof c.slug === 'string' && isRecord(c.label),
+        ) as DemoFixture['collections'])
+      : undefined,
   };
 }
 

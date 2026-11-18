@@ -24,6 +24,7 @@ import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
 import { isUsableSlug } from '@/lib/slugRoute';
 import { useListingPages } from '@/hooks/useListingPages';
+import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
 import { MotionText } from '../../../creative/primitives/Motion';
 import { rise, stagger } from '../../../creative/recipes';
@@ -122,7 +123,8 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const products = pages.products;
   const firstPageCount = listing.products.length;
   // Server mode counts every matching product, not just the loaded ones.
-  const productCount = pagination ? pages.total : products.length;
+  const explorer = listing.explorer;
+  const productCount = explorer ? explorer.total : pagination ? pages.total : products.length;
   const { search, sort, category, creator_category } = query;
 
   // Secondary locales get a path prefix AND a `lang` query param (the proxy
@@ -457,7 +459,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                 {subheading}
               </p>
             )}
-            {showHeroCount && products.length > 0 && (
+            {showHeroCount && !explorer && productCount > 0 && (
               <p className="text-sm mt-2 opacity-70" style={{ color: hero.textColor }}>
                 {countLine}
               </p>
@@ -538,7 +540,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
                 />
               ))}
 
-            {showHeroCount && products.length > 0 && (
+            {showHeroCount && !explorer && productCount > 0 && (
               <p className="mt-4 text-xs font-semibold opacity-70" style={{ color: hero.textColor }}>
                 {countLine}
               </p>
@@ -595,6 +597,19 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
         </div>
       )}
 
+      {explorer ? (
+        // Filtered listing (store setting): the explorer replaces search,
+        // pills, sort, grid and paging; the long description stays.
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          {collectionLongDescription &&
+            longDescriptionAbove &&
+            renderLongDescription(collectionLongDescription, 'mb-10 pb-8 border-b border-gray-100')}
+          <ListingExplorer init={explorer} motion={motion ? 'scroll' : undefined} aspectClass={aspectClass} />
+          {collectionLongDescription &&
+            !longDescriptionAbove &&
+            renderLongDescription(collectionLongDescription, 'mt-12 pt-10 border-t border-gray-100')}
+        </div>
+      ) : (
       <div className="container mx-auto px-4 py-8">
         {!isCollection ? (
           <>
@@ -728,6 +743,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           !longDescriptionAbove &&
           renderLongDescription(collectionLongDescription, 'mt-12 pt-10 border-t border-gray-100')}
       </div>
+      )}
     </section>
   );
 }

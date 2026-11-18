@@ -5,6 +5,7 @@ import type { TraderDetails } from '@/lib/traderDetails';
 import type { ComponentType, ReactNode } from 'react';
 import type { HeroPageConfig } from '@/lib/hero';
 import type { ListingPagination } from '@/lib/listingPaging';
+import type { ExplorerInit } from '@/lib/listingFilters/explorer';
 import type { StorefrontApps } from '@/lib/storeApps';
 import type { MarketRoute } from '@/lib/market';
 import type { CardExtras } from '@/lib/productCard/model';
@@ -348,6 +349,12 @@ export interface ListingContext {
    * legacy listing, which then renders exactly as before.
    */
   pagination?: ListingPagination;
+  /**
+   * Filtered listing (store setting `theme_customizations.listing`): the
+   * section renders the explorer in place of its search, pills, sort and
+   * grid. Absent = the section renders as before.
+   */
+  explorer?: ExplorerInit;
 }
 
 // A single navigation menu item. `parent_id` enables nesting (dropdowns /
