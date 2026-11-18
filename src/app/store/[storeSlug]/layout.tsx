@@ -50,6 +50,9 @@ import {
 } from '@/lib/consent';
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
+import { creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
+import { CreativeBoot } from '@/themes/creative/boot.client';
+import { JsFlag } from '@/themes/creative/primitives/JsFlag';
 
 // ---------- Type definitions ----------
 
@@ -580,6 +583,12 @@ export default async function StoreLayout({
   // Load i18n messages for store pages (locale resolved via request.ts fallback)
   const messages = await getMessages();
 
+  // Creative engine store switch: null for every store that did not turn it
+  // on, and in the focused storefront.
+  const creative = focus ? null : readCreative(store.theme_customizations);
+  const creativeCurtainLabel =
+    (messages as { creative?: { loadingPage?: string } }).creative?.loadingPage || '';
+
   return (
     <NextIntlClientProvider locale={currentLang} messages={messages}>
       <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings}>
@@ -609,6 +618,7 @@ export default async function StoreLayout({
           lang={currentLang}
           data-theme={activeTheme.key}
           {...motionAttrs(store.theme_customizations)}
+          {...creativeAttrs(store.theme_customizations)}
           className="store-root min-h-screen flex flex-col"
           style={{
             ...themeCssVars,
@@ -653,6 +663,19 @@ export default async function StoreLayout({
           {/* Store-owner "Edit" button: renders nothing (and loads nothing)
               unless the dashboard handed this browser an owner token. */}
           <EditHintBoot storeSlug={storeSlug} />
+          {/* Creative engine, store switch (theme_customizations.motion.creative):
+              smooth scrolling, magnetic buttons and the optional page curtain on
+              brand pages. Nothing is rendered for a store that never set it. */}
+          {creative && (
+            <>
+              <JsFlag />
+              <CreativeBoot
+                options={creative}
+                curtainLabel={creativeCurtainLabel}
+                logoUrl={store.logo_url ? resolveMediaUrl(store.logo_url) : undefined}
+              />
+            </>
+          )}
           {/* Owner preview of a store that is not LIVE yet. */}
           {storePreview ? <StorePreviewBar /> : <StorePreviewReset />}
           {/* Site-wide structured data: Organization + WebSite. */}

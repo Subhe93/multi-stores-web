@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
+import { creativeAttrs } from './creative/creativeAttrs';
 import { arabicBodyCss, mergeTokens, motionAttrs, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
@@ -410,6 +411,10 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       dir={state.locale === 'ar' ? 'rtl' : 'ltr'}
       lang={state.locale}
       {...motionAttrs(state.customizations)}
+      {...creativeAttrs(state.customizations)}
+      // The creative engine never starts in the builder: sections show their
+      // static, complete state.
+      data-cx-builder=""
       className="store-root"
       style={cssVars as CSSProperties}
     >
