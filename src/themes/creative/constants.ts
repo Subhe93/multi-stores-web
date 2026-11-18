@@ -6,6 +6,9 @@ import { locales } from '@/i18n/config';
 
 /** Section keys added by the motion engine (registered in the minimal theme). */
 export const CREATIVE_SECTION_KEYS = [
+  'hero-outline',
+  'hero-sunrise',
+  'stage-scenes',
   'story-pinned',
   'sticky-steps',
   'motion-path',

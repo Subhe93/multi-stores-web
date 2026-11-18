@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "Seite wird geladen",
     "empty": {
+      "heroOutline": "Fügen Sie eine Überschrift und ein freigestelltes Foto hinzu",
+      "heroSunrise": "Fügen Sie Ihr Motiv und eine Überschrift hinzu",
+      "stageScenes": "Fügen Sie ein Motiv und mindestens zwei Szenen hinzu",
       "storyPinned": "Fügen Sie diesem Abschnitt Karten hinzu",
       "stickySteps": "Fügen Sie eine Überschrift und Schritte hinzu",
       "motionPath": "Fügen Sie eine Überschrift und Stationen hinzu",

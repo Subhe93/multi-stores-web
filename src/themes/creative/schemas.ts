@@ -11,7 +11,7 @@ import { entry as impactArc } from './schemas/impact-arc.schema';
 import { entry as lookSpread } from './schemas/look-spread.schema';
 import { entry as objectStudy } from './schemas/object-study.schema';
 import { entry as patternBand } from './schemas/pattern-band.schema';
-import { SCROLL_SCHEMAS } from './schemas/scroll-sections.schema';
+import { HERO_SCHEMAS, SCROLL_SCHEMAS } from './schemas/scroll-sections.schema';
 import { entry as scriptManifesto } from './schemas/script-manifesto.schema';
 
 // ── Compact field builders ──────────────────────────────────────────────
@@ -142,6 +142,7 @@ const ornamentLine: CreativeSchemaEntry = {
 };
 
 export const CREATIVE_SCHEMAS: Record<CreativeSectionKey, CreativeSchemaEntry> = {
+  ...HERO_SCHEMAS,
   ...SCROLL_SCHEMAS,
   'ornament-line': ornamentLine,
   'cover-hero': coverHero,

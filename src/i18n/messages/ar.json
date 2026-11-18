@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "جارٍ تحميل الصفحة",
     "empty": {
+      "heroOutline": "أضف عنواناً وصورة مقصوصة",
+      "heroSunrise": "أضف عملك الفني وعنواناً",
+      "stageScenes": "أضف عملاً فنياً ومشهدين على الأقل",
       "storyPinned": "أضف بطاقات إلى هذا القسم",
       "stickySteps": "أضف عنواناً وخطوات إلى هذا القسم",
       "motionPath": "أضف عنواناً ومحطات إلى هذا القسم",

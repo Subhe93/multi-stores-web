@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "Sidan laddas",
     "empty": {
+      "heroOutline": "Lägg till en rubrik och ett frilagt foto",
+      "heroSunrise": "Lägg till ditt motiv och en rubrik",
+      "stageScenes": "Lägg till ett motiv och minst två scener",
       "storyPinned": "Lägg till kort i det här avsnittet",
       "stickySteps": "Lägg till en rubrik och steg i det här avsnittet",
       "motionPath": "Lägg till en rubrik och stopp i det här avsnittet",

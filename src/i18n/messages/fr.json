@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "Chargement de la page",
     "empty": {
+      "heroOutline": "Ajoutez un titre et une photo détourée",
+      "heroSunrise": "Ajoutez votre visuel et un titre",
+      "stageScenes": "Ajoutez un visuel et au moins deux scènes",
       "storyPinned": "Ajoutez des cartes à cette section",
       "stickySteps": "Ajoutez un titre et des étapes à cette section",
       "motionPath": "Ajoutez un titre et des arrêts à cette section",

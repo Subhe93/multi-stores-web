@@ -66,8 +66,11 @@ describe('route scope', () => {
 });
 
 describe('section keys', () => {
-  it('the engine adds the four scroll sections, the ornament divider and the six brand sections', () => {
+  it('the engine adds the two heroes, the stage scenes, the four scroll sections, the ornament divider and the six brand sections', () => {
     expect([...CREATIVE_SECTION_KEYS]).toEqual([
+      'hero-outline',
+      'hero-sunrise',
+      'stage-scenes',
       'story-pinned',
       'sticky-steps',
       'motion-path',

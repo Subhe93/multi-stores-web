@@ -156,7 +156,7 @@ describe('creative sections are registered', () => {
   });
 
   it('a section with nothing set renders nothing on the live store and a placeholder in the builder', () => {
-    for (const key of ['story-pinned', 'sticky-steps', 'motion-path', 'marquee-band'] as const) {
+    for (const key of ['hero-outline', 'hero-sunrise', 'stage-scenes', 'story-pinned', 'sticky-steps', 'motion-path', 'marquee-band'] as const) {
       const empty = [section('e1', key, { ...CREATIVE_SCHEMAS[key].defaultSettings }, {})];
       const live = renderToStaticMarkup(
         <SectionRenderer theme={minimalTheme} sections={empty} locale="en" primaryLocale="en" storeSlug="demo" />,

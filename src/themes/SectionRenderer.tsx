@@ -25,14 +25,15 @@ import {
 
 // Sections that are usually the page's LCP element: never wrapped in a reveal.
 // The ornament divider and the brand sections (themes/creative) bring their
-// own recipes: no generic reveal and no data-cx-auto. The pinned, sticky and
-// marquee sections also bring sticky stages: the wrapper's pending transform
-// would break `position: sticky`.
+// own recipes: no generic reveal and no data-cx-auto. The stage scenes,
+// pinned, sticky and marquee sections also bring sticky stages: the
+// wrapper's pending transform would break `position: sticky`.
 const NO_REVEAL_KEYS = new Set([
   'aurora-hero',
   'product-page',
   'product-gallery',
   'product-listing',
+  'stage-scenes',
   'story-pinned',
   'sticky-steps',
   'motion-path',

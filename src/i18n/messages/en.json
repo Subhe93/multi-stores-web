@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "Loading page",
     "empty": {
+      "heroOutline": "Add a heading and a cut-out photo",
+      "heroSunrise": "Add your artwork and a heading",
+      "stageScenes": "Add an artwork and at least two scenes",
       "storyPinned": "Add cards to this section",
       "stickySteps": "Add a heading and steps to this section",
       "motionPath": "Add a heading and stops to this section",

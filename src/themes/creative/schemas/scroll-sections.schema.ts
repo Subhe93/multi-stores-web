@@ -1,5 +1,6 @@
 // Settings schemas of the scroll-driven creative sections: story-pinned, sticky-steps, motion-path and
-// marquee-band. The dashboard keeps a six-locale mirror
+// marquee-band, plus the two hero compositions and the travelling stage (hero-outline, hero-sunrise,
+// stage-scenes). The dashboard keeps a six-locale mirror
 // (multi-stores-dashboard/src/lib/creative-sections/*.ts): same keys, order,
 // types, options and defaults; creative.contract.test.tsx compares the two.
 //
@@ -461,6 +462,299 @@ const marqueeBand: CreativeSchemaEntry = {
   },
   defaultContent: { items: [] },
 };
+
+// ── Hero and stage sections (hero-outline, hero-sunrise, stage-scenes) ──
+
+const heroOutline: CreativeSchemaEntry = {
+  schema: {
+    id: 'hero-outline',
+    label: L('Outline accent hero', 'واجهة بكلمة محدَّدة'),
+    icon: 'sparkles',
+    category: 'showcase',
+    description: L(
+      'A hero built around one photo or cut-out, with a modest outlined brand word as a quiet layer behind it.',
+      'واجهة تتمحور حول صورة واحدة أو عنصر مقصوص، مع كلمة العلامة بخط محدَّد وحجم معتدل كطبقة هادئة خلفها.',
+    ),
+    pageTypes: [...PAGE],
+    translatable: ['eyebrow', 'heading', 'subheading', 'accent_text', 'cta_text', 'cta_secondary_text', 'alt', 'stats'],
+    schema: [
+      image('image', 'Image', 'الصورة', {
+        description: L('A cut-out on a transparent background or a photo.', 'عنصر مقصوص بخلفية شفافة أو صورة.'),
+      }),
+      text('alt', 'Image description (alt text)', 'وصف الصورة (النص البديل)', 160, { description: ALT_HINT }),
+      select('image_fit', 'Image fit', 'ملاءمة الصورة', 'contain', [
+        ['contain', 'Whole image (cut-out)', 'الصورة كاملة (عنصر مقصوص)'],
+        ['cover', 'Photo card', 'بطاقة صورة'],
+      ]),
+      select('image_focus', 'Image focus', 'تركيز الصورة', 'center', FOCUS, {
+        showIf: { key: 'image_fit', in: ['cover'] },
+      }),
+      select('layout', 'Layout', 'التخطيط', 'center', [
+        ['center', 'Image in the centre', 'الصورة في الوسط'],
+        ['split', 'Split', 'مقسوم'],
+      ]),
+      select('height', 'Height', 'الارتفاع', 'lg', [
+        ['md', 'Medium', 'متوسط'],
+        ['lg', 'Tall', 'طويل'],
+      ]),
+      ...HEADING_TRIO(),
+      ...EMPHASIS_FIELDS,
+      text('accent_text', 'Accent word', 'الكلمة الزخرفية', 16, {
+        description: L(
+          'A short brand word shown as a quiet graphic layer. Decorative: screen readers skip it.',
+          'كلمة قصيرة للعلامة تظهر كطبقة زخرفية هادئة. للزينة فقط: يتجاوزها قارئ الشاشة.',
+        ),
+      }),
+      select('accent_style', 'Accent word style', 'نمط الكلمة الزخرفية', 'outline', [
+        ['outline', 'Outline', 'محدَّدة'],
+        ['faint', 'Faint', 'باهتة'],
+        ['none', 'Hidden', 'مخفية'],
+      ]),
+      select('accent_size', 'Accent word size', 'حجم الكلمة الزخرفية', 'md', SIZE_SM_MD),
+      select('accent_position', 'Accent word position', 'موضع الكلمة الزخرفية', 'behind', [
+        ['behind', 'Behind the image', 'خلف الصورة'],
+        ['below', 'Below the image', 'تحت الصورة'],
+      ]),
+      color('accent_color', 'Accent word colour', 'لون الكلمة الزخرفية', { description: EMPTY_ACCENT }),
+      select('shape', 'Shape behind the image', 'شكل خلف الصورة', 'none', SHAPE_BASE),
+      color('shape_color', 'Shape colour', 'لون الشكل', {
+        description: L('Empty = the theme surface colour.', 'فارغ = لون السطح في الثيم.'),
+      }),
+      select('halo', 'Halo', 'الهالة', 'dots', [
+        ['none', 'None', 'بدون'],
+        ['dots', 'Dots', 'نقاط'],
+        ['glow', 'Glow', 'توهّج'],
+        ['rings', 'Rings', 'حلقات'],
+      ]),
+      color('halo_color_1', 'Halo colour 1', 'لون الهالة 1', { description: EMPTY_ACCENT }),
+      color('halo_color_2', 'Halo colour 2', 'لون الهالة 2', {
+        description: L('Empty = the theme secondary colour.', 'فارغ = اللون الثانوي في الثيم.'),
+      }),
+      repeater('stats', 'Figures', 'الأرقام', 3, [
+        text('label', 'Label', 'التسمية', 24),
+        text('value', 'Value', 'القيمة', 24),
+      ]),
+      bool('pointer_parallax', 'Follow the pointer', 'تتبّع المؤشر', true),
+      bool('scroll_cue', 'Scroll cue', 'إشارة التمرير', false),
+      ...sceneFields('none'),
+      ...CTA_FIELDS,
+    ],
+  },
+  defaultSettings: {
+    image_fit: 'contain',
+    layout: 'center',
+    height: 'lg',
+    heading_emphasis: 'italic',
+    accent_style: 'outline',
+    accent_size: 'md',
+    accent_position: 'behind',
+    shape: 'none',
+    halo: 'dots',
+    pointer_parallax: true,
+    scroll_cue: false,
+    scene: 'none',
+    cta_tone: 'primary',
+  },
+  defaultContent: { heading: 'Your headline here', cta_text: 'Shop now' },
+};
+
+const heroSunrise: CreativeSchemaEntry = {
+  schema: {
+    id: 'hero-sunrise',
+    label: L('Rising emblem hero', 'واجهة الشعار الصاعد'),
+    icon: 'sparkles',
+    category: 'showcase',
+    description: L(
+      'A hero where your own artwork rises into place on load, with an optional photo card.',
+      'واجهة يصعد فيها عملك الفني إلى مكانه عند التحميل، مع بطاقة صورة اختيارية.',
+    ),
+    pageTypes: [...PAGE],
+    translatable: ['eyebrow', 'heading', 'subheading', 'cta_text', 'cta_secondary_text', 'alt'],
+    schema: [
+      image('sun_core', 'Rising artwork', 'العمل الفني الصاعد'),
+      image('sun_rays', 'Rays (optional)', 'الأشعة (اختياري)', {
+        description: L('Drawn behind the rising artwork.', 'تُرسم خلف العمل الفني الصاعد.'),
+      }),
+      image('foreground', 'Foreground (optional)', 'المقدّمة (اختياري)'),
+      select(
+        'foreground_mode',
+        'Foreground mode',
+        'نمط المقدّمة',
+        'ridge',
+        [
+          ['ridge', 'Ridge along the bottom', 'حافة أسفل القسم'],
+          ['emblem', 'Emblem (same box as the artwork)', 'شعار (نفس إطار العمل الفني)'],
+        ],
+        {
+          description: L(
+            'Emblem: export both artworks with the same square viewBox so they register exactly.',
+            'شعار: صدِّر العملين بنفس إطار العرض المربع ليتطابقا تماماً.',
+          ),
+        },
+      ),
+      select('foreground_height', 'Foreground height', 'ارتفاع المقدّمة', 'md', SIZE_SM_MD, {
+        showIf: { key: 'foreground_mode', in: ['ridge'] },
+      }),
+      select('plate', 'Plate', 'القرص الخلفي', 'none', [
+        ['none', 'None', 'بدون'],
+        ['disc', 'Round plate', 'قرص دائري'],
+      ]),
+      color('plate_color', 'Plate colour', 'لون القرص', {
+        description: L('Empty = the theme surface colour.', 'فارغ = لون السطح في الثيم.'),
+        showIf: { key: 'plate', in: ['disc'] },
+      }),
+      image('image', 'Photo (optional)', 'الصورة (اختياري)'),
+      text('alt', 'Image description (alt text)', 'وصف الصورة (النص البديل)', 160, { description: ALT_HINT }),
+      select('image_focus', 'Image focus', 'تركيز الصورة', 'center', FOCUS),
+      select('sun_size', 'Artwork size', 'حجم العمل الفني', 'md', SIZE_SM_MD),
+      select('sun_position', 'Artwork position', 'موضع العمل الفني', 'center', [
+        ['start', 'Start', 'البداية'],
+        ['center', 'Center', 'الوسط'],
+        ['end', 'End', 'النهاية'],
+        ['seam', 'On the photo corner', 'على زاوية الصورة'],
+      ]),
+      select('rays_motion', 'Rays motion', 'حركة الأشعة', 'rotate', [
+        ['rotate', 'Slow rotation', 'دوران بطيء'],
+        ['pulse', 'Pulse', 'نبض'],
+        ['none', 'Still', 'ثابتة'],
+      ]),
+      bool('scroll_parallax', 'Move with scrolling', 'التحرّك مع التمرير', true),
+      bool('glow', 'Glow', 'التوهّج', true),
+      color('glow_color', 'Glow colour', 'لون التوهّج', { description: EMPTY_ACCENT }),
+      select('mobile_order', 'Order on phones', 'الترتيب على الهاتف', 'image-first', [
+        ['image-first', 'Image first', 'الصورة أولاً'],
+        ['text-first', 'Text first', 'النص أولاً'],
+      ]),
+      ...HEADING_TRIO(),
+      ...EMPHASIS_FIELDS,
+      ...sceneFields('light'),
+      ...CTA_FIELDS,
+    ],
+  },
+  defaultSettings: {
+    foreground_mode: 'ridge',
+    foreground_height: 'md',
+    plate: 'none',
+    image_focus: 'center',
+    sun_size: 'md',
+    sun_position: 'center',
+    rays_motion: 'rotate',
+    scroll_parallax: true,
+    glow: true,
+    mobile_order: 'image-first',
+    heading_emphasis: 'italic',
+    scene: 'light',
+    cta_tone: 'primary',
+  },
+  defaultContent: { heading: 'Your headline here', cta_text: 'Shop now' },
+};
+
+const stageScenes: CreativeSchemaEntry = {
+  schema: {
+    id: 'stage-scenes',
+    label: L('Travelling object scenes', 'مشاهد العنصر المتنقّل'),
+    icon: 'layout',
+    category: 'showcase',
+    description: L(
+      'One cut-out stays on stage and travels, tilts and changes side while the page scrolls through colour scenes. Needs at least two scenes. Root sections only.',
+      'عنصر مقصوص واحد يبقى على المسرح ويتنقّل ويميل ويبدّل جانبه أثناء تمرير الصفحة عبر مشاهد ملوّنة. يحتاج مشهدين على الأقل. للأقسام الجذرية فقط.',
+    ),
+    pageTypes: [...PAGE],
+    translatable: ['artwork_alt', 'scenes'],
+    schema: [
+      image('artwork', 'Artwork', 'العمل الفني', {
+        description: L(
+          'A cut-out product, model or brand symbol on a transparent background.',
+          'منتج أو عارض أو رمز العلامة مقصوص بخلفية شفافة.',
+        ),
+      }),
+      text('artwork_alt', 'Artwork description (alt text)', 'وصف العمل الفني (النص البديل)', 160, {
+        description: ALT_HINT,
+      }),
+      image('artwork_2', 'Second view (optional)', 'زاوية ثانية (اختياري)', {
+        description: L('Same proportions as the first artwork.', 'بنفس أبعاد العمل الفني الأول.'),
+      }),
+      select('artwork_size', 'Artwork size', 'حجم العمل الفني', 'md', SIZE_SM_MD),
+      select('artwork_aspect', 'Artwork proportions', 'أبعاد العمل الفني', 'portrait', [
+        ['portrait', 'Portrait (3:4)', 'طولي (3:4)'],
+        ['square', 'Square', 'مربع'],
+      ]),
+      bool('float', 'Gentle idle drift', 'انجراف هادئ عند السكون', true),
+      select('scene_height', 'Scene height', 'ارتفاع المشهد', 'lg', [
+        ['md', 'Medium', 'متوسط'],
+        ['lg', 'Full screen', 'ملء الشاشة'],
+      ]),
+      image('marker_image', 'Bullet marker', 'علامة التعداد', {
+        description: L('A small brand symbol; empty = an accent dot.', 'رمز صغير للعلامة؛ فارغ = نقطة بلون التمييز.'),
+      }),
+      ...EMPHASIS_FIELDS,
+      repeater(
+        'scenes',
+        'Scenes',
+        'المشاهد',
+        5,
+        [
+          select('scene', 'Colour scene', 'مشهد الألوان', 'dark', SCENE_OPTIONS),
+          color('scene_bg', 'Scene background', 'خلفية المشهد', { description: EMPTY_SCENE }),
+          select('side', 'Artwork side', 'جانب العمل الفني', 'auto', [
+            ['auto', 'Alternate', 'بالتناوب'],
+            ['start', 'Start', 'البداية'],
+            ['end', 'End', 'النهاية'],
+          ]),
+          select('tilt', 'Tilt', 'الميلان', 'soft', [
+            ['none', 'None', 'بدون'],
+            ['soft', 'Soft', 'خفيف'],
+            ['strong', 'Strong', 'قوي'],
+          ]),
+          select('scale', 'Artwork scale', 'مقياس العمل الفني', 'md', SIZE_SM_MD),
+          select('view', 'View', 'الزاوية', '1', [
+            ['1', 'First', 'الأولى'],
+            ['2', 'Second', 'الثانية'],
+          ]),
+          select('shape', 'Shape behind the artwork', 'شكل خلف العمل الفني', 'none', [
+            ...SHAPE_BASE,
+            ['blob', 'Blob', 'شكل حرّ'],
+          ]),
+          color('shape_color', 'Shape colour', 'لون الشكل', {
+            description: L("Empty = the scene's surface colour.", 'فارغ = لون سطح المشهد.'),
+          }),
+          select('pattern', 'Pattern', 'النقش', 'none', [
+            ['none', 'None', 'بدون'],
+            ['dots', 'Dots', 'نقاط'],
+            ['particles', 'Particles', 'جزيئات'],
+          ]),
+          text('eyebrow', 'Eyebrow', 'السطر التمهيدي', 60),
+          area('heading', 'Heading', 'العنوان', 120),
+          text('lead', 'Lead line', 'السطر الافتتاحي', 160),
+          area('text', 'Text', 'النص', 400),
+          text('chips', 'Chips (comma separated)', 'الوسوم (مفصولة بفواصل)', 80),
+          area('bullets', 'Bullets (one per line)', 'النقاط (واحدة في كل سطر)', 300),
+          text('cta_text', 'Button text', 'نص الزر', 40),
+          url('cta_url', 'Button URL', 'رابط الزر'),
+          text('cta_secondary_text', 'Second button text', 'نص الزر الثاني', 40),
+          url('cta_secondary_url', 'Second button URL', 'رابط الزر الثاني'),
+        ],
+        {
+          description: L('Two to five scenes.', 'من مشهدين إلى خمسة مشاهد.'),
+        },
+      ),
+    ],
+  },
+  defaultSettings: {
+    artwork_size: 'md',
+    artwork_aspect: 'portrait',
+    float: true,
+    scene_height: 'lg',
+    heading_emphasis: 'italic',
+  },
+  defaultContent: { scenes: [] },
+};
+
+export const HERO_SCHEMAS = {
+  'hero-outline': heroOutline,
+  'hero-sunrise': heroSunrise,
+  'stage-scenes': stageScenes,
+} as const;
 
 export const SCROLL_SCHEMAS = {
   'story-pinned': storyPinned,

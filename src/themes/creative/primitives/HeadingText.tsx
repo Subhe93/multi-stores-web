@@ -12,7 +12,17 @@ export interface HeadingTextProps {
   emphasisColor?: string;
   /** Start delay in seconds (words follow in a stagger). */
   delay?: number;
+  /**
+   * Intro pacing by author line: the lines of the heading enter one after
+   * the other (0.12 s apart) and the words of one line almost together
+   * (0.03 s apart), instead of one even word stagger.
+   */
+  byLine?: boolean;
 }
+
+// In steps of --cx-word-step (0.05 s): 0.12 s between lines, 0.03 s between words.
+const LINE_STEPS = 2.4;
+const WORD_STEPS = 0.6;
 
 /**
  * The text of a heading, as children of the section's own heading element
@@ -21,19 +31,21 @@ export interface HeadingTextProps {
  * the removed markers. Words are the smallest unit, for every script:
  * Arabic is never split into characters.
  */
-export function HeadingText({ text, reveal = 'none', emphasis = 'none', emphasisColor, delay }: HeadingTextProps) {
+export function HeadingText({ text, reveal = 'none', emphasis = 'none', emphasisColor, delay, byLine }: HeadingTextProps) {
   if (!text) return null;
   const split = reveal !== 'none';
   if (!split && emphasis === 'none') return <>{text}</>;
 
   let wordIndex = 0;
+  let lineIndex = 0;
+  let lineWord = 0;
   const words = (chunk: string, key: string): ReactNode => {
     if (!split) return chunk;
     // Odd entries are the whitespace runs: they stay text nodes.
     return chunk.split(/(\s+)/).map((piece, i) => {
       if (piece === '') return null;
       if (i % 2 === 1) return piece;
-      const n = wordIndex++;
+      const n = byLine ? +(lineIndex * LINE_STEPS + lineWord++ * WORD_STEPS).toFixed(2) : wordIndex++;
       return (
         <span className="cx-w" key={`${key}-${i}`}>
           <span className="cx-wi" style={{ '--cx-i': n } as CSSProperties}>

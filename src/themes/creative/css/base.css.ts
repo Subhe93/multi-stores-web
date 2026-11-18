@@ -150,6 +150,7 @@ ${G_RTL} [data-cx-intro="rule"]{transform-origin:100% 50%}
 ${G} .cx-eyebrow[data-cx-intro="eyebrow"]{animation:cx-fade var(--cx-dur) ease both}
 ${G} .cx-eyebrow[data-cx-intro="eyebrow"]::before{animation:cx-rule var(--cx-dur) var(--cx-ease) both}
 ${G} [data-cx-section][data-cx-watch]:not([data-cx-inview]) [data-cx-loop]{animation-play-state:paused}
+${G} [data-cx-wait] *,${G} [data-cx-wait] *::before,${G} [data-cx-wait] *::after{animation-play-state:paused!important}
 `;
 
 const PRINT = `

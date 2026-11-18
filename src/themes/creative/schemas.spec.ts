@@ -130,6 +130,9 @@ describe('creative section schemas', () => {
   it('page types: brand pages, plus the footer or the product template where the section belongs there', () => {
     const PAGES = ['HOME', 'STATIC', 'LANDING'];
     const expected: Record<string, string[]> = {
+      'hero-outline': PAGES,
+      'hero-sunrise': PAGES,
+      'stage-scenes': PAGES,
       'story-pinned': PAGES,
       'sticky-steps': PAGES,
       'motion-path': PAGES,

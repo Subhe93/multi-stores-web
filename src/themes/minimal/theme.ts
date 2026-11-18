@@ -63,6 +63,9 @@ import { productListingMagicSection } from './sections/listing/ProductListingMag
 import { layoutRowSection } from './sections/layout/LayoutRow';
 import { layoutColumnSection } from './sections/layout/LayoutColumn';
 import { layoutGridSection } from './sections/layout/LayoutGrid';
+import { heroOutlineSection } from '../creative/sections/HeroOutline';
+import { heroSunriseSection } from '../creative/sections/HeroSunrise';
+import { stageScenesSection } from '../creative/sections/StageScenes';
 import { storyPinnedSection } from '../creative/sections/StoryPinned';
 import { stickyStepsSection } from '../creative/sections/StickySteps';
 import { motionPathSection } from '../creative/sections/MotionPath';
@@ -133,6 +136,9 @@ export const minimalTheme: Theme = {
     'social-icons': socialIconsSection,
     // Motion engine (themes/creative): the ornament divider. Opt-in, a page
     // that does not place it loads none of its CSS or JavaScript.
+    'hero-outline': heroOutlineSection,
+    'hero-sunrise': heroSunriseSection,
+    'stage-scenes': stageScenesSection,
     'story-pinned': storyPinnedSection,
     'sticky-steps': stickyStepsSection,
     'motion-path': motionPathSection,

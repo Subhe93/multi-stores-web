@@ -1323,6 +1323,9 @@
     "storyProgress": "{current} / {total}",
     "loadingPage": "Sayfa yükleniyor",
     "empty": {
+      "heroOutline": "Bir başlık ve dekupe bir fotoğraf ekleyin",
+      "heroSunrise": "Görsel öğenizi ve bir başlık ekleyin",
+      "stageScenes": "Bir görsel öğe ve en az iki sahne ekleyin",
       "storyPinned": "Bu bölüme kartlar ekleyin",
       "stickySteps": "Bu bölüme bir başlık ve adımlar ekleyin",
       "motionPath": "Bu bölüme bir başlık ve duraklar ekleyin",
