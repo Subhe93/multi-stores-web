@@ -5,6 +5,7 @@
 // Nothing here listens to scroll or resize events: observers only.
 
 import { observeOnce } from '../../_motion/inView';
+import { EARLY_ATTR, EARLY_TAG, earlyArm } from '../earlyArm';
 import { clearMotionFlag, motionForced, setMotionFlag } from '../motionFlag';
 import { headerHeight, isBuilder, isCalm, isRtl, motionAllowed } from './env';
 import { gsapIfLoaded, loadGsap, type GsapBundle } from './gsap';
@@ -295,7 +296,24 @@ function groupLines(el: HTMLElement, state: ScopeState): void {
   });
 }
 
+/**
+ * Takes over what the inline early script (../earlyArm.ts) tagged in this
+ * scope before the engine arrived: the tags stay, their removal becomes a
+ * cleanup of the scope.
+ */
+function adoptTags(scope: HTMLElement, state: ScopeState): void {
+  for (const el of withSelf(scope, `[data-cx-tagged="${EARLY_TAG}"]`)) {
+    el.setAttribute('data-cx-tagged', '');
+    state.cleanups.push(() => {
+      el.removeAttribute('data-cx-reveal');
+      el.removeAttribute('data-cx-tagged');
+      el.style.removeProperty('--cx-i');
+    });
+  }
+}
+
 function armReveals(scope: HTMLElement, state: ScopeState): void {
+  adoptTags(scope, state);
   autoTag(scope, state);
   expandStaggers(scope, state);
   const els = withSelf(scope, '[data-cx-reveal]').filter((el) => el.getAttribute('data-cx-reveal') !== 'stagger');
@@ -304,25 +322,52 @@ function armReveals(scope: HTMLElement, state: ScopeState): void {
   const vw = window.innerWidth || document.documentElement.clientWidth;
   const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
   for (const el of els) {
+    // Armed by the early script: adopted in the state it is in. The state
+    // attribute is not rewritten (a pending element stays hidden, a shown
+    // one keeps its running transition, a done one stays at rest).
+    const adopted = el.hasAttribute(EARLY_ATTR) && el.hasAttribute('data-cx-state');
     // Already armed (through an outer scope or an earlier pass).
-    if (el.hasAttribute('data-cx-state')) continue;
+    if (el.hasAttribute('data-cx-state') && !adopted) continue;
     const rect = el.getBoundingClientRect();
     const top = rect.top;
-    // On screen or already scrolled past: stays at rest, never hidden. The
-    // same goes for an element beside the viewport (a card further along a
-    // swipe row): no vertical scroll would ever bring it to the reveal line.
-    if (top < vh || (vw > 0 && rect.width > 0 && (rect.left >= vw || rect.right <= 0))) {
-      el.setAttribute('data-cx-state', 'done');
-      state.cleanups.push(() => el.removeAttribute('data-cx-state'));
-      continue;
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const toDone = () => {
+      settle = setTimeout(() => el.setAttribute('data-cx-state', 'done'), SETTLE_MS);
+    };
+    if (adopted) {
+      el.removeAttribute(EARLY_ATTR);
+      earlyArm()?.take(el);
+      if (el.getAttribute('data-cx-reveal') === 'words') {
+        const words = Array.from(el.querySelectorAll<HTMLElement>('.cx-wi'));
+        state.cleanups.push(() => {
+          for (const word of words) word.style.removeProperty('--cx-ld');
+        });
+      }
+      const current = el.getAttribute('data-cx-state');
+      if (current !== 'pending') {
+        if (current === 'shown') toDone();
+        state.cleanups.push(() => {
+          clearTimeout(settle);
+          el.removeAttribute('data-cx-state');
+        });
+        continue;
+      }
+    } else {
+      // On screen or already scrolled past: stays at rest, never hidden. The
+      // same goes for an element beside the viewport (a card further along a
+      // swipe row): no vertical scroll would ever bring it to the reveal line.
+      if (top < vh || (vw > 0 && rect.width > 0 && (rect.left >= vw || rect.right <= 0))) {
+        el.setAttribute('data-cx-state', 'done');
+        state.cleanups.push(() => el.removeAttribute('data-cx-state'));
+        continue;
+      }
+      if (el.getAttribute('data-cx-reveal') === 'words') groupLines(el, state);
+      el.setAttribute('data-cx-state', 'pending');
     }
-    if (el.getAttribute('data-cx-reveal') === 'words') groupLines(el, state);
-    el.setAttribute('data-cx-state', 'pending');
     // The last block before the footer may never reach the reveal line:
     // observe it with no margin, or it would stay hidden.
     const topAtEnd = top + window.scrollY - maxScroll;
     const rootMargin = topAtEnd > vh * 0.84 ? REVEAL_MARGIN_END : REVEAL_MARGIN;
-    let settle: ReturnType<typeof setTimeout> | undefined;
     // A pending mask is clipped to nothing by its own clip-path. Some browsers
     // then report no intersection for it and the image would stay hidden, so
     // the unclipped parent (same box) is observed instead.
@@ -332,7 +377,7 @@ function armReveals(scope: HTMLElement, state: ScopeState): void {
       watched,
       () => {
         el.setAttribute('data-cx-state', 'shown');
-        settle = setTimeout(() => el.setAttribute('data-cx-state', 'done'), SETTLE_MS);
+        toDone();
       },
       { rootMargin },
     );

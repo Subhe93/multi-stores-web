@@ -4,6 +4,7 @@
 // and keeps doing so as the page changes: client navigation, streamed
 // content, "load more" cards. One MutationObserver, no scroll listener.
 
+import { earlyArm } from '../earlyArm';
 import { isRegistered, rearm, register } from '../engine/core';
 
 type Cleanup = () => void;
@@ -39,6 +40,9 @@ export function startScan(root: HTMLElement): Cleanup {
     if (!frame && !stopped) frame = requestAnimationFrame(pass);
   };
 
+  // The engine takes over from the inline early script: it stops arming,
+  // and the first pass below adopts what it armed (engine/core.ts).
+  earlyArm()?.stop();
   pass();
   let observer: MutationObserver | null = null;
   if (typeof MutationObserver !== 'undefined') {
