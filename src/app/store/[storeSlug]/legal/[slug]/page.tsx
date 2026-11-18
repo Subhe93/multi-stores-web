@@ -6,6 +6,7 @@ import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
 import { routeSlug } from '@/lib/slugRoute';
+import { nullWhenNotFound } from '@/lib/apiAvailability';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { isRtl } from '@/i18n/config';
 import { ldJsonSafe } from '@/lib/jsonld';
@@ -78,8 +79,8 @@ async function resolve(storeSlug: string, slug: LegalSlug, lang: string | undefi
   let page: StoreLegalPage | null = null;
   try {
     page = await storefront.getLegalPage(storeSlug, slug, locale, market);
-  } catch {
-    page = null;
+  } catch (err) {
+    page = nullWhenNotFound(err);
   }
   return { locale, store, page };
 }

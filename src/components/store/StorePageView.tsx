@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { nullWhenNotFound } from '@/lib/apiAvailability';
 import { buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
@@ -92,10 +93,10 @@ export async function fetchStorePage(
     // (slugs are unique per store, so one lookup covers both).
     system === 'legacy'
       ? null
-      : (storefront.getPublishedPage(storeSlug, pageSlug).catch(() => null) as Promise<V2Page | null>),
+      : (storefront.getPublishedPage(storeSlug, pageSlug).catch(nullWhenNotFound) as Promise<V2Page | null>),
     system === 'v2'
       ? null
-      : (storefront.getPage(storeSlug, pageSlug).catch(() => null) as Promise<LegacyPage | null>),
+      : (storefront.getPage(storeSlug, pageSlug).catch(nullWhenNotFound) as Promise<LegacyPage | null>),
   ]);
   return { store, v2, legacy };
 }

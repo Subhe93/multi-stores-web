@@ -31,6 +31,18 @@ export function isDefinitiveNotFound(err: unknown): boolean {
   return status >= 400 && status < 500 && status !== 408 && status !== 429;
 }
 
+/**
+ * For the `catch` of a single-resource read (product, page, legal page):
+ * `null` when the API definitively answered "not found", so the route can
+ * call `notFound()`; anything else (API down, 5xx, timeout, 429) is rethrown
+ * as StoreUnavailableError and rendered by the error boundary as a 5xx.
+ * A temporary API failure must never turn a live page into a 404.
+ */
+export function nullWhenNotFound(err: unknown): null {
+  if (isDefinitiveNotFound(err)) return null;
+  throw new StoreUnavailableError();
+}
+
 /** Thrown by the store layout when the store could not be loaded because the
  *  API is unavailable (rendered by the error boundary as a 5xx, never 404). */
 export class StoreUnavailableError extends Error {

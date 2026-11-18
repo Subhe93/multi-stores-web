@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
+import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
@@ -219,8 +220,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       } | null>,
     ]);
     storeCurrency = storeData?.currency || 'EUR';
-  } catch {
-    notFound();
+  } catch (err) {
+    // A deleted or unpublished product is a real 404; an API failure is not.
+    if (isDefinitiveNotFound(err)) notFound();
+    throw new StoreUnavailableError();
   }
 
   // Owner preview of a DRAFT product (served with the owner token of the
