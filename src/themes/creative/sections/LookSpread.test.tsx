@@ -16,6 +16,7 @@ import { G } from '../css/base.css';
 import { LOOK_SPREAD_CSS } from '../css/lookSpread.css';
 import { entry } from '../schemas/look-spread.schema';
 import { lookSpreadSection, productSlugFromUrl } from './LookSpread';
+import { resolveMediaUrl } from '@/lib/api';
 
 const LookSpread = lookSpreadSection.Component;
 
@@ -211,5 +212,13 @@ describe('look-spread', () => {
     expect(entry.defaultSettings).toEqual({ list_side: 'end' });
     expect(entry.defaultContent).toEqual({});
     for (const f of [...schema.schema, ...items.fields!]) expect(f.label.en && f.label.ar).toBeTruthy();
+  });
+
+  it('resolves root-relative upload paths (photographs, thumbnails, live product image) through the media origin', () => {
+    const out = html({ settings: SETTINGS, content: CONTENT, preloaded: PRELOADED });
+    expect(out).not.toContain('url=%2Fuploads');
+    for (const path of ['/uploads/a.webp', '/uploads/b.webp', '/uploads/dress.webp', '/uploads/ear.webp']) {
+      expect(out).toContain(encodeURIComponent(resolveMediaUrl(path)));
+    }
   });
 });

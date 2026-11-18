@@ -19,6 +19,7 @@ import { useId, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { StoreImage } from '@/components/StoreImage';
+import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
@@ -156,7 +157,9 @@ function Markers({ rows, photo, uid, motion }: { rows: Row[]; photo: Photo; uid:
     ));
 }
 
-function Picture({ src, alt, sizes }: { src: string; alt: string; sizes: string }) {
+function Picture({ src: raw, alt, sizes }: { src: string; alt: string; sizes: string }) {
+  // Root-relative uploads go through the media origin (data: and absolute URLs stay as they are).
+  const src = resolveMediaUrl(raw);
   return <StoreImage src={src} alt={alt} fill sizes={sizes} unoptimized={isSvgSrc(src)} className="cx-ls-img" />;
 }
 

@@ -21,6 +21,7 @@ import type { CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { StoreImage } from '@/components/StoreImage';
+import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { sectionHref } from '../../minimal/sections/_shared/links';
@@ -178,7 +179,8 @@ function ObjectStudy({
   const live = productUrl ? picked(preloaded, productUrl) : fromPageProduct(product, locale, primaryLocale);
   const href = productUrl ? sectionHref(productUrl, locale, primaryLocale) : null;
 
-  const image = str(settings.image) || str(live?.image);
+  // Root-relative uploads go through the media origin (data: and absolute URLs stay as they are).
+  const image = resolveMediaUrl(str(settings.image) || str(live?.image));
   if (!image) return builderPreview ? <EmptyState name="object-study" /> : null;
 
   const title = str(content.heading) || str(live?.title);

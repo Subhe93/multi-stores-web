@@ -15,6 +15,7 @@ import { G } from '../css/base.css';
 import { OBJECT_STUDY_CSS } from '../css/objectStudy.css';
 import { entry } from '../schemas/object-study.schema';
 import { objectStudySection, productSlugFromUrl } from './ObjectStudy';
+import { resolveMediaUrl } from '@/lib/api';
 
 const ObjectStudy = objectStudySection.Component;
 
@@ -237,5 +238,14 @@ describe('object-study', () => {
     for (const rule of OBJECT_STUDY_CSS.split('}').filter((r) => /stroke-dasharray:1|animation:cx-os-draw/.test(r))) {
       expect(rule.startsWith(G) || rule.includes(`{${G}`)).toBe(true);
     }
+  });
+
+  it('resolves root-relative upload paths (own image and live product image) through the media origin', () => {
+    const own = html({ settings: { ...SETTINGS, image: '/uploads/x.webp' }, content: CONTENT, preloaded: PRELOADED });
+    expect(own).not.toContain('url=%2Fuploads');
+    expect(own).toContain(encodeURIComponent(resolveMediaUrl('/uploads/x.webp')));
+    const live = html({ settings: SETTINGS, content: CONTENT, preloaded: PRELOADED });
+    expect(live).not.toContain('url=%2Fuploads');
+    expect(live).toContain(encodeURIComponent(resolveMediaUrl('/uploads/pendant.webp')));
   });
 });
