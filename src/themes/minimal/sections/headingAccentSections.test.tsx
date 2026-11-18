@@ -102,7 +102,7 @@ describe.each(CASES)('heading accent: $name', (c) => {
     for (const accent of accents) {
       expect(accent).toContain(`data-variant="${variant}"`);
       expect(accent).toContain(`data-align="${c.align}"`);
-      expect(accent).toContain('style="color:var(--theme-colors-accent)"');
+      expect(accent).toContain('style="color:var(--theme-colors-accent);font-size:inherit"');
     }
     // Right after the heading text and right before the heading's end tag.
     const inside = new RegExp(`${HEADING}<span aria-hidden="true" class="heading-accent"[^>]*>(?:<svg.*?</svg>)?</span></h[1-6]>`, 'g');
@@ -115,7 +115,7 @@ describe.each(CASES)('heading accent: $name', (c) => {
     const out = html(c, { heading_accent: 'brush', heading_accent_color: '#B60018' });
     const accents = out.match(ACCENT) ?? [];
     expect(accents).toHaveLength(c.headings);
-    for (const accent of accents) expect(accent).toContain('style="color:#B60018"');
+    for (const accent of accents) expect(accent).toContain('style="color:#B60018;font-size:inherit"');
   });
 
   it('renders no accent without a heading', () => {

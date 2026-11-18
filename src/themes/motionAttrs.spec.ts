@@ -125,6 +125,26 @@ describe('globals.css motion rules', () => {
     expect(css).toMatch(/data-motion-zoom="off"\] :is\(img, video\)\[class\*="hover:scale-"\]:hover \{\n\s*scale: none;/);
   });
 
+  it('"subtle" zooms only where the device can hover, as the utilities do', () => {
+    // Tailwind writes the hover utilities inside @media (hover: hover). The
+    // one rule that ADDS a scale must sit behind the same query, or a tap on
+    // a touch screen would leave a zoom an unset store never shows.
+    expect(css.match(/scale: 1\.03;/g)).toHaveLength(1);
+    expect(css).toMatch(
+      /@media \(hover: hover\) \{\n\s*\/\*[^*]*\*\/\n(?:\s*\.store-root\[data-motion-zoom="subtle"\][^\n]*\n)+\s*scale: 1\.03;\n\s*\}\n\}/,
+    );
+  });
+
+  it('covers named groups (group/name with group-hover/name:scale-*), media only', () => {
+    const named = selectorsWith('data-motion-zoom').filter((sel) => sel.includes('[class*="group/"]:hover'));
+    // subtle, off and the reduced-motion reset of subtle.
+    expect(named).toEqual([
+      '.store-root[data-motion-zoom="subtle"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"]',
+      '.store-root[data-motion-zoom="off"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"]',
+      '.store-root[data-motion-zoom="subtle"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"]',
+    ]);
+  });
+
   it('every motion-profile rule is scoped to the store root attribute', () => {
     const selectors = [...selectorsWith('data-motion-reveal'), ...selectorsWith('data-motion-zoom')];
     expect(selectors.length).toBeGreaterThanOrEqual(9);

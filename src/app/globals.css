@@ -283,12 +283,21 @@ html, body {
 /* Hover zoom, media only: images and videos that carry one of the scale
    hover utilities (Tailwind v4 writes them with the `scale` property), and
    the product tile lift. Swatches, social icons and play buttons keep their
-   own hover. */
-.store-root[data-motion-zoom="subtle"] .group:hover :is(img, video)[class*="group-hover:scale-"],
-.store-root[data-motion-zoom="subtle"] :is(img, video)[class*="hover:scale-"]:hover {
-  scale: 1.03;
+   own hover. The second selector of each rule covers named groups
+   (`group/name` with `group-hover/name:scale-*`, e.g. the mega menu's
+   featured image). */
+@media (hover: hover) {
+  /* Like the hover utilities themselves, which Tailwind puts behind this
+     query: a touch screen gets no zoom, so "subtle" must not add one there
+     (a tap leaves :hover on the element). */
+  .store-root[data-motion-zoom="subtle"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+  .store-root[data-motion-zoom="subtle"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"],
+  .store-root[data-motion-zoom="subtle"] :is(img, video)[class*="hover:scale-"]:hover {
+    scale: 1.03;
+  }
 }
 .store-root[data-motion-zoom="off"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+.store-root[data-motion-zoom="off"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"],
 .store-root[data-motion-zoom="off"] :is(img, video)[class*="hover:scale-"]:hover {
   scale: none;
 }
@@ -299,6 +308,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   /* "subtle" must not add a zoom where the motion-safe utilities give none. */
   .store-root[data-motion-zoom="subtle"] .group:hover :is(img, video)[class*="group-hover:scale-"],
+  .store-root[data-motion-zoom="subtle"] [class*="group/"]:hover :is(img, video)[class*="group-hover/"][class*=":scale-"],
   .store-root[data-motion-zoom="subtle"] :is(img, video)[class*="hover:scale-"]:hover {
     scale: none;
   }

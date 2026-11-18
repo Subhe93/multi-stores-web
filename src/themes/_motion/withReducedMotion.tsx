@@ -6,21 +6,20 @@
 // Context only: server and client markup stay identical.
 
 import { MotionConfig } from 'framer-motion';
-import { useSyncExternalStore, type ComponentType } from 'react';
+import type { ComponentType } from 'react';
 import { storeMotionOff } from './inView';
-
-// The attribute sits on the server-rendered store root and stays as it is
-// while a storefront page lives, so there is nothing to subscribe to (the
-// builder preview re-reads it on its next render).
-const noSubscription = () => () => {};
-const serverMotionOff = () => false;
 
 export function withReducedMotion<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   function WithReducedMotion(props: P) {
-    // A store that switched motion off gets "always". The server and the
-    // hydration render read false ("user"), so the markup stays identical;
-    // the real value applies right after.
-    const motionOff = useSyncExternalStore(noSubscription, storeMotionOff, serverMotionOff);
+    // A store that switched motion off gets "always". The flag is read from
+    // the store root during render, the hydration render included: framer
+    // copies this setting into each element once, when the element is
+    // created, so a value that arrives one render later is never applied.
+    // The store root is server HTML and an ancestor of every section, so it
+    // is in the document before any section hydrates. MotionConfig is a
+    // context provider with no markup of its own, so reading "always" on the
+    // client where the server read "user" cannot cause a hydration mismatch.
+    const motionOff = storeMotionOff();
     return (
       <MotionConfig reducedMotion={motionOff ? 'always' : 'user'}>
         <Component {...props} />

@@ -193,7 +193,7 @@ describe('brand-band', () => {
   it('heading accent: centred, inside the heading', () => {
     const out = html({ settings: { heading_accent: 'brush', heading_accent_color: '#B60018' }, content: { heading: 'NEWROJ' } });
     expect(out).toMatch(
-      /NEWROJ<span aria-hidden="true" class="heading-accent" data-variant="brush" data-align="center" style="color:#B60018"><svg.*?<\/svg><\/span><\/h2>/,
+      /NEWROJ<span aria-hidden="true" class="heading-accent" data-variant="brush" data-align="center" style="color:#B60018;font-size:inherit"><svg.*?<\/svg><\/span><\/h2>/,
     );
   });
 

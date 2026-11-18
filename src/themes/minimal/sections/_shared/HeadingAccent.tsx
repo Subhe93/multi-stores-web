@@ -6,8 +6,10 @@
 //
 // No 'use client' and no hooks: imported by server sections and by the
 // client hero slider / hero video alike. Sizes and alignment live in
-// globals.css (.heading-accent); the colour is always an inline style,
-// because the store layout's own `main span` colour rule would beat a class.
+// globals.css (.heading-accent); the colour and `font-size: inherit` are
+// always inline styles, because the store typography rule for `main span`
+// (colour and body font size, lib/storeTypography.ts) would beat a class and
+// the accent's `em` sizes would then follow the body size, not the heading.
 
 import { colorOr } from '../../../elementStyles';
 import { headingAccentValue } from './headingAccentFields';
@@ -40,7 +42,7 @@ export function HeadingAccent({ variant, color, align }: HeadingAccentProps) {
       className="heading-accent"
       data-variant={kind}
       data-align={dataAlign}
-      style={{ color: colorOr(color, 'var(--theme-colors-accent)') }}
+      style={{ color: colorOr(color, 'var(--theme-colors-accent)'), fontSize: 'inherit' }}
     >
       {kind === 'brush' && (
         <svg viewBox="0 0 200 12" preserveAspectRatio="none" focusable="false">

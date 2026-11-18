@@ -7,6 +7,7 @@ import { HeaderScrollState } from './HeaderScrollState.client';
 type IOCallback = (entries: Array<{ isIntersecting: boolean; target: Element }>) => void;
 interface FakeObserver {
   cb: IOCallback;
+  options?: { rootMargin?: string };
   observed: Element[];
   disconnected: boolean;
 }
@@ -20,8 +21,8 @@ beforeEach(() => {
     'IntersectionObserver',
     class {
       private self: FakeObserver;
-      constructor(cb: IOCallback) {
-        this.self = { cb, observed: [], disconnected: false };
+      constructor(cb: IOCallback, options?: { rootMargin?: string }) {
+        this.self = { cb, options, observed: [], disconnected: false };
         instances.push(this.self);
       }
       observe(el: Element) {
@@ -72,6 +73,23 @@ describe('HeaderScrollState', () => {
     expect(header.getAttribute('data-scrolled')).toBe('false');
     // Only the header is touched.
     expect(container.querySelector('main')!.hasAttribute('data-scrolled')).toBe(false);
+  });
+
+  it('waits for the height the compact header gives up (0.75rem) before it reports "scrolled"', () => {
+    // The observed viewport reaches that far above the real one, so the
+    // content below has reached the compact header's edge when it shrinks.
+    mount();
+    expect(instances[0].options).toEqual({ rootMargin: '12px 0px 0px 0px' });
+  });
+
+  it('follows the root font size', () => {
+    document.documentElement.style.fontSize = '20px';
+    try {
+      mount();
+      expect(instances[0].options).toEqual({ rootMargin: '15px 0px 0px 0px' });
+    } finally {
+      document.documentElement.style.fontSize = '';
+    }
   });
 
   it('takes the last record when several arrive at once', () => {
