@@ -34,8 +34,9 @@
   overflow: hidden;
   border-radius: var(--pcard-radius);
   background-color: color-mix(in srgb, var(--pcard-text) 5%, var(--pcard-surface));
-  /* Own stacking context: the zoomed image never paints over the rounded corners. */
-  isolation: isolate;
+  /* No own stacking context here: it would trap .pcard-actions (z-index 2)
+     below the stretched .pcard-link::after (z-index 1) and the quick-add
+     button would open the product page. overflow + radius clip the zoom. */
 }
 .pcard-img,
 .pcard-alt {
