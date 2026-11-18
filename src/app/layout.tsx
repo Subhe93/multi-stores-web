@@ -28,8 +28,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description: PLATFORM_DESCRIPTION,
     applicationName: platformName,
+    // `/favicon.ico` is declared here (file in `public/`) rather than through
+    // the `app/favicon.ico` file convention: Next adds a convention file to
+    // every page, store pages included, ahead of the store's own icon. As a
+    // plain metadata field a store with a favicon replaces the whole set.
     icons: {
-      icon: '/brand/app-icon.svg',
+      icon: [
+        { url: '/favicon.ico', type: 'image/x-icon', sizes: '32x32 48x48' },
+        { url: '/brand/app-icon.svg' },
+      ],
       apple: '/brand/apple-icon.png',
     },
     openGraph: {
