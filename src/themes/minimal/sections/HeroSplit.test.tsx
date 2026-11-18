@@ -273,3 +273,71 @@ describe('hero-split bleed variant', () => {
     }
   });
 });
+
+// ── Manual line breaks in the heading (edge-to-edge variant only) ───────
+
+describe('hero-split manual line breaks', () => {
+  const TWO = 'Every Purchase.\nA Chance to Learn.';
+  const ONE = 'Every Purchase. A Chance to Learn.';
+  // The heading tag of the edge-to-edge variant as it rendered before line
+  // breaks were supported (surface tone).
+  const H1_OPEN =
+    '<h1 data-text-look="heading" style="font-family:var(--theme-font-heading);font-size:var(--theme-scale-h1);font-weight:var(--theme-weight-heading);letter-spacing:var(--theme-tracking-heading);color:var(--theme-colors-text)" class="leading-[1.08]">';
+
+  it('bleed: keeps the typed breaks as one text node with white-space: pre-line', () => {
+    const out = html({ settings: BLEED, content: { ...CONTENT, heading: TWO } });
+    expect(out).toContain(
+      `${H1_OPEN.replace('color:var(--theme-colors-text)"', 'color:var(--theme-colors-text);white-space:pre-line"')}${TWO}</h1>`,
+    );
+    expect(out).not.toContain('<br');
+    expect(out.match(/white-space:pre-line/g)).toHaveLength(1);
+    // The alt fallback reads the heading on one line.
+    expect(imgAlts(out)).toEqual([ONE]);
+  });
+
+  it('bleed: the only difference from the same text on one line is the style and the break', () => {
+    const two = html({ settings: BLEED, content: { ...CONTENT, heading: TWO } });
+    const one = html({ settings: BLEED, content: { ...CONTENT, heading: ONE } });
+    expect(two.replace(';white-space:pre-line', '').replace(TWO, ONE)).toBe(one);
+  });
+
+  it('bleed: Windows line ends, padding and empty lines are normalized; a fifth line joins the fourth', () => {
+    const out = html({ settings: BLEED, content: { ...CONTENT, heading: '  one \r\n\r\n two\rthree\n4\n5\n6 ' } });
+    expect(out).toContain('>one\ntwo\nthree\n4 5 6</h1>');
+    expect(out).not.toContain('\r');
+  });
+
+  it('bleed: markup typed in the heading is escaped, never rendered', () => {
+    const out = html({ settings: BLEED, content: { ...CONTENT, heading: 'One <b>x</b>\n<script>alert(1)</script>' } });
+    expect(out).toContain('One &lt;b&gt;x&lt;/b&gt;\n&lt;script&gt;alert(1)&lt;/script&gt;</h1>');
+    expect(out).not.toContain('<b>');
+    expect(out).not.toContain('<script');
+    expect(out).not.toContain('<br');
+  });
+
+  it('bleed: a single-line heading renders exactly the markup it always did', () => {
+    const out = html({ settings: BLEED, content: CONTENT });
+    expect(out).not.toContain('white-space');
+    expect(out).toContain(`${H1_OPEN}Made to last</h1>`);
+    // A trailing line end alone is not a break.
+    expect(html({ settings: BLEED, content: { ...CONTENT, heading: 'Made to last\n' } })).toBe(out);
+  });
+
+  it('framed: a line break in the text changes nothing (it collapses to a space in the browser)', () => {
+    for (const [, settings] of FRAMED_CASES) {
+      const out = html({ settings, content: { ...CONTENT, heading: TWO } });
+      expect(out).not.toContain('pre-line');
+      expect(out).not.toContain('white-space');
+      expect(out).not.toContain('<br');
+      // The raw text is passed through as it always was.
+      expect(out).toContain(`>${TWO}</h`);
+    }
+    const framed = html({ settings: { image: '/uploads/pages/hero.jpg' }, content: { ...CONTENT, heading: TWO } });
+    expect(imgAlts(framed)).toEqual([TWO]);
+  });
+
+  it('schema: the heading is a textarea, its limit unchanged', () => {
+    const field = heroSplitSection.schema.schema.find((f) => f.key === 'heading');
+    expect(field).toMatchObject({ type: 'textarea', maxLength: 120 });
+  });
+});

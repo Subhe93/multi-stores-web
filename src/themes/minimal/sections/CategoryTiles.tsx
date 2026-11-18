@@ -11,6 +11,7 @@ import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { SectionHeading } from './_shared/SectionHeading';
+import { headingLines } from './_shared/headingLines';
 import { Heading } from './_shared/Heading';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { GRID_COLS_CLASS, clampCols, gridColsStyle, gridImageSizes } from './_shared/grid';
@@ -46,7 +47,8 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
-  const heading = str(content.heading);
+  // Manual line breaks typed in the builder are kept.
+  const heading = headingLines(content.heading);
   const subheading = str(content.subheading);
   const tiles = (Array.isArray(content.items) ? (content.items as Tile[]) : [])
     .filter((it) => !!it && typeof it === 'object' && (str(it.title) || str(it.image)))
@@ -95,6 +97,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
             tag={headingTag(settings.heading_level, 'h2')}
             subheadingTag={textTag(settings.subheading_tag, 'p')}
             heading={heading}
+            multiline
             subheading={subheading}
             align={align}
             ruled={settings.heading_rule === true}
@@ -258,7 +261,8 @@ export const categoryTilesSection: SectionDefinition = {
     },
     translatable: ['heading', 'subheading', 'items'],
     schema: [
-      { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      // A textarea: Enter starts a new line, kept on the storefront.
+      { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 240 },
       {
         key: 'items',

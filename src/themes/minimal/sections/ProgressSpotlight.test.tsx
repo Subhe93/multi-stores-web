@@ -259,3 +259,55 @@ describe('progress-spotlight layout', () => {
     expect(physicalClasses(html({ settings: {}, content: {}, builderPreview: true }))).toEqual([]);
   });
 });
+
+// ── Manual line breaks in the heading (both layouts) ────────────────────
+
+describe('progress-spotlight manual line breaks', () => {
+  const TWO = 'One goal.\nMany hands.';
+  const ONE = 'One goal. Many hands.';
+  // The heading tag as it rendered before line breaks were supported.
+  const H2_OPEN =
+    '<h2 data-text-look="heading" style="font-family:var(--theme-font-heading);font-size:var(--theme-scale-h2);font-weight:var(--theme-weight-heading);line-height:var(--theme-line-heading);letter-spacing:var(--theme-tracking-heading);color:var(--theme-colors-text)">';
+  const LAYOUTS: Array<[string, Record<string, unknown>]> = [
+    ['split with an image', { ...DEFAULTS, image: '/uploads/pages/goal.jpg' }],
+    ['split without an image', { ...DEFAULTS }],
+    ['card', { ...DEFAULTS, layout: 'card' }],
+  ];
+
+  for (const [name, settings] of LAYOUTS) {
+    it(`${name}: keeps the typed breaks as one text node with white-space: pre-line`, () => {
+      const out = html({ settings, content: { ...CONTENT, heading: TWO } });
+      expect(out).toContain(
+        `${H2_OPEN.replace('color:var(--theme-colors-text)"', 'color:var(--theme-colors-text);white-space:pre-line"')}${TWO}</h2>`,
+      );
+      expect(out).not.toContain('<br');
+      expect(out.match(/white-space:pre-line/g)).toHaveLength(1);
+      // The only difference from the same text on one line.
+      const one = html({ settings, content: { ...CONTENT, heading: ONE } });
+      expect(out.replace(';white-space:pre-line', '').replace(TWO, ONE)).toBe(one);
+    });
+
+    it(`${name}: a single-line heading renders exactly the markup it always did`, () => {
+      const out = html({ settings, content: { ...CONTENT, heading: ONE } });
+      expect(out).not.toContain('white-space');
+      expect(out).toContain(`${H2_OPEN}${ONE}</h2>`);
+    });
+  }
+
+  it('line ends are normalized and markup typed in the heading is escaped', () => {
+    const out = html({ content: { ...CONTENT, heading: ' One <b>x</b> \r\n\r\n two\n3\n4\n5 ' } });
+    expect(out).toContain('>One &lt;b&gt;x&lt;/b&gt;\ntwo\n3\n4 5</h2>');
+    expect(out).not.toContain('<b>');
+    expect(out).not.toContain('<br');
+    expect(out).not.toContain('\r');
+  });
+
+  it('a heading of line ends only is no content', () => {
+    expect(html({ settings: {}, content: { heading: '\n \r\n' } })).toBe('');
+  });
+
+  it('schema: the heading is a textarea, its limit unchanged', () => {
+    const field = progressSpotlightSection.schema.schema.find((f) => f.key === 'heading');
+    expect(field).toMatchObject({ type: 'textarea', maxLength: 120 });
+  });
+});

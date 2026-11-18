@@ -324,3 +324,74 @@ describe('image-with-text new keys', () => {
     expect(fields.find((f) => f.key === 'image_position')?.options?.map((o) => o.value)).toEqual(['left', 'right']);
   });
 });
+
+// ── Manual line breaks in the heading (edge-to-edge style only) ─────────
+
+describe('image-with-text manual line breaks', () => {
+  const TWO = 'Handgjort.\nI Sverige.';
+  const ONE = 'Handgjort. I Sverige.';
+  // The heading tag of the edge-to-edge style as it rendered before line
+  // breaks were supported (no tone).
+  const H2_OPEN =
+    '<h2 data-text-look="heading" style="font-family:var(--theme-font-heading);font-size:calc(var(--theme-scale-h2) * 1.12);font-weight:var(--theme-weight-heading);line-height:var(--theme-line-heading);letter-spacing:var(--theme-tracking-heading);color:var(--theme-colors-text)">';
+
+  it('bleed: keeps the typed breaks as one text node with white-space: pre-line', () => {
+    const out = html({ settings: BLEED_SETTINGS, content: { ...CONTENT, heading: TWO } });
+    expect(out).toContain(
+      `${H2_OPEN.replace('color:var(--theme-colors-text)"', 'color:var(--theme-colors-text);white-space:pre-line"')}${TWO}</h2>`,
+    );
+    expect(out).not.toContain('<br');
+    expect(out.match(/white-space:pre-line/g)).toHaveLength(1);
+    // Without an image too (one contained column).
+    expect(html({ settings: { image_style: 'bleed' }, content: { ...CONTENT, heading: TWO } })).toContain(`pre-line">${TWO}</h2>`);
+  });
+
+  it('bleed: the only difference from the same text on one line is the style and the break', () => {
+    const two = html({ settings: BLEED_SETTINGS, content: { ...CONTENT, heading: TWO } });
+    const one = html({ settings: BLEED_SETTINGS, content: { ...CONTENT, heading: ONE } });
+    expect(two.replace(';white-space:pre-line', '').replace(TWO, ONE)).toBe(one);
+  });
+
+  it('bleed: line ends are normalized and markup typed in the heading is escaped', () => {
+    const out = html({ settings: BLEED_SETTINGS, content: { ...CONTENT, heading: ' One <b>x</b> \r\n\r\n two ' } });
+    expect(out).toContain('>One &lt;b&gt;x&lt;/b&gt;\ntwo</h2>');
+    expect(out).not.toContain('<b>');
+    expect(out).not.toContain('<br');
+    expect(out).not.toContain('\r');
+  });
+
+  it('bleed: a single-line heading renders exactly the markup it always did', () => {
+    const out = html({ settings: BLEED_SETTINGS, content: CONTENT });
+    expect(out).not.toContain('white-space');
+    expect(out).toContain(`${H2_OPEN}Gravyr</h2>`);
+  });
+
+  it('framed: a line break in the text changes nothing, with a static or a product image', () => {
+    const content = { ...CONTENT, heading: TWO };
+    for (const [, settings] of STATIC_CASES) {
+      const out = html({ settings, content });
+      expect(out).not.toContain('pre-line');
+      expect(out).not.toContain('white-space');
+      expect(out).not.toContain('<br');
+      // The raw text is passed through as it always was.
+      expect(out).toContain(`>${TWO}</h2>`);
+    }
+    // A dynamic product image keeps the framed layout even with the bleed style.
+    for (const builderPreview of [false, true]) {
+      const out = html({
+        settings: { image_style: 'bleed', image_source: 'product_featured' },
+        content,
+        product: PRODUCT,
+        builderPreview,
+      });
+      expect(out).not.toContain('pre-line');
+      expect(out).toContain(`${H2_OPEN}${TWO}</h2>`);
+    }
+  });
+
+  it('schema: the heading is a textarea and still has no length limit', () => {
+    const field = imageWithTextSection.schema.schema.find((f) => f.key === 'heading');
+    expect(field?.type).toBe('textarea');
+    expect(field?.maxLength).toBeUndefined();
+  });
+});

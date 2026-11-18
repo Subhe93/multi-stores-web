@@ -16,6 +16,7 @@ import { Heading } from './_shared/Heading';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { BleedMediaPlaceholder, BleedSplit, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
+import { headingLines, multilineStyle } from './_shared/headingLines';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { computeProgress, statusValue } from './_shared/progress';
 import { ProgressBar } from './_shared/ProgressBar';
@@ -50,7 +51,8 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
   const colors = toneColors(tone, settings.bg_color);
 
   const eyebrow = str(content.eyebrow);
-  const heading = str(content.heading);
+  // Manual line breaks typed in the builder are kept.
+  const heading = headingLines(content.heading);
   const body = str(content.body);
   const itemTitle = str(content.item_title);
   const itemMeta = str(content.item_meta);
@@ -146,6 +148,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
               lineHeight: 'var(--theme-line-heading)',
               letterSpacing: 'var(--theme-tracking-heading)',
               color: colorOr(settings.heading_color, colors.text),
+              ...multilineStyle(heading),
             }}
           >
             {heading}
@@ -339,7 +342,8 @@ export const progressSpotlightSection: SectionDefinition = {
       },
       { key: 'bg_color', type: 'color', label: { en: 'Background colour', ar: 'لون الخلفية' } },
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow (small label)', ar: 'تسمية صغيرة فوق العنوان' }, maxLength: 40 },
-      { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      // A textarea: Enter starts a new line, kept on the storefront.
+      { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
       { key: 'body', type: 'textarea', label: { en: 'Text', ar: 'النص' }, maxLength: 400 },
       { key: 'item_title', type: 'text', label: { en: 'Goal name', ar: 'اسم الهدف' }, maxLength: 120 },
       { key: 'item_meta', type: 'text', label: { en: 'Place or date', ar: 'المكان أو التاريخ' }, maxLength: 80 },

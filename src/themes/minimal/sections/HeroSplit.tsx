@@ -15,6 +15,7 @@ import { ArrowRight } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
 import { BleedMediaPlaceholder, BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
+import { headingLines, headingOneLine, multilineStyle } from './_shared/headingLines';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
 
@@ -234,11 +235,12 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
   const colors = toneColors(tone, settings.bg_color);
 
   const eyebrow = (content.eyebrow as string) || '';
-  const heading = (content.heading as string) || '';
+  // Manual line breaks typed in the builder are kept (this variant only).
+  const heading = headingLines(content.heading);
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const alt = (content.alt as string) || heading || '';
+  const alt = (content.alt as string) || headingOneLine(heading) || '';
   // The inspector writes both URLs to settings, so settings win here. A URL
   // left in the content (the palette's sample content, or an older page) is
   // used only while the setting is empty. The framed variant above keeps its
@@ -331,6 +333,7 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
                 fontWeight: 'var(--theme-weight-heading)',
                 letterSpacing: 'var(--theme-tracking-heading)',
                 color: colorOr(settings.heading_color, colors.text),
+                ...multilineStyle(heading),
               }}
             >
               {heading}
@@ -517,7 +520,8 @@ export const heroSplitSection: SectionDefinition = {
         showIf: BLEED_ONLY,
       },
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow (small label)', ar: 'تسمية صغيرة فوق العنوان' }, maxLength: 40 },
-      { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      // A textarea: Enter starts a new line, kept by the edge-to-edge style.
+      { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 280 },
       { key: 'cta_text', type: 'text', label: { en: 'Primary button text', ar: 'نص الزر الرئيسي' }, maxLength: 40 },
       { key: 'cta_url', type: 'url', label: { en: 'Primary button URL', ar: 'رابط الزر الرئيسي' } },

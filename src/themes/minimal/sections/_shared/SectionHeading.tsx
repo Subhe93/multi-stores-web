@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react';
 import { colorOr } from '../../../elementStyles';
 import type { TextTag } from './headingLevel';
 import { Heading } from './Heading';
+import { multilineStyle } from './headingLines';
 
 // 'start' is the logical (direction-aware) alignment; 'left' / 'right' are
 // kept for the sections that already use them.
@@ -37,6 +38,11 @@ interface SectionHeadingProps {
   className?: string;
   /** A thin rule on each side of the heading. Only with `align: 'center'`. */
   ruled?: boolean;
+  /**
+   * Keep the manual line breaks ("\n") of a heading normalized by
+   * headingLines. Off by default: the other callers render as they always did.
+   */
+  multiline?: boolean;
 }
 
 export function SectionHeading({
@@ -53,6 +59,7 @@ export function SectionHeading({
   eyebrowColor,
   className,
   ruled = false,
+  multiline = false,
 }: SectionHeadingProps) {
   if (!eyebrow && !heading && !subheading) return null;
   const headingStyle: CSSProperties = {
@@ -62,6 +69,7 @@ export function SectionHeading({
     lineHeight: 'var(--theme-line-heading)',
     letterSpacing: 'var(--theme-tracking-heading)',
     color: colorOr(headingColor, 'var(--theme-colors-text)'),
+    ...(multiline && heading ? multilineStyle(heading) : {}),
   };
 
   return (

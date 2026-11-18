@@ -18,6 +18,7 @@ import {
 import { DynamicProductImage } from './_shared/lazyDynamic';
 import { BleedMediaPlaceholder, BleedSplit, edgeValue, focusPosition } from './_shared/BleedSplit';
 import { ctaDefaults, ctaToneValue } from './_shared/cta';
+import { headingLines, multilineStyle } from './_shared/headingLines';
 import { FOCUS_RING, sectionHref } from './_shared/links';
 import { toneColors, toneValue } from './_shared/tone';
 
@@ -131,6 +132,9 @@ function ImageWithText(props: SectionRenderProps) {
     !imageSource &&
     (resolvedImage || eyebrow || heading || body || ctaText || ctaSecondaryText)
   ) {
+    // Manual line breaks typed in the builder are kept in this style only;
+    // the framed path below keeps using `heading` as it always did.
+    const bleedHeading = headingLines(content.heading);
     const tone = toneValue(settings.tone, 'none');
     const colors = toneColors(tone, settings.bg_color);
     const minHeight = MIN_HEIGHT_CLASS[settings.min_height as MinHeight] || MIN_HEIGHT_CLASS.md;
@@ -187,7 +191,7 @@ function ImageWithText(props: SectionRenderProps) {
               {eyebrow}
             </Heading>
           )}
-          {heading && (
+          {bleedHeading && (
             <Heading level={headingLevel}
               style={{
                 fontFamily: 'var(--theme-font-heading)',
@@ -196,9 +200,10 @@ function ImageWithText(props: SectionRenderProps) {
                 lineHeight: 'var(--theme-line-heading)',
                 letterSpacing: 'var(--theme-tracking-heading)',
                 color: colorOr(settings.heading_color, colors.text),
+                ...multilineStyle(bleedHeading),
               }}
             >
-              {heading}
+              {bleedHeading}
             </Heading>
           )}
           {body && (
@@ -495,7 +500,8 @@ export const imageWithTextSection: SectionDefinition = {
         ],
       },
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow', ar: 'تسمية صغيرة' } },
-      { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' } },
+      // A textarea: Enter starts a new line, kept by the edge-to-edge style.
+      { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' } },
       { key: 'body', type: 'textarea', label: { en: 'Body text', ar: 'النص' } },
       { key: 'cta_text', type: 'text', label: { en: 'Button text', ar: 'نص الزر' } },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },
