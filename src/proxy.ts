@@ -9,6 +9,7 @@ import {
 } from '@/lib/market-routing';
 import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
 import { marketPublicHostname } from '@/lib/storeUrl';
+import { creativeDemoEnabled, isCreativeDemoPath } from '@/themes/creative/demo/demoGate';
 import { isPlatformHost, platformHosts, platformSubdomainOf, primaryPlatformDomain } from '@/lib/platformHosts';
 import {
   isApiUnavailableStatus,
@@ -419,6 +420,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/') ||
     pathname === '/builder-preview' ||
     pathname.startsWith('/builder-preview/') ||
+    // Creative engine demo page: development (or CREATIVE_DEMO=1) only.
+    (isCreativeDemoPath(pathname) && creativeDemoEnabled()) ||
     // Self-hosted store fonts (src/app/fonts-cdn): same route on every host.
     pathname.startsWith('/fonts-cdn/')
   ) {
