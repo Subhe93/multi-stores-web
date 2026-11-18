@@ -29,6 +29,11 @@ describe('i18n namespace "creative"', () => {
   it('has the visitor strings and one empty state per creative section', () => {
     expect(Object.keys(reference).sort()).toEqual(
       [
+        'marqueePause',
+        'marqueePlay',
+        'storySkip',
+        'storyHint',
+        'storyProgress',
         'loadingPage',
         ...CREATIVE_SECTION_KEYS.map((key) => `empty.${camel(key)}`),
       ].sort(),
@@ -41,10 +46,16 @@ describe('i18n namespace "creative"', () => {
     for (const [key, value] of Object.entries(flat)) expect(value.trim(), `${locale}.${key}`).not.toBe('');
   });
 
+  it.each([...locales])('%s: the progress counter keeps both placeholders', (locale) => {
+    const flat = flatten(messages[locale].creative);
+    expect(flat.storyProgress).toBe('{current} / {total}');
+  });
+
   it('non-English locales are translated', () => {
     for (const locale of locales) {
       if (locale === 'en') continue;
       const flat = flatten(messages[locale].creative);
+      expect(flat.storyHint, locale).not.toBe(reference.storyHint);
       expect(flat.loadingPage, locale).not.toBe(reference.loadingPage);
     }
   });

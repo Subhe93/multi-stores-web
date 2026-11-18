@@ -11,6 +11,7 @@ import type {
 import { animationClass, readSectionStyle, resolveSectionStyle, type SectionStyle } from './sectionStyle';
 import { Reveal } from './_motion';
 import { hasDynamicSource } from './minimal/sections/_shared/dynamicSourceKeys';
+import { renderSectionDecor } from './creative/decor/sectionDecor';
 import {
   buildSectionTree,
   isContainerKey,
@@ -24,12 +25,18 @@ import {
 
 // Sections that are usually the page's LCP element: never wrapped in a reveal.
 // The ornament divider and the brand sections (themes/creative) bring their
-// own recipes: no generic reveal and no data-cx-auto.
+// own recipes: no generic reveal and no data-cx-auto. The pinned, sticky and
+// marquee sections also bring sticky stages: the wrapper's pending transform
+// would break `position: sticky`.
 const NO_REVEAL_KEYS = new Set([
   'aurora-hero',
   'product-page',
   'product-gallery',
   'product-listing',
+  'story-pinned',
+  'sticky-steps',
+  'motion-path',
+  'marquee-band',
   'ornament-line',
   'cover-hero',
   'look-spread',
@@ -239,8 +246,11 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
   const css =
     styleCss + (isProductLeaf ? `.${wrapperScope}:has(>.${innerScope}:empty){display:none}` : '');
   const animClass = animationClass(sectionStyle?.animate);
-  const wrapperClass = [wrapperScope, animClass].filter(Boolean).join(' ');
-  const wrapperStyle = ctx.wrapperStyle;
+  // Scene theme / living background from `_style` (creative engine). Null for
+  // every section that sets neither, which then keeps today's markup.
+  const decor = ctx.chrome ? null : renderSectionDecor(sectionStyle, { nested });
+  const wrapperClass = [wrapperScope, animClass, decor?.className].filter(Boolean).join(' ');
+  const wrapperStyle = decor?.style ? { ...ctx.wrapperStyle, ...decor.style } : ctx.wrapperStyle;
   const isContainer = isContainerKey(section.section_key);
   // Motion style of the store. The section's own override wins: "none"
   // switches every entrance of this section off (also today's reveal). With
@@ -338,8 +348,10 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           className={wrapperClass}
           style={wrapperStyle}
           {...motionAttrs}
+          {...decor?.attrs}
           {...(motionNone && ctx.motion ? { 'data-motion-still': '' } : null)}
         >
+          {decor?.before}
           {inner}
         </div>
       ) : (
@@ -350,7 +362,9 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
           data-section-key={section.section_key}
           className={wrapperClass}
           style={wrapperStyle}
+          {...decor?.attrs}
         >
+          {decor?.before}
           {inner}
         </Reveal>
       )}

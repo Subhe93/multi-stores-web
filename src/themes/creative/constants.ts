@@ -6,6 +6,10 @@ import { locales } from '@/i18n/config';
 
 /** Section keys added by the motion engine (registered in the minimal theme). */
 export const CREATIVE_SECTION_KEYS = [
+  'story-pinned',
+  'sticky-steps',
+  'motion-path',
+  'marquee-band',
   'ornament-line',
   'cover-hero',
   'look-spread',
@@ -17,8 +21,8 @@ export const CREATIVE_SECTION_KEYS = [
 export type CreativeSectionKey = (typeof CREATIVE_SECTION_KEYS)[number];
 
 /**
- * Sizes of every decorative element (the hero emblem). Owner decision: no
- * large or giant value exists.
+ * Sizes of every decorative word, numeral, marquee text and travelling
+ * artwork. Owner decision: no large or giant value exists.
  */
 export const ACCENT_SIZES = ['sm', 'md'] as const;
 export type AccentSize = (typeof ACCENT_SIZES)[number];

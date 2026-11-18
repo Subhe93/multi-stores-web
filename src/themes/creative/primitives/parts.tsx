@@ -4,6 +4,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { FOCUS_RING } from '../../minimal/sections/_shared/links';
+import { accentSize } from '../constants';
 import { isArabicScript } from '../emphasis';
 
 /** Thin label with a short rule at its inline start. */
@@ -59,6 +60,66 @@ export function MaskReveal({
     >
       <div className="cx-mask-in">{children}</div>
     </div>
+  );
+}
+
+/**
+ * A brand word as a quiet graphic layer: outlined or faint, medium or small,
+ * never a screen-filling word. Decorative (aria-hidden). Arabic-script text
+ * is always 'faint': a text stroke breaks its joined letters.
+ */
+export function OutlineAccent({
+  text,
+  size,
+  look,
+  color,
+  className,
+}: {
+  text: string;
+  size: unknown;
+  look: 'outline' | 'faint';
+  color?: string;
+  className?: string;
+}) {
+  if (!text) return null;
+  const arabic = isArabicScript(text);
+  return (
+    <span
+      aria-hidden="true"
+      className={className ? `cx-acc ${className}` : 'cx-acc'}
+      data-cx-accent={arabic ? 'faint' : look}
+      data-cx-size={accentSize(size)}
+      data-cx-script={arabic ? 'arabic' : undefined}
+      style={color ? { color } : undefined}
+    >
+      {text}
+    </span>
+  );
+}
+
+/** Two-digit step numeral (01, 02 …), decorative, Latin digits. */
+export function Numeral({
+  n,
+  look,
+  size,
+  color,
+}: {
+  n: number;
+  look: 'outline' | 'solid';
+  size: unknown;
+  color?: string;
+}) {
+  const value = Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  return (
+    <span
+      aria-hidden="true"
+      className="cx-num"
+      data-cx-num={look}
+      data-cx-size={accentSize(size)}
+      style={color ? { color } : undefined}
+    >
+      {String(value).padStart(2, '0')}
+    </span>
   );
 }
 

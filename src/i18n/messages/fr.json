@@ -1316,8 +1316,17 @@
     }
   },
   "creative": {
+    "marqueePause": "Mettre en pause",
+    "marqueePlay": "Lire",
+    "storySkip": "Passer cette section",
+    "storyHint": "Continuez à défiler",
+    "storyProgress": "{current} / {total}",
     "loadingPage": "Chargement de la page",
     "empty": {
+      "storyPinned": "Ajoutez des cartes à cette section",
+      "stickySteps": "Ajoutez un titre et des étapes à cette section",
+      "motionPath": "Ajoutez un titre et des arrêts à cette section",
+      "marqueeBand": "Ajoutez des éléments à ce bandeau",
       "ornamentLine": "Ajoutez les tracés de votre motif ou un titre",
       "coverHero": "Ajoutez un titre et une photo",
       "lookSpread": "Ajoutez une photo et les pièces du look",

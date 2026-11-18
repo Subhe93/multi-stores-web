@@ -132,9 +132,9 @@ describe.skipIf(!ready)('creative engine: dashboard and storefront agree', () =>
 
   // The compositions of the first draft and its per-section options are gone:
   // motion is automatic (store switch) with one per-section override in _style.
-  it('the dropped sections and per-section options are not offered', () => {
+  it('the sections that were never built and the per-section heading options are not offered', () => {
     const find = loadDashboard();
-    for (const id of ['hero-outline', 'hero-sunrise', 'stage-scenes', 'story-pinned', 'sticky-steps', 'motion-path', 'marquee-band']) {
+    for (const id of ['hero-outline', 'hero-sunrise', 'stage-scenes']) {
       expect(() => find(id), id).toThrow();
     }
     for (const id of ['hero-banner', 'hero-split', 'parallax-banner', 'image-with-text', 'brand-band', 'single-image', 'rich-text']) {

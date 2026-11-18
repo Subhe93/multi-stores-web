@@ -1316,8 +1316,17 @@
     }
   },
   "creative": {
+    "marqueePause": "Pausa",
+    "marqueePlay": "Spela",
+    "storySkip": "Hoppa över avsnittet",
+    "storyHint": "Fortsätt scrolla",
+    "storyProgress": "{current} / {total}",
     "loadingPage": "Sidan laddas",
     "empty": {
+      "storyPinned": "Lägg till kort i det här avsnittet",
+      "stickySteps": "Lägg till en rubrik och steg i det här avsnittet",
+      "motionPath": "Lägg till en rubrik och stopp i det här avsnittet",
+      "marqueeBand": "Lägg till objekt i det här bandet",
       "ornamentLine": "Lägg till dina mönsterbanor eller en rubrik",
       "coverHero": "Lägg till en rubrik och ett foto",
       "lookSpread": "Lägg till ett foto och lookens delar",

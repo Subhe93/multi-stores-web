@@ -1316,8 +1316,17 @@
     }
   },
   "creative": {
+    "marqueePause": "Pausieren",
+    "marqueePlay": "Abspielen",
+    "storySkip": "Abschnitt überspringen",
+    "storyHint": "Weiter scrollen",
+    "storyProgress": "{current} / {total}",
     "loadingPage": "Seite wird geladen",
     "empty": {
+      "storyPinned": "Fügen Sie diesem Abschnitt Karten hinzu",
+      "stickySteps": "Fügen Sie eine Überschrift und Schritte hinzu",
+      "motionPath": "Fügen Sie eine Überschrift und Stationen hinzu",
+      "marqueeBand": "Fügen Sie diesem Band Elemente hinzu",
       "ornamentLine": "Fügen Sie Ihre Motivpfade oder eine Überschrift hinzu",
       "coverHero": "Überschrift und Foto hinzufügen",
       "lookSpread": "Foto und die Teile des Looks hinzufügen",

@@ -1316,8 +1316,17 @@
     }
   },
   "creative": {
+    "marqueePause": "Pause",
+    "marqueePlay": "Play",
+    "storySkip": "Skip this section",
+    "storyHint": "Keep scrolling",
+    "storyProgress": "{current} / {total}",
     "loadingPage": "Loading page",
     "empty": {
+      "storyPinned": "Add cards to this section",
+      "stickySteps": "Add a heading and steps to this section",
+      "motionPath": "Add a heading and stops to this section",
+      "marqueeBand": "Add items to this band",
       "ornamentLine": "Add your motif paths or a heading",
       "coverHero": "Add a heading and a photograph",
       "lookSpread": "Add a photograph and the pieces of the look",

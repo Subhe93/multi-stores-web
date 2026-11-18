@@ -1316,8 +1316,17 @@
     }
   },
   "creative": {
+    "marqueePause": "Duraklat",
+    "marqueePlay": "Oynat",
+    "storySkip": "Bu bölümü atla",
+    "storyHint": "Kaydırmaya devam et",
+    "storyProgress": "{current} / {total}",
     "loadingPage": "Sayfa yükleniyor",
     "empty": {
+      "storyPinned": "Bu bölüme kartlar ekleyin",
+      "stickySteps": "Bu bölüme bir başlık ve adımlar ekleyin",
+      "motionPath": "Bu bölüme bir başlık ve duraklar ekleyin",
+      "marqueeBand": "Bu banda öğeler ekleyin",
       "ornamentLine": "Motif yollarınızı veya bir başlık ekleyin",
       "coverHero": "Bir başlık ve bir fotoğraf ekleyin",
       "lookSpread": "Bir fotoğraf ve görünümün parçalarını ekleyin",

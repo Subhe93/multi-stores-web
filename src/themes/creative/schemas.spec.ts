@@ -35,6 +35,16 @@ describe('creative section schemas', () => {
     }
   });
 
+  it('the size fields exist where the contract puts them', () => {
+    const sizeKeys = (key: (typeof CREATIVE_SECTION_KEYS)[number]) =>
+      allFields(CREATIVE_SCHEMAS[key].schema.schema)
+        .filter((f) => isSizeKey(f.key))
+        .map((f) => f.key);
+    expect(sizeKeys('sticky-steps')).toEqual(['numeral_size']);
+    expect(sizeKeys('motion-path')).toEqual(['artwork_size']);
+    expect(sizeKeys('marquee-band')).toEqual(['size']);
+  });
+
   it.each(entries)('%s: no option anywhere is called lg, xl or giant for a decorative size', (key, entry) => {
     for (const f of allFields(entry.schema.schema)) {
       if (!/accent|numeral|artwork|sun_size|^size$|scale/.test(f.key) || isBandHeight(key, f.key)) continue;
@@ -120,6 +130,10 @@ describe('creative section schemas', () => {
   it('page types: brand pages, plus the footer or the product template where the section belongs there', () => {
     const PAGES = ['HOME', 'STATIC', 'LANDING'];
     const expected: Record<string, string[]> = {
+      'story-pinned': PAGES,
+      'sticky-steps': PAGES,
+      'motion-path': PAGES,
+      'marquee-band': [...PAGES, 'FOOTER'],
       'ornament-line': [...PAGES, 'FOOTER'],
       'cover-hero': PAGES,
       'look-spread': PAGES,

@@ -63,6 +63,10 @@ import { productListingMagicSection } from './sections/listing/ProductListingMag
 import { layoutRowSection } from './sections/layout/LayoutRow';
 import { layoutColumnSection } from './sections/layout/LayoutColumn';
 import { layoutGridSection } from './sections/layout/LayoutGrid';
+import { storyPinnedSection } from '../creative/sections/StoryPinned';
+import { stickyStepsSection } from '../creative/sections/StickySteps';
+import { motionPathSection } from '../creative/sections/MotionPath';
+import { marqueeBandSection } from '../creative/sections/MarqueeBand';
 import { ornamentLineSection } from '../creative/sections/OrnamentLine';
 import { coverHeroSection } from '../creative/sections/CoverHero';
 import { lookSpreadSection } from '../creative/sections/LookSpread';
@@ -129,6 +133,10 @@ export const minimalTheme: Theme = {
     'social-icons': socialIconsSection,
     // Motion engine (themes/creative): the ornament divider. Opt-in, a page
     // that does not place it loads none of its CSS or JavaScript.
+    'story-pinned': storyPinnedSection,
+    'sticky-steps': stickyStepsSection,
+    'motion-path': motionPathSection,
+    'marquee-band': marqueeBandSection,
     'ornament-line': ornamentLineSection,
     // Brand sections (themes/creative): opt-in like the divider, each with
     // its own recipes and stylesheet.
