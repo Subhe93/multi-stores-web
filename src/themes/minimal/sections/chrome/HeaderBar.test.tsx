@@ -114,6 +114,29 @@ describe('header-bar logo fit', () => {
     expect(html({ logo_fit: 'height' }, { ...CTX, logoUrl: undefined })).toBe(html({}, { ...CTX, logoUrl: undefined }));
   });
 
+  // In `height` mode the logo can shrink (min-w-0), so the name beside it
+  // gives way first; beside the square box (shrink-0) nothing is added.
+  const nameSpan = (out: string) => /<span class="([^"]*)"[^>]*>Demo Store<\/span>/.exec(out)?.[1];
+
+  it("'height': the store name beside a logo yields before the logo shrinks", () => {
+    expect(nameSpan(html({ logo_fit: 'height' }))).toBe('text-base font-semibold truncate shrink-[999]');
+    // Also beside a mobile-only logo.
+    expect(
+      nameSpan(html({ logo_fit: 'height', logo_url_mobile: '/uploads/stores/logo-mobile.png' }, { ...CTX, logoUrl: undefined })),
+    ).toBe('text-base font-semibold truncate shrink-[999]');
+    // No logo drawn: the name is as in every stored header.
+    expect(nameSpan(html({ logo_fit: 'height' }, { ...CTX, logoUrl: undefined }))).toBe('text-base font-semibold truncate');
+    expect(nameSpan(html({ logo_fit: 'height', show_logo: false }))).toBe('text-base font-semibold truncate');
+    // Name switched off: no span at all.
+    expect(nameSpan(html({ logo_fit: 'height', show_store_name: false }))).toBeUndefined();
+  });
+
+  it("'box': the store name carries no extra class", () => {
+    for (const logo_fit of [undefined, 'box', 'x']) {
+      expect(nameSpan(html({ logo_fit }))).toBe('text-base font-semibold truncate');
+    }
+  });
+
   it('uses no physical direction classes', () => {
     expect(physicalClasses(html({ logo_fit: 'height', logo_url_mobile: '/uploads/stores/logo-mobile.png' }))).toEqual([]);
   });

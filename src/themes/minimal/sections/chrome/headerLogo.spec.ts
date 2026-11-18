@@ -20,6 +20,7 @@ describe('headerLogoBox', () => {
         sizes: `${size}px`,
         style: { width: size, height: size },
         className: 'object-contain shrink-0',
+        nameClassName: '',
       });
       expect(Object.keys(box.style)).toEqual(['width', 'height']);
     }
@@ -33,6 +34,8 @@ describe('headerLogoBox', () => {
       sizes: '200px',
       style: { height: 40, width: 'auto', maxWidth: 'min(200px, 50vw)' },
       className: 'object-contain min-w-0',
+      // The name gives way before the logo, which can shrink in this mode.
+      nameClassName: 'shrink-[999]',
     });
     expect(Object.keys(box.style)).toEqual(['height', 'width', 'maxWidth']);
   });

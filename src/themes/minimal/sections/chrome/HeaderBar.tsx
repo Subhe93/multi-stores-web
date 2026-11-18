@@ -131,6 +131,12 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   // Square box (stored headers) or natural proportions under a height
   // (`logo_fit: 'height'`), see ./headerLogo.ts.
   const logoBox = headerLogoBox(parseLogoFit(settings.logo_fit), logoSize);
+  // Only beside a drawn logo; the square box adds nothing (stored headers
+  // keep their markup).
+  const nameClass =
+    showLogo && (logoUrl || logoUrlMobile) && logoBox.nameClassName
+      ? `text-base font-semibold truncate ${logoBox.nameClassName}`
+      : 'text-base font-semibold truncate';
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
   const fg = colorOr(settings.text_color, 'var(--theme-colors-text)');
   const borderColor = colorOr(settings.border_color, 'var(--theme-colors-border)');
@@ -227,7 +233,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
             )}
             {showStoreName && storeName && (
               <span
-                className="text-base font-semibold truncate"
+                className={nameClass}
                 style={{ fontFamily: 'var(--theme-font-heading)' }}
               >
                 {storeName}

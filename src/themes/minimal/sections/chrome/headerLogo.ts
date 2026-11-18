@@ -26,6 +26,8 @@ export interface HeaderLogoBox {
   sizes: string;
   style: CSSProperties;
   className: string;
+  /** Extra class of the store name drawn beside the logo ('' = none). */
+  nameClassName: string;
 }
 
 export function headerLogoBox(fit: LogoFit, logoSize: number): HeaderLogoBox {
@@ -41,6 +43,12 @@ export function headerLogoBox(fit: LogoFit, logoSize: number): HeaderLogoBox {
       style: { height: h, width: 'auto', maxWidth: `min(${w}px, 50vw)` },
       // min-w-0: on a narrow phone the logo shrinks instead of overflowing.
       className: 'object-contain min-w-0',
+      // The logo can shrink here, so the name must give way first: without
+      // this both shrink together and a long store name squeezes the logo
+      // (a square one became narrower than in the square box). With it the
+      // name truncates as it does beside the square box, and the logo only
+      // shrinks once the name has no room left.
+      nameClassName: 'shrink-[999]',
     };
   }
   return {
@@ -49,5 +57,6 @@ export function headerLogoBox(fit: LogoFit, logoSize: number): HeaderLogoBox {
     sizes: `${logoSize}px`,
     style: { width: logoSize, height: logoSize },
     className: 'object-contain shrink-0',
+    nameClassName: '',
   };
 }
