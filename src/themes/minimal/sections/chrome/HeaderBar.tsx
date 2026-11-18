@@ -27,6 +27,7 @@ import { headerLogoBox, parseLogoFit } from './headerLogo';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { HeaderCartButton } from './HeaderCartButton.client';
 import { BlurOnNavigate } from './BlurOnNavigate.client';
+import { HeaderScrollState } from './HeaderScrollState.client';
 
 interface NavItem {
   label?: string;
@@ -126,6 +127,14 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const stickyMode: StickyMode =
     (settings.sticky_mode as StickyMode) || (settings.sticky === false ? 'none' : 'always');
   const submenuStyle: SubmenuStyle = settings.submenu_style === 'mega' ? 'mega' : 'dropdown';
+  // Compact on scroll (opt-in, sticky headers only): a lower row and a
+  // smaller brand once the page is scrolled (CSS in globals.css). The
+  // attributes and the scroll island exist only then; every other header
+  // renders exactly as before.
+  const compact = settings.compact_on_scroll === true && stickyMode !== 'none';
+  const compactHeaderAttr = compact ? { 'data-compact-header': '' } : {};
+  const compactRowAttr = compact ? { 'data-header-row': '' } : {};
+  const compactBrandAttr = compact ? { 'data-header-brand': '' } : {};
 
   const logoSize = numberOr(settings.logo_size, 32);
   // Square box (stored headers) or natural proportions under a height
@@ -177,8 +186,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
   const accountUrl = `${lp}/account`;
   const searchUrl = `${lp}/products`;
 
-  return (
+  const header = (
     <header
+      {...compactHeaderAttr}
       className={`${STICKY_CLASS[stickyMode]} backdrop-blur-sm`}
       style={{
         backgroundColor: bg,
@@ -187,7 +197,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
       }}
     >
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8" style={{ maxWidth: 'var(--theme-container-max)' }}>
-        <div className="flex items-center justify-between gap-4 h-16">
+        <div {...compactRowAttr} className="flex items-center justify-between gap-4 h-16">
           {/* Mobile menu trigger — only renders <md, the drawer + state live
               inside the client component so the rest of HeaderBar stays SSR. */}
           {navItems.length > 0 && (
@@ -201,7 +211,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
 
           {/* Brand — logo + store name. A separate mobile logo can be set;
               when present it shows <md and the main logo shows ≥ md. */}
-          <Link prefetch={false} href={homeUrl} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
+          <Link prefetch={false} href={homeUrl} {...compactBrandAttr} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
             {showLogo && logoUrl && (
               // Optimized at its displayed width (a 600px logo was sent to a
               // ~100px box); SVG logos pass through unchanged. Eager: the
@@ -374,6 +384,14 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext }: S
       </div>
     </header>
   );
+  if (!compact) return header;
+  // The sentinel must be the sibling right before the header.
+  return (
+    <>
+      <HeaderScrollState />
+      {header}
+    </>
+  );
 }
 
 export const headerBarSection: SectionDefinition = {
@@ -438,6 +456,16 @@ export const headerBarSection: SectionDefinition = {
           { value: 'mobile', label: { en: 'Mobile only', ar: 'الجوال فقط' } },
           { value: 'none', label: { en: 'Never', ar: 'أبداً' } },
         ],
+      },
+      {
+        key: 'compact_on_scroll',
+        type: 'boolean',
+        label: { en: 'Compact on scroll', ar: 'تصغير عند التمرير' },
+        description: {
+          en: 'The bar gets lower and the logo smaller once the page is scrolled. Needs "Sticky on scroll".',
+          ar: 'يصبح الشريط أقل ارتفاعاً والشعار أصغر بعد تمرير الصفحة. يتطلب «التثبيت عند التمرير».',
+        },
+        defaultValue: false,
       },
       {
         key: 'submenu_style',
