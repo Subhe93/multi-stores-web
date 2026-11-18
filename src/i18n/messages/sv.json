@@ -1292,5 +1292,23 @@
       "projectCards": "Inga kort ännu. Lägg till objekt i sidbyggaren.",
       "progressSpotlight": "Den här sektionen är tom. Lägg till en rubrik, en bild eller ett mål i sidbyggaren."
     }
+  },
+  "creative": {
+    "marqueePause": "Pausa",
+    "marqueePlay": "Spela",
+    "storySkip": "Hoppa över avsnittet",
+    "storyHint": "Fortsätt scrolla",
+    "storyProgress": "{current} / {total}",
+    "loadingPage": "Sidan laddas",
+    "empty": {
+      "heroOutline": "Lägg till en bild eller en rubrik i det här avsnittet",
+      "heroSunrise": "Lägg till en bild eller en rubrik i det här avsnittet",
+      "stageScenes": "Lägg till ett motiv och minst två scener",
+      "storyPinned": "Lägg till kort i det här avsnittet",
+      "stickySteps": "Lägg till en rubrik och steg i det här avsnittet",
+      "motionPath": "Lägg till en rubrik och stopp i det här avsnittet",
+      "marqueeBand": "Lägg till objekt i det här bandet",
+      "ornamentLine": "Lägg till dina mönsterbanor eller en rubrik"
+    }
   }
 }

@@ -1,0 +1,132 @@
+// Shared stylesheet of the creative engine, rendered through CxStyle only by
+// pages that use a creative section, option or scene (never in globals.css:
+// that file is inlined into the HTML of every store).
+//
+// Rules of the house:
+// - Nothing is hidden, moved or animated outside the gate selector G, so a
+//   page without JavaScript, with reduced motion, with store motion off or in
+//   the builder preview is static and complete.
+// - Text rules start with `.store-root` plus a class: the store typography
+//   rule `.store-root main :is(p, li, span)` (0,1,2) would otherwise win.
+// - Logical properties only; direction-dependent values flip under G_RTL /
+//   `.store-root[dir="rtl"]` (the store root carries `dir`, not <html>).
+
+/** "JavaScript runs AND motion is allowed AND the store did not switch motion off AND not the builder". */
+export const G = 'html[data-cx-motion] .store-root:not([data-motion-reveal="off"]):not([data-cx-builder])';
+/** G for a right-to-left store. */
+export const G_RTL =
+  'html[data-cx-motion] .store-root[dir="rtl"]:not([data-motion-reveal="off"]):not([data-cx-builder])';
+/** Media query of the desktop-only layouts (sticky stages, pinned tracks, pointer effects). */
+export const DESKTOP_FINE = '@media (min-width: 1024px) and (hover: hover) and (pointer: fine)';
+
+const TOKENS = `
+.store-root{--cx-ease:cubic-bezier(.16,1,.3,1);--cx-dur:1.2s;--cx-dur-slow:1.4s;--cx-dist:40px;--cx-stagger:.06s;--cx-accent-sm:clamp(1.25rem,2.4vw,2rem);--cx-accent-md:clamp(1.75rem,4vw,3.5rem);--cx-radius-card:28px;--cx-t-bg:var(--theme-colors-background);--cx-t-surface:var(--theme-colors-surface);--cx-t-text:var(--theme-colors-text);--cx-t-accent:var(--theme-colors-accent);--cx-t-accentc:var(--theme-colors-accentContrast)}
+.store-root[data-motion-reveal="calm"]{--cx-dist:24px;--cx-dur:1.56s;--cx-dur-slow:1.82s}
+@media (min-width:1024px){.store-root{--cx-dist:80px}.store-root[data-motion-reveal="calm"]{--cx-dist:48px}}
+`;
+
+// Engine spans inside a heading must not pick up the body typography.
+const GUARD = `
+.store-root :is(.cx-ht,.cx-w,.cx-wi,.cx-em,.cx-num,.cx-acc,.cx-btn-in,.cx-btn-l){font:inherit;color:inherit;letter-spacing:inherit}
+`;
+
+const SCENES = `
+[data-cx-scene="dark"]{--cx-bg:var(--cx-t-text);--cx-fg:var(--cx-t-bg);--cx-ac:var(--cx-t-accent)}
+[data-cx-scene="light"]{--cx-bg:var(--cx-t-surface);--cx-fg:var(--cx-t-text);--cx-ac:var(--cx-t-accent)}
+[data-cx-scene="accent"]{--cx-bg:var(--cx-t-accent);--cx-fg:var(--cx-t-accentc);--cx-ac:var(--cx-t-bg)}
+[data-cx-scene]{background-color:var(--cx-bg);color:var(--cx-fg);--theme-colors-background:var(--cx-bg);--theme-colors-surface:color-mix(in srgb,var(--cx-fg) 6%,var(--cx-bg));--theme-colors-text:var(--cx-fg);--theme-colors-muted:color-mix(in srgb,var(--cx-fg) 68%,transparent);--theme-colors-border:color-mix(in srgb,var(--cx-fg) 16%,transparent);--theme-colors-accent:var(--cx-ac);--theme-colors-primary:var(--cx-fg);--theme-colors-primaryContrast:var(--cx-bg);--theme-colors-accentContrast:var(--cx-bg)}
+.store-root [data-cx-scene]:where([data-cx-section],[data-cx-section] *) :where(h1,h2,h3,h4,h5,h6,p,li,span):where(:not([style*="color"])){color:inherit}
+`;
+
+const LAYOUT = `
+.cx-bleed{inline-size:100vw;max-inline-size:100vw;margin-inline:calc(50% - 50vw)}
+.cx-mask{position:relative;overflow:clip}
+.cx-mask-in{display:block;position:relative;inline-size:100%;block-size:100%}
+.cx-w{display:inline-block;overflow:clip;padding-block:.14em;margin-block:-.14em;padding-inline:.06em;margin-inline:-.06em;vertical-align:top}
+.cx-wi{display:inline-block}
+`;
+
+const TEXT = `
+.store-root .cx-em{font-style:normal}
+.store-root .cx-em[data-cx-em="italic"]{font-family:var(--cx-font-accent,inherit);font-style:italic}
+.store-root .cx-em[data-cx-em][data-cx-script="arabic"]{font-style:normal;letter-spacing:0}
+.store-root .cx-eyebrow{display:flex;align-items:center;gap:.75rem;margin:0;font-family:var(--theme-font-body);font-size:12px;line-height:1.4;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cx-eyebrow,var(--theme-colors-accent))}
+.store-root .cx-eyebrow::before{content:"";flex:none;inline-size:40px;block-size:1px;background:currentColor;transform-origin:0 50%}
+.store-root[dir="rtl"] .cx-eyebrow::before{transform-origin:100% 50%}
+.store-root .cx-eyebrow[data-cx-script="arabic"]{letter-spacing:0;text-transform:none;font-size:13px}
+.store-root .cx-acc{display:inline-block;max-inline-size:40%;white-space:nowrap;pointer-events:none;user-select:none;font-family:var(--theme-font-heading);font-weight:var(--theme-weight-heading);line-height:1;font-size:var(--cx-accent-md);direction:ltr;text-transform:uppercase;letter-spacing:.08em}
+.store-root .cx-acc[data-cx-size="sm"]{font-size:var(--cx-accent-sm)}
+.store-root .cx-acc[data-cx-script="arabic"]{direction:rtl;text-transform:none;letter-spacing:0}
+.store-root .cx-acc[data-cx-accent="outline"]{-webkit-text-stroke:1px currentColor;-webkit-text-fill-color:transparent}
+.store-root .cx-acc[data-cx-accent="faint"]{opacity:.1}
+.store-root .cx-num{display:inline-block;direction:ltr;unicode-bidi:isolate;font-family:var(--theme-font-heading);font-weight:var(--theme-weight-heading);font-variant-numeric:lining-nums tabular-nums;line-height:1;font-size:2.5rem}
+.store-root .cx-num[data-cx-size="sm"]{font-size:1.75rem}
+.store-root .cx-num[data-cx-num="outline"]{-webkit-text-stroke:1px currentColor;-webkit-text-fill-color:transparent}
+`;
+
+const BUTTON = `
+.store-root .cx-btn{display:inline-flex;align-items:center;justify-content:center;min-block-size:48px;padding:.75rem 1.75rem;border:1.5px solid transparent;border-radius:var(--theme-radius-button,999px);background:var(--theme-colors-primary);color:var(--theme-colors-primaryContrast);font-family:var(--theme-font-body);font-size:.875rem;font-weight:600;line-height:1.2;letter-spacing:.04em;text-decoration:none;outline-color:currentColor;transition:opacity .25s ease}
+.store-root .cx-btn[data-cx-tone="accent"]{background:var(--theme-colors-accent);color:var(--theme-colors-accentContrast)}
+.store-root .cx-btn[data-cx-variant="outline"]{background:transparent;border-color:currentColor;color:var(--theme-colors-text)}
+.store-root .cx-btn:hover{opacity:.88}
+.cx-btn-in{display:inline-flex;align-items:center;gap:.625rem;translate:var(--cx-mx,0px) var(--cx-my,0px);transition:translate .35s cubic-bezier(.16,1,.3,1)}
+.cx-btn-arrow{flex:none;inline-size:1em;block-size:1em;transition:translate .3s cubic-bezier(.16,1,.3,1)}
+.cx-btn:hover .cx-btn-arrow{translate:4px 0}
+.store-root[dir="rtl"] .cx-btn-arrow{scale:-1 1}
+.store-root[dir="rtl"] .cx-btn:hover .cx-btn-arrow{translate:-4px 0}
+`;
+
+const EMPTY = `
+.cx-empty{display:flex;align-items:center;justify-content:center;min-block-size:160px;margin:1rem;padding:1.5rem;border:1px dashed color-mix(in srgb,currentColor 35%,transparent);border-radius:12px;background:color-mix(in srgb,currentColor 4%,transparent);text-align:center;font-size:.875rem}
+`;
+
+const REVEALS = `
+${G} [data-cx-reveal="words"][data-cx-state="pending"] .cx-wi{transform:translateY(110%)}
+${G} [data-cx-reveal="words"][data-cx-state="shown"] .cx-wi{transition:transform var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-reveal="mask"][data-cx-state="pending"]{clip-path:inset(100% 0 0 0)}
+${G} [data-cx-reveal="mask"][data-cx-dir="start"][data-cx-state="pending"]{clip-path:inset(0 100% 0 0)}
+${G} [data-cx-reveal="mask"][data-cx-dir="end"][data-cx-state="pending"]{clip-path:inset(0 0 0 100%)}
+${G_RTL} [data-cx-reveal="mask"][data-cx-dir="start"][data-cx-state="pending"]{clip-path:inset(0 0 0 100%)}
+${G_RTL} [data-cx-reveal="mask"][data-cx-dir="end"][data-cx-state="pending"]{clip-path:inset(0 100% 0 0)}
+${G} [data-cx-reveal="mask"][data-cx-state="shown"]{clip-path:inset(0);transition:clip-path var(--cx-dur-slow) var(--cx-ease);transition-delay:var(--cx-delay,0s)}
+${G} [data-cx-reveal="mask"][data-cx-state="pending"] .cx-mask-in{transform:scale(1.18)}
+${G} [data-cx-reveal="mask"][data-cx-state="shown"] .cx-mask-in{transition:transform var(--cx-dur-slow) var(--cx-ease);transition-delay:var(--cx-delay,0s)}
+${G} [data-cx-reveal="rise"][data-cx-state="pending"]{opacity:0;transform:translateY(var(--cx-dist))}
+${G} [data-cx-reveal="rise"][data-cx-state="shown"]{transition:opacity var(--cx-dur) var(--cx-ease),transform var(--cx-dur) var(--cx-ease);transition-delay:calc(var(--cx-delay,0s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-reveal="fade"][data-cx-state="pending"]{opacity:0}
+${G} [data-cx-reveal="fade"][data-cx-state="shown"]{transition:opacity var(--cx-dur) ease;transition-delay:var(--cx-delay,0s)}
+`;
+
+const INTROS = `
+@keyframes cx-word{from{transform:translateY(110%)}to{transform:none}}
+@keyframes cx-rise{from{opacity:0;transform:translateY(var(--cx-dist))}to{opacity:1;transform:none}}
+@keyframes cx-fade{from{opacity:0}to{opacity:1}}
+@keyframes cx-scale{from{transform:scale(1.06)}to{transform:none}}
+@keyframes cx-rule{from{transform:scaleX(0)}to{transform:none}}
+${G} [data-cx-intro="words"] .cx-wi{animation:cx-word var(--cx-dur) var(--cx-ease) both;animation-delay:calc(var(--cx-delay,.15s) + var(--cx-i,0) * var(--cx-stagger))}
+${G} [data-cx-intro="rise"]{animation:cx-rise var(--cx-dur) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
+${G} [data-cx-intro="fade"]{animation:cx-fade var(--cx-dur) ease both;animation-delay:var(--cx-delay,0s)}
+${G} [data-cx-intro="scale"]:not(.cx-mask),${G} .cx-mask[data-cx-intro="scale"]>.cx-mask-in{animation:cx-scale var(--cx-dur-slow) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
+${G} [data-cx-intro="rule"]{transform-origin:0 50%;animation:cx-rule var(--cx-dur) var(--cx-ease) both;animation-delay:var(--cx-delay,0s)}
+${G_RTL} [data-cx-intro="rule"]{transform-origin:100% 50%}
+${G} .cx-eyebrow[data-cx-intro="eyebrow"]{animation:cx-fade var(--cx-dur) ease both}
+${G} .cx-eyebrow[data-cx-intro="eyebrow"]::before{animation:cx-rule var(--cx-dur) var(--cx-ease) both}
+${G} [data-cx-section][data-cx-watch]:not([data-cx-inview]) [data-cx-loop]{animation-play-state:paused}
+`;
+
+const PRINT = `
+@media print{[data-cx-state],[data-cx-state] .cx-wi,[data-cx-state] .cx-mask-in,[data-cx-intro],[data-cx-intro] .cx-wi,[data-cx-intro] .cx-mask-in,.cx-eyebrow::before{animation:none!important;transition:none!important;transform:none!important;opacity:1!important;clip-path:none!important}}
+`;
+
+/** Collapses the authoring whitespace (one rule per line above). */
+export function minifyCss(css: string): string {
+  return css
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('');
+}
+
+export const BASE_CSS: string = minifyCss(
+  TOKENS + GUARD + SCENES + LAYOUT + TEXT + BUTTON + EMPTY + REVEALS + INTROS + PRINT,
+);

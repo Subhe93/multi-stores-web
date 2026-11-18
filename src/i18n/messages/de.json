@@ -1292,5 +1292,23 @@
       "projectCards": "Noch keine Karten. Füge im Seiten-Editor Einträge hinzu.",
       "progressSpotlight": "Dieser Abschnitt ist leer. Füge im Seiten-Editor eine Überschrift, ein Bild oder ein Ziel hinzu."
     }
+  },
+  "creative": {
+    "marqueePause": "Pausieren",
+    "marqueePlay": "Abspielen",
+    "storySkip": "Abschnitt überspringen",
+    "storyHint": "Weiter scrollen",
+    "storyProgress": "{current} / {total}",
+    "loadingPage": "Seite wird geladen",
+    "empty": {
+      "heroOutline": "Fügen Sie diesem Abschnitt ein Bild oder eine Überschrift hinzu",
+      "heroSunrise": "Fügen Sie diesem Abschnitt ein Bild oder eine Überschrift hinzu",
+      "stageScenes": "Fügen Sie ein Motiv und mindestens zwei Szenen hinzu",
+      "storyPinned": "Fügen Sie diesem Abschnitt Karten hinzu",
+      "stickySteps": "Fügen Sie eine Überschrift und Schritte hinzu",
+      "motionPath": "Fügen Sie eine Überschrift und Stationen hinzu",
+      "marqueeBand": "Fügen Sie diesem Band Elemente hinzu",
+      "ornamentLine": "Fügen Sie Ihre Motivpfade oder eine Überschrift hinzu"
+    }
   }
 }

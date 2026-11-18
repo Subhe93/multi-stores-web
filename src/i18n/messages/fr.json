@@ -1292,5 +1292,23 @@
       "projectCards": "Aucune carte pour le moment. Ajoutez des éléments dans l’éditeur de page.",
       "progressSpotlight": "Cette section est vide. Ajoutez un titre, une image ou un objectif dans l’éditeur de page."
     }
+  },
+  "creative": {
+    "marqueePause": "Mettre en pause",
+    "marqueePlay": "Lire",
+    "storySkip": "Passer cette section",
+    "storyHint": "Continuez à défiler",
+    "storyProgress": "{current} / {total}",
+    "loadingPage": "Chargement de la page",
+    "empty": {
+      "heroOutline": "Ajoutez une image ou un titre à cette section",
+      "heroSunrise": "Ajoutez une image ou un titre à cette section",
+      "stageScenes": "Ajoutez un visuel et au moins deux scènes",
+      "storyPinned": "Ajoutez des cartes à cette section",
+      "stickySteps": "Ajoutez un titre et des étapes à cette section",
+      "motionPath": "Ajoutez un titre et des arrêts à cette section",
+      "marqueeBand": "Ajoutez des éléments à ce bandeau",
+      "ornamentLine": "Ajoutez les tracés de votre motif ou un titre"
+    }
   }
 }

@@ -1292,5 +1292,23 @@
       "projectCards": "Henüz kart yok. Sayfa düzenleyicide öğe ekleyin.",
       "progressSpotlight": "Bu bölüm boş. Sayfa düzenleyicide bir başlık, görsel veya hedef ekleyin."
     }
+  },
+  "creative": {
+    "marqueePause": "Duraklat",
+    "marqueePlay": "Oynat",
+    "storySkip": "Bu bölümü atla",
+    "storyHint": "Kaydırmaya devam et",
+    "storyProgress": "{current} / {total}",
+    "loadingPage": "Sayfa yükleniyor",
+    "empty": {
+      "heroOutline": "Bu bölüme bir görsel veya başlık ekleyin",
+      "heroSunrise": "Bu bölüme bir görsel veya başlık ekleyin",
+      "stageScenes": "Bir görsel ve en az iki sahne ekleyin",
+      "storyPinned": "Bu bölüme kartlar ekleyin",
+      "stickySteps": "Bu bölüme bir başlık ve adımlar ekleyin",
+      "motionPath": "Bu bölüme bir başlık ve duraklar ekleyin",
+      "marqueeBand": "Bu banda öğeler ekleyin",
+      "ornamentLine": "Motif yollarınızı veya bir başlık ekleyin"
+    }
   }
 }

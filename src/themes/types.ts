@@ -126,7 +126,16 @@ export type ThemeCustomizations = {
    * through motionAttrs (tokens.ts), which turns the other values into
    * data attributes on .store-root; the behaviour is CSS in globals.css.
    */
-  motion?: { reveal?: 'default' | 'calm' | 'off'; zoom?: 'default' | 'subtle' | 'off' };
+  motion?: {
+    reveal?: 'default' | 'calm' | 'off';
+    zoom?: 'default' | 'subtle' | 'off';
+    /**
+     * Creative engine switch (themes/creative/creativeAttrs.ts). Absent =
+     * off; only `enabled: true` is ever stored. Unset options: smooth
+     * scrolling and magnetic buttons on, page transition off.
+     */
+    creative?: { enabled: true; smooth?: 'off'; magnetic?: 'off'; transition?: 'curtain' };
+  };
   /**
    * Store-wide custom CSS written by the owner (theme customizer). Owner
    * content, not a design token: mergeTokens ignores it and the store layout
