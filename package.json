@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/prune-loadable-manifests.mjs",
+    "prestart": "node scripts/clear-fetch-cache.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
