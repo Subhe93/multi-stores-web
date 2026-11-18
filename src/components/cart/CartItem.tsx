@@ -284,7 +284,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove, locale = 'en', maxQ
         </div>
         )}
         {typeof onlyLeft === 'number' ? (
-          <p className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
+          <p role="status" className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
         ) : atLimit && typeof maxPerOrder === 'number' && (
           <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}

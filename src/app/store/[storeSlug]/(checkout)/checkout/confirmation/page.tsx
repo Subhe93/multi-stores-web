@@ -40,7 +40,8 @@ export default function OrderConfirmationPage() {
   // browser or app): the URL's redirect_status cannot be verified here, so
   // a neutral "we're confirming" state is shown instead of trusting it.
   // Guest order (placed without a session): its order-bound guest token, kept
-  // by the checkout for this tab. Read on the client only. With it the order
+  // by the checkout for this browser (a redirect payment may return in
+  // another tab). Read on the client only. With it the order
   // and its payment are read through the guest routes, session or not.
   const guestToken = useSyncExternalStore(
     noopSubscribe,

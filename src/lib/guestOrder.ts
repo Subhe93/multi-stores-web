@@ -9,9 +9,10 @@
 // payment (`/payments/guest/*`) and confirmation (`GET /orders/guest/:id`).
 //
 // The guest token is NOT a session: it is never written to the auth storage
-// and never passed to `login`. It lives in `sessionStorage` under a key that
-// names its order, so the confirmation page (also after a redirect payment
-// in the same tab) can read the order back.
+// and never passed to `login`. It lives in `localStorage` under a key that
+// names its order, so the confirmation page can read the order back, also
+// when a redirect payment (Swish, a bank app) returns in another tab. Only
+// the latest guest order's token is kept; it expires after 24 h on the API.
 //
 // Pure helpers only; the checkout page does the calls.
 
@@ -54,9 +55,12 @@ export function registerFailureOutcome(
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
 
-/** Session key of an order's guest token. */
+/** Prefix of every guest token key. */
+const GUEST_TOKEN_KEY_PREFIX = 'checkout_guest_token:';
+
+/** Storage key of an order's guest token. */
 export function guestOrderTokenKey(orderId: string): string {
-  return `checkout_guest_token:${orderId}`;
+  return `${GUEST_TOKEN_KEY_PREFIX}${orderId}`;
 }
 
 /** Session key flagging "an account already exists for this email" (value: the email). */
@@ -74,20 +78,62 @@ function sessionStore(): SessionStore | null {
   }
 }
 
-/** Best-effort: without storage the order is still placed, only the receipt is missing. */
-export function rememberGuestOrderToken(orderId: string, token: string, store: SessionStore | null = sessionStore()): void {
+/** A store that can also list its keys (a real `Storage`), for pruning. */
+type TokenStore = SessionStore & Partial<Pick<Storage, 'key' | 'length'>>;
+
+/** Shared across the tabs of the browser, unlike `sessionStorage`. */
+function localStore(): TokenStore | null {
   try {
-    store?.setItem(guestOrderTokenKey(orderId), token);
-  } catch { /* optional */ }
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null; // storage blocked (private mode)
+  }
 }
 
-export function readGuestOrderToken(orderId: string | null | undefined, store: SessionStore | null = sessionStore()): string | null {
-  if (!orderId) return null;
-  try {
-    return store?.getItem(guestOrderTokenKey(orderId)) || null;
-  } catch {
-    return null;
+/** Where guest tokens are looked up: across tabs first, then this tab. */
+function tokenStores(): TokenStore[] {
+  return [localStore(), sessionStore()].filter((s): s is TokenStore => s !== null);
+}
+
+/** Drops the guest tokens of other orders (only the latest order's token is kept). */
+function pruneOtherGuestTokens(store: TokenStore, keepKey: string): void {
+  if (typeof store.key !== 'function' || typeof store.length !== 'number') return;
+  const stale: string[] = [];
+  for (let i = 0; i < store.length; i += 1) {
+    const k = store.key(i);
+    if (k && k.startsWith(GUEST_TOKEN_KEY_PREFIX) && k !== keepKey) stale.push(k);
   }
+  for (const k of stale) store.removeItem(k);
+}
+
+/**
+ * Best-effort: without storage the order is still placed, only the receipt is
+ * missing. Written to the first store that takes it (`localStorage`, else
+ * `sessionStorage`), or to the given store.
+ */
+export function rememberGuestOrderToken(orderId: string, token: string, store?: TokenStore | null): void {
+  const key = guestOrderTokenKey(orderId);
+  const stores = store === undefined ? tokenStores() : store ? [store] : [];
+  for (const s of stores) {
+    try {
+      s.setItem(key, token);
+      try { pruneOtherGuestTokens(s, key); } catch { /* optional */ }
+      return;
+    } catch { /* try the next store */ }
+  }
+}
+
+export function readGuestOrderToken(orderId: string | null | undefined, store?: TokenStore | null): string | null {
+  if (!orderId) return null;
+  const key = guestOrderTokenKey(orderId);
+  const stores = store === undefined ? tokenStores() : store ? [store] : [];
+  for (const s of stores) {
+    try {
+      const value = s.getItem(key);
+      if (value) return value;
+    } catch { /* try the next store */ }
+  }
+  return null;
 }
 
 export function rememberGuestAccountExists(orderId: string, email: string, store: SessionStore | null = sessionStore()): void {

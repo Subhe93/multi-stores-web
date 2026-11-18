@@ -425,6 +425,7 @@
     "pricesUpdatedForMarket": "Priserna har uppdaterats för den här marknaden.",
     "linesDroppedForMarket": "{count, plural, one {# vara kunde inte flyttas till den här marknaden.} other {# varor kunde inte flyttas till den här marknaden.}}",
     "linesNotMoved": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom dess personalisering inte längre är giltig.} other {# varor kunde inte flyttas till ditt konto eftersom deras personalisering inte längre är giltig.}}",
+    "linesNotMovedStock": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom lagret inte räcker.} other {# varor kunde inte flyttas till ditt konto eftersom lagret inte räcker.}}",
     "unavailableInMarket": "Inte tillgänglig i {market}",
     "unavailableHere": "Inte tillgänglig på den här marknaden",
     "removeUnavailable": "Ta bort de varor som inte är tillgängliga för att gå vidare till kassan.",

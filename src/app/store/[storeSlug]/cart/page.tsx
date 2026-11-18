@@ -28,6 +28,7 @@ import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNoti
 import { couponDiscount } from '@/lib/couponDiscount';
 import { insufficientStockAvailable, lineQuantityCap } from '@/lib/productQuantity';
 import { useCartQuote } from '@/hooks/useCartQuote';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { quoteTotalBeforeTax } from '@/lib/cartQuote';
 import { cartRequiresShipping } from '@/lib/requiresShipping';
 import { availableLines } from '@/lib/cartAvailability';
@@ -318,7 +319,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
           </button>
         </div>
         {!unavailable && typeof onlyLeft === 'number' ? (
-          <p className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
+          <p role="status" className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
         ) : !unavailable && atLimit && typeof maxPerOrder === 'number' && (
           <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}
@@ -445,7 +446,7 @@ export default function StoreCartPage() {
             <span className="flex-1">
               {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
               {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
-              {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
+              {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
             </span>
             <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="text-xs underline hover:opacity-70">
               {t('market.suggest.dismiss')}

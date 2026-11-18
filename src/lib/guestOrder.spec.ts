@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildGuestOrderBody,
   canReusePending,
@@ -81,6 +81,42 @@ describe('guest token storage', () => {
     expect(readGuestOrderToken('o1', store)).toBe('tok-1');
     expect(readGuestOrderToken('o2', store)).toBeNull();
     expect(readGuestOrderToken(null, store)).toBeNull();
+  });
+
+  it('a store that lists its keys keeps only the token of the latest order', () => {
+    const data = new Map<string, string>([['auth_access_token', 'session'], ['checkout_guest_token:old', 'tok-old']]);
+    const store = {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => { data.set(k, v); },
+      removeItem: (k: string) => { data.delete(k); },
+      key: (i: number) => [...data.keys()][i] ?? null,
+      get length() { return data.size; },
+    };
+    rememberGuestOrderToken('new', 'tok-new', store);
+    expect([...data.keys()].sort()).toEqual(['auth_access_token', 'checkout_guest_token:new']);
+    expect(readGuestOrderToken('new', store)).toBe('tok-new');
+    expect(readGuestOrderToken('old', store)).toBeNull();
+    // An unchanged retry of the same order keeps its token.
+    rememberGuestOrderToken('new', 'tok-new', store);
+    expect(readGuestOrderToken('new', store)).toBe('tok-new');
+  });
+
+  it('by default the token is shared across tabs (localStorage), not tab-bound', () => {
+    const local = memoryStore();
+    const session = memoryStore();
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', session);
+    try {
+      rememberGuestOrderToken('o9', 'tok-9');
+      expect(local.data.get('checkout_guest_token:o9')).toBe('tok-9');
+      expect(session.data.size).toBe(0);
+      expect(readGuestOrderToken('o9')).toBe('tok-9');
+      // A token only this tab holds (localStorage refused the write) is still read.
+      session.data.set('checkout_guest_token:o8', 'tok-8');
+      expect(readGuestOrderToken('o8')).toBe('tok-8');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('the "account exists" note is kept per order', () => {

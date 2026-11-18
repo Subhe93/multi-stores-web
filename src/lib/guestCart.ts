@@ -267,22 +267,46 @@ export function guestLineToServerBody(item: CartItem) {
   };
 }
 
-/** Error codes that make a guest line impossible to move (counted, shown in the cart). */
+/** Error code prefixes that make a guest line impossible to move (counted, shown in the cart). */
 const MIGRATION_DROP_PREFIXES = ['CUSTOM_FIELD_', 'CUSTOMER_UPLOAD_', 'PERSONALIZATION_', 'DESIGNER_'];
 
-/**
- * True when moving a guest line failed because of its personalization (a 4xx
- * `CUSTOM_FIELD_*`, `CUSTOMER_UPLOAD_*`, `PERSONALIZATION_*` or `DESIGNER_*`
- * error). Other failures (network, 5xx, unrelated codes) are not counted.
- */
-export function isMigrationDropError(err: unknown): boolean {
+/** The cart's stock refusal: the line would hold more than its stock row has. */
+const MIGRATION_STOCK_CODE = 'CART_INSUFFICIENT_STOCK';
+
+function migrationErrorParts(err: unknown): { status: number; code: string } {
   const e = err as { status?: unknown; code?: unknown } | null;
-  const status = typeof e?.status === 'number' ? e.status : 0;
-  const code = typeof e?.code === 'string' ? e.code : '';
-  return status >= 400 && status < 500 && MIGRATION_DROP_PREFIXES.some((p) => code.startsWith(p));
+  return {
+    status: typeof e?.status === 'number' ? e.status : 0,
+    code: typeof e?.code === 'string' ? e.code : '',
+  };
 }
 
-/** A guest line the server rejected for its personalization, with the error. */
+/** True when moving a guest line was refused for stock (400 `CART_INSUFFICIENT_STOCK`). */
+export function isMigrationStockError(err: unknown): boolean {
+  const { status, code } = migrationErrorParts(err);
+  return status >= 400 && status < 500 && code === MIGRATION_STOCK_CODE;
+}
+
+/**
+ * True when the server refused a guest line for a reason the buyer must see:
+ * its personalization (a 4xx `CUSTOM_FIELD_*`, `CUSTOMER_UPLOAD_*`,
+ * `PERSONALIZATION_*` or `DESIGNER_*` error) or its stock
+ * (`CART_INSUFFICIENT_STOCK`). The checkout stops on these instead of placing
+ * the order without the line. Other failures (network, 5xx, unrelated codes)
+ * are not counted.
+ */
+export function isMigrationDropError(err: unknown): boolean {
+  const { status, code } = migrationErrorParts(err);
+  if (status < 400 || status >= 500) return false;
+  return code === MIGRATION_STOCK_CODE || MIGRATION_DROP_PREFIXES.some((p) => code.startsWith(p));
+}
+
+/** Message key of the "lines not moved" notice for the first refusal's reason. */
+export function migrationDropMessageKey(err: unknown): 'cart.linesNotMoved' | 'cart.linesNotMovedStock' {
+  return isMigrationStockError(err) ? 'cart.linesNotMovedStock' : 'cart.linesNotMoved';
+}
+
+/** A guest line the server refused (personalization or stock), with the error. */
 export interface DroppedGuestLine {
   item: CartItem;
   /** The coded API error (`code`, `params`, `field_name`…), for the message. */
@@ -293,7 +317,7 @@ export interface DroppedGuestLine {
 export interface GuestMigrationResult {
   /** Lines the server accepted: these leave the local cart. */
   moved: CartItem[];
-  /** Lines rejected for their personalization: kept locally and reported. */
+  /** Lines refused for their personalization or stock: kept locally and reported. */
   dropped: DroppedGuestLine[];
   /** Lines that failed for another reason (network, 5xx…): kept locally, silent. */
   failed: CartItem[];
@@ -313,7 +337,7 @@ export async function migrateGuestLines(
       await post(guestLineToServerBody(item));
       result.moved.push(item);
     } catch (err) {
-      // Personalization rejections are reported; other failures stay silent as before.
+      // Personalization and stock refusals are reported; other failures stay silent as before.
       if (isMigrationDropError(err)) result.dropped.push({ item, error: err });
       else result.failed.push(item);
     }

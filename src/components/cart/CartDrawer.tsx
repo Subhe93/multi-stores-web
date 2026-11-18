@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { X, ShoppingCart } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useCart } from '@/hooks/useCart';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { CartItem } from './CartItem';
@@ -142,7 +143,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span className="flex-1">
                     {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
                     {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
-                    {migrationDropped > 0 && <span className="block">{[t('cart.linesNotMoved', { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
+                    {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
                   </span>
                   <button type="button" onClick={dismissPricesNotice} aria-label={t('market.suggest.dismiss')} className="p-0.5 hover:opacity-70">
                     <X className="w-3.5 h-3.5" />

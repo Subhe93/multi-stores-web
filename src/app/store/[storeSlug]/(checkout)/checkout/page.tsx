@@ -15,6 +15,7 @@ import {
   registerFailureOutcome, rememberGuestAccountExists, rememberGuestOrderToken,
 } from '@/lib/guestOrder';
 import { useCart } from '@/hooks/useCart';
+import { migrationDropMessageKey } from '@/lib/guestCart';
 import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
 import { marketBody, marketQuery } from '@/lib/market';
@@ -1259,14 +1260,14 @@ function CheckoutForm({
             setError(t('checkout.authFailed'));
             return;
           }
-          // Lines the server rejects for their personalization stay in the
+          // Lines the server refuses (personalization or stock) stay in the
           // guest cart: stop before any payment and send the buyer to the cart.
           const dropped = await syncGuestCartToServer(activeToken);
           if (dropped.length > 0) {
             const first = dropped[0]!;
             const reason = codedError(first.error);
             setError([
-              t('cart.linesNotMoved', { count: dropped.length }),
+              t(migrationDropMessageKey(first.error), { count: dropped.length }),
               reason ? withProduct(first.item.title, reason) : '',
             ].filter(Boolean).join(' '));
             setErrorCartLink(true);
