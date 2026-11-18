@@ -113,7 +113,9 @@ describe('server-paginated grid', () => {
     );
     expect(status()).toBe('product.shownOfTotal[shown=6,total=7]');
     // Focus moves to the first new card.
-    expect(document.activeElement?.getAttribute('href')).toBe('/products/produkt-3');
+    // The focus move runs in a passive effect after the commit that shows the
+    // new cards, so it is awaited too (it can land one tick later under load).
+    await waitFor(() => expect(document.activeElement?.getAttribute('href')).toBe('/products/produkt-3'));
   });
 
   it('busy while loading (never disabled), extra clicks ignored', async () => {
@@ -154,7 +156,7 @@ describe('server-paginated grid', () => {
     expect(getProductsPage).toHaveBeenLastCalledWith('namez-se', expect.objectContaining({ page: 3 }), undefined);
     expect(button()).toBeNull();
     expect(status()).toBe('product.shownOfTotal[shown=7,total=7]');
-    expect(document.activeElement?.getAttribute('href')).toBe('/products/produkt-6');
+    await waitFor(() => expect(document.activeElement?.getAttribute('href')).toBe('/products/produkt-6'));
   });
 
   it('an error shows an alert and the button retries the same page', async () => {
