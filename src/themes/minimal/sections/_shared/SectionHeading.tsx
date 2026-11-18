@@ -8,6 +8,8 @@ import { colorOr } from '../../../elementStyles';
 import type { TextTag } from './headingLevel';
 import { Heading } from './Heading';
 import { multilineStyle } from './headingLines';
+import { MotionText } from '../../../creative/primitives/Motion';
+import { line, rise, type MotionProp } from '../../../creative/recipes';
 
 // 'start' is the logical (direction-aware) alignment; 'left' / 'right' are
 // kept for the sections that already use them.
@@ -43,6 +45,12 @@ interface SectionHeadingProps {
    * headingLines. Off by default: the other callers render as they always did.
    */
   multiline?: boolean;
+  /**
+   * Store motion style: the section's own `motion` prop. Unset = the markup
+   * of today. Set: the eyebrow rises, the heading enters word by word behind
+   * a mask (line after line), the rules draw and the subheading follows.
+   */
+  motion?: MotionProp;
 }
 
 export function SectionHeading({
@@ -60,6 +68,7 @@ export function SectionHeading({
   className,
   ruled = false,
   multiline = false,
+  motion,
 }: SectionHeadingProps) {
   if (!eyebrow && !heading && !subheading) return null;
   const headingStyle: CSSProperties = {
@@ -81,21 +90,22 @@ export function SectionHeading({
           look="body"
           className="text-xs font-semibold uppercase tracking-[0.14em]"
           style={{ color: colorOr(eyebrowColor, 'var(--theme-colors-accent)') }}
+          {...rise(motion)}
         >
           {eyebrow}
         </Heading>
       )}
       {heading && ruled && align === 'center' ? (
         <div className="flex w-full items-center justify-center gap-4 md:gap-6">
-          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} />
+          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} {...line(motion, { d: 2 })} />
           <Heading level={tag ?? as} style={headingStyle}>
-            {heading}
+            <MotionText motion={motion} text={heading} />
           </Heading>
-          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} />
+          <span aria-hidden className="h-px flex-1 max-w-24" style={{ backgroundColor: 'var(--theme-colors-border)' }} {...line(motion, { d: 2 })} />
         </div>
       ) : heading ? (
         <Heading level={tag ?? as} style={headingStyle}>
-          {heading}
+          <MotionText motion={motion} text={heading} />
         </Heading>
       ) : null}
       {subheading && (
@@ -104,6 +114,7 @@ export function SectionHeading({
           look="body"
           className="text-base leading-relaxed"
           style={{ color: colorOr(subheadingColor, 'var(--theme-colors-muted)') }}
+          {...rise(motion, { i: 2 })}
         >
           {subheading}
         </Heading>
