@@ -6,6 +6,8 @@ import { buttonStyles, colorOr, mediaFx } from '../../elementStyles';
 import { Reveal } from '../../_motion';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { HeadingAccent } from './_shared/HeadingAccent';
+import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { isSvgSrc } from '@/lib/storeMedia';
 import {
   DynamicSourceHint,
@@ -204,6 +206,7 @@ function ImageWithText(props: SectionRenderProps) {
               }}
             >
               {bleedHeading}
+              <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
             </Heading>
           )}
           {body && (
@@ -283,6 +286,7 @@ function ImageWithText(props: SectionRenderProps) {
           }}
         >
           {heading}
+          <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
         </Heading>
       )}
       {body && (
@@ -502,6 +506,7 @@ export const imageWithTextSection: SectionDefinition = {
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow', ar: 'تسمية صغيرة' } },
       // A textarea: Enter starts a new line, kept by the edge-to-edge style.
       { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' } },
+      ...HEADING_ACCENT_FIELDS,
       { key: 'body', type: 'textarea', label: { en: 'Body text', ar: 'النص' } },
       { key: 'cta_text', type: 'text', label: { en: 'Button text', ar: 'نص الزر' } },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },

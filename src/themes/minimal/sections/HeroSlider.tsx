@@ -3,6 +3,7 @@
 
 import type { SectionDefinition } from '../../types';
 import { HeroSlider } from './HeroSlider.client';
+import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 
 export const heroSliderSection: SectionDefinition = {
   schema: {
@@ -71,6 +72,8 @@ export const heroSliderSection: SectionDefinition = {
           },
         ],
       },
+      // One accent setting for the heading of every slide.
+      ...HEADING_ACCENT_FIELDS,
       // Section-level styling — applied to all slides for consistency.
       { key: 'eyebrow_color', type: 'color', label: { en: 'Eyebrow color', ar: 'لون التسمية الصغيرة' } },
       { key: 'heading_color', type: 'color', label: { en: 'Heading color', ar: 'لون العنوان' } },

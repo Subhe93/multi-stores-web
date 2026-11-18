@@ -2,6 +2,7 @@
 
 import type { SectionDefinition } from '../../types';
 import { HeroVideo } from './HeroVideo.client';
+import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 
 export const heroVideoSection: SectionDefinition = {
   schema: {
@@ -42,6 +43,7 @@ export const heroVideoSection: SectionDefinition = {
       },
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow (small label)', ar: 'تسمية صغيرة فوق العنوان' }, maxLength: 40 },
       { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      ...HEADING_ACCENT_FIELDS,
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 280 },
       { key: 'cta_text', type: 'text', label: { en: 'Button text', ar: 'نص الزر' }, maxLength: 40 },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },

@@ -6,6 +6,7 @@ import { heroSliderSection } from './sections/HeroSlider';
 import { auroraHeroSection } from './sections/AuroraHero';
 import { heroVideoSection } from './sections/HeroVideo';
 import { parallaxBannerSection } from './sections/ParallaxBanner';
+import { brandBandSection } from './sections/BrandBand';
 import { beforeAfterSection } from './sections/BeforeAfter';
 import { imageHotspotsSection } from './sections/ImageHotspots';
 import { masonryGallerySection } from './sections/MasonryGallery';
@@ -79,6 +80,7 @@ export const minimalTheme: Theme = {
     'aurora-hero': auroraHeroSection,
     'hero-video': heroVideoSection,
     'parallax-banner': parallaxBannerSection,
+    'brand-band': brandBandSection,
     'before-after': beforeAfterSection,
     'image-hotspots': imageHotspotsSection,
     'masonry-gallery': masonryGallerySection,

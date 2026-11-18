@@ -1,6 +1,8 @@
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { HeadingAccent } from '../../minimal/sections/_shared/HeadingAccent';
+import { HEADING_ACCENT_FIELDS } from '../../minimal/sections/_shared/headingAccentFields';
 
 // Classic hero: framed image with serif heading underneath. More editorial-feel
 // than Minimal's centered hero. Schema stays identical so creators can switch
@@ -56,6 +58,7 @@ function HeroBanner({ settings, content }: SectionRenderProps) {
             }}
           >
             {heading}
+            <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
           </h1>
         )}
         {subheading && (
@@ -108,6 +111,7 @@ export const classicHeroBannerSection: SectionDefinition = {
     schema: [
       { key: 'image', type: 'image', label: { en: 'Image', ar: 'الصورة' } },
       { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 100 },
+      ...HEADING_ACCENT_FIELDS,
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 240 },
       { key: 'cta_text', type: 'text', label: { en: 'Button Text', ar: 'نص الزر' }, maxLength: 40 },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },

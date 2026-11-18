@@ -10,6 +10,8 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { HeadingAccent } from './_shared/HeadingAccent';
+import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import { ArrowRight } from 'lucide-react';
 import { StoreImage } from '@/components/StoreImage';
@@ -168,6 +170,7 @@ function HeroSplit(props: SectionRenderProps) {
                   }}
                 >
                   {heading}
+                  <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
                 </Heading>
               </StaggerItem>
             )}
@@ -341,6 +344,7 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
               }}
             >
               {heading}
+              <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="start" />
             </Heading>
           </StaggerItem>
         )}
@@ -526,6 +530,7 @@ export const heroSplitSection: SectionDefinition = {
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow (small label)', ar: 'تسمية صغيرة فوق العنوان' }, maxLength: 40 },
       // A textarea: Enter starts a new line, kept by the edge-to-edge style.
       { key: 'heading', type: 'textarea', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      ...HEADING_ACCENT_FIELDS,
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 280 },
       { key: 'cta_text', type: 'text', label: { en: 'Primary button text', ar: 'نص الزر الرئيسي' }, maxLength: 40 },
       { key: 'cta_url', type: 'url', label: { en: 'Primary button URL', ar: 'رابط الزر الرئيسي' } },

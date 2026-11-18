@@ -13,6 +13,7 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { HeadingAccent } from './_shared/HeadingAccent';
 import { isSvgSrc } from '@/lib/storeMedia';
 
 type HeroHeight = 'sm' | 'md' | 'lg' | 'full';
@@ -156,6 +157,7 @@ export function HeroSlider({ settings, content, locale }: SectionRenderProps) {
               }}
             >
               {slide.heading}
+              <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
             </Heading>
           )}
           {slide.subheading && (

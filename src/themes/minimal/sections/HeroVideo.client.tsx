@@ -12,6 +12,7 @@ import { StaggerGroup, StaggerItem } from '../../_motion';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { HeadingAccent } from './_shared/HeadingAccent';
 import { isSvgSrc, optimizedImageUrl } from '@/lib/storeMedia';
 
 type Height = 'md' | 'lg' | 'full';
@@ -148,6 +149,7 @@ export function HeroVideo({ settings, content }: SectionRenderProps) {
                   }}
                 >
                   {heading}
+                  <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align={alignment} />
                 </Heading>
               </StaggerItem>
             )}

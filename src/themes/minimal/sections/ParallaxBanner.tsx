@@ -4,6 +4,8 @@ import { buttonStyles, colorOr } from '../../elementStyles';
 import { StaggerGroup, StaggerItem } from '../../_motion';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
+import { HeadingAccent } from './_shared/HeadingAccent';
+import { HEADING_ACCENT_FIELDS } from './_shared/headingAccentFields';
 import { optimizedImageUrl } from '@/lib/storeMedia';
 
 type Height = 'sm' | 'md' | 'lg';
@@ -106,6 +108,7 @@ function ParallaxBanner({ settings, content }: SectionRenderProps) {
               }}
             >
               {heading}
+              <HeadingAccent variant={settings.heading_accent} color={settings.heading_accent_color} align="center" />
             </Heading>
           </StaggerItem>
         )}
@@ -166,6 +169,7 @@ export const parallaxBannerSection: SectionDefinition = {
       { key: 'overlay_opacity', type: 'number', label: { en: 'Overlay darkness (0–1)', ar: 'شفافية الطبقة (0-1)' }, min: 0, max: 1, defaultValue: 0.3 },
       { key: 'eyebrow', type: 'text', label: { en: 'Eyebrow (small label)', ar: 'تسمية صغيرة فوق العنوان' }, maxLength: 40 },
       { key: 'heading', type: 'text', label: { en: 'Heading', ar: 'العنوان' }, maxLength: 120 },
+      ...HEADING_ACCENT_FIELDS,
       { key: 'subheading', type: 'textarea', label: { en: 'Subheading', ar: 'العنوان الفرعي' }, maxLength: 280 },
       { key: 'cta_text', type: 'text', label: { en: 'Button text', ar: 'نص الزر' }, maxLength: 40 },
       { key: 'cta_url', type: 'url', label: { en: 'Button URL', ar: 'رابط الزر' } },
