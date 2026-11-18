@@ -119,7 +119,10 @@ export function addGuestLine(
     }),
   );
   if (idx >= 0) {
-    return prev.map((item, i) => (i === idx ? { ...item, quantity: item.quantity + quantity } : item));
+    // The line keeps its shape; a known stock number is refreshed to the one
+    // the product page just read.
+    const stock = typeof metadata?.stockOnHand === 'number' ? { stockOnHand: metadata.stockOnHand } : {};
+    return prev.map((item, i) => (i === idx ? { ...item, quantity: item.quantity + quantity, ...stock } : item));
   }
   const newItem: CartItem = {
     id: makeId(),
@@ -146,6 +149,8 @@ export function addGuestLine(
     ...(isKnownRate(metadata?.taxRateBp) ? { taxRateBp: metadata!.taxRateBp } : {}),
     // Per-order limit (B2): only on lines of a limited product.
     ...(typeof metadata?.maxPerOrder === 'number' ? { maxPerOrder: metadata.maxPerOrder } : {}),
+    // Stock of the line's row (item 9): only on lines with a known number.
+    ...(typeof metadata?.stockOnHand === 'number' ? { stockOnHand: metadata.stockOnHand } : {}),
     // No shipping (service / digital product): only on such lines.
     ...(lineRequiresShipping(metadata) ? {} : { requiresShipping: false as const }),
     // Designer app (M4.2): only on designer lines, so other lines keep their shape.

@@ -26,7 +26,7 @@ import { ReverseChargeCartHint } from '@/components/cart/ReverseChargeCartHint';
 import { useCodedApiError } from '@/lib/useApiError';
 import { CouponAutoApplyNotice } from '@/components/checkout/CouponAutoApplyNotice';
 import { couponDiscount } from '@/lib/couponDiscount';
-import { lineMaxQty } from '@/lib/productQuantity';
+import { insufficientStockAvailable, lineQuantityCap } from '@/lib/productQuantity';
 import { useCartQuote } from '@/hooks/useCartQuote';
 import { quoteTotalBeforeTax } from '@/lib/cartQuote';
 import { cartRequiresShipping } from '@/lib/requiresShipping';
@@ -136,14 +136,19 @@ interface CartItemRowProps {
   maxQuantity?: number | null;
   /** The product's per-order limit, for the "max per order" hint. */
   maxPerOrder?: number;
+  /** Set when stock is what bounds the line (`lineQuantityCap`): the hint
+   *  then reads "Only N left". */
+  stockLeft?: number | null;
 }
 
-function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuantity = null, maxPerOrder }: CartItemRowProps) {
+function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuantity = null, maxPerOrder, stockLeft = null }: CartItemRowProps) {
   const t = useTranslations();
   const locale = useLocale();
   const { currency } = useCart();
   const display = useDisplayPrice();
   const [updating, setUpdating] = useState(false);
+  // Units the API said are left when it refused a raise.
+  const [refusedLeft, setRefusedLeft] = useState<number | null>(null);
   const title = item.title || item.name || t('cart.productFallback');
   // Designer lines: the proof replaces the product image once it exists.
   const designInfo = useCartDesign(item.design, item.id.startsWith('local_'));
@@ -166,8 +171,19 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
   async function changeQty(qty: number) {
     if (qty < 1) return;
     setUpdating(true);
-    try { await onUpdateQuantity(item.id, qty); } finally { setUpdating(false); }
+    setRefusedLeft(null);
+    try {
+      await onUpdateQuantity(item.id, qty);
+    } catch (err) {
+      // Stock moved since the cart was loaded: say how many are left.
+      const left = insufficientStockAvailable(err);
+      if (left === null) throw err;
+      setRefusedLeft(left);
+    } finally {
+      setUpdating(false);
+    }
   }
+  const onlyLeft = refusedLeft ?? (atLimit ? stockLeft : null);
 
   return (
     // data-clarity-mask: cart lines can carry personalization (names).
@@ -301,7 +317,9 @@ function CartItemRow({ item, onUpdateQuantity, onRemove, onClearBundle, maxQuant
             {t('cart.remove')}
           </button>
         </div>
-        {!unavailable && atLimit && typeof maxPerOrder === 'number' && (
+        {!unavailable && typeof onlyLeft === 'number' ? (
+          <p className="mt-1 text-xs text-gray-500">{t('cart.onlyLeft', { count: onlyLeft })}</p>
+        ) : !unavailable && atLimit && typeof maxPerOrder === 'number' && (
           <p className="mt-1 text-xs text-gray-500">{t('cart.maxPerOrder', { max: maxPerOrder })}</p>
         )}
       </div>
@@ -447,8 +465,9 @@ export default function StoreCartPage() {
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeItem}
                   onClearBundle={clearBundle}
-                  maxQuantity={lineMaxQty(item, items)}
+                  maxQuantity={lineQuantityCap(item, items).max}
                   maxPerOrder={item.maxPerOrder}
+                  stockLeft={lineQuantityCap(item, items).stock}
                 />
               ))}
             </div>

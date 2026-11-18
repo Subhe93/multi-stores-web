@@ -436,6 +436,7 @@
     "unavailableRemoved": "{count, plural, one {An item that is no longer available was removed from your cart} other {# items that are no longer available were removed from your cart}}",
     "productFallback": "Product",
     "bundleFallback": "Bundle",
+    "onlyLeft": "{count, plural, =0 {Out of stock} other {Only # left}}",
     "maxPerOrder": "Max {max} per order"
   },
   "checkout": {
@@ -970,6 +971,7 @@
     "CART_BUNDLE_NOT_AVAILABLE_FOR_PRODUCT": "Bundle is not available for this product",
     "CART_BUNDLE_NOT_PROFITABLE": "This bundle offer is no longer profitable for this product and cannot be applied",
     "CART_ITEM_NOT_FOUND": "Cart item not found",
+    "CART_INSUFFICIENT_STOCK": "{available, plural, =0 {This item is out of stock.} other {Only # in stock.}}",
     "CART_MAX_PER_ORDER": "You can order at most {max} of this product per order.",
     "PROVIDER_PROFILE_NOT_FOUND": "Provider profile not found",
     "PROVIDER_NOT_FOUND": "Provider not found",

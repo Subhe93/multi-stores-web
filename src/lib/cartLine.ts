@@ -38,6 +38,10 @@ export interface LineSource {
   customerFile?: string;
   /** The product's per-order limit (B2); null/absent = unlimited. */
   maxPerOrder?: number | null;
+  /** Stock of the row the line draws on (selected variant, or a tracked
+   *  product without variants); null/absent = untracked. Kept on guest lines
+   *  so the cart can cap them; the server checks signed-in carts itself. */
+  stockOnHand?: number | null;
   /** `false` when the product needs no shipping (service / digital product);
    *  absent otherwise. Kept on guest lines, never sent to the server. */
   requiresShipping?: false;
@@ -77,6 +81,7 @@ export function buildLineMetadata(
     ...(src.customProductId ? { customProductId: src.customProductId } : {}),
     ...(src.customerFile ? { customerFile: src.customerFile } : {}),
     ...(typeof src.maxPerOrder === 'number' ? { maxPerOrder: src.maxPerOrder } : {}),
+    ...(typeof src.stockOnHand === 'number' ? { stockOnHand: src.stockOnHand } : {}),
     ...(lineRequiresShipping(src) ? {} : { requiresShipping: false as const }),
     ...(bundle
       ? {

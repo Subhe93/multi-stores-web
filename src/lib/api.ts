@@ -30,6 +30,8 @@ export type ApiError = Error & {
   errors?: unknown[];
   /** `CART_ITEMS_UNAVAILABLE` (409): the cart lines whose product / variant is gone. */
   unavailable?: unknown[];
+  /** `CART_INSUFFICIENT_STOCK` (400): units of the stock row the cart may still take. */
+  available?: number;
 };
 
 interface FetchOptions extends RequestInit {
@@ -93,6 +95,12 @@ export async function api<T>(endpoint: string, options: FetchOptions = {}): Prom
     if (typeof json.line_index === 'number') err.line_index = json.line_index;
     if (Array.isArray(json.errors)) err.errors = json.errors;
     if (Array.isArray(json.unavailable)) err.unavailable = json.unavailable;
+    // Cart stock refusal: `available` is also the `{available}` argument of
+    // the translated message (`errors.CART_INSUFFICIENT_STOCK`).
+    if (err.code === 'CART_INSUFFICIENT_STOCK' && typeof json.available === 'number' && Number.isFinite(json.available)) {
+      err.available = json.available;
+      err.params = { ...(err.params ?? {}), available: json.available };
+    }
     // Cart / checkout / order calls of a store that is not LIVE (409
     // STORE_NOT_LIVE): send the browser to the store home, which renders
     // the coming-soon page. The error is still thrown for the caller.

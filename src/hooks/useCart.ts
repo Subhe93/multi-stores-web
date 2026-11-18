@@ -25,7 +25,10 @@ import {
 } from '@/lib/tax';
 import { isKnownRate, netFromGross } from '@/lib/b2bPrice';
 import { lineRequiresShipping, orderLineRequiresShipping, readRequiresShippingFlag } from '@/lib/requiresShipping';
-import { assertGuestAdd, lineMaxQty, maxPerOrderError, readMaxPerOrder } from '@/lib/productQuantity';
+import {
+  assertGuestAdd, assertGuestStock, insufficientStockError, lineMaxQty, lineStockMax, maxPerOrderError,
+  readMaxPerOrder, readStockAvailable,
+} from '@/lib/productQuantity';
 import { useCheckoutSettings } from '@/hooks/useCheckoutSettings';
 import { captureCouponFromSearch, pendingCouponStorageKey, type CouponAutoApplyNotice } from '@/lib/checkoutSettings';
 import { availableLines, hasUnavailableLines, sumLineTotals } from '@/lib/cartAvailability';
@@ -122,6 +125,12 @@ export interface CartItem {
   /** Per-order limit of the line's product (`GET /cart` `max_per_order`, or
    *  copied from the product at add time for guests). Absent = unlimited. */
   maxPerOrder?: number;
+  /** Server lines: the highest quantity the line may take for its stock
+   *  (`GET /cart` `stock_available`). Absent = untracked. */
+  stockAvailable?: number;
+  /** Guest lines: the stock of the line's row, copied from the product at
+   *  add time. Absent = untracked. See `lineStockMax`. */
+  stockOnHand?: number;
   /** The line needs no shipping (service / digital product): `GET /cart`
    *  `requires_shipping: false`, or copied from the product at add time for
    *  guests. Present only when false; read through `lib/requiresShipping`. */
@@ -209,6 +218,8 @@ export interface CartItemMetadata {
   design?: { id: string; token?: string | null; proofUrl?: string | null; addonsUnitPrice?: number; doubleSided?: true; proofBackUrl?: string | null };
   /** The product's per-order limit, kept on guest lines (absent = unlimited). */
   maxPerOrder?: number;
+  /** Stock of the row the line draws on, kept on guest lines (absent = untracked). */
+  stockOnHand?: number;
   /** The product needs no shipping; kept on guest lines (absent = ships).
    *  Never sent to the server, which reads the product itself. */
   requiresShipping?: false;
@@ -480,6 +491,8 @@ interface RawCartItem {
   designId?: string | null;
   max_per_order?: unknown;
   maxPerOrder?: unknown;
+  stock_available?: unknown;
+  stockAvailable?: unknown;
   requires_shipping?: unknown;
   requiresShipping?: unknown;
 }
@@ -541,6 +554,7 @@ export function normalizeCartItem(raw: RawCartItem): CartItem {
   const rawRate = raw.tax_rate_bp ?? raw.taxRateBp;
   const designBlock = readCartLineDesign(raw.design);
   const maxPerOrder = readMaxPerOrder(raw.max_per_order ?? raw.maxPerOrder);
+  const stockAvailable = readStockAvailable(raw.stock_available ?? raw.stockAvailable);
   const rawDisplay = Array.isArray(raw.customFieldDisplay)
     ? raw.customFieldDisplay
     : Array.isArray(raw.custom_field_display)
@@ -593,6 +607,8 @@ export function normalizeCartItem(raw: RawCartItem): CartItem {
     ...(designBlock ? { designId: designBlock.design.id, design: designBlock.design } : {}),
     // Per-order limit: only on lines of a limited product (B2).
     ...(maxPerOrder !== null ? { maxPerOrder } : {}),
+    // Stock: only on lines whose stock row is tracked.
+    ...(stockAvailable !== null ? { stockAvailable } : {}),
     // No shipping: only on lines of a service / digital product.
     ...(readRequiresShippingFlag(raw.requires_shipping ?? raw.requiresShipping) ? {} : { requiresShipping: false as const }),
   };
@@ -1086,6 +1102,14 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         // Per-order limit (B2): the API enforces it for signed-in carts and at
         // checkout; guests are told at once. Products without one skip this.
         assertGuestAdd(productId, quantity, metadata?.maxPerOrder, itemsRef.current, isCustomProduct);
+        // Stock: the cart never holds more of a stock row than it has (the
+        // API refuses it for signed-in carts). Untracked rows skip this.
+        assertGuestStock(
+          { productId, variantId: variantId ?? undefined, customProductId: metadata?.customProductId },
+          quantity,
+          metadata?.stockOnHand,
+          itemsRef.current,
+        );
         let fields = customFields;
         let meta = metadata;
         if (metadata?.personalizationCheck && !design) {
@@ -1156,6 +1180,9 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         if (line && lineMax !== null && quantity > lineMax) {
           throw maxPerOrderError(line.productId, readMaxPerOrder(line.maxPerOrder) ?? lineMax);
         }
+        // Stock: same rule, only a raise is checked.
+        const stockMax = line && quantity > line.quantity ? lineStockMax(line, itemsRef.current) : null;
+        if (stockMax !== null && quantity > stockMax) throw insufficientStockError(stockMax);
         setItems((prev) => {
           return prev.map((item) => (item.id === itemId ? { ...item, quantity } : item));
         });
