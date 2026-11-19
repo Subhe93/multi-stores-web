@@ -24,8 +24,21 @@ function notFound(status = 404): Response {
   return new Response(null, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
+/**
+ * The query as the layout wrote it. Next hands the route a request URL with
+ * `:`, `@` and `;` percent-encoded (family=Noto+Sans%3Awght%40400%3B500...),
+ * which the strict allow-list would reject; decode it first. `+` stays as is.
+ */
+function fontCssQuery(rawSearch: string): string {
+  try {
+    return decodeURIComponent(rawSearch);
+  } catch {
+    return rawSearch;
+  }
+}
+
 async function fontCss(req: Request): Promise<Response> {
-  const href = googleCssUrlFromQuery(new URL(req.url).search);
+  const href = googleCssUrlFromQuery(fontCssQuery(new URL(req.url).search));
   if (!href) return notFound();
   const result = await fetchFontCss(href, fetch, UPSTREAM_TIMEOUT_MS);
   if ('error' in result) return notFound(502);
