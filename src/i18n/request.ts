@@ -1,12 +1,15 @@
 import { getRequestConfig } from 'next-intl/server';
-import { defaultLocale, locales } from './config';
+import { defaultLocale, isStoreLocale } from './config';
+import { loadMessages } from './loadMessages';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
 
   // Fallback for store pages (not under [locale] segment):
   // read locale from cookie/header set by middleware
-  if (!locale || !(locales as readonly string[]).includes(locale)) {
+  // Store-only locales (e.g. 'ku') load too; the [locale] platform layout
+  // still answers 404 for a code outside the platform list.
+  if (!locale || !isStoreLocale(locale)) {
     try {
       const { cookies, headers } = await import('next/headers');
       const cookieStore = await cookies();
@@ -41,12 +44,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     }
   }
 
-  if (!(locales as readonly string[]).includes(locale)) {
+  if (!isStoreLocale(locale)) {
     locale = defaultLocale;
   }
 
   return {
     locale,
-    messages: (await import(`./messages/${locale}.json`)).default,
+    messages: await loadMessages(locale),
   };
 });

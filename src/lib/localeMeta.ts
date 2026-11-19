@@ -7,7 +7,7 @@
 // switcher looking right on every platform.
 
 interface LocaleMeta {
-  cc: string; // ISO 3166-1 alpha-2 country code used to build the flag URL
+  cc: string; // ISO 3166-1 alpha-2 country code used to build the flag URL ('' = no flag)
   label: string; // language name in its own language
 }
 
@@ -42,6 +42,8 @@ const LOCALE_META: Record<string, LocaleMeta> = {
   cs: { cc: 'cz', label: 'Čeština' },
   ro: { cc: 'ro', label: 'Română' },
   hu: { cc: 'hu', label: 'Magyar' },
+  // Kurdish (Kurmanji): a language without one country, so no flag.
+  ku: { cc: '', label: 'Kurdî' },
 };
 
 export interface ResolvedLocale {
@@ -63,6 +65,6 @@ export function resolveLocaleMeta(locale: string): ResolvedLocale {
   return {
     code: locale,
     label: meta?.label || locale.toUpperCase(),
-    flagUrl: meta ? `https://flagcdn.com/${meta.cc}.svg` : '',
+    flagUrl: meta?.cc ? `https://flagcdn.com/${meta.cc}.svg` : '',
   };
 }
