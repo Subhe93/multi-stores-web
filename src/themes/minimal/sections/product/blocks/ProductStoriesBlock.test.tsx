@@ -218,6 +218,8 @@ describe('layouts', () => {
     expect(scroller.hasAttribute('tabindex')).toBe(false);
     expect(scroller.hasAttribute('role')).toBe(false);
     expect(scroller.className).toContain('snap-x');
+    // Containing block of the cards' sr-only labels, so they never widen the page.
+    expect(scroller.className.split(/\s+/)).toContain('relative');
     const list = scroller.querySelector('ul[role="list"]')!;
     expect(list.querySelectorAll(':scope > li > figure')).toHaveLength(3);
     expect(list.querySelector('li')!.className).toContain('snap-start');

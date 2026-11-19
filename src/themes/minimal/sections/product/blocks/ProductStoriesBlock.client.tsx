@@ -342,9 +342,13 @@ function StoriesSlider({
           )}
         </div>
       )}
+      {/* `relative` makes the scroller the containing block of the cards'
+          absolutely positioned children (the sr-only "verified" label):
+          without it they escape the scroll clip and widen the whole page,
+          so mobile browsers zoom the page out (Namez 2026-11-19). */}
       <div
         ref={scroller}
-        className="overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+        className="relative overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
         // A named, focusable region only when it scrolls, so keyboard users
         // can move the row with the arrow keys (no empty tab stop otherwise).
         {...(nav.scrollable ? { tabIndex: 0, role: 'region', ...labelAttrs } : {})}
