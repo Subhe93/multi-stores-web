@@ -2,6 +2,7 @@
 // an online seller must show (e-handelslagen 8 §, distansavtalslagen
 // 2 kap. 2 §). Rendered in the store footer and substituted into legal
 // page content as `{{trader.*}}` placeholders.
+import { formatLocale } from './storeLocales';
 
 export interface TraderDetails {
   legal_name?: string | null;
@@ -75,7 +76,8 @@ function countryName(code: string, locale?: string): string {
   const cc = code.toUpperCase();
   if (!locale || !/^[A-Z]{2}$/.test(cc)) return cc;
   try {
-    return new Intl.DisplayNames([locale, 'en'], { type: 'region' }).of(cc) || cc;
+    // formatLocale: same names on server and client for 'ku' (fixed mapping).
+    return new Intl.DisplayNames([formatLocale(locale, 'date'), 'en'], { type: 'region' }).of(cc) || cc;
   } catch {
     return cc;
   }

@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
-import { locales, type Locale } from '@/i18n/config';
+import { storeLocales, type StoreLocale } from '@/i18n/config';
+import { loadMessages } from '@/i18n/loadMessages';
 import { StoreProviders } from '@/components/providers/StoreProviders';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
@@ -53,7 +54,7 @@ import { EXPLORER_PAGE_SIZE } from '@/lib/listingFilters/explorer';
 //
 // Query:
 //   view=home|story|listing|product   (default home)
-//   locale=en|ar|tr|de|fr|sv          (ar is right-to-left)
+//   locale=en|ar|tr|de|fr|sv|ku       (ar is right-to-left; ku = Kurmanji, ltr)
 //   dir=ltr|rtl                       (overrides the direction of the locale)
 //   style=off                         (store switch off: the platform as it is today)
 //   motion=calm|off                   (store motion profile)
@@ -106,7 +107,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   const query = await searchParams;
 
   const requested = one(query.locale);
-  const locale: Locale = (locales as readonly string[]).includes(requested) ? (requested as Locale) : 'en';
+  const locale: StoreLocale = (storeLocales as readonly string[]).includes(requested) ? (requested as StoreLocale) : 'en';
   const dirParam = one(query.dir);
   const dir: 'ltr' | 'rtl' = dirParam === 'rtl' || dirParam === 'ltr' ? dirParam : locale === 'ar' ? 'rtl' : 'ltr';
   const view: View = (VIEWS as readonly string[]).includes(one(query.view)) ? (one(query.view) as View) : 'home';
@@ -133,7 +134,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
       : null;
 
   const { fixture, source } = await loadFixture();
-  const messages = (await import(`@/i18n/messages/${locale}.json`)).default;
+  const messages = await loadMessages(locale);
 
   // The store's look, with the motion keys of this request on top.
   const stored = fixture.themeCustomizations;
@@ -346,7 +347,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
               <StoreMotionAssets />
               <CreativeBoot
                 options={creative}
-                curtainLabel={messages.creative.loadingPage}
+                curtainLabel={String((messages.creative as Record<string, unknown>).loadingPage ?? '')}
                 logoUrl={fixture.logoUrl}
                 segmentOverride={segment}
               />
@@ -387,7 +388,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
           <DemoBar
             groups={[
               VIEWS.map((v) => ({ label: v, href: href({ view: v === 'home' ? null : v }), on: v === view })),
-              locales.map((l) => ({ label: l, href: href({ locale: l === 'en' ? null : l, dir: null }), on: l === locale })),
+              storeLocales.map((l) => ({ label: l, href: href({ locale: l === 'en' ? null : l, dir: null }), on: l === locale })),
               [
                 { label: 'ltr', href: href({ dir: 'ltr' }), on: dir === 'ltr' },
                 { label: 'rtl', href: href({ dir: 'rtl' }), on: dir === 'rtl' },

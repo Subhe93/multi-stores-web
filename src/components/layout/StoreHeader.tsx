@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { switcherLocales } from '@/lib/storeLocales';
 import { CountrySwitcher } from './CountrySwitcher';
 import { BuyerTypeToggle } from './BuyerTypeToggle';
 import { CartBadge } from './CartBadge';
@@ -528,9 +529,9 @@ export function StoreHeader({
 
   // Only secondary locales that differ from the primary are real alternatives;
   // a store with one language must not render the language dropdown at all.
-  const effectiveSecondaryLocales = secondaryLocales.filter(
-    (l) => !!l && l !== primaryLocale,
-  );
+  // Locales in review ('ku') are left out unless they are the one being
+  // rendered, so a reviewer on /ku/ can switch back (switcherLocales).
+  const effectiveSecondaryLocales = switcherLocales(primaryLocale, secondaryLocales, currentLang);
 
   // Active link underline color used via inline style (Tailwind cannot generate arbitrary colors)
   const activeLinkStyle = { color: primaryColor || '#111827' };

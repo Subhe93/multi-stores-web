@@ -11,7 +11,7 @@
 // Shared constants and pure helpers only — no `next/headers` here so client
 // code can import it.
 
-import { locales } from '@/i18n/config';
+import { storeLocales } from '@/i18n/config';
 
 /** Cookie carrying the owner token for the server-side preview fetch. */
 export const STORE_PREVIEW_COOKIE = 'ms_store_preview';
@@ -62,5 +62,5 @@ export function isStoreNotLiveError(err: unknown): boolean {
  */
 export function storeHomeHref(pathname: string): string {
   const first = pathname.split('/')[1] ?? '';
-  return (locales as readonly string[]).includes(first) ? `/${first}/` : '/';
+  return (storeLocales as readonly string[]).includes(first) ? `/${first}/` : '/';
 }

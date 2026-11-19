@@ -1,4 +1,5 @@
 import { api } from './api';
+import { formatLocale } from './storeLocales';
 
 // Mirrors the API `InvoiceSummary` contract (M3-DESIGN §9).
 export type InvoiceKind = 'INVOICE' | 'CREDIT_NOTE';
@@ -70,7 +71,7 @@ export function signedGross(summary: Pick<InvoiceSummary, 'kind' | 'gross_total'
 /** Amount formatted in the invoice currency with Latin digits (M3 L6). */
 export function formatInvoiceAmount(amount: number, currency: string, locale = 'en'): string {
   try {
-    return new Intl.NumberFormat(`${locale}-u-nu-latn`, { style: 'currency', currency: currency || 'EUR' }).format(amount);
+    return new Intl.NumberFormat(`${formatLocale(locale)}-u-nu-latn`, { style: 'currency', currency: currency || 'EUR' }).format(amount);
   } catch {
     return `${amount.toFixed(2)} ${currency}`;
   }
@@ -82,7 +83,7 @@ export function formatInvoiceDate(date: string, locale = 'en'): string {
   if (!m) return date;
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
   try {
-    return new Intl.DateTimeFormat(`${locale}-u-nu-latn`, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
+    return new Intl.DateTimeFormat(`${formatLocale(locale, 'date')}-u-nu-latn`, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
   } catch {
     return m[0];
   }

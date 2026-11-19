@@ -2,6 +2,7 @@ import { marketHreflangCode } from './market-routing';
 import type { MarketIndexing } from './market';
 import { encodeUrlPath } from './slugRoute';
 import { platformHosts } from './platformHosts';
+import { isReviewLocale, publicLocales } from './storeLocales';
 
 /** The slice of a market needed to build URLs for it (M1-DESIGN §4.3). */
 export interface MarketUrlInput {
@@ -227,7 +228,9 @@ export function buildStoreAlternates(opts: {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
 
-  if (opts.market?.preview || opts.noindex) {
+  // A page rendered in a locale still in review ('ku') is noindex (the proxy
+  // flags it too): self canonical, no hreflang, whatever the caller passed.
+  if (opts.market?.preview || opts.noindex || isReviewLocale(locale)) {
     const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
     const selfPath = opts.pathByLocale?.[selfLocale] ?? path;
     return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath), languages: {} };
@@ -255,7 +258,8 @@ export function buildStoreAlternates(opts: {
   }
 
   const languages: Record<string, string> = {};
-  for (const l of allLocales) {
+  // Locales in review are served but never advertised as alternates.
+  for (const l of publicLocales(allLocales)) {
     languages[l] = storeLocalePath(origin, l, primaryLocale, path);
   }
   languages['x-default'] = storeLocalePath(origin, primaryLocale, primaryLocale, path);
@@ -343,7 +347,8 @@ function buildMarketAlternates(opts: {
   const owner: Record<string, MarketUrlInput> = {};
   for (const m of markets) {
     const mOrigin = marketOrigin(m, platformOrigin, storeCustomDomain);
-    for (const l of Array.from(new Set([m.default_locale, ...m.locales]))) {
+    // Locales in review are served but never advertised as alternates.
+    for (const l of publicLocales(Array.from(new Set([m.default_locale, ...m.locales])))) {
       const code = marketHreflangCode(m, l);
       const existing = owner[code];
       if (existing && (existing.is_default || !m.is_default)) continue;

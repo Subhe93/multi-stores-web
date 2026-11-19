@@ -2,7 +2,7 @@
 // only import is the locale list), safe on the server, in the proxy and in
 // every engine chunk.
 
-import { locales } from '@/i18n/config';
+import { storeLocales } from '@/i18n/config';
 
 /** Section keys added by the motion engine (registered in the minimal theme). */
 export const CREATIVE_SECTION_KEYS = [
@@ -83,7 +83,7 @@ export function isBrandSegment(segment: string | null): boolean {
 export function isBrandPath(pathname: string): boolean {
   const parts = pathname.split(/[?#]/)[0].split('/').filter(Boolean);
   if (parts[0] === 'store' && parts.length >= 2) parts.splice(0, 2);
-  if (parts.length && (locales as readonly string[]).includes(parts[0])) parts.shift();
+  if (parts.length && (storeLocales as readonly string[]).includes(parts[0])) parts.shift();
   return isBrandSegment(parts.length ? parts[0] : null);
 }
 

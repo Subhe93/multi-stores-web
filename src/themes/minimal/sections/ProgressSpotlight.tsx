@@ -25,6 +25,7 @@ import { toneColors, toneValue } from './_shared/tone';
 import { Counter } from '../../_motion';
 import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
 import { hover, magnetic, rise } from '../../creative/recipes';
+import { formatLocale } from '@/lib/storeLocales';
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
@@ -32,8 +33,8 @@ const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 function formatters(locale: string) {
   try {
     return {
-      number: new Intl.NumberFormat(locale),
-      percent: new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }),
+      number: new Intl.NumberFormat(formatLocale(locale)),
+      percent: new Intl.NumberFormat(formatLocale(locale), { style: 'percent', maximumFractionDigits: 0 }),
     };
   } catch {
     return {

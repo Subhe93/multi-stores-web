@@ -9,7 +9,8 @@ import { StoreProviders } from '@/components/providers/StoreProviders';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps } from '@/lib/storeApps';
 import { adoptPreviewBrand } from '@/themes/builderPreviewHelpers';
-import { locales, defaultLocale } from '@/i18n/config';
+import { storeLocales, defaultLocale } from '@/i18n/config';
+import { loadMessages } from '@/i18n/loadMessages';
 import type { StoreHero } from '@/lib/hero';
 import type {
   ListingCollection,
@@ -147,10 +148,12 @@ export default async function BuilderPreviewPage({
   // for the preview locale and provide them. Needed by sections that reuse
   // storefront components built on next-intl (e.g. the product-page section,
   // which renders ProductDetailClient → useTranslations).
-  const activeLocale = locale && (locales as readonly string[]).includes(locale) ? locale : (
-    (locales as readonly string[]).includes(primaryLocale) ? primaryLocale : defaultLocale
+  // Every storefront locale ('ku' included) previews in its own strings;
+  // loadMessages fills untranslated 'ku' strings from English.
+  const activeLocale = locale && (storeLocales as readonly string[]).includes(locale) ? locale : (
+    (storeLocales as readonly string[]).includes(primaryLocale) ? primaryLocale : defaultLocale
   );
-  const messages = (await import(`@/i18n/messages/${activeLocale}.json`)).default;
+  const messages = await loadMessages(activeLocale);
 
   // Enabled store apps and tax settings, as the live store layout provides
   // them. The product sections gate on the apps: without the personalization

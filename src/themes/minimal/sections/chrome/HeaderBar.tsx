@@ -17,6 +17,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
+import { switcherLocales } from '@/lib/storeLocales';
 import type { SectionDefinition, SectionRenderProps, NavMenuItem } from '../../../types';
 import { resolveMenuItems } from '../../../types';
 import { colorOr, numberOr } from '../../../elementStyles';
@@ -129,10 +130,9 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
   const showAccount = settings.show_account === true;
   // Only secondary locales that actually differ from the primary count — a
   // store configured with e.g. primary "en" + secondary ["en"] has just one
-  // real language and gets no switcher.
-  const effectiveSecondaryLocales = (ctx?.secondaryLocales ?? []).filter(
-    (l) => !!l && l !== ctx?.primaryLocale,
-  );
+  // real language and gets no switcher. Locales in review ('ku') are left
+  // out unless they are the one being rendered (switcherLocales).
+  const effectiveSecondaryLocales = switcherLocales(ctx?.primaryLocale, ctx?.secondaryLocales, locale);
   const showLocale = settings.show_locale !== false && effectiveSecondaryLocales.length > 0;
   // Backwards-compat: the old boolean `sticky` maps to 'always' / 'none' when
   // the newer `sticky_mode` select isn't present.

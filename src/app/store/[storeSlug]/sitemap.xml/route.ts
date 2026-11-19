@@ -2,6 +2,7 @@ import { storefront } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/storeUrl';
 import { requestMarketRef, requestNoindex, type MarketRoute } from '@/lib/market';
 import { collectionHref } from '@/lib/collectionPath';
+import { publicLocales } from '@/lib/storeLocales';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { focusedSitemapData, focusedStorefront } from '@/lib/focusedStorefront';
 
@@ -135,7 +136,8 @@ function buildLegacySitemap(
 ): string {
   const base = buildStoreOrigin(storeSlug, customDomain);
 
-  const allLocales = data.locales.length ? data.locales : [data.primaryLocale];
+  // Locales in review ('ku') are served but never listed.
+  const allLocales = publicLocales(data.locales.length ? data.locales : [data.primaryLocale]);
   const primary = data.primaryLocale || allLocales[0];
 
   // Build one <url> entry. `path` is subdomain-relative ('' for home, `/foo`).
@@ -189,7 +191,8 @@ function buildMarketSitemap(
 ): string {
   const base = buildStoreOrigin(storeSlug, customDomain, market);
   const primary = market.default_locale;
-  const marketLocales = Array.from(new Set([primary, ...market.locales]));
+  // Locales in review ('ku') are served but never listed.
+  const marketLocales = publicLocales(Array.from(new Set([primary, ...market.locales])));
   const markets = data.markets?.length ? data.markets : [market];
 
   function urlEntries(path: string, lastmod: string | Date | null, pathByLocale?: Record<string, string>): string[] {

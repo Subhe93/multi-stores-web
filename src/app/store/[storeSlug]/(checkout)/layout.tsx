@@ -15,6 +15,7 @@ import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront'
 import { FocusedHeader } from '@/components/layout/FocusedHeader';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { isLocaleNotServed, isReviewLocale } from '@/lib/storeLocales';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
 import { resolveTheme } from '@/themes/registry';
@@ -76,6 +77,10 @@ export default async function CheckoutLayout({
     notFound();
   }
 
+  // Same rule as the store layout: a store-only locale this store has not
+  // enabled is a 404.
+  if (isLocaleNotServed(urlLocale, store)) notFound();
+
   // Explicit creator colour wins; otherwise follow the active theme's tokens
   // (so "Choose a theme" recolours checkout/account/auth pages too).
   const resolvedTokens = mergeTokens(resolveTheme(store.theme_key).tokens, store.theme_customizations);
@@ -129,7 +134,7 @@ export default async function CheckoutLayout({
           }
         `}</style>
 
-        {(store.market?.preview || noindex) && <meta name="robots" content="noindex, nofollow" />}
+        {(store.market?.preview || noindex || isReviewLocale(currentLang)) && <meta name="robots" content="noindex, nofollow" />}
         {/* data-clarity-mask: the whole checkout (addresses, names, totals)
             is masked in Clarity recordings; clicks and scroll still record. */}
         <div
