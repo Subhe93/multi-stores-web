@@ -40,6 +40,10 @@ import {
   type PickedSourceRow,
 } from '@/themes/creative/data/pickedProducts';
 import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
+import { resolveListingSettings } from '@/lib/listingFilters/settings';
+import { parseFilterState } from '@/lib/listingFilters/query';
+import { localPage, type LocalRow, type LocalSource } from '@/lib/listingFilters/local';
+import { EXPLORER_PAGE_SIZE } from '@/lib/listingFilters/explorer';
 
 // Demo page of the store motion style: a store home replayed outside any
 // store (header, home sections, footer), plus a story page, a product
@@ -58,6 +62,7 @@ import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAsset
 //   cursor=1                          (cursor dot)
 //   builder=1                         (builder preview state: static)
 //   card=classic|editorial            (enhanced product card with every feature on; absent = the card as it is today)
+//   filters=bar|rail                  (filtered listing, view=listing: filters, chips, sort, columns; filtered in the browser)
 //   bar=0                             (hides the demo bar, for screenshots)
 // plus the engine's own cx-motion=force.
 
@@ -212,6 +217,40 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
       </DesignerSessionProvider>
     );
   } else if (view === 'listing') {
+    const filtersParam = one(query.filters);
+    const listingSettings =
+      filtersParam === 'bar' || filtersParam === 'rail' ? resolveListingSettings({ style: filtersParam }) : null;
+    let explorer: ListingContext['explorer'];
+    if (listingSettings) {
+      // Filtered in the browser: the demo has no API behind it.
+      const local: LocalSource = {
+        rows: fixture.products as unknown as LocalRow[],
+        collections: (fixture.collections ?? []).map((c) => ({
+          slug: c.slug,
+          label: c.label[locale] || c.label.en || c.slug,
+          parent: c.parent ?? null,
+        })),
+      };
+      const state = parseFilterState(query);
+      const first = localPage(local, state, { locale, page: 1, limit: EXPLORER_PAGE_SIZE });
+      explorer = {
+        storeSlug: DEMO_SLUG,
+        locale,
+        lp: '',
+        basePath: '/products',
+        kind: 'catalog',
+        currency: fixture.currency,
+        settings: listingSettings,
+        state,
+        products: first.items.map((r) => toCard(r as unknown as StorefrontProductRow)),
+        total: first.total,
+        hasMore: first.has_more,
+        facets: first.facets,
+        card: !!productCard,
+        priorityFirst: true,
+        local,
+      };
+    }
     const listing: ListingContext = {
       kind: 'catalog',
       products: products.map(toCard),
@@ -219,6 +258,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
       query: {},
       basePath: '/products',
       isFiltered: false,
+      ...(explorer ? { explorer } : {}),
     };
     body = <SectionRenderer {...shared} sections={LISTING_SECTIONS} listing={listing} />;
   } else {
@@ -372,6 +412,11 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
                 { label: 'card today', href: href({ card: null }), on: !productCard },
                 { label: 'card classic+', href: href({ card: 'classic' }), on: cardParam === 'classic' },
                 { label: 'card editorial', href: href({ card: 'editorial' }), on: cardParam === 'editorial' },
+              ],
+              [
+                { label: 'filters off', href: href({ filters: null }), on: !one(query.filters) },
+                { label: 'filters bar', href: href({ filters: 'bar', view: 'listing' }), on: one(query.filters) === 'bar' },
+                { label: 'filters rail', href: href({ filters: 'rail', view: 'listing' }), on: one(query.filters) === 'rail' },
               ],
             ]}
             note={source === 'neutral' ? 'neutral placeholder content' : fixture.name}
