@@ -36,6 +36,9 @@ describe('toStripeLocale', () => {
     expect(toStripeLocale('sv')).toBe('sv');
     expect(toStripeLocale('ar-SA')).toBe('ar');
     expect(toStripeLocale('xx')).toBe('auto');
+    // Kurdish (Kurmanji) is not a Stripe locale: never forwarded.
+    expect(toStripeLocale('ku')).toBe('auto');
+    expect(toStripeLocale('ku-TR')).toBe('auto');
     expect(toStripeLocale(undefined)).toBe('auto');
   });
 });
