@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '@/i18n/config';
+import { isReviewLocale, matchStoreLocalePrefix } from '@/lib/storeLocales';
 import { STORE_NOINDEX_HEADER, type MarketRoute } from '@/lib/market';
 import {
   decideStoreRoute,
@@ -581,7 +582,10 @@ export async function proxy(request: NextRequest) {
     // Effective indexing verdict (M6.1, `resolveIndexing`): the pages read
     // the request header (meta robots, canonical/hreflang) and crawlers the
     // response header; the pages themselves stay fully functional.
-    const noindex = preview || indexing.noindex;
+    // A locale still in review ('ku') is served under its prefix for the
+    // reviewer but never indexed: same verdict as a preview host.
+    const reviewLocale = decision.kind === 'rewrite' && isReviewLocale(decision.urlLocale);
+    const noindex = preview || indexing.noindex || reviewLocale;
     if (noindex) requestHeaders.set(STORE_NOINDEX_HEADER, '1');
 
     if (decision.kind === 'notfound') {
@@ -640,9 +644,9 @@ export async function proxy(request: NextRequest) {
   if (storeSlug) {
     // Detect locale prefix in the URL (e.g. /ar/products → locale='ar', rest='/products')
     // The primary locale has no prefix; secondary locales use /[locale]/... prefix
-    const urlLocale = locales.find(
-      (l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`
-    );
+    // Every storefront locale is matched here, store-only ones ('ku') too;
+    // the store layout answers 404 when this store has not enabled it.
+    const urlLocale = matchStoreLocalePrefix(pathname);
 
     // Strip locale prefix so the internal store path is always locale-free
     const storePath = urlLocale
@@ -663,11 +667,15 @@ export async function proxy(request: NextRequest) {
     if (urlLocale) {
       requestHeaders.set('x-locale', urlLocale);
     }
+    // A locale still in review is reachable for the reviewer, never indexed.
+    const reviewLocale = isReviewLocale(urlLocale);
+    if (reviewLocale) requestHeaders.set(STORE_NOINDEX_HEADER, '1');
 
     const response = NextResponse.rewrite(newUrl, {
       request: { headers: requestHeaders },
     });
     response.headers.set('x-store-slug', storeSlug);
+    if (reviewLocale) response.headers.set('x-robots-tag', 'noindex, nofollow');
     // Set locale cookie so the layout can read it reliably (headers can be lost in rewrites)
     response.cookies.set('x-store-locale', urlLocale || '', { path: '/' });
     return response;

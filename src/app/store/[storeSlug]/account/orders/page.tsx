@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/format';
 import { orderStatusLabelKey } from '@/lib/requiresShipping';
 import { Package, ChevronRight } from 'lucide-react';
+import { formatLocale } from '@/lib/storeLocales';
 
 interface Order {
   id: string;
@@ -113,7 +114,7 @@ export default function StoreOrdersPage() {
                   </div>
                   {date && (
                     <p className="text-xs text-gray-400">
-                      {new Date(date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(date).toLocaleDateString(formatLocale(locale, 'date'), { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                   )}
                 </div>

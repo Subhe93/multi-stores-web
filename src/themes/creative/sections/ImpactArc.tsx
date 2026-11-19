@@ -32,6 +32,7 @@ import { MotionText } from '../primitives/Motion';
 import { fade, hover, item, magnetic, rise, stagger } from '../recipes';
 import { entry, IMPACT_ARC_MAX_STEPS } from '../schemas/impact-arc.schema';
 import { ARC, arcFraction, arcPath, arcPoint, arcTick, goalValue, reachedValue, toPercent } from './impactArcGeometry';
+import { formatLocale } from '@/lib/storeLocales';
 
 export const IMPACT_ARC_KEY = 'impact-arc';
 
@@ -46,7 +47,7 @@ function mediaSrc(raw: unknown): string {
 
 function numberFormat(locale: string): Intl.NumberFormat {
   try {
-    return new Intl.NumberFormat(locale);
+    return new Intl.NumberFormat(formatLocale(locale));
   } catch {
     return new Intl.NumberFormat('en');
   }

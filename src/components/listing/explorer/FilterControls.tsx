@@ -19,6 +19,7 @@ import {
   type ListFacetKey,
 } from '@/lib/listingFilters/query';
 import type { FacetValue, ListingFacets } from '@/lib/listingFilters/types';
+import { formatLocale } from '@/lib/storeLocales';
 
 export interface GroupContext {
   facets: ListingFacets;
@@ -316,13 +317,13 @@ function PriceRange({ ctx }: { ctx: GroupContext }) {
 
   const fmt = useMemo(() => {
     try {
-      return new Intl.NumberFormat(ctx.locale, {
+      return new Intl.NumberFormat(formatLocale(ctx.locale), {
         style: 'currency',
         currency: ctx.currency || 'EUR',
         maximumFractionDigits: 0,
       });
     } catch {
-      return new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 0 });
+      return new Intl.NumberFormat(formatLocale(ctx.locale), { maximumFractionDigits: 0 });
     }
   }, [ctx.locale, ctx.currency]);
   const span = Math.max(1, max - min);
@@ -433,7 +434,7 @@ export function useChips(state: FilterState, facets: ListingFacets | null, curre
   const t = useTranslations('listing');
   const fmt = (n: number) => {
     try {
-      return new Intl.NumberFormat(locale, { style: 'currency', currency: currency || 'EUR', maximumFractionDigits: 0 }).format(n);
+      return new Intl.NumberFormat(formatLocale(locale), { style: 'currency', currency: currency || 'EUR', maximumFractionDigits: 0 }).format(n);
     } catch {
       return String(n);
     }

@@ -23,6 +23,7 @@ import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
 import { MotionText } from '../../creative/primitives/Motion';
 import { hover, item, rise, stagger } from '../../creative/recipes';
+import { formatLocale } from '@/lib/storeLocales';
 
 interface ProductRow {
   id: string;
@@ -126,7 +127,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   // b2b app: company view shows net amounts.
   const display = useDisplayPrice();
   const fmt = (n: number) =>
-    new Intl.NumberFormat(locale === 'ar' ? 'ar' : locale, {
+    new Intl.NumberFormat(locale === 'ar' ? 'ar' : formatLocale(locale), {
       style: 'currency',
       currency: c,
       maximumFractionDigits: 2,

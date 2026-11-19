@@ -1,3 +1,5 @@
+import { formatLocale } from './storeLocales';
+
 /**
  * Shared price formatting utility.
  * Replaces scattered `new Intl.NumberFormat(...)` calls across components.
@@ -7,7 +9,7 @@ export function formatPrice(
   currency = 'EUR',
   locale = 'en',
 ): string {
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(formatLocale(locale), {
     style: 'currency',
     currency,
   }).format(amount);

@@ -2,7 +2,7 @@
 
 import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
-import { locales } from '@/i18n/config';
+import { storeLocales } from '@/i18n/config';
 
 /**
  * Returns a function that prefixes paths with the current locale
@@ -12,7 +12,9 @@ import { locales } from '@/i18n/config';
 export function useLocalePath() {
   const locale = useLocale();
   const pathname = usePathname();
-  const hasPrefix = locales.some(
+  // Storefront locales, store-only ones ('ku') included; the platform pages
+  // never carry those prefixes, so their result is unchanged.
+  const hasPrefix = storeLocales.some(
     (l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`
   );
   const prefix = hasPrefix ? `/${locale}` : '';

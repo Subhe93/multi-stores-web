@@ -38,6 +38,7 @@ import {
   ShieldCheck, Loader2, Tag, Zap, Gift, Percent, X,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { formatLocale } from '@/lib/storeLocales';
 
 // Designer products with videos only (D7): requested only when rendered.
 const ProductVideoList = dynamic(() => import('@/components/product/video/ProductVideoList').then((m) => m.ProductVideoList));
@@ -253,7 +254,7 @@ function formatPromoDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   try {
-    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
+    return new Intl.DateTimeFormat(formatLocale(locale, 'date'), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
   } catch {
     return d.toISOString().slice(0, 10);
   }

@@ -8,6 +8,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { belowFold, pd, useProductMotion } from '@/components/product/productMotion';
+import { formatLocale } from '@/lib/storeLocales';
 
 /**
  * Maps the theme's primary token onto the `--store-primary` variable the
@@ -102,7 +103,7 @@ export function formatPromoDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   try {
-    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
+    return new Intl.DateTimeFormat(formatLocale(locale, 'date'), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d);
   } catch {
     return d.toISOString().slice(0, 10);
   }

@@ -2,7 +2,9 @@
 // Everything in this module is side-effect free and runs in the proxy (edge),
 // in server components and in vitest. It must not import `next/headers`.
 
-import { locales as globalLocales } from '@/i18n/config';
+// Every storefront locale (platform list + store-only ones such as 'ku'): a
+// prefix a market does not serve is a 404 either way.
+import { storeLocales as globalLocales } from '@/i18n/config';
 import type { MarketRoute } from './market';
 
 /** Internal route that renders a 404 for a locale the market does not serve. */

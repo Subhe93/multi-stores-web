@@ -10,6 +10,7 @@ import { buildStoreOrigin } from '@/lib/storeUrl';
 import { preload } from 'react-dom';
 import { buildGoogleFontsHref, loadInlineFonts, type ArabicPreload } from '@/lib/storeFonts';
 import { isArabicScriptLocale } from '@/lib/arabicFonts';
+import { isLocaleNotServed, isReviewLocale } from '@/lib/storeLocales';
 import { buildTypographyCss, cssSafe, type TypographyStyle } from '@/lib/storeTypography';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
@@ -263,6 +264,10 @@ export default async function StoreLayout({
   }
   const store: Store = gated.store;
   const storePreview = gated.preview;
+
+  // A store-only locale prefix ('/ku/...') this store has not enabled is a
+  // 404, like any unknown path. The platform locales never gate here.
+  if (isLocaleNotServed(urlLocale, store)) notFound();
 
   // Not LIVE and no owner preview: the branded "Coming soon" / "Temporarily
   // closed" page replaces the whole storefront (every route, noindex).
@@ -616,7 +621,8 @@ export default async function StoreLayout({
             <head>; the proxy also sends X-Robots-Tag). Pages own `robots` in
             their metadata, so a layout-level metadata value would be
             overridden — the tag is emitted here instead. */}
-        {(store.market?.preview || noindex) && <meta name="robots" content="noindex, nofollow" />}
+        {/* A locale still in review ('ku') is never indexable either. */}
+        {(store.market?.preview || noindex || isReviewLocale(currentLang)) && <meta name="robots" content="noindex, nofollow" />}
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           lang={currentLang}

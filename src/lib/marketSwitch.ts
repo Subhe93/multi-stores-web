@@ -4,6 +4,7 @@
 
 import type { MarketRoute } from './market';
 import { buildStoreOrigin, marketOrigin, storeLocalePath } from './storeUrl';
+import { formatLocale } from './storeLocales';
 import { appendHandoffParam, CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM } from './cartHandoff';
 
 /**
@@ -63,7 +64,7 @@ export function marketLabel(market: Pick<MarketRoute, 'key' | 'name' | 'primary_
 /** Localised country name (falls back to the ISO code). */
 export function countryName(code: string, locale: string): string {
   try {
-    return new Intl.DisplayNames([locale], { type: 'region' }).of(code) || code;
+    return new Intl.DisplayNames([formatLocale(locale, 'date')], { type: 'region' }).of(code) || code;
   } catch {
     return code;
   }

@@ -8,6 +8,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { MEDIA_VENDORS, VENDOR_LABELS, marketingVendorKeys, type TrackerVendor, type VendorKey } from '@/lib/consent';
 import { consentTextHash } from '@/lib/consentLog';
 import { CONSENT_BUTTON_CLASS, CONSENT_BUTTON_STYLE } from './CookieBanner';
+import { formatLocale } from '@/lib/storeLocales';
 
 // Second layer of the cookie consent (plans/consent-v2/CONTRACT.md §4.3):
 // one switch per category with its description and the vendors the store
@@ -159,7 +160,7 @@ function DialogBody({
     decidedAt !== null
       ? (() => {
           try {
-            return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(new Date(decidedAt));
+            return new Intl.DateTimeFormat(formatLocale(locale, 'date'), { dateStyle: 'long', timeStyle: 'short' }).format(new Date(decidedAt));
           } catch {
             return new Date(decidedAt).toISOString().slice(0, 10);
           }

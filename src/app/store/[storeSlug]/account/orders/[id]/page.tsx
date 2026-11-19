@@ -20,6 +20,7 @@ import { OrderFieldValues } from '@/components/account/OrderFieldValues';
 import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
 import { orderRequiresShipping, orderStatusLabelKey, orderTrackerIndex, orderTrackerSteps } from '@/lib/requiresShipping';
 import { ArrowLeft, Check } from 'lucide-react';
+import { formatLocale } from '@/lib/storeLocales';
 
 // ── Types matching backend Prisma response ──────────────────────────────────
 
@@ -268,7 +269,7 @@ export default function StoreOrderDetailPage() {
             <h1 className="text-lg font-semibold text-gray-900" {...enter(motion)}>{t('account.orderTitle', { number: num })}</h1>
             {date && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {new Date(date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                {new Date(date).toLocaleDateString(formatLocale(locale, 'date'), { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             )}
           </div>

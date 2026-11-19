@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { Building2 } from 'lucide-react';
+import { formatLocale } from '@/lib/storeLocales';
 
 // ── Company snapshot of an order (b2b app, M2-DESIGN §4.5) ───────────────────
 // Rendered on the receipt and the account order page whenever the order was
@@ -54,7 +55,7 @@ function ExemptionNotice({ order }: { order: CompanySnapshotLike }) {
   if (checkedAt) {
     const d = new Date(checkedAt);
     // UTC keeps the server and client render identical.
-    if (!Number.isNaN(d.getTime())) date = d.toLocaleDateString(locale, { timeZone: 'UTC' });
+    if (!Number.isNaN(d.getTime())) date = d.toLocaleDateString(formatLocale(locale, 'date'), { timeZone: 'UTC' });
   }
   return (
     <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
