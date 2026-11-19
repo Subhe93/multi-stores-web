@@ -10,7 +10,9 @@ import { entry as coverHero } from './schemas/cover-hero.schema';
 import { entry as impactArc } from './schemas/impact-arc.schema';
 import { entry as lookSpread } from './schemas/look-spread.schema';
 import { entry as objectStudy } from './schemas/object-study.schema';
+import { entry as heroDawn } from './schemas/hero-dawn.schema';
 import { entry as patternBand } from './schemas/pattern-band.schema';
+import { entry as promiseBand } from './schemas/promise-band.schema';
 import { HERO_SCHEMAS, SCROLL_SCHEMAS } from './schemas/scroll-sections.schema';
 import { entry as scriptManifesto } from './schemas/script-manifesto.schema';
 
@@ -143,6 +145,7 @@ const ornamentLine: CreativeSchemaEntry = {
 
 export const CREATIVE_SCHEMAS: Record<CreativeSectionKey, CreativeSchemaEntry> = {
   ...HERO_SCHEMAS,
+  'hero-dawn': heroDawn,
   ...SCROLL_SCHEMAS,
   'ornament-line': ornamentLine,
   'cover-hero': coverHero,
@@ -151,6 +154,7 @@ export const CREATIVE_SCHEMAS: Record<CreativeSectionKey, CreativeSchemaEntry> =
   'script-manifesto': scriptManifesto,
   'impact-arc': impactArc,
   'pattern-band': patternBand,
+  'promise-band': promiseBand,
 };
 
 /**

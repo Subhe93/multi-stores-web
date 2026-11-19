@@ -45,6 +45,7 @@ const NO_REVEAL_KEYS = new Set([
   'script-manifesto',
   'impact-arc',
   'pattern-band',
+  'promise-band',
 ]);
 
 // Commerce surfaces: with the store motion style on they get the fast timing.

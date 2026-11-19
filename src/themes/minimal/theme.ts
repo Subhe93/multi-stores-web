@@ -65,6 +65,8 @@ import { layoutColumnSection } from './sections/layout/LayoutColumn';
 import { layoutGridSection } from './sections/layout/LayoutGrid';
 import { heroOutlineSection } from '../creative/sections/HeroOutline';
 import { heroSunriseSection } from '../creative/sections/HeroSunrise';
+import { heroDawnSection } from '../creative/sections/HeroDawn';
+import { promiseBandSection } from '../creative/sections/PromiseBand';
 import { stageScenesSection } from '../creative/sections/StageScenes';
 import { storyPinnedSection } from '../creative/sections/StoryPinned';
 import { stickyStepsSection } from '../creative/sections/StickySteps';
@@ -138,6 +140,8 @@ export const minimalTheme: Theme = {
     // that does not place it loads none of its CSS or JavaScript.
     'hero-outline': heroOutlineSection,
     'hero-sunrise': heroSunriseSection,
+    'hero-dawn': heroDawnSection,
+    'promise-band': promiseBandSection,
     'stage-scenes': stageScenesSection,
     'story-pinned': storyPinnedSection,
     'sticky-steps': stickyStepsSection,

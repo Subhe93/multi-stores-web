@@ -8,6 +8,7 @@ import { locales } from '@/i18n/config';
 export const CREATIVE_SECTION_KEYS = [
   'hero-outline',
   'hero-sunrise',
+  'hero-dawn',
   'stage-scenes',
   'story-pinned',
   'sticky-steps',
@@ -20,6 +21,7 @@ export const CREATIVE_SECTION_KEYS = [
   'script-manifesto',
   'impact-arc',
   'pattern-band',
+  'promise-band',
 ] as const;
 export type CreativeSectionKey = (typeof CREATIVE_SECTION_KEYS)[number];
 

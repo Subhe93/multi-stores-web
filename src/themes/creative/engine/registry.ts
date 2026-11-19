@@ -18,4 +18,6 @@ export const BEHAVIORS: Record<string, BehaviorEntry> = {
   steps: { calm: true, load: () => import('./behaviors/steps') },
   path: { calm: true, load: () => import('./behaviors/path') },
   draw: { calm: true, load: () => import('./behaviors/draw') },
+  dawn: { calm: true, load: () => import('./behaviors/dawn') },
+  promise: { calm: true, load: () => import('./behaviors/promise') },
 };

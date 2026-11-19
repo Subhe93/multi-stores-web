@@ -132,6 +132,7 @@ describe('creative section schemas', () => {
     const expected: Record<string, string[]> = {
       'hero-outline': PAGES,
       'hero-sunrise': PAGES,
+      'hero-dawn': PAGES,
       'stage-scenes': PAGES,
       'story-pinned': PAGES,
       'sticky-steps': PAGES,
@@ -144,6 +145,7 @@ describe('creative section schemas', () => {
       'script-manifesto': [...PAGES, 'FOOTER'],
       'impact-arc': PAGES,
       'pattern-band': [...PAGES, 'FOOTER'],
+      'promise-band': PAGES,
     };
     for (const [key, entry] of entries) expect(entry.schema.pageTypes, key).toEqual(expected[key]);
   });
