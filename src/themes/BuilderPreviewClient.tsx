@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUpToLine, ChevronDown, ChevronUp, Copy, EyeOff, Trash2 } from 'lucide-react';
 import { resolveTheme } from './registry';
 import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
+import { buildGoogleFontsHref, selfHostedFontsHref } from '@/lib/storeFonts';
 import { creativeAttrs } from './creative/creativeAttrs';
 import { arabicBodyCss, mergeTokens, motionAttrs, storePrimaryContrast, themeButtonCss, tokenArabicFonts, tokensToCssVars } from './tokens';
 import { SectionRenderer } from './SectionRenderer';
@@ -352,8 +353,8 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
     [state.customizations],
   );
 
-  // Load the theme's Google Fonts inside the preview. The live storefront gets
-  // its font <link> from the server layout, which this iframe never renders —
+  // Load the theme's fonts inside the preview. The live storefront gets
+  // its font CSS from the server layout, which this iframe never renders —
   // without this, picking a font in the builder silently fell back to a system
   // font and looked like the setting did nothing.
   // The optional Arabic-script fallback fonts go last (joined into one string
@@ -376,12 +377,15 @@ export function BuilderPreviewClient({ storeSlug, initial }: BuilderPreviewClien
       existing?.remove();
       return;
     }
-    const query = families
-      .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;500;600;700`)
-      .join('&');
-    const href = `https://fonts.googleapis.com/css2?${query}&display=swap`;
+    // Same-origin stylesheet (/fonts-cdn/css2), as in the live store layout:
+    // the browser never contacts Google for a store font.
+    const href = selfHostedFontsHref(buildGoogleFontsHref(families));
+    if (!href) {
+      existing?.remove();
+      return;
+    }
     if (existing) {
-      if (existing.href !== href) existing.href = href;
+      if (existing.getAttribute('href') !== href) existing.setAttribute('href', href);
       return;
     }
     const link = document.createElement('link');

@@ -76,16 +76,24 @@ function isWebFont(family: string | null): family is string {
   return !!family && !GENERIC_FONTS.has(family.toLowerCase()) && /^[A-Za-z0-9 ]{2,60}$/.test(family);
 }
 
+function currentOrigin(): string {
+  return typeof window !== 'undefined' ? window.location.origin : '';
+}
+
 /**
- * Google Fonts stylesheet for the store's body font, so the Payment Element
- * iframe (which cannot see the page's fonts) renders in the same typeface.
- * System and generic families need no stylesheet.
+ * Stylesheet for the store's body font, so the Payment Element iframe (which
+ * cannot see the page's fonts) renders in the same typeface. Served from the
+ * store's own origin (/fonts-cdn/css2, font files under /fonts-cdn, both with
+ * CORS), never from Google. System and generic families need no stylesheet.
  */
-export function stripeFontSources(fontFamily: string | null | undefined): CssFontSource[] {
+export function stripeFontSources(
+  fontFamily: string | null | undefined,
+  origin: string = currentOrigin(),
+): CssFontSource[] {
   const family = primaryFontFamily(fontFamily);
-  if (!isWebFont(family)) return [];
+  if (!isWebFont(family) || !/^https?:\/\/[^/?#\s]+$/.test(origin)) return [];
   const query = encodeURIComponent(family).replace(/%20/g, '+');
-  return [{ cssSrc: `https://fonts.googleapis.com/css2?family=${query}:wght@400;500;600&display=swap` }];
+  return [{ cssSrc: `${origin}/fonts-cdn/css2?family=${query}:wght@400;500;600;700&display=swap` }];
 }
 
 /** Payment Element appearance that follows the store theme tokens. */

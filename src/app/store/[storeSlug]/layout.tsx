@@ -8,7 +8,7 @@ import { getPlatformName } from '@/lib/platform';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin } from '@/lib/storeUrl';
 import { preload } from 'react-dom';
-import { buildGoogleFontsHref, loadInlineFonts, type ArabicPreload } from '@/lib/storeFonts';
+import { buildGoogleFontsHref, loadInlineFonts, selfHostedFontsHref, type ArabicPreload } from '@/lib/storeFonts';
 import { isArabicScriptLocale } from '@/lib/arabicFonts';
 import { buildTypographyCss, cssSafe, type TypographyStyle } from '@/lib/storeTypography';
 import { StoreHeader, type NavCollection } from '@/components/layout/StoreHeader';
@@ -458,8 +458,9 @@ export default async function StoreLayout({
     }
   }
   // Self-hosted fonts: the Google CSS is inlined with same-origin font URLs
-  // (no render-blocking request, no visitor IP sent to Google). Null keeps
-  // the classic <link> below as a fallback.
+  // (no render-blocking request, no visitor IP sent to Google). When that
+  // fails, the page links the same CSS from our own origin (/fonts-cdn/css2),
+  // never fonts.googleapis.com.
   const inlineFonts = fontsHref
     ? await loadInlineFonts(
         fontsHref,
@@ -477,6 +478,7 @@ export default async function StoreLayout({
         arabicPreload,
       )
     : null;
+  const selfHostedFonts = inlineFonts ? null : selfHostedFontsHref(fontsHref);
   for (const href of inlineFonts?.preloads ?? []) {
     preload(href, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
   }
@@ -598,12 +600,9 @@ export default async function StoreLayout({
       <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
-        ) : fontsHref && (
-          <>
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link rel="stylesheet" href={fontsHref} />
-          </>
+        ) : selfHostedFonts && (
+          // Same CSS from our own origin: never a link to Google.
+          <link rel="stylesheet" href={selfHostedFonts} />
         )}
         {/* Emitted outside .store-root so body-level portals inherit the theme. */}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />

@@ -7,7 +7,7 @@ import { StoreProviders } from '@/components/providers/StoreProviders';
 import { DesignerSessionProvider } from '@/components/designer/DesignerSession';
 import { ProductPageStateProvider } from '@/components/product/state/ProductPageState';
 import type { ProductData } from '@/components/product/ProductDetailClient';
-import { buildGoogleFontsHref } from '@/lib/storeFonts';
+import { buildGoogleFontsHref, selfHostedFontsHref } from '@/lib/storeFonts';
 import { cssSafe } from '@/lib/storeTypography';
 import { toListingProduct, type StorefrontProductRow } from '@/lib/listing';
 import { withCardExtras, type CardSourceRow } from '@/lib/productCard/model';
@@ -161,7 +161,8 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
     ['--store-secondary', tokens.colors.secondary],
   ];
   const rootVarsCss = `:root {\n${rootVars.map(([k, v]) => `  ${k}: ${cssSafe(String(v))};`).join('\n')}\n}`;
-  const fontsHref = buildGoogleFontsHref([...tokenFonts(tokens), ...tokenArabicFonts(tokens)]);
+  // Same-origin font CSS (/fonts-cdn/css2), never Google.
+  const fontsHref = selfHostedFontsHref(buildGoogleFontsHref([...tokenFonts(tokens), ...tokenArabicFonts(tokens)]));
   const arabicCss = arabicBodyCss(tokens);
   const buttonCss = themeButtonCss(tokens);
   const creative = builder ? null : readCreative(customizations);
@@ -314,13 +315,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
         primaryLocale={fixture.primaryLocale}
         productCard={productCard}
       >
-        {fontsHref && (
-          <>
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link rel="stylesheet" href={fontsHref} />
-          </>
-        )}
+        {fontsHref && <link rel="stylesheet" href={fontsHref} />}
         <style dangerouslySetInnerHTML={{ __html: rootVarsCss }} />
         {arabicCss && <style dangerouslySetInnerHTML={{ __html: arabicCss }} />}
         {buttonCss && <style dangerouslySetInnerHTML={{ __html: buttonCss }} />}

@@ -178,9 +178,10 @@ export function marketingCspDirectives(ctx: CspContext): CspDirectives {
   return withReporting(ctx, {
     'default-src': ["'self'"],
     'script-src': ["'self'", "'unsafe-inline'", ...TURNSTILE, ...devScript(ctx)],
-    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    // Fonts are self-hosted (next/font, /fonts-cdn): never Google's servers.
+    'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': [...own, 'data:', 'blob:', 'https:'],
-    'font-src': [...own, 'data:', 'https://fonts.gstatic.com'],
+    'font-src': [...own, 'data:'],
     'media-src': [...own, 'data:', 'blob:'],
     'connect-src': [...own, ...TURNSTILE, ...devConnect(ctx)],
     'frame-src': ["'self'", ...TURNSTILE, ...VIDEO_FRAMES],

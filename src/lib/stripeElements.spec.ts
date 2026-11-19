@@ -72,10 +72,12 @@ describe('fonts', () => {
     expect(primaryFontFamily('"Inter", "Noto Sans Arabic", system-ui, sans-serif')).toBe('Inter');
     expect(primaryFontFamily('"Playfair Display", "Noto Naskh Arabic", system-ui, sans-serif')).toBe('Playfair Display');
   });
-  it('builds a Google Fonts source only for web fonts', () => {
-    expect(stripeFontSources('"Open Sans", system-ui')).toEqual([
-      { cssSrc: 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap' },
+  it('builds a same-origin font source only for web fonts, never a Google URL', () => {
+    expect(stripeFontSources('"Open Sans", system-ui', 'https://namez.se')).toEqual([
+      { cssSrc: 'https://namez.se/fonts-cdn/css2?family=Open+Sans:wght@400;500;600;700&display=swap' },
     ]);
+    expect(JSON.stringify(stripeFontSources('"Noto Sans", system-ui', 'https://namez.se'))).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
+    expect(stripeFontSources('"Open Sans"', '')).toEqual([]);
     expect(stripeFontSources('system-ui, sans-serif')).toEqual([]);
     expect(stripeFontSources('Arial')).toEqual([]);
     expect(stripeFontSources('Bad<Font>')).toEqual([]);

@@ -62,7 +62,7 @@ vi.mock('@/lib/api', () => ({
   LEGAL_SLUGS: ['privacy', 'terms', 'refund', 'shipping'],
 }));
 vi.mock('@/lib/platform', () => ({ getPlatformName: async () => 'ShopsDoor' }));
-vi.mock('@/lib/storeFonts', () => ({ buildGoogleFontsHref: () => null, loadInlineFonts: async () => null }));
+vi.mock('@/lib/storeFonts', () => ({ buildGoogleFontsHref: () => null, loadInlineFonts: async () => null, selfHostedFontsHref: () => null }));
 vi.mock('@/lib/market.server', () => ({
   getRequestMarket: async () => (state.suggestedMarket ? 'se' : undefined),
   getRequestNoindex: async () => false,

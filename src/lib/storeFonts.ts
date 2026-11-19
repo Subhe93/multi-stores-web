@@ -3,9 +3,15 @@ import { GOOGLE_FONT_SET } from '@/lib/google-fonts';
 // Self-hosted store fonts: the Google CSS2 stylesheet is fetched server-side
 // and inlined, and every fonts.gstatic.com file is served same-origin through
 // the /fonts-cdn route (no render-blocking request, no visitor IP to Google).
+// When the inline fetch fails, the page links the same CSS from our own
+// origin (/fonts-cdn/css2), never from fonts.googleapis.com: a visitor's
+// browser never contacts Google for a store font.
 
 /** Same-origin prefix that proxies https://fonts.gstatic.com/<path>. */
 export const FONTS_PROXY_PREFIX = '/fonts-cdn';
+
+/** Same-origin stylesheet that serves the rewritten Google CSS2 response. */
+export const FONTS_CSS_PATH = `${FONTS_PROXY_PREFIX}/css2`;
 
 const GOOGLE_CSS_PREFIX = 'https://fonts.googleapis.com/css2?';
 const GSTATIC_ORIGIN = 'https://fonts.gstatic.com';
@@ -16,8 +22,9 @@ export const MODERN_FONT_UA =
 
 export const FONT_CSS_REVALIDATE_SECONDS = 86400 * 7;
 export const FONT_CSS_TAG = 'store-fonts';
-const FONT_CSS_TIMEOUT_MS = 1200;
-// After a failed fetch, skip the inline path for a while (fallback <link>).
+// A cold Google CSS answer takes about 1.2 s; the result is cached for a week.
+const FONT_CSS_TIMEOUT_MS = 2500;
+// After a failed fetch, skip the inline path for a while (same-origin <link>).
 const FAILURE_BACKOFF_MS = 5 * 60 * 1000;
 let lastFailureAt = 0;
 const MAX_CSS_BYTES = 512 * 1024;
@@ -49,6 +56,24 @@ export function isAllowedGoogleCssUrl(url: string): boolean {
   if (!url.startsWith(GOOGLE_CSS_PREFIX)) return false;
   const query = url.slice(GOOGLE_CSS_PREFIX.length);
   return /^(family=[A-Za-z0-9+%._~-]+:wght@400;500;600;700&)+display=swap$/.test(query);
+}
+
+/**
+ * Same-origin stylesheet URL for a Google CSS2 URL built by
+ * buildGoogleFontsHref: `/fonts-cdn/css2?<same query>`. Null for any other URL.
+ */
+export function selfHostedFontsHref(googleHref: string | null | undefined): string | null {
+  if (!googleHref || !isAllowedGoogleCssUrl(googleHref)) return null;
+  return `${FONTS_CSS_PATH}?${googleHref.slice(GOOGLE_CSS_PREFIX.length)}`;
+}
+
+/**
+ * The Google CSS2 URL behind a `/fonts-cdn/css2` query string (with or
+ * without the leading `?`). Null unless it has the exact allowed shape.
+ */
+export function googleCssUrlFromQuery(search: string): string | null {
+  const url = `${GOOGLE_CSS_PREFIX}${search.replace(/^\?/, '')}`;
+  return isAllowedGoogleCssUrl(url) ? url : null;
 }
 
 /**
@@ -225,10 +250,39 @@ export interface InlineFonts {
   preloads: string[];
 }
 
+type FetchFontCssResult = { css: string } | { error: 'network' | 'invalid' };
+
 /**
- * Fetch the Google CSS for `href` (Next data cache, weekly) and return it
- * rewritten for the same-origin proxy. Null on any failure: the caller then
- * keeps the classic <link rel="stylesheet">.
+ * Fetch the Google CSS for an allowed `href` (Next data cache, weekly) and
+ * rewrite it for the same-origin proxy. `network`: Google could not be
+ * reached or answered an error; `invalid`: the answer is unsafe to serve.
+ */
+export async function fetchFontCss(
+  href: string,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs: number = FONT_CSS_TIMEOUT_MS,
+): Promise<FetchFontCssResult> {
+  if (!isAllowedGoogleCssUrl(href)) return { error: 'invalid' };
+  try {
+    const res = await fetchImpl(href, {
+      headers: { 'User-Agent': MODERN_FONT_UA, Accept: 'text/css,*/*;q=0.1' },
+      signal: AbortSignal.timeout(timeoutMs),
+      next: { revalidate: FONT_CSS_REVALIDATE_SECONDS, tags: [FONT_CSS_TAG] },
+    } as RequestInit);
+    if (!res.ok) return { error: 'network' };
+    const raw = await res.text();
+    if (raw.length > MAX_CSS_BYTES) return { error: 'invalid' };
+    const css = rewriteFontCss(raw);
+    return css ? { css } : { error: 'invalid' };
+  } catch {
+    return { error: 'network' };
+  }
+}
+
+/**
+ * Fetch the Google CSS for `href` and return it rewritten for the
+ * same-origin proxy. Null on any failure: the caller then links the same
+ * CSS from our own origin (selfHostedFontsHref).
  *
  * `arabicOnly`: families requested only as an Arabic-script fallback; their
  * other subsets are dropped (keepArabicFaces). They are never preloaded as
@@ -247,34 +301,21 @@ export async function loadInlineFonts(
 ): Promise<InlineFonts | null> {
   if (!isAllowedGoogleCssUrl(href)) return null;
   if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) return null;
-  const fail = () => {
-    lastFailureAt = Date.now();
+  const result = await fetchFontCss(href, fetchImpl);
+  if ('error' in result) {
+    if (result.error === 'network') lastFailureAt = Date.now();
     return null;
-  };
-  try {
-    const res = await fetchImpl(href, {
-      headers: { 'User-Agent': MODERN_FONT_UA, Accept: 'text/css,*/*;q=0.1' },
-      signal: AbortSignal.timeout(FONT_CSS_TIMEOUT_MS),
-      next: { revalidate: FONT_CSS_REVALIDATE_SECONDS, tags: [FONT_CSS_TAG] },
-    } as RequestInit);
-    if (!res.ok) return fail();
-    const raw = await res.text();
-    if (raw.length > MAX_CSS_BYTES) return null;
-    const rewritten = rewriteFontCss(raw);
-    if (!rewritten) return null;
-    const css = keepArabicFaces(rewritten, arabicOnly);
-    // An Arabic-only family is never a preload candidate.
-    const preloadable = arabicOnly.length
-      ? preloadFamilies.filter((f) => !f || !arabicOnly.includes(f))
-      : preloadFamilies;
-    const preloads = pickPreloadUrls(css, preloadable);
-    for (const url of pickArabicPreloadUrls(css, arabicPreload)) {
-      if (!preloads.includes(url)) preloads.push(url);
-    }
-    return { css, preloads };
-  } catch {
-    return fail();
   }
+  const css = keepArabicFaces(result.css, arabicOnly);
+  // An Arabic-only family is never a preload candidate.
+  const preloadable = arabicOnly.length
+    ? preloadFamilies.filter((f) => !f || !arabicOnly.includes(f))
+    : preloadFamilies;
+  const preloads = pickPreloadUrls(css, preloadable);
+  for (const url of pickArabicPreloadUrls(css, arabicPreload)) {
+    if (!preloads.includes(url)) preloads.push(url);
+  }
+  return { css, preloads };
 }
 
 /** Test hook: forget a previous failure. */

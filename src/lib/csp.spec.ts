@@ -97,8 +97,10 @@ describe('marketing policy', () => {
   const csp = marketingCspDirectives(prod);
   it('allows only Turnstile as a third-party script and no eval in prod', () => {
     expect(csp['script-src']).toEqual(["'self'", "'unsafe-inline'", 'https://challenges.cloudflare.com']);
-    expect(csp['style-src']).toContain('https://fonts.googleapis.com');
-    expect(csp['font-src']).toContain('https://fonts.gstatic.com');
+    // Self-hosted fonts only: no Google Fonts origin.
+    expect(csp['style-src']).toEqual(["'self'", "'unsafe-inline'"]);
+    expect(csp['font-src']).not.toContain('https://fonts.gstatic.com');
+    expect(JSON.stringify(csp)).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     expect(csp['form-action']).toEqual(["'self'"]);
   });
   it('dev adds eval and HMR websockets', () => {

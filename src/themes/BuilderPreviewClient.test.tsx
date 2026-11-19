@@ -256,13 +256,13 @@ describe('BuilderPreviewClient product blocks', () => {
 describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
   const fontLink = () => document.getElementById('builder-preview-fonts') as HTMLLinkElement | null;
   const buttonStyle = (container: HTMLElement) => container.querySelector('style[data-theme-button-css]');
-  // The minimal theme's own fonts: the link the preview always built.
+  // The minimal theme's own fonts, from our own origin (never Google).
   const BASE_HREF =
-    'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap';
+    '/fonts-cdn/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap';
 
   it('unset or invalid: the font link is unchanged and no extra style is rendered', async () => {
     const { container, unmount } = renderPreview();
-    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    await waitFor(() => expect(fontLink()?.getAttribute('href')).toBe(BASE_HREF));
     expect(buttonStyle(container)).toBeNull();
     const root = container.querySelector('.store-root') as HTMLElement;
     const hasButtonRule = () => (container.textContent ?? '').includes('--theme-radius-button');
@@ -279,7 +279,7 @@ describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
       },
     });
     await waitFor(() => expect(container.querySelector('[data-section-id="row1"]')).not.toBeNull());
-    expect(fontLink()?.href).toBe(BASE_HREF);
+    expect(fontLink()?.getAttribute('href')).toBe(BASE_HREF);
     expect(buttonStyle(container)).toBeNull();
     expect(hasButtonRule()).toBe(false);
     expect(root.style.getPropertyValue('--theme-font-heading')).toBe('"Playfair Display", system-ui, sans-serif');
@@ -289,14 +289,14 @@ describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
 
   it('set: the Arabic family is appended to the font link and the stack', async () => {
     const { container, unmount } = renderPreview();
-    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    await waitFor(() => expect(fontLink()?.getAttribute('href')).toBe(BASE_HREF));
     post({
       type: 'UPDATE_SECTIONS',
       sections,
       customizations: { typography: { fontFamilyArabic: { heading: 'Noto Naskh Arabic', body: 'Noto Naskh Arabic' } } },
     });
     await waitFor(() =>
-      expect(fontLink()?.href).toBe(
+      expect(fontLink()?.getAttribute('href')).toBe(
         BASE_HREF.replace('&display=swap', '&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap'),
       ),
     );
@@ -307,7 +307,7 @@ describe('BuilderPreviewClient Arabic font and button radius tokens', () => {
     expect(root.style.getPropertyValue('--theme-font-body')).toBe('"Inter", "Noto Naskh Arabic", system-ui, sans-serif');
     // Cleared again: back to the original link.
     post({ type: 'UPDATE_SECTIONS', sections, customizations: {} });
-    await waitFor(() => expect(fontLink()?.href).toBe(BASE_HREF));
+    await waitFor(() => expect(fontLink()?.getAttribute('href')).toBe(BASE_HREF));
     unmount();
   });
 

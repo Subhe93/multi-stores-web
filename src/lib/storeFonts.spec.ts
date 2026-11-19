@@ -10,6 +10,8 @@ import {
   pickArabicPreloadUrls,
   pickPreloadUrls,
   rewriteFontCss,
+  googleCssUrlFromQuery,
+  selfHostedFontsHref,
 } from './storeFonts';
 import { GET } from '@/app/fonts-cdn/[...path]/route';
 import { mergeTokens, tokenArabicFonts, tokenFonts } from '@/themes/tokens';
@@ -467,5 +469,50 @@ describe('fonts-cdn route', () => {
   it('returns 502 when upstream fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }));
     expect((await call(['s', 'a', 'v1', 'x.woff2'])).status).toBe(502);
+  });
+});
+
+describe('same-origin font stylesheet (/fonts-cdn/css2)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const href = 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap';
+
+  it('maps a built Google URL to our origin and back', () => {
+    const own = selfHostedFontsHref(href);
+    expect(own).toBe('/fonts-cdn/css2?family=Noto+Sans:wght@400;500;600;700&display=swap');
+    expect(googleCssUrlFromQuery(own!.slice(own!.indexOf('?')))).toBe(href);
+    expect(selfHostedFontsHref(null)).toBeNull();
+    expect(selfHostedFontsHref('https://evil.example/css2?family=A:wght@400;500;600;700&display=swap')).toBeNull();
+    expect(googleCssUrlFromQuery('?family=A:wght@400&display=swap&x=1')).toBeNull();
+  });
+
+  const callCss = (query: string) =>
+    GET(new Request(`https://namez.se/fonts-cdn/css2${query}`), { params: Promise.resolve({ path: ['css2'] }) });
+
+  it('serves the rewritten CSS with same-origin font URLs, CORS and caching', async () => {
+    const fetchMock = vi.fn(async () => new Response(CSS));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await callCss('?family=Open+Sans:wght@400;500;600;700&display=swap');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('text/css; charset=utf-8');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(res.headers.get('Cache-Control')).toContain('public');
+    const body = await res.text();
+    expect(body).toContain('url(/fonts-cdn/s/opensans/v40/latin.woff2)');
+    expect(body).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe(
+      'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap',
+    );
+  });
+
+  it('rejects any other query without fetching, and 502s when Google fails', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await callCss('?family=A&url=http://169.254.169.254')).status).toBe(404);
+    expect((await callCss('')).status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }));
+    const res = await callCss('?family=Open+Sans:wght@400;500;600;700&display=swap');
+    expect(res.status).toBe(502);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 });
