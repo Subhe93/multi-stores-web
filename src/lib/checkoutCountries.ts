@@ -14,6 +14,7 @@
  * country is still selectable as an address; this list only feeds the
  * new-address form.
  */
+import { formatLocale } from './storeLocales';
 
 export interface CountryOption {
   code: string;
@@ -139,7 +140,9 @@ function normalize(countries: readonly string[] | null | undefined): string[] {
 
 function displayNames(locale: string): Intl.DisplayNames | null {
   try {
-    return new Intl.DisplayNames([locale, 'en'], { type: 'region' });
+    // formatLocale: a locale browsers may lack ('ku') gets a fixed mapping so
+    // server and client print the same names; other locales are unchanged.
+    return new Intl.DisplayNames([formatLocale(locale, 'date'), 'en'], { type: 'region' });
   } catch {
     return null;
   }
