@@ -9,6 +9,7 @@
 interface LocaleMeta {
   cc: string; // ISO 3166-1 alpha-2 country code used to build the flag URL ('' = no flag)
   label: string; // language name in its own language
+  flag?: string; // bundled flag URL (under /public), used instead of the flagcdn one
 }
 
 const LOCALE_META: Record<string, LocaleMeta> = {
@@ -42,8 +43,9 @@ const LOCALE_META: Record<string, LocaleMeta> = {
   cs: { cc: 'cz', label: 'Čeština' },
   ro: { cc: 'ro', label: 'Română' },
   hu: { cc: 'hu', label: 'Magyar' },
-  // Kurdish (Kurmanji): a language without one country, so no flag.
-  ku: { cc: '', label: 'Kurdî' },
+  // Kurdish (Kurmanji): no country code on flagcdn, so the flag of Kurdistan
+  // is bundled as-is (public/flags/SOURCES.md).
+  ku: { cc: '', label: 'Kurdî', flag: '/flags/kurdistan.svg' },
 };
 
 export interface ResolvedLocale {
@@ -65,6 +67,6 @@ export function resolveLocaleMeta(locale: string): ResolvedLocale {
   return {
     code: locale,
     label: meta?.label || locale.toUpperCase(),
-    flagUrl: meta?.cc ? `https://flagcdn.com/${meta.cc}.svg` : '',
+    flagUrl: meta?.flag ?? (meta?.cc ? `https://flagcdn.com/${meta.cc}.svg` : ''),
   };
 }

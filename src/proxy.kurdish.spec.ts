@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { proxy } from './proxy';
 import { __resetRedirectCaches } from './lib/redirects';
+import { injectReviewLocales } from '@/test/reviewLocales';
 
-// Store-only locale 'ku' (Kurmanji, in review): the store branches accept the
+// Store-only locale 'ku' (Kurmanji; it left review, so the noindex checks run
+// with ku injected as a review locale and a second block asserts it is indexable): the store branches accept the
 // `/ku/` prefix (legacy stores: the layout then 404s when the store has not
 // enabled it; market stores: only when the market serves it), the page is
 // flagged noindex, and the platform keeps its six locales.
@@ -37,7 +39,8 @@ const market = (locales: string[]) => ({
   indexing: 'ALWAYS',
 });
 
-describe('proxy: store-only review locale ku', () => {
+describe('proxy: store-only review locale ku (ku injected as review locale)', () => {
+  injectReviewLocales('ku');
   let fetchMock: ReturnType<typeof vi.fn>;
   let n = 0;
   const host = () => `ku-store-${++n}.localhost:3000`;
@@ -119,5 +122,32 @@ describe('proxy: store-only review locale ku', () => {
     const res = await proxy(req('localhost:3000', '/ku'));
     expect(forwarded(res, 'x-locale')).toBe('en');
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/ku');
+  });
+});
+
+describe('proxy: ku is a normal store locale (not in review)', () => {
+  beforeEach(() => {
+    __resetRedirectCaches();
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('legacy store: /ku/... is rewritten with lang=ku and stays indexable', async () => {
+    vi.mocked(fetch).mockResolvedValue(json({ enabled: false }));
+    const h = 'ku-public-1.localhost:3000';
+    const res = await proxy(req(h, '/ku/products/x'));
+    expect(res.headers.get('x-middleware-rewrite')).toContain('lang=ku');
+    expect(forwarded(res, 'x-locale')).toBe('ku');
+    expect(forwarded(res, 'x-store-noindex')).toBeNull();
+    expect(res.headers.get('x-robots-tag')).toBeNull();
+  });
+
+  it('market store serving ku: prefixed rewrite, no noindex', async () => {
+    vi.mocked(fetch).mockResolvedValue(json({ enabled: true, market: market(['en', 'ku']), markets: [market(['en', 'ku'])] }));
+    const res = await proxy(req('ku-public-2.localhost:3000', '/ku/products'));
+    expect(res.status).toBe(200);
+    expect(forwarded(res, 'x-locale')).toBe('ku');
+    expect(forwarded(res, 'x-store-noindex')).toBeNull();
+    expect(res.headers.get('x-robots-tag')).toBeNull();
   });
 });

@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { buildStoreAlternates, type MarketUrlInput } from './storeUrl';
+import { injectReviewLocales } from '@/test/reviewLocales';
 import { decideStoreRoute, MARKET_404_SEGMENT } from './market-routing';
 
-// Kurmanji ('ku') while it is in review: served under /ku/, never advertised.
+// Kurmanji ('ku'): served under /ku/. It left review, so it is advertised like
+// any locale; the review mechanism (never advertised) is covered with ku
+// injected as a review locale.
 
 const origin = 'https://shop.example.com';
 
-describe('buildStoreAlternates with a locale in review', () => {
+describe('buildStoreAlternates with a locale in review (ku injected)', () => {
+  injectReviewLocales('ku');
+
   it('no markets: ku is left out of hreflang, the rest is unchanged', () => {
     const withKu = buildStoreAlternates({ origin, locale: 'sv', primaryLocale: 'sv', secondaryLocales: ['en', 'ku'], path: '/om-oss' });
     const without = buildStoreAlternates({ origin, locale: 'sv', primaryLocale: 'sv', secondaryLocales: ['en'], path: '/om-oss' });
@@ -34,6 +39,24 @@ describe('buildStoreAlternates with a locale in review', () => {
     });
     expect(Object.keys(out.languages).sort()).toEqual(['en-SE', 'sv-SE', 'x-default']);
     expect(out.canonical).toBe('https://shop.example.com/en/p');
+  });
+});
+
+describe('buildStoreAlternates with ku as a normal locale', () => {
+  it('no markets: ku is advertised in hreflang', () => {
+    const out = buildStoreAlternates({ origin, locale: 'sv', primaryLocale: 'sv', secondaryLocales: ['en', 'ku'], path: '/om-oss' });
+    expect(out.languages).toEqual({
+      sv: 'https://shop.example.com/om-oss',
+      en: 'https://shop.example.com/en/om-oss',
+      ku: 'https://shop.example.com/ku/om-oss',
+      'x-default': 'https://shop.example.com/om-oss',
+    });
+  });
+
+  it('a page rendered in ku: self canonical plus the full hreflang set', () => {
+    const out = buildStoreAlternates({ origin, locale: 'ku', primaryLocale: 'sv', secondaryLocales: ['en', 'ku'], path: '/om-oss' });
+    expect(out.canonical).toBe('https://shop.example.com/ku/om-oss');
+    expect(out.languages.ku).toBe('https://shop.example.com/ku/om-oss');
   });
 });
 

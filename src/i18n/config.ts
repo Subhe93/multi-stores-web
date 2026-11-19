@@ -15,7 +15,7 @@ export type StoreLocale = (typeof storeLocales)[number];
 // enables one serves it under its URL prefix, but it stays out of the
 // language switcher, hreflang, sitemaps and search indexing until a native
 // speaker has reviewed the texts. Removing a code here makes it public.
-export const reviewLocales: readonly StoreLocale[] = ['ku'];
+export const reviewLocales: readonly StoreLocale[] = [];
 
 export function isStoreLocale(locale: string | null | undefined): locale is StoreLocale {
   return (storeLocales as readonly string[]).includes(locale ?? '');

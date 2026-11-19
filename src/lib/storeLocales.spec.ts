@@ -8,6 +8,7 @@ import {
   storeServesLocale,
   switcherLocales,
 } from './storeLocales';
+import { injectReviewLocales } from '@/test/reviewLocales';
 
 describe('isStoreOnlyLocale / matchStoreLocalePrefix', () => {
   it('ku is store-only, the six platform locales are not', () => {
@@ -36,20 +37,40 @@ describe('switcherLocales', () => {
     expect(switcherLocales('en', undefined, 'en')).toEqual([]);
   });
 
-  it('hides ku while it is in review, unless it is the current locale', () => {
-    expect(switcherLocales('sv', ['en', 'ku'], 'sv')).toEqual(['en']);
-    expect(switcherLocales('sv', ['en', 'ku'], 'en')).toEqual(['en']);
-    expect(switcherLocales('sv', ['ku'], 'sv')).toEqual([]);
-    // The reviewer on /ku/ sees it selected and can switch back.
+  it('ku is a normal locale now: listed in the switcher on any page', () => {
+    expect(switcherLocales('sv', ['en', 'ku'], 'sv')).toEqual(['en', 'ku']);
+    expect(switcherLocales('sv', ['en', 'ku'], 'en')).toEqual(['en', 'ku']);
+    expect(switcherLocales('sv', ['ku'], 'sv')).toEqual(['ku']);
     expect(switcherLocales('sv', ['en', 'ku'], 'ku')).toEqual(['en', 'ku']);
-    expect(switcherLocales('sv', ['ku'], 'ku')).toEqual(['ku']);
+  });
+
+  describe('with ku injected as a review locale', () => {
+    injectReviewLocales('ku');
+
+    it('hides ku while it is in review, unless it is the current locale', () => {
+      expect(switcherLocales('sv', ['en', 'ku'], 'sv')).toEqual(['en']);
+      expect(switcherLocales('sv', ['en', 'ku'], 'en')).toEqual(['en']);
+      expect(switcherLocales('sv', ['ku'], 'sv')).toEqual([]);
+      // The reviewer on /ku/ sees it selected and can switch back.
+      expect(switcherLocales('sv', ['en', 'ku'], 'ku')).toEqual(['en', 'ku']);
+      expect(switcherLocales('sv', ['ku'], 'ku')).toEqual(['ku']);
+    });
   });
 });
 
 describe('publicLocales', () => {
-  it('drops review locales, keeps order', () => {
-    expect(publicLocales(['sv', 'ku', 'en'])).toEqual(['sv', 'en']);
+  it('keeps every locale, ku included, now that nothing is in review', () => {
+    expect(publicLocales(['sv', 'ku', 'en'])).toEqual(['sv', 'ku', 'en']);
     expect(publicLocales(['en', 'ar'])).toEqual(['en', 'ar']);
+  });
+
+  describe('with ku injected as a review locale', () => {
+    injectReviewLocales('ku');
+
+    it('drops review locales, keeps order', () => {
+      expect(publicLocales(['sv', 'ku', 'en'])).toEqual(['sv', 'en']);
+      expect(publicLocales(['en', 'ar'])).toEqual(['en', 'ar']);
+    });
   });
 });
 

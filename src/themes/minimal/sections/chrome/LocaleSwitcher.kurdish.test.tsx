@@ -2,9 +2,11 @@ import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LocaleSwitcher } from './LocaleSwitcher.client';
 import { switcherLocales } from '@/lib/storeLocales';
+import { injectReviewLocales } from '@/test/reviewLocales';
 
-// Kurmanji ('ku') in review: hidden from the switcher, shown (selected) only
-// to the reviewer who opened /ku/. Label "Kurdî", a neutral globe, no flag.
+// Kurmanji ('ku'): shown in the switcher like any locale now that it left
+// review. The review mechanism (hidden, shown only to the reviewer who opened
+// /ku/) is covered with ku injected as a review locale. Label "Kurdî" with the bundled Kurdistan flag.
 
 function renderSwitcher(current: string, secondary: string[]) {
   return render(
@@ -26,7 +28,9 @@ afterEach(() => {
   restore = null;
 });
 
-describe('LocaleSwitcher with ku in review', () => {
+describe('LocaleSwitcher with ku in review (ku injected)', () => {
+  injectReviewLocales('ku');
+
   it('ku is not listed on the public locales', () => {
     const { getByRole, queryByText, getAllByRole } = renderSwitcher('sv', ['en', 'ku']);
     fireEvent.click(getByRole('button'));
@@ -39,18 +43,17 @@ describe('LocaleSwitcher with ku in review', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('on /ku/ the current locale is shown as "Kurdî" with a globe, never a flag', () => {
+  it('on /ku/ the current locale is shown as "Kurdî" with the Kurdistan flag', () => {
     const { getByRole, getAllByRole, container } = renderSwitcher('ku', ['en', 'ku']);
     const button = getByRole('button');
     expect(button.textContent).toContain('Kurdî');
     // The button carries no flag image (the globe is an inline svg).
-    expect(button.querySelector('img')).toBeNull();
-    expect(button.querySelector('svg')).not.toBeNull();
+    expect(button.querySelector('img')?.getAttribute('src')).toBe('/flags/kurdistan.svg');
     fireEvent.click(button);
     expect(getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['Svenska', 'English', 'Kurdî']);
     const kuItem = getAllByRole('menuitem')[2]!;
-    expect(kuItem.querySelector('img')).toBeNull();
-    expect(container.querySelectorAll('img').length).toBe(2);
+    expect(kuItem.querySelector('img')?.getAttribute('src')).toBe('/flags/kurdistan.svg');
+    expect(container.querySelectorAll('img').length).toBe(4);
   });
 
   it('switching back from /ku/ strips the ku prefix', () => {
@@ -68,5 +71,25 @@ describe('LocaleSwitcher with ku in review', () => {
     // The list stays open (navigation is mocked).
     fireEvent.click(getAllByRole('menuitem')[1]!);
     expect(assign).toHaveBeenLastCalledWith('/en/products/x?a=1');
+  });
+});
+
+describe('LocaleSwitcher with ku as a normal locale', () => {
+  it('ku is listed as "Kurdî" with the bundled Kurdistan flag on the primary page', () => {
+    const { getByRole, getAllByRole, queryByText, container } = renderSwitcher('sv', ['en', 'ku']);
+    fireEvent.click(getByRole('button'));
+    expect(getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['Svenska', 'English', 'Kurdî']);
+    expect(queryByText('Kurdî')).not.toBeNull();
+    const kuImg = getAllByRole('menuitem')[2]!.querySelector('img')!;
+    expect(kuImg.getAttribute('src')).toBe('/flags/kurdistan.svg');
+    expect(kuImg.getAttribute('width')).toBe('24');
+    expect(kuImg.getAttribute('height')).toBe('16');
+    expect(kuImg.getAttribute('class') ?? '').toContain('object-contain');
+    expect(container.querySelectorAll('img').length).toBe(4);
+  });
+
+  it('a store whose only extra locale is ku shows the switcher', () => {
+    const { container } = renderSwitcher('sv', ['ku']);
+    expect(container.innerHTML).not.toBe('');
   });
 });

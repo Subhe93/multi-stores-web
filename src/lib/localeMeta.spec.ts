@@ -23,6 +23,12 @@ describe('resolveLocaleMeta', () => {
     expect(resolveLocaleMeta('fa').flagUrl).toBe('https://flagcdn.com/ir.svg');
   });
 
+  it('Kurdish uses the bundled, unmodified Kurdistan flag; other locales keep flagcdn', () => {
+    expect(resolveLocaleMeta('ku')).toEqual({ code: 'ku', label: 'Kurdî', flagUrl: '/flags/kurdistan.svg' });
+    expect(resolveLocaleMeta('ku-TR').flagUrl).toBe('/flags/kurdistan.svg');
+    for (const l of ['en', 'ar', 'fa', 'sv', 'tr']) expect(resolveLocaleMeta(l).flagUrl).toMatch(/^https:\/\/flagcdn\.com\/[a-z]{2}\.svg$/);
+  });
+
   it('an unknown locale has no flag and shows its code', () => {
     expect(resolveLocaleMeta('xx')).toEqual({ code: 'xx', label: 'XX', flagUrl: '' });
   });

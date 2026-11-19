@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// A store that enabled Kurmanji ('ku') while it is in review: the sitemap
-// lists and advertises only its public locales.
+// A store that enabled Kurmanji ('ku'). It left review, so the sitemap lists
+// and advertises it like any locale; the review mechanism (hidden from the
+// sitemap) is covered with ku injected as a review locale.
 const legacyData = {
   locales: ['sv', 'en', 'ku'],
   primaryLocale: 'sv',
@@ -35,6 +36,7 @@ vi.mock('@/lib/api', () => ({
 }));
 
 import { GET } from './route';
+import { injectReviewLocales } from '@/test/reviewLocales';
 
 async function sitemapXml(headers: Record<string, string> = {}): Promise<string> {
   const res = await GET(new Request('https://shop.example.com/sitemap.xml', { headers }), {
@@ -43,7 +45,9 @@ async function sitemapXml(headers: Record<string, string> = {}): Promise<string>
   return res.text();
 }
 
-describe('store sitemap.xml with a locale in review', () => {
+describe('store sitemap.xml with a locale in review (ku injected)', () => {
+  injectReviewLocales('ku');
+
   it('legacy store: no /ku/ URL and no ku hreflang, the other locales unchanged', async () => {
     getSitemapData.mockResolvedValueOnce(legacyData);
     const xml = await sitemapXml();
@@ -60,5 +64,21 @@ describe('store sitemap.xml with a locale in review', () => {
     expect(xml).toContain('<loc>https://shop.example.com/en/products/jumper</loc>');
     expect(xml).not.toContain('/ku');
     expect(xml).not.toMatch(/hreflang="ku/);
+  });
+});
+
+describe('store sitemap.xml with ku as a normal locale', () => {
+  it('legacy store: ku is advertised as an hreflang alternate', async () => {
+    getSitemapData.mockResolvedValueOnce(legacyData);
+    const xml = await sitemapXml();
+    expect(xml).toContain('<xhtml:link rel="alternate" hreflang="ku" href="https://shop.example.com/ku/om-oss" />');
+    expect(xml).toContain('<xhtml:link rel="alternate" hreflang="en" href="https://shop.example.com/en/om-oss" />');
+  });
+
+  it('market store: ku <url> entry and ku alternate are listed', async () => {
+    getSitemapData.mockResolvedValueOnce({ ...legacyData, market, markets: [market] });
+    const xml = await sitemapXml({ 'x-market': 'se' });
+    expect(xml).toContain('<loc>https://shop.example.com/ku/products/jumper</loc>');
+    expect(xml).toMatch(/hreflang="ku/);
   });
 });
