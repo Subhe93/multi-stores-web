@@ -16,6 +16,8 @@ import Link from 'next/link';
 // floods the origin with dynamic RSC renders on each page view.
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
+import { useBuyerType } from '@/hooks/useBuyerType';
 import { OPEN_MOBILE_MENU_EVENT } from './mobileMenuEvent';
 import { DRAWER_EXIT_MS, useExit, type ChromeMotion } from './chromeMotion.client';
 
@@ -47,6 +49,10 @@ export function HeaderBarMobileMenu({
   motion?: ChromeMotion;
 }) {
   const t = useTranslations();
+  // b2b app: the Person | Company toggle lives in the drawer on phones (the
+  // strip under the header shows it from md up only). Same gate as the toggle.
+  const buyer = useBuyerType();
+  const showBuyerToggle = buyer.enabled && buyer.settings.allow_company !== false;
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -199,6 +205,14 @@ export function HeaderBarMobileMenu({
                 <MobileRow key={i} item={item} onNavigate={() => setOpen(false)} rise={motion ? i : undefined} />
               ))}
             </nav>
+            {showBuyerToggle && (
+              <div
+                className="p-4 border-t"
+                style={{ borderColor: 'color-mix(in srgb, currentColor 10%, transparent)' }}
+              >
+                <BuyerTypeToggle variant="full" />
+              </div>
+            )}
           </div>
         </>,
         portalTarget,

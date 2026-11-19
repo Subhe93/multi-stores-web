@@ -755,9 +755,14 @@ export default async function StoreLayout({
                       stores get a slim strip with the country switcher, and
                       b2b stores the Person | Company toggle (M2-DESIGN §4.2). */}
                   {(store.market || storeApps.b2b) && (
-                    <div className="store-surface store-bd border-b px-4 py-1 flex justify-end items-center gap-3">
+                    // Phones: the buyer toggle sits in the header's menu drawer,
+                    // so the strip shows below md only when it also carries the
+                    // country switcher (which needs two markets or more).
+                    <div className={`store-surface store-bd border-b px-4 py-1 justify-end items-center gap-3 ${store.market && (store.markets?.length ?? 0) >= 2 ? 'flex' : 'hidden md:flex'}`}>
                       <IfApp app="b2b">
-                        <BuyerTypeToggle primaryColor={primaryColor} />
+                        <div className="hidden md:block">
+                          <BuyerTypeToggle primaryColor={primaryColor} />
+                        </div>
                       </IfApp>
                       {store.market && (
                         <IfApp app="markets">

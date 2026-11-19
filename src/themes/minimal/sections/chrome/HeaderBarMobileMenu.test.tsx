@@ -9,6 +9,18 @@ vi.mock('next-intl', () => ({
     `${ns ? `${ns}.` : ''}${key}${values?.label ? `:${values.label}` : ''}`,
 }));
 
+// b2b buyer context: off unless a test switches it on.
+const buyer = { enabled: false, allowCompany: true };
+vi.mock('@/hooks/useBuyerType', () => ({
+  useBuyerType: () => ({
+    enabled: buyer.enabled,
+    settings: { allow_company: buyer.allowCompany },
+    buyerType: 'person',
+    isCompany: false,
+    setBuyerType: () => {},
+  }),
+}));
+
 const listeners = new Set<() => void>();
 let desktop = false;
 
@@ -36,6 +48,25 @@ function renderMenu() {
 }
 
 describe('HeaderBarMobileMenu', () => {
+  it('shows the Person | Company toggle in the drawer only for b2b stores that allow companies', () => {
+    const cases = [
+      { enabled: false, allowCompany: true, shown: false },
+      { enabled: true, allowCompany: false, shown: false },
+      { enabled: true, allowCompany: true, shown: true },
+    ];
+    for (const c of cases) {
+      buyer.enabled = c.enabled;
+      buyer.allowCompany = c.allowCompany;
+      const { unmount } = renderMenu();
+      fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.querySelector('[role="radiogroup"]') !== null).toBe(c.shown);
+      unmount();
+    }
+    buyer.enabled = false;
+    buyer.allowCompany = true;
+  });
+
   it('opens a named dialog, moves focus in and returns it on Escape', () => {
     renderMenu();
     const trigger = screen.getByRole('button', { name: 'Open menu' });
