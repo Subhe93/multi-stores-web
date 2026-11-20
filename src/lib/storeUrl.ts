@@ -15,6 +15,11 @@ export interface MarketUrlInput {
   status?: string;
   /** Indexing mode (M6.1); absent = AUTO. See `isIndexableMarket`. */
   indexing?: MarketIndexing;
+  /**
+   * The owner's hreflang x-default market (at most one per store). Absent =
+   * the default market. Used only while the market is indexable.
+   */
+  is_x_default?: boolean;
 }
 
 /**
@@ -194,8 +199,9 @@ export function buildStoreAlternates(opts: {
    * Markets app only (M1-DESIGN §4.3 / D9): every LIVE market of the store.
    * When given, hreflang covers each market × locale on that market's origin
    * (`lang-COUNTRY` for single-country markets), collisions keep the default
-   * market and `x-default` is the default market's default locale. Omitted or
-   * empty → today's single-origin output, untouched.
+   * market and `x-default` is the default locale of the market flagged
+   * `is_x_default` when that one is indexable, else of the default market.
+   * Omitted or empty → today's single-origin output, untouched.
    */
   markets?: MarketUrlInput[] | null;
   /** Needed with `markets` to build the platform origin of a market without
@@ -356,11 +362,15 @@ function buildMarketAlternates(opts: {
       owner[code] = m;
     }
   }
+  // `markets` holds indexable markets only, so a flagged market that is not
+  // indexable (DRAFT, NEVER, hostless AUTO) is absent and the default market
+  // takes over.
+  const xMarket = markets.find((m) => m.is_x_default) ?? defaultMarket;
   languages['x-default'] = storeLocalePath(
-    marketOrigin(defaultMarket, platformOrigin, storeCustomDomain),
-    defaultMarket.default_locale,
-    defaultMarket.default_locale,
-    pathByLocale[defaultMarket.default_locale] ?? path,
+    marketOrigin(xMarket, platformOrigin, storeCustomDomain),
+    xMarket.default_locale,
+    xMarket.default_locale,
+    pathByLocale[xMarket.default_locale] ?? path,
   );
 
   // Canonical = this page on the CURRENT market's origin, in its own locale.

@@ -42,6 +42,11 @@ export interface MarketRoute {
    *    without it is noindex. Absent (older payloads) = AUTO.
    */
   indexing?: MarketIndexing;
+  /**
+   * The owner's hreflang x-default market; sent (true) only on that market.
+   * Hreflang falls back to the default market when it is not indexable.
+   */
+  is_x_default?: true;
 }
 
 /** `Market.indexing` values (M6.1). */

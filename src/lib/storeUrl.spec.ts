@@ -177,6 +177,66 @@ describe('buildStoreAlternates (markets)', () => {
     expect(res.languages['de']).toBeUndefined();
   });
 
+  describe('configurable x-default market', () => {
+    const euX: MarketUrlInput = { ...eu, is_x_default: true };
+
+    it('points x-default at the flagged market in its default locale, on every market', () => {
+      const res = buildStoreAlternates({ ...onSe, markets: [se, euX] });
+      expect(res.languages['x-default']).toBe('https://namez.shop/products/metal-card');
+      // Canonical and the other codes do not move.
+      expect(res.canonical).toBe('https://namez.se/products/metal-card');
+      expect(res.languages['sv-SE']).toBe('https://namez.se/products/metal-card');
+      const onEu = buildStoreAlternates({
+        ...onSe,
+        origin: 'https://namez.shop',
+        locale: 'ar',
+        primaryLocale: 'en',
+        secondaryLocales: ['de', 'fr', 'ar'],
+        markets: [se, euX],
+      });
+      expect(onEu.languages['x-default']).toBe('https://namez.shop/products/metal-card');
+      expect(onEu.canonical).toBe('https://namez.shop/ar/products/metal-card');
+    });
+
+    it("uses the flagged market's translated path for its default locale", () => {
+      const res = buildStoreAlternates({
+        ...onSe,
+        markets: [se, euX],
+        pathByLocale: { sv: '/products/metallkort', en: '/products/metal-card-en' },
+      });
+      expect(res.languages['x-default']).toBe('https://namez.shop/products/metal-card-en');
+    });
+
+    it('falls back to the default market when the flagged one is not indexable', () => {
+      for (const bad of [
+        { ...euX, indexing: 'NEVER' as const },
+        { ...euX, status: 'DRAFT' },
+        { ...euX, primary_hostname: null },
+      ]) {
+        const res = buildStoreAlternates({ ...onSe, markets: [se, bad] });
+        expect(res.languages['x-default']).toBe('https://namez.se/products/metal-card');
+      }
+    });
+
+    it('unset or false leaves the output identical', () => {
+      const base = buildStoreAlternates({ ...onSe, markets: [se, eu] });
+      const off = buildStoreAlternates({ ...onSe, markets: [se, { ...eu, is_x_default: false }] });
+      expect(off).toEqual(base);
+      // Flagging the default market itself is the same as not flagging any.
+      const self = buildStoreAlternates({ ...onSe, markets: [{ ...se, is_x_default: true }, eu] });
+      expect(self).toEqual(base);
+    });
+
+    it('only moves x-default: every other entry matches the unflagged output', () => {
+      const base = buildStoreAlternates({ ...onSe, markets: [se, eu] });
+      const flagged = buildStoreAlternates({ ...onSe, markets: [se, euX] });
+      const { ['x-default']: _a, ...restBase } = base.languages;
+      const { ['x-default']: _b, ...restFlagged } = flagged.languages;
+      expect(restFlagged).toEqual(restBase);
+      expect(Object.keys(flagged.languages)).toEqual(Object.keys(base.languages));
+    });
+  });
+
   describe('M6.1 indexing modes', () => {
     it('isIndexableMarket: NEVER never, ALWAYS anywhere, AUTO only with a custom domain', () => {
       // AUTO (explicit and absent) needs a hostname: the platform subdomain is noindex.
