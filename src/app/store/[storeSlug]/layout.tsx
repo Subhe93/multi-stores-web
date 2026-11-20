@@ -44,6 +44,7 @@ import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, tokenArabic
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
+import { stripHtmlToText } from '@/lib/collectionSeo';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
@@ -207,11 +208,12 @@ export async function generateMetadata({
       // store's own origin rather than Next's localhost default.
       metadataBase: new URL(origin),
       title: trans?.metaTitle || storeSeo?.metaTitle || trans?.name || store.name,
+      // The last two fallbacks are rich-text HTML: plain text, meta length.
       description:
         trans?.metaDescription ||
         storeSeo?.metaDescription ||
-        trans?.description ||
-        store.description,
+        stripHtmlToText(trans?.description || store.description).slice(0, 160) ||
+        undefined,
       // The creator uploads a favicon in store settings; it was stored and
       // never rendered, so every storefront showed the framework default.
       // A store without one keeps the single platform icon link it always

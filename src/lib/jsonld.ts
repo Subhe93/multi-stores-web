@@ -3,6 +3,8 @@
 // tag. Keep them pure — no fetching, no React — so they're cheap to call from
 // any server component.
 
+import { stripHtmlToText } from './collectionSeo';
+
 interface OrganizationInput {
   name: string;
   url: string;
@@ -14,13 +16,16 @@ interface OrganizationInput {
 }
 
 export function buildOrganization(input: OrganizationInput) {
+  // The store description is saved by a rich-text editor; schema.org wants
+  // plain text, not `<p>…</p>` (Namez 2026-11-20).
+  const description = stripHtmlToText(input.description);
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: input.name,
     url: input.url,
     ...(input.logo ? { logo: input.logo } : {}),
-    ...(input.description ? { description: input.description } : {}),
+    ...(description ? { description } : {}),
     ...(input.sameAs?.length ? { sameAs: input.sameAs } : {}),
     ...(input.email || input.phone
       ? {

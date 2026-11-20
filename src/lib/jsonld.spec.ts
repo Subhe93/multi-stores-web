@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProduct } from './jsonld';
+import { buildOrganization, buildProduct } from './jsonld';
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from './productVideo';
 
 // Product JSON-LD and product video (contract 6.5): `image` stays image-only
@@ -65,5 +65,21 @@ describe('buildProduct and videos', () => {
         embedUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
       },
     ]);
+  });
+});
+
+describe('buildOrganization description', () => {
+  it('is plain text even when the store description is editor HTML', () => {
+    const ld = buildOrganization({
+      name: 'Namez',
+      url: 'https://namez.se',
+      description: '<p>NameZ är en webbutik i Borlänge&nbsp;– Dalarna.</p><p>Allt tillverkas i Sverige.</p>',
+    });
+    expect(ld.description).toBe('NameZ är en webbutik i Borlänge – Dalarna. Allt tillverkas i Sverige.');
+  });
+
+  it('omits an empty or tag-only description', () => {
+    expect(buildOrganization({ name: 'A', url: 'https://a.se', description: '<p>&nbsp;</p>' })).not.toHaveProperty('description');
+    expect(buildOrganization({ name: 'A', url: 'https://a.se' })).not.toHaveProperty('description');
   });
 });
