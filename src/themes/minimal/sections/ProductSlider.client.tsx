@@ -122,7 +122,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   // b2b app: company view shows net amounts.
   const display = useDisplayPrice();
   const fmt = (n: number) =>
-    new Intl.NumberFormat(locale === 'ar' ? 'ar' : formatLocale(locale), {
+    new Intl.NumberFormat(formatLocale(locale), {
       style: 'currency',
       currency: c,
       maximumFractionDigits: 2,
