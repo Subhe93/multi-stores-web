@@ -50,7 +50,7 @@ const FULL_BLEED = {
   marginInline: 'calc(50% - 50vw)',
 } as const;
 
-function BrandBand({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function BrandBand({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const headingId = useId();
   const image = str(settings.image);
   const resolvedImage = image ? resolveMediaUrl(image) : '';
@@ -189,7 +189,7 @@ function BrandBand({ settings, content, locale, primaryLocale, builderPreview, m
         {ctaText && (
           <MotionRise motion={motion} i={4}>
             <a
-              href={sectionHref(settings.cta_url, locale, primaryLocale)}
+              href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
               className={`mt-2 inline-flex items-center justify-center px-7 py-3 text-sm font-semibold transition-opacity hover:opacity-80 ${FOCUS_RING}`}
               style={{
                 color: textColor,

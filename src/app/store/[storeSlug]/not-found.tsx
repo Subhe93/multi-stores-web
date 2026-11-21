@@ -1,5 +1,7 @@
 import { headers } from 'next/headers';
 import { StoreNotFoundView } from '@/components/layout/StoreNotFoundView';
+import { requestPathPrefix } from '@/lib/market';
+import { pageLinkPrefix } from '@/lib/localePaths';
 import { ProductPreviewUnlock } from '@/components/layout/ProductPreview';
 import { focusedBackToSite } from '@/lib/focusedStorefront.server';
 
@@ -12,7 +14,8 @@ export default async function StoreNotFound() {
   // server pages that build links from `?lang`.
   const h = await headers();
   const urlLocale = h.get('x-locale');
-  const lp = urlLocale ? `/${urlLocale}` : '';
+  // M156: the proxy's path prefix on a locale-path market (`/de-at`).
+  const lp = pageLinkPrefix(requestPathPrefix(h), urlLocale);
   // The proxy forwards the store slug of the host; the owner's draft-product
   // preview unlock needs it (nothing happens for other visitors).
   const storeSlug = h.get('x-store-slug');

@@ -8,6 +8,7 @@
 // variants, custom fields, promotions, shipping, tabs and all. The creator's
 // simple show/hide toggles map straight onto ProductDetailClient's options.
 
+import { useStorePathPrefix } from '@/hooks/useStorePathPrefix';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -23,6 +24,9 @@ type ProductInput = React.ComponentProps<typeof ProductDetailClient>['product'];
 export function ProductPageMagic({ settings, content, locale, primaryLocale, product, currency, motion }: SectionRenderProps) {
   const t = useTranslations();
   const focused = useFocusedStorefront();
+  // Link prefix: secondary locales get a path prefix, the primary stays
+  // canonical; on a locale-path market (M156) the request's own prefix.
+  const langPrefix = useStorePathPrefix(locale, primaryLocale);
   // No product in context (e.g. builder preview before a sample loads) — show a
   // recognisable placeholder rather than crashing.
   if (!product) {
@@ -47,10 +51,6 @@ export function ProductPageMagic({ settings, content, locale, primaryLocale, pro
       </div>
     );
   }
-
-  // Secondary locales get a path prefix; primary stays canonical — matches the
-  // convention used by the other storefront sections.
-  const langPrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
 
   // Map the theme's primary token onto the --store-primary variable that
   // ProductDetailClient reads, so the page adopts the active theme color.

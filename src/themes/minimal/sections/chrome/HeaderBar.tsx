@@ -112,7 +112,7 @@ export function parseOverlayHero(raw: unknown): OverlayHero {
   return raw === 'home' || raw === 'all' ? raw : 'off';
 }
 
-function HeaderBar({ settings, content, locale, primaryLocale, storeSlug, storeContext, motion }: SectionRenderProps) {
+function HeaderBar({ settings, content, locale, primaryLocale, pathPrefix, storeSlug, storeContext, motion }: SectionRenderProps) {
   const ctx = storeContext;
   // Shared (non-async) component: next-intl's hook works both in the RSC
   // storefront and in the client-rendered builder preview.
@@ -186,7 +186,7 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeSlug, storeC
   //   2. Inline custom items entered on this section.
   //   3. Auto-generated from the store's published static pages.
   // Locale prefix for the canonical storefront URL scheme (see localizeUrl).
-  const lp = storeLocalePrefix(locale, primaryLocale);
+  const lp = storeLocalePrefix({ locale, primaryLocale, pathPrefix });
 
   const menuKey = (settings.menu_key as string) || '';
   // Build a 1-level nav tree from the selected menu: top-level entries plus

@@ -5,7 +5,7 @@ import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { collectionHref, collectionPathInChain, resolveCollectionChain } from '@/lib/collectionPath';
 import { StoreProductCard } from '@/components/product/card/StoreProductCard';
@@ -31,6 +31,7 @@ import { readListingSettings } from '@/lib/listingFilters/settings';
 import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
 import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
+import { pageLinkPrefix } from '@/lib/localePaths';
 
 interface ProductPromotion {
   type?: string;
@@ -122,7 +123,10 @@ export default async function CollectionPage({
   const query = await searchParams;
   const { search, lang, sort } = query;
   const t = await getTranslations();
-  const lp = lang ? `/${lang}` : '';
+  // Link prefix: the proxy's path prefix on a locale-path market (M156),
+  // else the URL's own locale folder.
+  const pathPrefix = await getRequestPathPrefix();
+  const lp = pageLinkPrefix(pathPrefix, lang);
 
   // Fetch the tree first so we can render the hero with the matching collection.
   // We also need the store currency for product prices.
@@ -171,7 +175,7 @@ export default async function CollectionPage({
   // WordPress' canonical redirect. Stored slugs are the fixed point, so this
   // cannot loop.
   if ((pathSegments || []).some((seg, i) => isNonCanonicalSlugForm(seg, chainSlugs[i]!))) {
-    permanentRedirect(canonicalRedirectHref(collectionHref({ path: chainSlugs, slug: handle }), query));
+    permanentRedirect(canonicalRedirectHref(collectionHref({ path: chainSlugs, slug: handle }), query, pathPrefix));
   }
   const collectionBase = collectionHref({ path: chainSlugs, slug: handle });
 
@@ -285,6 +289,7 @@ export default async function CollectionPage({
     locale,
     ldPrimary,
     collectionBase,
+    pathPrefix,
   );
   const collectionLd = buildCollectionPage({
     name: collectionName,
@@ -299,16 +304,16 @@ export default async function CollectionPage({
         p.translations?.[0];
       return {
         name: tr?.title || '',
-        url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`),
+        url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`, pathPrefix),
         image: p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined,
       };
     }),
   });
   const collectionBreadcrumbLd = buildBreadcrumb([
-    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
+    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '', pathPrefix) },
     ...ancestors.map((a, i) => ({
       name: pickTranslation(a.translations, locale)?.name || a.slug,
-      url: storeLocalePath(ldOrigin, locale, ldPrimary, ancestorHref(i)),
+      url: storeLocalePath(ldOrigin, locale, ldPrimary, ancestorHref(i), pathPrefix),
     })),
     { name: collectionName, url: collectionUrl },
   ]);
@@ -359,6 +364,7 @@ export default async function CollectionPage({
           sections={templateSections}
           locale={tplLocale}
           primaryLocale={ldPrimary}
+          pathPrefix={pathPrefix}
           storeSlug={storeSlug}
           motion={storeMotionOf(storeData)}
           currency={currency}
@@ -708,6 +714,7 @@ export async function generateMetadata({
     // Previously title + description only, so a collection inherited the
     // layout's canonical and declared itself a duplicate of the homepage.
     const alternates = buildStoreAlternates({
+      pathPrefix: await getRequestPathPrefix(),
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,

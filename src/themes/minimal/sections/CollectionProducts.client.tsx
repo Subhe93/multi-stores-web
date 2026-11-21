@@ -5,6 +5,7 @@
 // Mirrors FeaturedProducts but pulls from a specific category instead of the
 // newest/featured catalogue-wide list.
 
+import { useStorePathPrefix } from '@/hooks/useStorePathPrefix';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
@@ -75,7 +76,8 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   // A whitespace-only label is an icon-only link: no visible text, but the
   // chevron still needs an accessible name.
   const linkLabel = typeof rawLinkLabel === 'string' && rawLinkLabel !== '' ? rawLinkLabel.trim() : defaultLinkLabel;
-  const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
+  // Link prefix of the request (M156 locale paths), else `/<locale>`.
+  const localePrefix = useStorePathPrefix(locale, primaryLocale);
   // "View all": the link set in the builder; without one it lists every
   // product only when no collection is picked. A section showing one
   // collection (often an internal label on a landing page) hides it rather

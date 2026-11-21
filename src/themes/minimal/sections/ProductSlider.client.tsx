@@ -3,6 +3,7 @@
 // Sibling of FeaturedProducts: same data fetch, different presentation.
 // Renders products as a horizontal slider instead of a grid.
 
+import { useStorePathPrefix } from '@/hooks/useStorePathPrefix';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
@@ -68,7 +69,8 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
   const linkLabel = ((content.link_label as string) || '').trim() || tCommon('viewAll');
   // Storefront routes are exposed under the store's subdomain (see proxy.ts);
   // the secondary-locale prefix is the only thing we add to the public path.
-  const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
+  // Link prefix of the request (M156 locale paths), else `/<locale>`.
+  const localePrefix = useStorePathPrefix(locale, primaryLocale);
   const linkUrl = (settings.link_url as string) || `${localePrefix}/products`;
   const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
   // Card image `sizes` from slides-per-view (Slider breakpoints: 768 / 1024).

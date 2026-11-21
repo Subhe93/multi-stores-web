@@ -7,6 +7,7 @@
 // the same variant, price and choices as the monolith `product-page`.
 
 import type { CSSProperties, ReactNode } from 'react';
+import { linkPrefix } from '@/lib/localePaths';
 import { belowFold, pd, useProductMotion } from '@/components/product/productMotion';
 import { formatLocale } from '@/lib/storeLocales';
 
@@ -85,9 +86,13 @@ export function ProductBlockPlaceholder({
   );
 }
 
-/** Path prefix for secondary locales; the primary locale stays canonical. */
-export function langPrefixFor(locale: string, primaryLocale: string): string {
-  return locale && locale !== primaryLocale ? `/${locale}` : '';
+/**
+ * Link prefix of the product blocks: the request's path prefix on a
+ * locale-path market (M156, `useStorePathPrefixValue()`), else `/<locale>`
+ * for a secondary locale and '' for the primary one.
+ */
+export function langPrefixFor(locale: string, primaryLocale: string, pathPrefix?: string): string {
+  return linkPrefix({ locale, primaryLocale, pathPrefix });
 }
 
 /** Arabic or English builder label. */

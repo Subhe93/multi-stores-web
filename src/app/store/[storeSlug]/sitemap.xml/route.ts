@@ -3,6 +3,7 @@ import { buildStoreOrigin, buildStoreAlternates, storeLocalePath } from '@/lib/s
 import { requestMarketRef, requestNoindex, type MarketRoute } from '@/lib/market';
 import { collectionHref } from '@/lib/collectionPath';
 import { publicLocales } from '@/lib/storeLocales';
+import { marketUrlSlots, usesLocalePaths } from '@/lib/localePaths';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { focusedSitemapData, focusedStorefront } from '@/lib/focusedStorefront';
 
@@ -194,12 +195,23 @@ function buildMarketSitemap(
   // Locales in review ('ku') are served but never listed.
   const marketLocales = publicLocales(Array.from(new Set([primary, ...market.locales])));
   const markets = data.markets?.length ? data.markets : [market];
+  // One <url> per URL root of this market: the locales as before, or (M156,
+  // locale-path market) the root plus every active language-country path,
+  // each with its own canonical. `pathPrefix` undefined keeps the old URLs.
+  const pathMarket = usesLocalePaths(market);
+  const roots: { locale: string; pathPrefix?: string }[] = pathMarket
+    ? marketUrlSlots(market)
+        .filter((slot) => marketLocales.includes(slot.locale))
+        .map((slot) => ({ locale: slot.locale, pathPrefix: slot.prefix }))
+    : marketLocales.map((loc) => ({ locale: loc }));
 
   function urlEntries(path: string, lastmod: string | Date | null, pathByLocale?: Record<string, string>): string[] {
-    return marketLocales.map((loc) => {
+    return roots.map(({ locale: loc, pathPrefix }) => {
       const { canonical, languages } = buildStoreAlternates({
         origin: base,
         locale: loc,
+        pathPrefix,
+        market,
         primaryLocale: primary,
         secondaryLocales: market.locales,
         path,

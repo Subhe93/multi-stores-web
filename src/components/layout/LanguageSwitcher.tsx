@@ -1,5 +1,8 @@
 'use client';
 
+import { localePathSwitchTarget, switchableLocales } from '@/lib/localePaths';
+import { useMarket, usePreferredCountry } from '@/hooks/useMarket';
+
 const LOCALE_LABELS: Record<string, string> = {
   en: 'EN',
   ar: 'ع',
@@ -18,16 +21,28 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ primaryLocale = 'en', availableLocales, primaryColor, activeLang }: LanguageSwitcherProps) {
+  const market = useMarket();
+  const preferredCountry = usePreferredCountry();
   if (availableLocales.length === 0) return null;
 
   const allLocales = [primaryLocale, ...availableLocales.filter(l => l !== primaryLocale)];
 
   // Use server-resolved locale when available; otherwise detect from browser URL
   const activeLocale = activeLang ?? primaryLocale;
+  // M156: on a locale-path market a language that only exists under another
+  // country's path is not offered (it would change the visitor's country).
+  const shownLocales = switchableLocales(market, allLocales, preferredCountry, activeLocale);
 
   const switchTo = (locale: string) => {
     // Read the real browser pathname (not the rewritten one from usePathname)
     const browserPath = window.location.pathname;
+    // M156: a locale-path market (`/de-at/`) maps the language to its path
+    // for the visitor's country; every other store keeps the code below.
+    const mapped = localePathSwitchTarget(market, browserPath, locale, preferredCountry, allLocales);
+    if (mapped !== null) {
+      window.location.assign(mapped);
+      return;
+    }
 
     // Strip existing locale prefix from the browser path
     const currentLocalePrefix = allLocales.find(
@@ -50,7 +65,7 @@ export function LanguageSwitcher({ primaryLocale = 'en', availableLocales, prima
 
   return (
     <div className="flex items-center gap-1 border rounded-lg overflow-hidden text-xs">
-      {allLocales.map((locale) => {
+      {shownLocales.map((locale) => {
         const isActive = activeLocale === locale;
         return (
           <button

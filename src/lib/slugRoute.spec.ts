@@ -119,6 +119,11 @@ describe('canonicalRedirectHref', () => {
     );
   });
 
+  it('M156: the request path prefix replaces the lang prefix (one hop, country path kept)', () => {
+    expect(canonicalRedirectHref('/products/new', { lang: 'de', utm: '1' }, '/de-at')).toBe('/de-at/products/new?utm=1');
+    expect(canonicalRedirectHref('/products/new', {}, '')).toBe('/products/new');
+  });
+
   it('has no prefix or query when none was given', () => {
     expect(canonicalRedirectHref('/products/shirt', {})).toBe('/products/shirt');
     expect(canonicalRedirectHref('/products/shirt', { tag: ['a', 'b'], x: undefined })).toBe(

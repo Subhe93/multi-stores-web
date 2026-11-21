@@ -7,7 +7,8 @@ import { buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
+import { linkPrefix } from '@/lib/localePaths';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
@@ -162,6 +163,7 @@ export async function buildStorePageMetadata({
   // use path-prefix `/{locale}/...` for secondary locales.
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
   const alternates = buildStoreAlternates({
+    pathPrefix: await getRequestPathPrefix(),
     origin: origin,
     locale,
     primaryLocale,
@@ -234,8 +236,10 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
   // Focused storefront (only legal / cookie pages are served then): the store
   // home redirects to the external site, so the first crumb links there.
   const focus = await requestFocusedStorefront(store?.checkout);
+  // M156: the proxy's path prefix on a locale-path market (`/de-at`).
+  const pathPrefix = await getRequestPathPrefix();
   const homeHref =
-    focus?.siteUrl ?? (locale !== (store?.language_config?.primary_locale || 'en') ? `/${locale}` : '/');
+    focus?.siteUrl ?? (linkPrefix({ locale, primaryLocale: store?.language_config?.primary_locale || 'en', pathPrefix }) || '/');
 
   // JSON-LD: WebPage (CollectionPage when the page lists products) and a
   // Home › page breadcrumb. The origin and locale URL follow the same rules
@@ -257,6 +261,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
       primaryLocale: ldPrimary,
       siteName: store?.name,
       homeLabel: t('common.home'),
+      pathPrefix,
       ...input,
     });
     if (!ld) return null;
@@ -311,6 +316,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
           sections={v2.snapshot.sections}
           locale={locale}
           primaryLocale={primaryLocale}
+          pathPrefix={pathPrefix}
           storeSlug={storeSlug}
           motion={storeMotionOf(store)}
           // Product cards fall back to EUR without it (prices showed "€").

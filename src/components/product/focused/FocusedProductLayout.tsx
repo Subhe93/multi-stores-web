@@ -20,6 +20,7 @@
 // this layout does not present (`focusedProductLayoutSupports`) keep the
 // regular rendering.
 
+import { useStorePathPrefixValue } from '@/hooks/useStorePathPrefix';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, Phone } from 'lucide-react';
@@ -92,6 +93,7 @@ export function FocusedProductLayout(props: FocusedProductLayoutProps) {
 
 function FocusedProductBody({ storeSlug, sellerPhone, motion }: FocusedProductLayoutProps) {
   const t = useTranslations();
+  const pathPrefix = useStorePathPrefixValue();
   const state = useProductPageState();
   const {
     product,
@@ -384,7 +386,7 @@ function FocusedProductBody({ storeSlug, sellerPhone, motion }: FocusedProductLa
         </div>
       </div>
 
-      <ProductToasts state={state} langPrefix={b1LangPrefix(locale, primaryLocale)} />
+      <ProductToasts state={state} langPrefix={b1LangPrefix(locale, primaryLocale, pathPrefix)} />
     </div>
   );
 }

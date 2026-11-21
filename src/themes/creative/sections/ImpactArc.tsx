@@ -69,7 +69,7 @@ function stepsOf(raw: unknown): Step[] {
 // Marks at 0, 25, 50, 75 and 100 %; the quarter marks are dropped on phones.
 const TICKS = [0, 0.25, 0.5, 0.75, 1];
 
-function ImpactArc({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function ImpactArc({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const m = motion;
   const rtl = isRtl(locale);
 
@@ -287,7 +287,7 @@ function ImpactArc({ settings, content, locale, primaryLocale, builderPreview, m
               <div className="cx-ia-cta" {...rise(m)}>
                 <a
                   className="cx-ia-btn"
-                  href={sectionHref(settings.cta_url, locale, primaryLocale)}
+                  href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
                   {...hover(m, 'press')}
                   {...magnetic(m)}
                 >

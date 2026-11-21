@@ -32,7 +32,7 @@ const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const oneOf = <T extends string>(raw: unknown, allowed: readonly T[], fallback: T): T =>
   (allowed as readonly unknown[]).includes(raw) ? (raw as T) : fallback;
 
-function PatternBand({ settings, content, locale, primaryLocale, motion, builderPreview }: SectionRenderProps) {
+function PatternBand({ settings, content, locale, primaryLocale, pathPrefix, motion, builderPreview }: SectionRenderProps) {
   const safe = safePatternUrl(settings.tile_image);
   if (!safe) return builderPreview ? <EmptyState name={PATTERN_BAND_KEY} /> : null;
   // Uploaded media is stored root-relative and served by the API origin.
@@ -84,7 +84,7 @@ function PatternBand({ settings, content, locale, primaryLocale, motion, builder
               {labelUrl ? (
                 <a
                   className="cx-pb-label"
-                  href={sectionHref(labelUrl, locale, primaryLocale)}
+                  href={sectionHref(labelUrl, { locale, primaryLocale, pathPrefix })}
                   data-cx-script={script}
                   {...hover(motion, 'underline')}
                 >

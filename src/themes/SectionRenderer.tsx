@@ -64,6 +64,10 @@ interface SectionRendererProps {
   locale: string;
   storeSlug: string;
   primaryLocale: string;
+  // M156: the request's URL prefix on a locale-path market ('' root,
+  // '/de-at'). Forwarded to sections only when defined, so every other
+  // render keeps exactly its props.
+  pathPrefix?: string;
   // Forwarded to every section. Only magic sections read it; the rest ignore.
   product?: ProductContext;
   // Same idea for CATALOG_TEMPLATE / COLLECTION_TEMPLATE pages — only the
@@ -103,6 +107,7 @@ interface RenderContext {
   theme: Theme;
   locale: string;
   primaryLocale: string;
+  pathPrefix?: string;
   storeSlug: string;
   product?: ProductContext;
   listing?: ListingContext;
@@ -297,6 +302,7 @@ function renderSection(node: RenderableNode, ctx: RenderContext, nested: boolean
         content={content}
         locale={ctx.locale}
         primaryLocale={ctx.primaryLocale}
+        {...(ctx.pathPrefix !== undefined ? { pathPrefix: ctx.pathPrefix } : null)}
         storeSlug={ctx.storeSlug}
         product={ctx.product}
         listing={ctx.listing}
@@ -390,6 +396,7 @@ export function SectionRenderer({
   locale,
   storeSlug,
   primaryLocale,
+  pathPrefix,
   product,
   listing,
   currency,
@@ -413,6 +420,7 @@ export function SectionRenderer({
     theme,
     locale,
     primaryLocale,
+    pathPrefix,
     storeSlug,
     product,
     listing,

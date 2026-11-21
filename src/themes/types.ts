@@ -444,6 +444,11 @@ export interface SectionRenderProps {
   // canonical form (no `?lang=`) for the primary locale and add it only for
   // secondary locales — matching the product page's own canonical convention.
   primaryLocale: string;
+  // M156: the request's URL prefix on a locale-path market ('' root,
+  // '/de-at', '/ar'). Passed ONLY there, so every other render keeps its
+  // props; link builders hand it to `sectionHref` / `storeLocalePrefix`,
+  // which fall back to the `/<locale>` formula when it is undefined.
+  pathPrefix?: string;
   storeSlug: string;
   product?: ProductContext;
   // Populated for sections rendered inside a CATALOG_TEMPLATE /

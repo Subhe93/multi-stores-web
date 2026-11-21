@@ -263,7 +263,7 @@ function HeroSplit(props: SectionRenderProps) {
  * no radius or shadow, the text lines up with the page container. Rendered
  * only when there is something to show (the caller keeps the empty state).
  */
-function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function HeroSplitBleed({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -286,11 +286,10 @@ function HeroSplitBleed({ settings, content, locale, primaryLocale, builderPrevi
   // left in the content (the palette's sample content, or an older page) is
   // used only while the setting is empty. The framed variant above keeps its
   // historical order (content first).
-  const ctaHref = sectionHref(settings.cta_url || content.cta_url, locale, primaryLocale);
+  const ctaHref = sectionHref(settings.cta_url || content.cta_url, { locale, primaryLocale, pathPrefix });
   const ctaSecondaryHref = sectionHref(
     settings.cta_secondary_url || content.cta_secondary_url,
-    locale,
-    primaryLocale,
+    { locale, primaryLocale, pathPrefix },
   );
 
   const primaryBtn = buttonStyles(

@@ -132,7 +132,7 @@ function motionImage(motion: MotionProp, textSide: 'start' | 'end', still: boole
 }
 
 function ImageWithText(props: SectionRenderProps) {
-  const { settings, content, locale, primaryLocale, motion } = props;
+  const { settings, content, locale, primaryLocale, pathPrefix, motion } = props;
   // Fast surfaces (product page, listing) get no scroll-linked layer.
   const still = !!props.product || !!props.listing;
   // A missing / 'static' / unknown image_source keeps the uploaded image.
@@ -150,7 +150,7 @@ function ImageWithText(props: SectionRenderProps) {
   const ctaUrl = (settings.cta_url as string) || '#';
   // Optional second button: rendered only when it has a text.
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const ctaSecondaryHref = sectionHref(settings.cta_secondary_url, locale, primaryLocale);
+  const ctaSecondaryHref = sectionHref(settings.cta_secondary_url, { locale, primaryLocale, pathPrefix });
   const altText = (content.alt as string) || '';
   const ctaTone = ctaToneValue(settings.cta_tone);
   const secondaryOverrides = {
@@ -263,7 +263,7 @@ function ImageWithText(props: SectionRenderProps) {
             <div className="flex flex-wrap gap-3 mt-2" {...rise(motion, { i: 3 })}>
               {ctaText && (
                 <a
-                  href={sectionHref(settings.cta_url, locale, primaryLocale)}
+                  href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
                   className={buttonClass}
                   style={{ ...primaryStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
                   {...hover(motion, 'press')}

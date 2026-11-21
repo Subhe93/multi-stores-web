@@ -69,7 +69,7 @@ function estimateWidth(items: BandItem[], itemStyle: ItemStyle, size: AccentSize
   return Math.max(width, 80);
 }
 
-function MarqueeBand({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function MarqueeBand({ settings, content, locale, primaryLocale, pathPrefix, builderPreview }: SectionRenderProps) {
   const t = useTranslations('creative');
   const toggleId = useId();
   const items = readItems(content.items ?? settings.items);
@@ -148,7 +148,7 @@ function MarqueeBand({ settings, content, locale, primaryLocale, builderPreview 
           <li key={i} className="cx-mq-item">
             {item.url ? (
               <a
-                href={sectionHref(item.url, locale, primaryLocale)}
+                href={sectionHref(item.url, { locale, primaryLocale, pathPrefix })}
                 className={`cx-mq-c ${FOCUS_RING}`}
                 data-cx-img={image ? '' : undefined}
               >

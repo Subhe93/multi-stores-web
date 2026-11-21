@@ -82,7 +82,7 @@ const Arrow = () => (
   </svg>
 );
 
-function StoryPinned({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function StoryPinned({ settings, content, locale, primaryLocale, pathPrefix, builderPreview }: SectionRenderProps) {
   const t = useTranslations('creative');
   const uid = useId();
   const headingId = `${uid}-h`;
@@ -291,7 +291,7 @@ function StoryPinned({ settings, content, locale, primaryLocale, builderPreview 
                         {item.title && <h3 className="cx-sp-title">{item.title}</h3>}
                         {item.text && <p className="cx-sp-text">{item.text}</p>}
                         {item.ctaText && (
-                          <a href={sectionHref(item.ctaUrl, locale, primaryLocale)} className={`cx-sp-link ${FOCUS_RING}`}>
+                          <a href={sectionHref(item.ctaUrl, { locale, primaryLocale, pathPrefix })} className={`cx-sp-link ${FOCUS_RING}`}>
                             {item.ctaText}
                             <Arrow />
                           </a>

@@ -5,10 +5,11 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { collectionHref } from '@/lib/collectionPath';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { resolveHero, type StoreHero } from '@/lib/hero';
+import { pageLinkPrefix } from '@/lib/localePaths';
 
 // /collections — index of the store's collections. The header's "Store
 // collections" menu, the collection page's "All collections" link and
@@ -74,6 +75,7 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
     const t = await getTranslations({ locale });
     const secondary = store?.language_config?.secondary_locales || [];
     const alternates = buildStoreAlternates({
+      pathPrefix: await getRequestPathPrefix(),
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
@@ -100,7 +102,10 @@ export default async function CollectionsIndexPage({ params, searchParams }: Col
   await redirectFocusedBrowsing(storeSlug, '/collections');
   const { lang } = await searchParams;
   const t = await getTranslations();
-  const lp = lang ? `/${lang}` : '';
+  // Link prefix: the proxy's path prefix on a locale-path market (M156),
+  // else the URL's own locale folder.
+  const pathPrefix = await getRequestPathPrefix();
+  const lp = pageLinkPrefix(pathPrefix, lang);
 
   // The store is read first (cached): without a locale prefix in the URL the
   // page is rendered in the store's primary locale.

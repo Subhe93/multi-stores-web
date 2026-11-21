@@ -10,6 +10,7 @@
 // arrives through `listing` — this component only renders it, exactly like
 // `product-page` renders from `product`.
 
+import { useStorePathPrefix } from '@/hooks/useStorePathPrefix';
 import { useId, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -91,6 +92,8 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // `listing.products` as is and never fetches.
   const pages = useListingPages({ storeSlug, initial: listing?.products ?? NO_PRODUCTS, pagination: listing?.pagination });
   const gridRef = useRef<HTMLDivElement>(null);
+  // Link prefix of the request (M156 locale paths), else `/<locale>`.
+  const lp = useStorePathPrefix(locale, primaryLocale);
 
   // No listing in context (e.g. builder preview before data loads, or a
   // collection preview on a store with no collections) — show a recognisable
@@ -131,7 +134,6 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // rewrites `/{locale}/…` to `?lang=`); the primary locale stays canonical.
   // Mirrors how the standalone routes build `lp` and `p.set('lang', lang)`.
   const lang = locale !== primaryLocale ? locale : undefined;
-  const lp = lang ? `/${lang}` : '';
   const base = `${lp}${basePath}`;
 
   // ── Settings ──

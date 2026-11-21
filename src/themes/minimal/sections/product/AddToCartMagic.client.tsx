@@ -13,6 +13,7 @@
 // `show_stock`, `sticky_on_mobile`, content `button_label`) keep their names
 // and look.
 
+import { useStorePathPrefixValue } from '@/hooks/useStorePathPrefix';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -40,6 +41,7 @@ import {
 export function AddToCartMagic(props: SectionRenderProps) {
   const { settings, content, locale, primaryLocale } = props;
   const t = useTranslations();
+  const pathPrefix = useStorePathPrefixValue();
   // Store motion style: press response and the "added" feedback (inert without it).
   const m = useProductMotion();
   const state = useBlockState(props);
@@ -73,7 +75,7 @@ export function AddToCartMagic(props: SectionRenderProps) {
   const stock = selectedVariant?.stock;
   const buttonLabel = (content.button_label as string) || t('common.addToCart');
   // Secondary locales get a path prefix; the primary stays canonical.
-  const langPrefix = b1LangPrefix(locale, primaryLocale);
+  const langPrefix = b1LangPrefix(locale, primaryLocale, pathPrefix);
 
   const primaryButton: CSSProperties =
     buttonStyle === 'outline'

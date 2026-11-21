@@ -7,7 +7,7 @@ import { storefront, resolveMediaUrl } from '@/lib/api';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { focusedProductLayoutSupports, focusedProductSections } from '@/lib/focusedStorefront';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { MarketPathsRegistrar } from '@/hooks/useMarket';
@@ -34,6 +34,7 @@ import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSa
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { canonicalRedirectHref, encodeUrlPath, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
+import { pageLinkPrefix } from '@/lib/localePaths';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
@@ -155,6 +156,7 @@ export async function generateMetadata({
 
     const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
     const alternates = buildStoreAlternates({
+      pathPrefix: await getRequestPathPrefix(),
       origin: storeOrigin,
       locale,
       primaryLocale,
@@ -203,7 +205,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const query = await searchParams;
   const { lang } = query;
   const t = await getTranslations();
-  const lp = lang ? `/${lang}` : '';
+  // Link prefix: the proxy's path prefix on a locale-path market (M156),
+  // else the URL's own locale folder.
+  const pathPrefix = await getRequestPathPrefix();
+  const lp = pageLinkPrefix(pathPrefix, lang);
 
   let product: ProductRecord;
   let storeData: StoreRecord | null;
@@ -241,7 +246,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const canonicalSlug = matchedProductSlug(product, productSlug);
   const storedMatch = product.translations?.some((tr) => tr.slug === canonicalSlug);
   if (storedMatch && isNonCanonicalSlugForm(rawSlug, canonicalSlug)) {
-    permanentRedirect(canonicalRedirectHref(`/products/${canonicalSlug}`, query));
+    permanentRedirect(canonicalRedirectHref(`/products/${canonicalSlug}`, query, pathPrefix));
   }
 
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
@@ -271,7 +276,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     const focusedProductLd = buildProduct({
       name: tr?.title || 'Product',
       description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
-      url: storeLocalePath(focusedBase, locale, primaryLocale, `/products/${canonicalSlug}`),
+      url: storeLocalePath(focusedBase, locale, primaryLocale, `/products/${canonicalSlug}`, pathPrefix),
       sku: product.sku || undefined,
       brand: storeData?.name || undefined,
       images: (product.images || [])
@@ -357,7 +362,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     // without a primary collection).
     const tplChain = resolvePrimaryCollectionPath(product);
     const tplBreadcrumbLd = buildBreadcrumb([
-      { name: t('common.home'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '') },
+      { name: t('common.home'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '', pathPrefix) },
       ...(tplChain.length > 0
         ? tplChain.map((node, i) => ({
             name: collectionDisplayName(node, locale),
@@ -366,12 +371,13 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
               locale,
               primaryLocale,
               collectionHref({ path: collectionPathInChain(tplChain, i), slug: node.slug }),
+              pathPrefix,
             ),
           }))
-        : [{ name: t('common.products'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '/products') }]),
+        : [{ name: t('common.products'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '/products', pathPrefix) }]),
       {
         name: tr?.title || 'Product',
-        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${canonicalSlug}`),
+        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${canonicalSlug}`, pathPrefix),
       },
     ]);
     return (
@@ -418,6 +424,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
               sections={templateSections}
               locale={locale}
               primaryLocale={primaryLocale}
+              pathPrefix={pathPrefix}
               storeSlug={storeSlug}
               motion={storeMotionOf(storeData)}
               product={clientProduct as ProductContext}
@@ -440,7 +447,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // prefix for primary locale, `/{locale}/...` for others).
   const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
-  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${canonicalSlug}`);
+  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${canonicalSlug}`, pathPrefix);
   const productImages = (product.images || [])
     .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
     .filter((u: string) => !!u);
@@ -474,15 +481,15 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   const Crumb = locale === 'ar' ? ChevronLeft : ChevronRight;
 
   const breadcrumbLd = buildBreadcrumb([
-    { name: t('common.home'), url: storeLocalePath(storeBase, locale, ldPrimary, '') },
+    { name: t('common.home'), url: storeLocalePath(storeBase, locale, ldPrimary, '', pathPrefix) },
     ...(collectionCrumbs.length > 0
       ? [
           ...collectionCrumbs.map((c) => ({
             name: c.name,
-            url: storeLocalePath(storeBase, locale, ldPrimary, c.href),
+            url: storeLocalePath(storeBase, locale, ldPrimary, c.href, pathPrefix),
           })),
         ]
-      : [{ name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products') }]),
+      : [{ name: t('common.products'), url: storeLocalePath(storeBase, locale, ldPrimary, '/products', pathPrefix) }]),
     { name: translation?.title || 'Product', url: productUrl },
   ]);
 

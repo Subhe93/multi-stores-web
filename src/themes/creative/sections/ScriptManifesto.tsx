@@ -98,7 +98,7 @@ const safeColor = (v: unknown): string | undefined => {
   return c && COLOR_RE.test(c) ? c : undefined;
 };
 
-function ScriptManifesto({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function ScriptManifesto({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const stored = manifestoLines(Array.isArray(settings.lines) ? settings.lines : content.lines);
   if (stored.length === 0) return builderPreview ? <EmptyState name={KEY} /> : null;
 
@@ -182,7 +182,7 @@ function ScriptManifesto({ settings, content, locale, primaryLocale, builderPrev
           <div className="cx-sm-cta">
             <a
               className="cx-sm-link"
-              href={sectionHref(settings.cta_url, locale, primaryLocale)}
+              href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
               {...rise(motion, { i: 4 })}
               {...hover(motion, 'underline')}
             >

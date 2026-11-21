@@ -80,12 +80,15 @@ export function HeroButtons({
   cta,
   locale,
   primaryLocale,
+  pathPrefix,
   delay,
   className,
 }: {
   cta: HeroCta;
   locale: string;
   primaryLocale: string;
+  /** M156: the section's `pathPrefix` prop (locale-path markets only). */
+  pathPrefix?: string;
   /** Intro delay of the first button in seconds; the second follows 0.1 s later. */
   delay: number;
   className: string;
@@ -96,14 +99,14 @@ export function HeroButtons({
     <div className={className}>
       {cta.text ? (
         <span className="cx-hero-b" data-cx-intro="rise" style={at(delay)}>
-          <PillButton href={sectionHref(cta.url, locale, primaryLocale)} tone={tone}>
+          <PillButton href={sectionHref(cta.url, { locale, primaryLocale, pathPrefix })} tone={tone}>
             {cta.text}
           </PillButton>
         </span>
       ) : null}
       {cta.secondaryText ? (
         <span className="cx-hero-b" data-cx-intro="rise" style={at(delay + 0.1)}>
-          <PillButton href={sectionHref(cta.secondaryUrl, locale, primaryLocale)} variant="outline" arrow={false}>
+          <PillButton href={sectionHref(cta.secondaryUrl, { locale, primaryLocale, pathPrefix })} variant="outline" arrow={false}>
             {cta.secondaryText}
           </PillButton>
         </span>

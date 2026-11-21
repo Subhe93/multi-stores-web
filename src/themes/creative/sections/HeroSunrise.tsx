@@ -38,7 +38,7 @@ function Art({ src, sizes }: { src: string; sizes: string }) {
   );
 }
 
-function HeroSunrise({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function HeroSunrise({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const headingId = useId();
   const heading = headingLines(content.heading);
   const core = heroMedia(settings.sun_core);
@@ -169,6 +169,7 @@ function HeroSunrise({ settings, content, locale, primaryLocale, builderPreview,
             delay={1.6}
             locale={locale}
             primaryLocale={primaryLocale}
+            pathPrefix={pathPrefix}
             cta={{
               text: str(content.cta_text),
               url: settings.cta_url,

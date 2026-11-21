@@ -86,6 +86,8 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/market.server', () => ({
   getRequestMarket: async () => state.market,
   getRequestNoindex: async () => false,
+  getRequestPathPrefix: async () => undefined,
+  getRequestPathCountry: async () => null,
 }));
 vi.mock('@/lib/focusedStorefront.server', () => ({ redirectFocusedBrowsing: async () => undefined }));
 vi.mock('@/lib/preloadSections', () => ({ preloadSectionData: async () => ({}) }));

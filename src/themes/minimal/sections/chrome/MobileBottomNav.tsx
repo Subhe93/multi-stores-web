@@ -78,9 +78,9 @@ function defaultUrl(type: ItemKey, lp: string): string {
 // clears it.
 const NAV_HEIGHT_PX = { labels: 58, icons: 40 };
 
-function MobileBottomNav({ settings, content, locale, primaryLocale, motion }: SectionRenderProps) {
+function MobileBottomNav({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const t = useTranslations();
-  const lp = storeLocalePrefix(locale, primaryLocale);
+  const lp = storeLocalePrefix({ locale, primaryLocale, pathPrefix });
   // Legacy 'wishlist' items only render when the creator gave them a URL:
   // the storefront has no wishlist page to fall back to.
   const items = ((content.items as BottomNavItem[]) || []).filter(

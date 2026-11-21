@@ -46,7 +46,7 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-function ProjectCards({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function ProjectCards({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -192,7 +192,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
                         // one link whose accessible name is the title. The
                         // focus ring is drawn inside the card (it clips).
                         <a
-                          href={sectionHref(url, locale, primaryLocale)}
+                          href={sectionHref(url, { locale, primaryLocale, pathPrefix })}
                           className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
                         >
                           {title}
@@ -226,7 +226,7 @@ function ProjectCards({ settings, content, locale, primaryLocale, builderPreview
       {linkLabel && linkUrl && (
         <div className={`mt-8 md:mt-10 ${align === 'center' ? 'text-center' : 'text-start'}`} {...rise(motion)}>
           <a
-            href={sectionHref(linkUrl, locale, primaryLocale)}
+            href={sectionHref(linkUrl, { locale, primaryLocale, pathPrefix })}
             className={`inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline ${FOCUS_RING}`}
             style={{ color: linkColor }}
             {...hover(motion, 'underline')}

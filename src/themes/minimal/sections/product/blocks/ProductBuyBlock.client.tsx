@@ -11,6 +11,7 @@
 // CTA) is the product-personalization block's slot; this block then shows
 // only the bundle chip and the hints.
 
+import { useStorePathPrefixValue } from '@/hooks/useStorePathPrefix';
 import type { CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Loader2, ShoppingCart } from 'lucide-react';
@@ -117,6 +118,7 @@ export function StateAddToCartButton({
 
 export function ProductBuyBlock(props: SectionRenderProps) {
   const { settings, content, locale, primaryLocale } = props;
+  const pathPrefix = useStorePathPrefixValue();
   const state = useBlockState(props);
   const designer = useDesignerSession();
   if (!state) {
@@ -126,7 +128,7 @@ export function ProductBuyBlock(props: SectionRenderProps) {
   const showQuantity = settings.show_quantity !== false;
   const sticky = settings.sticky_on_mobile === true;
   const label = typeof content.button_label === 'string' ? content.button_label : undefined;
-  const langPrefix = b1LangPrefix(locale, primaryLocale);
+  const langPrefix = b1LangPrefix(locale, primaryLocale, pathPrefix);
   const { customFieldError } = state;
 
   return (

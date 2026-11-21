@@ -1,5 +1,5 @@
-import { marketHreflangCode } from './market-routing';
-import type { MarketIndexing } from './market';
+import type { MarketIndexing, MarketLocalePath } from './market';
+import { linkPrefix, localePathPrefix, marketUrlSlots, usesLocalePaths, type LinkScope, type PathMarket } from './localePaths';
 import { encodeUrlPath } from './slugRoute';
 import { platformHosts } from './platformHosts';
 import { isReviewLocale, publicLocales } from './storeLocales';
@@ -20,6 +20,8 @@ export interface MarketUrlInput {
    * the default market. Used only while the market is indexable.
    */
   is_x_default?: boolean;
+  /** M156: active language-country paths; absent = bare `/<locale>/` folders. */
+  locale_paths?: MarketLocalePath[];
 }
 
 /**
@@ -135,17 +137,24 @@ export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale:
   const url = storeHref(rawUrl);
   if (!url.startsWith('/') || url.startsWith('//')) return url;
   if (!lp) return url;
-  // Already localized: `/ar`, `/ar/…`, `/ar?…`, `/ar#…`.
-  const own = `/${locale}`;
-  if (url === own || (url.startsWith(own) && ['/', '?', '#'].includes(url.charAt(own.length)))) return url;
+  // Already localized: `/ar`, `/ar/…`, `/ar?…`, `/ar#…` (and, on a
+  // locale-path market, the prefix itself: `/de-at/…` is not prefixed twice).
+  const isUnder = (own: string) =>
+    url === own || (url.startsWith(own) && ['/', '?', '#'].includes(url.charAt(own.length)));
+  if (isUnder(`/${locale}`) || (lp !== `/${locale}` && isUnder(lp))) return url;
   // Root, optionally followed by a query or hash: `/`, `/?utm=x`, `/#top`.
   if (url === '/' || url.startsWith('/?') || url.startsWith('/#')) return `${lp}${url.slice(1)}`;
   return `${lp}${url}`;
 }
 
-/** Locale prefix of the canonical storefront scheme: '' for the primary locale. */
-export function storeLocalePrefix(locale: string, primaryLocale: string): string {
-  return locale !== primaryLocale ? `/${locale}` : '';
+/**
+ * Link prefix of the canonical storefront scheme: '' for the primary locale,
+ * `/<locale>` for a secondary one, or (M156) the request's own path prefix
+ * (`/de-at`) when the scope carries one. Takes the scope object on purpose:
+ * every call site has to pass `pathPrefix` along.
+ */
+export function storeLocalePrefix(scope: LinkScope): string {
+  return linkPrefix(scope);
 }
 
 /**
@@ -163,11 +172,18 @@ export function storeLocalePath(
   locale: string,
   primaryLocale: string,
   path: string = '',
+  /**
+   * M156: the URL prefix to use instead of the one derived from the locale
+   * ('' = root, '/de-at'); the request's `x-store-path-prefix`. Undefined =
+   * the derived prefix, exactly as before.
+   */
+  prefix?: string,
 ): string {
   // Slugs are stored decoded (Arabic, ä, …): every absolute URL built here
   // (canonical, hreflang, sitemap <loc>, JSON-LD) carries the percent-encoded
   // form. Idempotent, so an already-encoded browser pathname is fine too.
   const safePath = path === '/' ? '' : encodeUrlPath(path);
+  if (prefix !== undefined) return `${origin}${prefix}${safePath}`;
   return locale === primaryLocale
     ? `${origin}${safePath}`
     : `${origin}/${locale}${safePath}`;
@@ -221,7 +237,7 @@ export function buildStoreAlternates(opts: {
    * i.e. its configured primary, else the preview host itself) and no
    * hreflang is advertised at all. Null/undefined/LIVE: no effect.
    */
-  market?: { preview?: boolean } | null;
+  market?: ({ preview?: boolean } & Partial<PathMarket>) | null;
   /**
    * The proxy's per-request indexing verdict (M6.1, `x-store-noindex`
    * header read via `getRequestNoindex` / `requestNoindex`). True is
@@ -230,16 +246,23 @@ export function buildStoreAlternates(opts: {
    * the market payload alone cannot tell.
    */
   noindex?: boolean;
+  /**
+   * M156: the request's URL prefix (`x-store-path-prefix`: '' root, '/de-at',
+   * '/ar'), set only on a locale-path market. The canonical is the page
+   * itself under that prefix. Undefined = the prefix derived from `locale`.
+   */
+  pathPrefix?: string;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, secondaryLocales = [], path = '' } = opts;
   const allLocales = Array.from(new Set([primaryLocale, ...secondaryLocales]));
+  const selfPrefixFor = (selfLocale: string) => canonicalPrefix(opts.pathPrefix, selfLocale, primaryLocale, opts.market);
 
   // A page rendered in a locale still in review ('ku') is noindex (the proxy
   // flags it too): self canonical, no hreflang, whatever the caller passed.
   if (opts.market?.preview || opts.noindex || isReviewLocale(locale)) {
     const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
     const selfPath = opts.pathByLocale?.[selfLocale] ?? path;
-    return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath), languages: {} };
+    return { canonical: storeLocalePath(origin, selfLocale, primaryLocale, selfPath, selfPrefixFor(selfLocale)), languages: {} };
   }
 
   // Only LIVE markets, and a non-default market needs its own hostname: the
@@ -260,6 +283,7 @@ export function buildStoreAlternates(opts: {
       platformOrigin: opts.storeSlug ? buildStoreOrigin(opts.storeSlug, null) : origin,
       storeCustomDomain,
       pathByLocale: opts.pathByLocale ?? {},
+      selfPrefix: selfPrefixFor,
     });
   }
 
@@ -274,9 +298,31 @@ export function buildStoreAlternates(opts: {
   // mint a canonical for a page that does not exist.
   const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
   return {
-    canonical: storeLocalePath(origin, selfLocale, primaryLocale, path),
+    canonical: storeLocalePath(origin, selfLocale, primaryLocale, path, selfPrefixFor(selfLocale)),
     languages,
   };
+}
+
+/**
+ * Canonical prefix of the page (M156): the request's prefix when it is one of
+ * the current market's URL roots for `selfLocale`; a prefix that does not
+ * fit (should not happen) falls back to the locale's own prefix on that
+ * market. Undefined `pathPrefix` = undefined (the legacy derivation).
+ */
+function canonicalPrefix(
+  pathPrefix: string | undefined,
+  selfLocale: string,
+  primaryLocale: string,
+  market: ({ preview?: boolean } & Partial<PathMarket>) | null | undefined,
+): string | undefined {
+  if (pathPrefix === undefined) return undefined;
+  if (!market || typeof market.default_locale !== 'string' || !Array.isArray(market.locales)) {
+    return pathPrefix;
+  }
+  const m = market as PathMarket;
+  if (!usesLocalePaths(m)) return pathPrefix;
+  if (marketUrlSlots(m).some((s) => s.prefix === pathPrefix && s.locale === selfLocale)) return pathPrefix;
+  return selfLocale === primaryLocale ? '' : localePathPrefix(m, selfLocale, null);
 }
 
 /**
@@ -343,6 +389,8 @@ function buildMarketAlternates(opts: {
   platformOrigin: string;
   storeCustomDomain: string | null;
   pathByLocale: Record<string, string | undefined>;
+  /** Canonical prefix of the page for its locale (undefined = derived). */
+  selfPrefix: (selfLocale: string) => string | undefined;
 }): { canonical: string; languages: Record<string, string> } {
   const { origin, locale, primaryLocale, allLocales, path, markets, platformOrigin, storeCustomDomain, pathByLocale } = opts;
   const defaultMarket = markets.find((m) => m.is_default) ?? markets[0]!;
@@ -353,13 +401,19 @@ function buildMarketAlternates(opts: {
   const owner: Record<string, MarketUrlInput> = {};
   for (const m of markets) {
     const mOrigin = marketOrigin(m, platformOrigin, storeCustomDomain);
-    // Locales in review are served but never advertised as alternates.
-    for (const l of publicLocales(Array.from(new Set([m.default_locale, ...m.locales])))) {
-      const code = marketHreflangCode(m, l);
-      const existing = owner[code];
-      if (existing && (existing.is_default || !m.is_default)) continue;
-      languages[code] = storeLocalePath(mOrigin, l, m.default_locale, pathByLocale[l] ?? path);
-      owner[code] = m;
+    // One entry per URL root of the market (M156 `marketUrlSlots`: the root
+    // plus bare `/<locale>` folders, or the language-country paths) and per
+    // hreflang code of that root. Locales in review are served but never
+    // advertised as alternates.
+    const advertised = new Set(publicLocales(Array.from(new Set([m.default_locale, ...m.locales]))));
+    for (const slot of marketUrlSlots(m)) {
+      if (!advertised.has(slot.locale)) continue;
+      for (const code of slot.hreflang) {
+        const existing = owner[code];
+        if (existing && (existing.is_default || !m.is_default)) continue;
+        languages[code] = storeLocalePath(mOrigin, slot.locale, m.default_locale, pathByLocale[slot.locale] ?? path, slot.prefix);
+        owner[code] = m;
+      }
     }
   }
   // `markets` holds indexable markets only, so a flagged market that is not
@@ -376,7 +430,7 @@ function buildMarketAlternates(opts: {
   // Canonical = this page on the CURRENT market's origin, in its own locale.
   const selfLocale = allLocales.includes(locale) ? locale : primaryLocale;
   return {
-    canonical: storeLocalePath(origin, selfLocale, primaryLocale, pathByLocale[selfLocale] ?? path),
+    canonical: storeLocalePath(origin, selfLocale, primaryLocale, pathByLocale[selfLocale] ?? path, opts.selfPrefix(selfLocale)),
     languages,
   };
 }

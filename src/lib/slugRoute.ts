@@ -93,6 +93,12 @@ export function encodeUrlPath(path: string): string {
 export function canonicalRedirectHref(
   path: string,
   searchParams: Record<string, string | string[] | undefined>,
+  /**
+   * M156: the request's URL prefix on a locale-path market (`/de-at`), used
+   * instead of `/<lang>` so the visitor keeps the country path and the
+   * redirect is one hop. Undefined = the `?lang=` prefix, as before.
+   */
+  pathPrefix?: string,
 ): string {
   const lang = typeof searchParams.lang === 'string' ? searchParams.lang : '';
   const query = new URLSearchParams();
@@ -101,5 +107,6 @@ export function canonicalRedirectHref(
     for (const v of Array.isArray(value) ? value : [value]) query.append(key, v);
   }
   const qs = query.toString();
-  return `${lang ? `/${encodeURIComponent(lang)}` : ''}${encodeUrlPath(path)}${qs ? `?${qs}` : ''}`;
+  const prefix = pathPrefix ?? (lang ? `/${encodeURIComponent(lang)}` : '');
+  return `${prefix}${encodeUrlPath(path)}${qs ? `?${qs}` : ''}`;
 }

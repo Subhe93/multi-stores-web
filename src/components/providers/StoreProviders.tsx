@@ -7,6 +7,7 @@ import { StoreTaxProvider } from '@/hooks/useStoreTax';
 import { StoreAppsProvider } from '@/hooks/useStoreApps';
 import { MarketProvider } from '@/hooks/useMarket';
 import { StorePrimaryLocaleProvider } from '@/hooks/useStorePrimaryLocale';
+import { StorePathPrefixProvider } from '@/hooks/useStorePathPrefix';
 import { BuyerTypeProvider, useBuyerType } from '@/hooks/useBuyerType';
 import type { StoreTaxConfig } from '@/lib/tax';
 import type { StorefrontApps } from '@/lib/storeApps';
@@ -76,6 +77,7 @@ export function StoreProviders({
   primaryLocale,
   checkout,
   productCard,
+  pathPrefix,
 }: {
   children: ReactNode;
   locale?: string;
@@ -117,6 +119,9 @@ export function StoreProviders({
   /** Product card settings (`readProductCard(store.theme_customizations)`).
    *  Null / undefined = the classic card, i.e. the markup as it is today. */
   productCard?: ProductCardSettings | null;
+  /** M156: the request's URL prefix on a locale-path market ('' = root,
+   *  '/de-at'); undefined everywhere else (links keep `/<locale>`). */
+  pathPrefix?: string;
 }) {
   const b2bApp = storeApps?.b2b;
   // Stable settings object so the BuyerType context value only changes when
@@ -143,9 +148,11 @@ export function StoreProviders({
                   storeSlug={storeSlug}
                 >
                   <StorePrimaryLocaleProvider value={primaryLocale}>
-                    <ProductCardProvider settings={productCard} storeSlug={storeSlug}>
-                      {children}
-                    </ProductCardProvider>
+                    <StorePathPrefixProvider value={pathPrefix}>
+                      <ProductCardProvider settings={productCard} storeSlug={storeSlug}>
+                        {children}
+                      </ProductCardProvider>
+                    </StorePathPrefixProvider>
                   </StorePrimaryLocaleProvider>
                 </CartProviderWithAuth>
               </CheckoutSettingsProvider>

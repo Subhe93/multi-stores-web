@@ -63,6 +63,8 @@ export interface LandingJsonLdInput {
   sections?: PageSectionLite[] | null;
   /** The page's robots directive: a noindex page emits nothing. */
   robots?: string | null;
+  /** M156: the request's URL prefix (locale-path market); undefined = derived from the locale. */
+  pathPrefix?: string;
 }
 
 /**
@@ -76,7 +78,7 @@ export function buildLandingJsonLd(input: LandingJsonLdInput): {
 } | null {
   if (isNoindexRobots(input.robots)) return null;
 
-  const pageUrl = input.canonical || storeLocalePath(input.origin, input.locale, input.primaryLocale, input.path);
+  const pageUrl = input.canonical || storeLocalePath(input.origin, input.locale, input.primaryLocale, input.path, input.pathPrefix);
   const description = input.description?.trim();
 
   const page: Record<string, unknown> = {
@@ -90,7 +92,7 @@ export function buildLandingJsonLd(input: LandingJsonLdInput): {
   };
 
   const breadcrumb = buildBreadcrumb([
-    { name: input.homeLabel, url: storeLocalePath(input.origin, input.locale, input.primaryLocale, '') },
+    { name: input.homeLabel, url: storeLocalePath(input.origin, input.locale, input.primaryLocale, '', input.pathPrefix) },
     { name: input.name, url: pageUrl },
   ]);
 
@@ -110,6 +112,8 @@ export interface HomeJsonLdInput {
   canonical?: string | null;
   /** The home's robots directive: a noindex home emits nothing. */
   robots?: string | null;
+  /** M156: the request's URL prefix (locale-path market); undefined = derived from the locale. */
+  pathPrefix?: string;
 }
 
 /**
@@ -126,7 +130,7 @@ export function buildHomeJsonLd(input: HomeJsonLdInput): Record<string, unknown>
     '@type': 'WebPage',
     name: input.name,
     ...(description ? { description } : {}),
-    url: input.canonical || storeLocalePath(input.origin, input.locale, input.primaryLocale, ''),
+    url: input.canonical || storeLocalePath(input.origin, input.locale, input.primaryLocale, '', input.pathPrefix),
     inLanguage: input.locale,
     isPartOf: webSiteRef(input.origin, input.name),
   };

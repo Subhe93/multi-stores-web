@@ -80,7 +80,7 @@ function PathSvg({ geometry, shaped }: { geometry: PathGeometry; shaped: boolean
   );
 }
 
-function MotionPath({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function MotionPath({ settings, content, locale, primaryLocale, pathPrefix, builderPreview }: SectionRenderProps) {
   const headingId = useId();
   const heading = headingLines(content.heading);
   const eyebrow = str(content.eyebrow);
@@ -230,7 +230,7 @@ function MotionPath({ settings, content, locale, primaryLocale, builderPreview }
                       {stop.title ? <h3 className="cx-mp-title">{stop.title}</h3> : null}
                       {stop.text ? <p className="cx-mp-text">{stop.text}</p> : null}
                       {stop.ctaText && stop.ctaUrl ? (
-                        <a className={`cx-mp-link ${FOCUS_RING}`} href={sectionHref(stop.ctaUrl, locale, primaryLocale)}>
+                        <a className={`cx-mp-link ${FOCUS_RING}`} href={sectionHref(stop.ctaUrl, { locale, primaryLocale, pathPrefix })}>
                           {stop.ctaText}
                           <svg
                             className="cx-mp-arrow"

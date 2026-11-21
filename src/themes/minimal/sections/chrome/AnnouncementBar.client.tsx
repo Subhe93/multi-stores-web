@@ -63,7 +63,7 @@ function writeFlag(key: string): void {
   }
 }
 
-export function AnnouncementBar({ settings, content, locale, primaryLocale, storeSlug, motion }: SectionRenderProps) {
+export function AnnouncementBar({ settings, content, locale, primaryLocale, pathPrefix, storeSlug, motion }: SectionRenderProps) {
   const t = useTranslations('nav');
   const messages = useMemo(
     () =>
@@ -89,7 +89,7 @@ export function AnnouncementBar({ settings, content, locale, primaryLocale, stor
   // 'button' renders the inline link as a small outlined rounded button.
   const linkAsButton = settings.link_style === 'button';
   // Secondary-locale visitors keep their locale prefix on the inline link.
-  const lp = storeLocalePrefix(locale, primaryLocale);
+  const lp = storeLocalePrefix({ locale, primaryLocale, pathPrefix });
 
   // A dismissal stored by an earlier visit. The server snapshot is "not
   // dismissed", so SSR and hydration render the bar and the client hides it

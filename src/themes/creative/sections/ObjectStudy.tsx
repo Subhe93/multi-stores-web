@@ -165,6 +165,7 @@ function ObjectStudy({
   content,
   locale,
   primaryLocale,
+  pathPrefix,
   currency,
   product,
   preloaded,
@@ -177,7 +178,7 @@ function ObjectStudy({
   const productUrl = str(settings.product_url);
   // A linked product wins; with no link, a product template shows its own product.
   const live = productUrl ? picked(preloaded, productUrl) : fromPageProduct(product, locale, primaryLocale);
-  const href = productUrl ? sectionHref(productUrl, locale, primaryLocale) : null;
+  const href = productUrl ? sectionHref(productUrl, { locale, primaryLocale, pathPrefix }) : null;
 
   // Root-relative uploads go through the media origin (data: and absolute URLs stay as they are).
   const image = resolveMediaUrl(str(settings.image) || str(live?.image));

@@ -4,7 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { storefront, LEGAL_SLUGS, type LegalSlug, type StoreLegalPage } from '@/lib/api';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
+import { linkPrefix } from '@/lib/localePaths';
 import { routeSlug } from '@/lib/slugRoute';
 import { nullWhenNotFound } from '@/lib/apiAvailability';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
@@ -49,9 +50,12 @@ function isKnownSlug(slug: string): slug is LegalSlug {
   return (LEGAL_SLUGS as readonly string[]).includes(slug);
 }
 
-/** Locale path prefix of the current URL: none for the primary locale. */
-function localePrefix(locale: string, store: StoreLite | null): string {
-  return locale !== (store?.language_config?.primary_locale || 'en') ? `/${locale}` : '';
+/**
+ * Link prefix of the current URL: none for the primary locale, `/<locale>`
+ * otherwise, or (M156) the proxy's path prefix on a locale-path market.
+ */
+function localePrefix(locale: string, store: StoreLite | null, pathPrefix?: string): string {
+  return linkPrefix({ locale, primaryLocale: store?.language_config?.primary_locale || 'en', pathPrefix });
 }
 
 /**
@@ -59,9 +63,9 @@ function localePrefix(locale: string, store: StoreLite | null): string {
  * `/legal/...` links carrying the current locale prefix (the same rule as
  * every other store link), so a secondary-locale page links within its locale.
  */
-function legalHtml(content: string, store: StoreLite | null, locale: string): string {
+function legalHtml(content: string, store: StoreLite | null, locale: string, pathPrefix?: string): string {
   const html = substituteTraderPlaceholders(content, sellerDetailsOf(store));
-  const lp = localePrefix(locale, store);
+  const lp = localePrefix(locale, store, pathPrefix);
   return lp ? html.replace(/href=(["'])\/legal\//g, `href=$1${lp}/legal/`) : html;
 }
 
@@ -110,6 +114,7 @@ export async function generateMetadata({
   // alternates use path-prefix `/{locale}/...` for secondary locales, which
   // is what Google prefers (not query strings).
   const alternates = buildStoreAlternates({
+    pathPrefix: await getRequestPathPrefix(),
     origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
     locale,
     primaryLocale: store?.language_config?.primary_locale || 'en',
@@ -163,7 +168,8 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
   // Focused storefront: the store home redirects to the external site, so
   // the breadcrumb's first crumb links there directly.
   const focus = await requestFocusedStorefront(store?.checkout);
-  const homeHref = focus?.siteUrl ?? (localePrefix(locale, store) || '/');
+  const pathPrefix = await getRequestPathPrefix();
+  const homeHref = focus?.siteUrl ?? (localePrefix(locale, store, pathPrefix) || '/');
   // JSON-LD WebPage + Home › page breadcrumb, as for a store page.
   // Store motion style (flow scope): the title rises once, the text fades in.
   const motion = storeMotionOf(store) ? ('scroll' as const) : undefined;
@@ -177,6 +183,7 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
     homeLabel: t('common.home'),
     name: page.title,
     description: htmlExcerpt(substituteTraderPlaceholders(page.content, sellerDetailsOf(store))),
+    pathPrefix,
   });
 
   return (
@@ -204,7 +211,7 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
         {...fade(intro, { i: 2 })}
         // Template html arrives filled; any `{{trader.*}}` left would resolve
         // to the store's trader details (no-op when none remain).
-        dangerouslySetInnerHTML={{ __html: legalHtml(page.content, store, locale) }}
+        dangerouslySetInnerHTML={{ __html: legalHtml(page.content, store, locale, pathPrefix) }}
       />
     </div>
   );

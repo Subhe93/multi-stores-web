@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { Flag } from '@/components/region/Flag';
 import { resolveLocaleMeta } from '@/lib/localeMeta';
+import { localePathSwitchTarget, switchableLocales } from '@/lib/localePaths';
+import { useMarket, usePreferredCountry } from '@/hooks/useMarket';
 import { MENU_EXIT_MS, useExit, type ChromeMotion } from './chromeMotion.client';
 
 // The flag image (globe fallback, never mirrored) is shared with the region
@@ -40,6 +42,8 @@ export function LocaleSwitcher({
   motion?: ChromeMotion;
 }) {
   const all = Array.from(new Set([primary, ...others].filter(Boolean)));
+  const market = useMarket();
+  const preferredCountry = usePreferredCountry();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   // Motion style only: the closed list stays for its 0.2 s exit (inert).
@@ -64,12 +68,23 @@ export function LocaleSwitcher({
     };
   }, [open]);
 
+  // M156: on a locale-path market a language that only exists under another
+  // country's path is not offered (it would change the visitor's country).
+  const shown = switchableLocales(market, all, preferredCountry, current);
+
   // A single-language store has nothing to switch to — render nothing.
   // (After the hooks above so the hook order stays stable.)
-  if (all.length < 2) return null;
+  if (shown.length < 2) return null;
 
   const switchTo = (locale: string) => {
     const browserPath = window.location.pathname;
+    // M156: a locale-path market (`/de-at/`) maps the language to its path
+    // for the visitor's country; every other store keeps the code below.
+    const mapped = localePathSwitchTarget(market, browserPath, locale, preferredCountry, all);
+    if (mapped !== null) {
+      window.location.assign(`${mapped}${window.location.search}`);
+      return;
+    }
     // Strip any existing locale prefix from the live browser path.
     const existingPrefix = all.find(
       (l) => browserPath.startsWith(`/${l}/`) || browserPath === `/${l}`,
@@ -111,7 +126,7 @@ export function LocaleSwitcher({
           className="absolute inset-e-0 top-full mt-1.5 min-w-44 rounded-lg border shadow-lg py-1 z-50"
           style={{ backgroundColor: bg, color: fg, borderColor }}
         >
-          {all.map((l) => {
+          {shown.map((l) => {
             const meta = resolveLocaleMeta(l);
             const active = l === current;
             return (

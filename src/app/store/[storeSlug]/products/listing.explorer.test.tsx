@@ -56,7 +56,7 @@ vi.mock('@/lib/api', () => ({
   },
   resolveMediaUrl: (u?: string | null) => u || '',
 }));
-vi.mock('@/lib/market.server', () => ({ getRequestMarket: async () => undefined, getRequestNoindex: async () => false }));
+vi.mock('@/lib/market.server', () => ({ getRequestMarket: async () => undefined, getRequestNoindex: async () => false, getRequestPathPrefix: async () => undefined, getRequestPathCountry: async () => null }));
 vi.mock('@/lib/focusedStorefront.server', () => ({ redirectFocusedBrowsing: async () => undefined }));
 vi.mock('@/lib/preloadSections', () => ({ preloadSectionData: async () => ({}) }));
 vi.mock('@/themes/registry', () => ({ resolveTheme: () => ({ key: 'minimal' }) }));

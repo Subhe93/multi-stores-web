@@ -26,10 +26,10 @@ interface FooterColumn {
   links?: FooterLink[];
 }
 
-function FooterColumns({ settings, content, locale, primaryLocale, storeContext, chrome, motion }: SectionRenderProps) {
+function FooterColumns({ settings, content, locale, primaryLocale, pathPrefix, storeContext, chrome, motion }: SectionRenderProps) {
   const rawColumns = ((content.columns as FooterColumn[]) || []);
   // Locale prefix for the canonical storefront URL scheme (same rule as HeaderBar).
-  const lp = storeLocalePrefix(locale, primaryLocale);
+  const lp = storeLocalePrefix({ locale, primaryLocale, pathPrefix });
   // Resolve each column's links: a selected menu wins over inline links.
   const columns = rawColumns
     .map((c) => {

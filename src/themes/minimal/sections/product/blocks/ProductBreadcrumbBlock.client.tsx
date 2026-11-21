@@ -4,6 +4,7 @@
 // product. Same markup as the breadcrumb ProductPageMagic renders above the
 // monolith (no primary collection → Home › Products › product).
 
+import { useStorePathPrefixValue } from '@/hooks/useStorePathPrefix';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -15,6 +16,7 @@ import { blockLabel, langPrefixFor, ProductBlockPlaceholder, ProductBlockScope }
 
 export function ProductBreadcrumbBlock({ settings, locale, product: productContext, builderPreview }: SectionRenderProps) {
   const t = useTranslations();
+  const pathPrefix = useStorePathPrefixValue();
   const state = useOptionalProductPageState();
   // Focused storefront: every crumb leads to a page that redirects to the
   // external site, so the trail is not rendered at all.
@@ -24,7 +26,7 @@ export function ProductBreadcrumbBlock({ settings, locale, product: productConte
     return <ProductBlockPlaceholder builderPreview={builderPreview ?? !productContext} label={blockLabel(locale, 'Breadcrumb', 'مسار التنقل')} />;
   }
   const { product, translation } = state;
-  const langPrefix = langPrefixFor(state.locale, state.primaryLocale);
+  const langPrefix = langPrefixFor(state.locale, state.primaryLocale, pathPrefix);
   const showCurrent = settings.show_current !== false;
   const productTitle = translation?.title || 'Product';
   const primaryChain = resolvePrimaryCollectionPath(product);

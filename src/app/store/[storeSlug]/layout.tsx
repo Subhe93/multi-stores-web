@@ -23,7 +23,7 @@ import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront'
 import { FocusedHeader } from '@/components/layout/FocusedHeader';
 import { FocusedFooter } from '@/components/layout/FocusedFooter';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex, getRequestSuggestedMarket } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathCountry, getRequestPathPrefix, getRequestSuggestedMarket } from '@/lib/market.server';
 import { MarketSuggestBanner } from '@/components/layout/MarketSuggestBanner';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { EditHintBoot } from '@/components/edit-hint/EditHintBoot';
@@ -35,7 +35,7 @@ import { StorePreviewBar } from '@/components/layout/StorePreviewBar';
 import { StorePreviewReset } from '@/components/layout/StorePreviewUnlock';
 import { sellerDetailsOf, type TraderDetails } from '@/lib/traderDetails';
 import { RegionPicker } from '@/components/region/RegionPicker';
-import { isRegionMode, parseRegionCookie, REGION_COOKIE } from '@/lib/region';
+import { isRegionMode, REGION_COOKIE, requestRegionCountry } from '@/lib/region';
 import { headerLocaleControlBreakpoints, stripPickerHideClasses } from '@/lib/regionHeader';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
@@ -249,6 +249,12 @@ export default async function StoreLayout({
   // The proxy's indexing verdict for this host (M6.1): preview, NEVER, or
   // AUTO on the platform subdomain.
   const noindex = await getRequestNoindex();
+  // M156 (locale-path markets only): the URL prefix of this request and the
+  // country of a language-country path. The path country wins over the
+  // `ms-region` cookie in this request (the proxy writes the cookie for the
+  // next one). Undefined / null for every other store.
+  const pathPrefix = await getRequestPathPrefix();
+  const pathCountry = await getRequestPathCountry();
 
   let gated: GatedStore<Store>;
   try {
@@ -606,7 +612,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? parseRegionCookie(cookieStore.get(REGION_COOKIE)?.value) : null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? requestRegionCountry(pathCountry, cookieStore.get(REGION_COOKIE)?.value) : null} pathPrefix={pathPrefix} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
         ) : selfHostedFonts && (
@@ -770,6 +776,7 @@ export default async function StoreLayout({
                     storeSlug={storeSlug}
                     motion={!!creative}
                     primaryLocale={primaryLocale}
+                    pathPrefix={pathPrefix}
                     storeContext={storeCtx}
                     chrome
                   />
@@ -848,6 +855,7 @@ export default async function StoreLayout({
                     storeSlug={storeSlug}
                     motion={!!creative}
                     primaryLocale={primaryLocale}
+                    pathPrefix={pathPrefix}
                     storeContext={storeCtx}
                     chrome
                     collapseWrappers={false}

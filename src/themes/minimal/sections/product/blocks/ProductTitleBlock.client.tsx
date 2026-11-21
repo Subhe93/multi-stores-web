@@ -3,6 +3,7 @@
 // product-title block: primary collection link, H1 and the marketplace
 // vendor line, with ProductDetailClient's markup.
 
+import { useStorePathPrefixValue } from '@/hooks/useStorePathPrefix';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -18,6 +19,7 @@ import { B1Placeholder, B1Scope, b1LangPrefix, isBlockPreview, useBlockState } f
 export function ProductTitleBlock(props: SectionRenderProps) {
   const { settings, locale, primaryLocale } = props;
   const t = useTranslations();
+  const pathPrefix = useStorePathPrefixValue();
   // Focused storefront: the collection label is plain text (collection pages
   // redirect to the external site).
   const focused = useFocusedStorefront();
@@ -28,7 +30,7 @@ export function ProductTitleBlock(props: SectionRenderProps) {
   const { product, translation } = state;
   const showCollection = settings.show_collection !== false;
   const showVendor = settings.show_vendor !== false;
-  const langPrefix = b1LangPrefix(locale, primaryLocale);
+  const langPrefix = b1LangPrefix(locale, primaryLocale, pathPrefix);
 
   // Primary collection = leaf of `primary_collection_path` (M6 §2); older
   // payloads fall back to the first linked collection.

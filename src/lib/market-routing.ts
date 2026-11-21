@@ -6,6 +6,14 @@
 // prefix a market does not serve is a 404 either way.
 import { storeLocales as globalLocales } from '@/i18n/config';
 import type { MarketRoute } from './market';
+import {
+  COUNTRY_PATH_SEGMENT_RE,
+  isRemappedLocale,
+  matchLocalePath,
+  primaryLocalePath,
+  usesLocalePaths,
+  type PathMarket,
+} from './localePaths';
 
 /** Internal route that renders a 404 for a locale the market does not serve. */
 export const MARKET_404_SEGMENT = 'market-not-found';
@@ -21,6 +29,14 @@ export type StoreRouteDecision =
       locale: string;
       /** Value for the `x-store-locale` cookie: `''` without a market (legacy). */
       cookieLocale: string;
+      /**
+       * M156, locale-path markets ONLY (absent otherwise): the URL prefix the
+       * request came in on: '' (root), '/de-at', '/ar' or '/de' (bare folder
+       * of a locale without rows). Becomes `x-store-path-prefix`.
+       */
+      pathPrefix?: string;
+      /** M156: country of the visited language-country path (`/de-at` -> AT), else null. */
+      pathCountry?: string | null;
     }
   | {
       kind: 'redirect';
@@ -52,7 +68,7 @@ export function decideStoreRoute(opts: {
   pathname: string;
   /** Query string including the leading `?` (or ''). */
   search?: string;
-  market: Pick<MarketRoute, 'default_locale' | 'locales'> | null;
+  market: (Pick<MarketRoute, 'default_locale' | 'locales'> & Pick<PathMarket, 'countries' | 'locale_paths'>) | null;
   /** Override of the global locale list (tests). */
   allLocales?: readonly string[];
 }): StoreRouteDecision {
@@ -76,6 +92,10 @@ export function decideStoreRoute(opts: {
       locale: urlLocale ?? '',
       cookieLocale: urlLocale || '',
     };
+  }
+
+  if (usesLocalePaths(market)) {
+    return decideLocalePathRoute({ storeSlug, pathname, search, market, all });
   }
 
   const allowed = [market.default_locale, ...market.locales];
@@ -103,16 +123,91 @@ export function decideStoreRoute(opts: {
 }
 
 /**
- * hreflang code for a market/locale pair (D9): `lang-COUNTRY` when the market
- * serves exactly one country, plain `lang` otherwise.
+ * M156 branch of `decideStoreRoute` for a market with active locale paths
+ * (§4.2). Markets without them never get here, so their decisions (and the
+ * objects returned) stay exactly as before.
+ *  - active path (`/de-at/…`, `/ar/…`) -> rewrite in its locale + country;
+ *  - default locale prefix (`/en/…`) -> 301 unprefixed (as before);
+ *  - remapped locale's bare folder (`/de/…`) -> 301 to its primary path;
+ *  - other served locale (`/ar` without a row) -> bare folder rewrite;
+ *  - global locale not served -> 404 (as before);
+ *  - an `xx-yy` first segment of a known language or a market country
+ *    (inactive `/nl-be/`, `/de-ch/`) -> 404; other `xx-yy` slugs are pages;
+ *  - else the root in the default locale.
  */
-export function marketHreflangCode(
-  market: Pick<MarketRoute, 'countries'>,
-  locale: string,
-): string {
-  const countries = market.countries ?? [];
-  return countries.length === 1 ? `${locale}-${countries[0]!.toUpperCase()}` : locale;
+function decideLocalePathRoute(opts: {
+  storeSlug: string;
+  pathname: string;
+  search: string;
+  market: Pick<MarketRoute, 'default_locale' | 'locales'> & Pick<PathMarket, 'countries' | 'locale_paths'>;
+  all: readonly string[];
+}): StoreRouteDecision {
+  const { storeSlug, pathname, search, market, all } = opts;
+  const storeRoot = `/store/${storeSlug}`;
+  const notfound: StoreRouteDecision = { kind: 'notfound', storePath: `${storeRoot}/${MARKET_404_SEGMENT}`, status: 404 };
+
+  const hit = matchLocalePath(market, pathname);
+  if (hit) {
+    const locale = hit.entry.locale;
+    return {
+      kind: 'rewrite',
+      storePath: `${storeRoot}${hit.rest}`,
+      urlLocale: locale,
+      locale,
+      cookieLocale: locale,
+      pathPrefix: `/${hit.entry.path}`,
+      pathCountry: hit.entry.country,
+    };
+  }
+
+  const g = all.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`) ?? null;
+  const rest = g ? pathname.slice(g.length + 1) || '/' : pathname;
+  if (g && g === market.default_locale) {
+    return { kind: 'redirect', location: `${rest}${search}`, status: 301 };
+  }
+  if (g) {
+    if (!market.locales.includes(g)) return notfound;
+    if (isRemappedLocale(market, g)) {
+      const primary = primaryLocalePath(market, g)!;
+      return { kind: 'redirect', location: `/${primary.path}${rest === '/' ? '' : rest}${search}`, status: 301 };
+    }
+    return {
+      kind: 'rewrite',
+      storePath: `${storeRoot}${rest}`,
+      urlLocale: g,
+      locale: g,
+      cookieLocale: g,
+      pathPrefix: `/${g}`,
+      pathCountry: null,
+    };
+  }
+
+  const end = pathname.indexOf('/', 1);
+  const seg = end < 0 ? pathname.slice(1) : pathname.slice(1, end);
+  // Only segments that read as a language-country path of THIS market are
+  // 404 (inactive `/nl-be/`, `/de-ch/`): the language is a storefront locale
+  // or the country is one the market sells to. Any other `xx-yy` slug
+  // (`/om-os`, `/my-id`) stays a root page and reaches the page lookup.
+  if (COUNTRY_PATH_SEGMENT_RE.test(seg)) {
+    const [lang, cc] = seg.split('-') as [string, string];
+    const countries = (market.countries ?? []).map((c) => String(c).toUpperCase());
+    if (all.includes(lang) || countries.includes(cc.toUpperCase())) return notfound;
+  }
+
+  const locale = market.default_locale;
+  return {
+    kind: 'rewrite',
+    storePath: `${storeRoot}${pathname === '/' ? '' : pathname}`,
+    urlLocale: null,
+    locale,
+    cookieLocale: locale,
+    pathPrefix: '',
+    pathCountry: null,
+  };
 }
+
+// The hreflang code helper lives with the locale-path slots (one formula).
+export { marketHreflangCode } from './localePaths';
 
 const BOT_UA_RE = /bot|crawl|spider|slurp|facebookexternalhit|bingpreview|lighthouse/i;
 

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import { StoreProviders } from '@/components/providers/StoreProviders';
-import { parseRegionCookie, REGION_COOKIE } from '@/lib/region';
+import { REGION_COOKIE, requestRegionCountry } from '@/lib/region';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
@@ -15,7 +15,7 @@ import { externalSiteHost, externalSiteUrl, resolveBackLabel } from '@/lib/exter
 import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront';
 import { FocusedHeader } from '@/components/layout/FocusedHeader';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathCountry, getRequestPathPrefix } from '@/lib/market.server';
 import { isLocaleNotServed, isReviewLocale } from '@/lib/storeLocales';
 import { MarketPreviewBanner } from '@/components/layout/MarketPreviewBanner';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
@@ -125,7 +125,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? parseRegionCookie(cookieStore.get(REGION_COOKIE)?.value) : null} primaryLocale={primaryLocale} checkout={checkoutSettings}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? requestRegionCountry(await getRequestPathCountry(), cookieStore.get(REGION_COOKIE)?.value) : null} pathPrefix={await getRequestPathPrefix()} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

@@ -9,6 +9,7 @@ import { buildMarketSwitchUrl } from './marketSwitch';
 import { CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM } from './cartHandoff';
 import { encodeUrlPath } from './slugRoute';
 import { marketForCountry, REGION_PARAM, type RegionMarket } from './region';
+import { localePathPrefix, stripStorePrefix, usesLocalePaths } from './localePaths';
 
 export interface RegionUrlContext {
   storeSlug: string;
@@ -84,16 +85,31 @@ export function buildRegionUrl(choice: RegionChoice, ctx: RegionUrlContext): str
       search: qs ? `?${qs}` : '',
       locale: ctx.currentLocale,
       targetLocale: choice.locale,
+      targetCountry: choice.country,
       pathByLocale: ctx.pathByLocale,
       cartParam: ctx.cart?.param ?? null,
       cartDropped: ctx.cart?.dropped ?? 0,
     });
   }
 
-  // Same origin: only the language can change the URL.
-  if (choice.locale === ctx.currentLocale) return null;
   const primary = current ? current.default_locale : ctx.primaryLocale;
   const prefixes = Array.from(new Set([...ctx.locales, ctx.currentLocale, primary]));
+
+  // M156, same origin on a locale-path market: language AND country pick the
+  // prefix (`/de-de` -> AT + de -> `/de-at`). Null only when neither the
+  // prefix nor the language changes.
+  if (current && usesLocalePaths(current)) {
+    const { prefix: currentPrefix, rest } = stripStorePrefix(ctx.pathname, current, prefixes);
+    const destPrefix = localePathPrefix(current, choice.locale, choice.country);
+    if (destPrefix === currentPrefix && choice.locale === ctx.currentLocale) return null;
+    const translatedPath = ctx.pathByLocale?.[choice.locale];
+    const restPath = translatedPath ? encodeUrlPath(translatedPath) : rest;
+    const destPath = destPrefix ? `${destPrefix}${restPath === '/' ? '' : restPath}` : restPath;
+    return `${destPath}${cleanSearch(ctx.search)}`;
+  }
+
+  // Same origin: only the language can change the URL.
+  if (choice.locale === ctx.currentLocale) return null;
   // A registered slug is stored decoded (Arabic, ä); the browser path is
   // already encoded and is kept exactly as it is.
   const translated = ctx.pathByLocale?.[choice.locale];

@@ -67,6 +67,8 @@ vi.mock('@/lib/market.server', () => ({
   getRequestMarket: async () => (state.suggestedMarket ? 'se' : undefined),
   getRequestNoindex: async () => false,
   getRequestSuggestedMarket: async () => state.suggestedMarket,
+  getRequestPathPrefix: async () => undefined,
+  getRequestPathCountry: async () => null,
 }));
 vi.mock('@/lib/storeGate.server', () => ({
   loadGatedStore: async () => ({ store: state.store, gate: 'live', preview: false }),

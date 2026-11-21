@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { StoreProductCard } from '@/components/product/card/StoreProductCard';
@@ -27,6 +27,7 @@ import { readListingSettings } from '@/lib/listingFilters/settings';
 import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
 import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
+import { pageLinkPrefix } from '@/lib/localePaths';
 
 interface ProductPromotion {
   type?: string;
@@ -104,6 +105,7 @@ export async function generateMetadata({
     const storeName = store?.theme?.translations?.[locale]?.name || store?.name || '';
 
     const alternates = buildStoreAlternates({
+      pathPrefix: await getRequestPathPrefix(),
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
@@ -149,7 +151,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   const query = await searchParams;
   const { search, category, creator_category, lang, sort } = query;
   const t = await getTranslations();
-  const lp = lang ? `/${lang}` : '';
+  // Link prefix: the proxy's path prefix on a locale-path market (M156),
+  // else the URL's own locale folder.
+  const pathPrefix = await getRequestPathPrefix();
+  const lp = pageLinkPrefix(pathPrefix, lang);
 
   // The store is read first (cached): without a locale prefix in the URL the
   // catalogue is rendered in the store's primary locale, not in English.
@@ -266,7 +271,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // and describing a filtered subset as "the catalogue" would be inaccurate.
   const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
-  const listingUrl = storeLocalePath(ldOrigin, locale, ldPrimary, '/products');
+  const listingUrl = storeLocalePath(ldOrigin, locale, ldPrimary, '/products', pathPrefix);
   const listingLd = isFiltered
     ? null
     : buildCollectionPage({
@@ -279,13 +284,13 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             p.translations?.[0];
           return {
             name: tr?.title || '',
-            url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`),
+            url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`, pathPrefix),
             image: p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined,
           };
         }),
       });
   const listingBreadcrumbLd = buildBreadcrumb([
-    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '') },
+    { name: t('common.home'), url: storeLocalePath(ldOrigin, locale, ldPrimary, '', pathPrefix) },
     { name: t('common.products'), url: listingUrl },
   ]);
 
@@ -331,6 +336,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           sections={templateSections}
           locale={tplLocale}
           primaryLocale={ldPrimary}
+          pathPrefix={pathPrefix}
           storeSlug={storeSlug}
           motion={storeMotionOf(storeData)}
           currency={currency}

@@ -84,7 +84,7 @@ function OutlineWord({ text, look }: { text: string; look: 'outline' | 'faint' }
   );
 }
 
-function HeroOutline({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function HeroOutline({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const headingId = useId();
   const heading = headingLines(content.heading);
   const image = heroMedia(settings.image);
@@ -222,6 +222,7 @@ function HeroOutline({ settings, content, locale, primaryLocale, builderPreview,
               delay={0.82}
               locale={locale}
               primaryLocale={primaryLocale}
+              pathPrefix={pathPrefix}
               cta={{
                 text: str(content.cta_text),
                 url: settings.cta_url,

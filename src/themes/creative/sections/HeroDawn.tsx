@@ -123,7 +123,7 @@ function Run({ className, text }: { className?: string; text: string }) {
   );
 }
 
-function HeroDawn({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function HeroDawn({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const headingId = useId();
   const uid = headingId.replace(/[^a-zA-Z0-9]/g, '');
   const line1 = str(content.heading_1);
@@ -318,7 +318,7 @@ function HeroDawn({ settings, content, locale, primaryLocale, builderPreview, mo
           {cta || secondary ? (
             <div className="cx-hd-actions">
               {cta ? (
-                <a className="cx-hd-btn" href={sectionHref(settings.cta_url, locale, primaryLocale)}>
+                <a className="cx-hd-btn" href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}>
                   <span className="cx-hd-btnfill" aria-hidden="true" />
                   <span className="cx-hd-btntext">
                     <Run text={cta} />
@@ -327,7 +327,7 @@ function HeroDawn({ settings, content, locale, primaryLocale, builderPreview, mo
                 </a>
               ) : null}
               {secondary ? (
-                <a className="cx-hd-link" href={sectionHref(settings.cta_secondary_url, locale, primaryLocale)}>
+                <a className="cx-hd-link" href={sectionHref(settings.cta_secondary_url, { locale, primaryLocale, pathPrefix })}>
                   <Run text={secondary} />
                   <Arrow />
                 </a>

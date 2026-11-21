@@ -114,7 +114,7 @@ export function readScenes(raw: unknown): Scene[] {
 
 const SIZES = '(min-width: 1024px) 34vw, 80vw';
 
-function StageScenes({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function StageScenes({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   const baseId = useId();
   const scenes = readScenes(content.scenes);
   if (!scenes.length) return builderPreview ? <EmptyState name={KEY} /> : null;
@@ -237,11 +237,11 @@ function StageScenes({ settings, content, locale, primaryLocale, builderPreview,
                   {scene.ctaText || scene.ctaSecondaryText ? (
                     <div className="cx-ss-btns" {...rise()}>
                       {scene.ctaText ? (
-                        <PillButton href={sectionHref(scene.ctaUrl, locale, primaryLocale)}>{scene.ctaText}</PillButton>
+                        <PillButton href={sectionHref(scene.ctaUrl, { locale, primaryLocale, pathPrefix })}>{scene.ctaText}</PillButton>
                       ) : null}
                       {scene.ctaSecondaryText ? (
                         <PillButton
-                          href={sectionHref(scene.ctaSecondaryUrl, locale, primaryLocale)}
+                          href={sectionHref(scene.ctaSecondaryUrl, { locale, primaryLocale, pathPrefix })}
                           variant="outline"
                           arrow={false}
                         >

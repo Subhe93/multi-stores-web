@@ -95,7 +95,7 @@ interface Row {
 
 function readRows(
   raw: unknown,
-  ctx: { preloaded: unknown; locale: string; primaryLocale: string; currency?: string; hasA: boolean; hasB: boolean },
+  ctx: { preloaded: unknown; locale: string; primaryLocale: string; pathPrefix?: string; currency?: string; hasA: boolean; hasB: boolean },
 ): Row[] {
   const rows: Row[] = [];
   let mark = 0;
@@ -120,7 +120,7 @@ function readRows(
       mark: onPhoto ? ++mark : 0,
       title,
       note: str(it.note),
-      href: url ? sectionHref(url, ctx.locale, ctx.primaryLocale) : null,
+      href: url ? sectionHref(url, { locale: ctx.locale, primaryLocale: ctx.primaryLocale, pathPrefix: ctx.pathPrefix }) : null,
       image: str(it.image) || (live ? str(live.image) : ''),
       // Same formatting as the product card (Latin digits in every locale).
       price: hasPrice ? formatPrice(live!.price as number, live!.currency || ctx.currency || 'EUR', 'en') : '',
@@ -184,6 +184,7 @@ function LookSpread({
   content,
   locale,
   primaryLocale,
+  pathPrefix,
   currency,
   preloaded,
   motion,
@@ -205,6 +206,7 @@ function LookSpread({
     preloaded,
     locale,
     primaryLocale,
+    pathPrefix,
     currency,
     hasA: !!imageA,
     hasB: !!imageB,
@@ -333,7 +335,7 @@ function LookSpread({
                 </ol>
               )}
               {linkLabel && linkUrl && (
-                <a className="cx-ls-more" href={sectionHref(linkUrl, locale, primaryLocale)}>
+                <a className="cx-ls-more" href={sectionHref(linkUrl, { locale, primaryLocale, pathPrefix })}>
                   <span className="cx-ls-more-l" {...hover(motion, 'underline')}>
                     {linkLabel}
                   </span>

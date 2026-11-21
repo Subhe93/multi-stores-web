@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '@/i18n/config';
 import { isReviewLocale, matchStoreLocalePrefix } from '@/lib/storeLocales';
-import { STORE_NOINDEX_HEADER, type MarketRoute } from '@/lib/market';
+import { LOCALE_COUNTRY_HEADER, STORE_NOINDEX_HEADER, STORE_PATH_PREFIX_HEADER, type MarketRoute } from '@/lib/market';
+import {
+  activeLocalePaths,
+  legacyRedirectAlias,
+  rebaseAliasTarget,
+  remapLegacyLocaleTarget,
+  usesLocalePaths,
+} from '@/lib/localePaths';
+import { REGION_COOKIE, REGION_MAX_AGE_S } from '@/lib/region';
 import {
   decideStoreRoute,
   detectVisitorCountry,
   isBotUserAgent,
   pickSuggestedMarket,
 } from '@/lib/market-routing';
-import { buildRedirectLocation, matchStoreRedirect } from '@/lib/redirects';
+import { buildRedirectLocation, matchStoreRedirect, normalizeRedirectPath, type RedirectHit } from '@/lib/redirects';
 import { marketPublicHostname } from '@/lib/storeUrl';
 import { creativeDemoEnabled, isCreativeDemoPath } from '@/themes/creative/demo/demoGate';
 import { storeFaviconRewritePath } from '@/lib/storeFavicon';
@@ -102,7 +110,17 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,
 // Inbound copies of the headers we set must never be trusted (a client could
 // spoof a market, or a preview of a DRAFT one); every branch strips them
 // before forwarding.
-const MARKET_REQUEST_HEADERS = ['x-market', 'x-market-locale', 'x-market-suggest', 'x-market-geo', 'x-market-preview', STORE_NOINDEX_HEADER];
+const MARKET_REQUEST_HEADERS = [
+  'x-market',
+  'x-market-locale',
+  'x-market-suggest',
+  'x-market-geo',
+  'x-market-preview',
+  STORE_NOINDEX_HEADER,
+  // M156: link prefix + path country of a locale-path market.
+  STORE_PATH_PREFIX_HEADER,
+  LOCALE_COUNTRY_HEADER,
+];
 function stripMarketHeaders(h: Headers): Headers {
   for (const name of MARKET_REQUEST_HEADERS) h.delete(name);
   return h;
@@ -120,8 +138,21 @@ function isLiveMarket(value: unknown): value is MarketRoute {
   );
 }
 
+/**
+ * M156: keep only the active, well-formed `locale_paths` rows (the API sends
+ * active rows only; this is the defensive re-check). A market without any
+ * keeps no `locale_paths` property, so it routes exactly as before.
+ */
+function withLocalePaths(m: MarketRoute): MarketRoute {
+  if (m.locale_paths === undefined) return m;
+  const { locale_paths: _raw, ...rest } = m;
+  void _raw;
+  const rows = activeLocalePaths(m);
+  return rows.length ? { ...rest, locale_paths: rows } : rest;
+}
+
 function normalizeMarkets(raw: unknown): MarketRoute[] {
-  return Array.isArray(raw) ? raw.filter(isLiveMarket) : [];
+  return Array.isArray(raw) ? raw.filter(isLiveMarket).map(withLocalePaths) : [];
 }
 
 /** A market the API resolved in preview mode (any status, `preview: true`). */
@@ -194,7 +225,7 @@ async function fetchCustomHostRoute(host: string): Promise<HostRoute | null | ty
     const data = body.data ?? body;
     const slug = data.slug ?? null;
     if (!slug) return null;
-    const market = isLiveMarket(data.market) ? data.market : null;
+    const market = isLiveMarket(data.market) ? withLocalePaths(data.market) : null;
     return {
       slug,
       market,
@@ -262,7 +293,7 @@ async function fetchPlatformHostRoute(slug: string): Promise<HostRoute | typeof 
     if (!isLiveMarket(data.market)) return { ...legacy, redirectsVersion };
     return {
       slug,
-      market: data.market,
+      market: withLocalePaths(data.market),
       markets: normalizeMarkets(data.markets),
       redirectTo: null,
       redirectsVersion,
@@ -305,7 +336,7 @@ async function fetchPreviewHostRoute(slug: string, key: string): Promise<HostRou
     if (!isPreviewMarket(data.market) || data.market.key !== key) return null;
     return {
       slug,
-      market: data.market,
+      market: withLocalePaths(data.market),
       markets: normalizeMarkets(data.markets),
       redirectTo: null,
       redirectsVersion: readRedirectsVersion(data.redirects_version),
@@ -407,6 +438,48 @@ function stripTrailingSlash(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(target, 308);
 }
 
+/**
+ * Store redirect lookup of a locale-path market (M156 §4.4 step 2):
+ *  - an exact hit's target has a remapped bare folder rewritten
+ *    (`/de/x` -> `/de-de/x`), so an old rule answers in one hop;
+ *  - a miss under a remapped prefix (`/de-at/old`) looks up the bare form
+ *    the tables keep (`/de/old`) and stays on the visited prefix;
+ *  - a target that, after the remap, is the request path itself is ignored.
+ */
+async function matchLocalePathRedirect(
+  slug: string,
+  version: string,
+  pathname: string,
+  market: MarketRoute,
+): Promise<RedirectHit | null> {
+  let hit = await matchStoreRedirect(slug, version, pathname);
+  if (hit) {
+    hit = { ...hit, to: remapLegacyLocaleTarget(hit.to, market) };
+  } else {
+    const alias = legacyRedirectAlias(pathname, market);
+    if (!alias) return null;
+    const aliasHit = await matchStoreRedirect(slug, version, alias.alias);
+    if (!aliasHit) return null;
+    hit = { ...aliasHit, to: rebaseAliasTarget(aliasHit.to, alias.entry, market) };
+  }
+  const from = normalizeRedirectPath(pathname);
+  return from !== null && from === normalizeRedirectPath(hit.to) ? null : hit;
+}
+
+/**
+ * Trailing-slash step of a locale-path market (M156 §4.4 step 3): when the
+ * slash-less path is itself a 301 (`/de/` -> `/de` -> `/de-de`), answer the
+ * final target directly. Null = use the plain 308.
+ */
+function localePathSlashRedirect(request: NextRequest, storeSlug: string, market: MarketRoute): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (pathname.length < 2 || !pathname.endsWith('/')) return null;
+  const stripped = pathname.replace(/\/+$/, '') || '/';
+  const decision = decideStoreRoute({ storeSlug, pathname: stripped, search: request.nextUrl.search, market });
+  if (decision.kind !== 'redirect') return null;
+  return NextResponse.redirect(new URL(decision.location, request.url), decision.status);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
@@ -470,7 +543,10 @@ export async function proxy(request: NextRequest) {
   // `redirects_version`, so stores without redirects make no extra fetch.
   // Matching ignores the query; the Location keeps it. Fails open.
   if (storeSlug && route?.redirectsVersion && !isSitemapOrRobots) {
-    const hit = await matchStoreRedirect(storeSlug, route.redirectsVersion, pathname);
+    const pathMarket = route.market && usesLocalePaths(route.market) ? route.market : null;
+    const hit = pathMarket
+      ? await matchLocalePathRedirect(storeSlug, route.redirectsVersion, pathname, pathMarket)
+      : await matchStoreRedirect(storeSlug, route.redirectsVersion, pathname);
     if (hit) {
       return NextResponse.redirect(
         new URL(buildRedirectLocation(hit.to, request.nextUrl.search), request.url),
@@ -482,7 +558,12 @@ export async function proxy(request: NextRequest) {
   // Trailing slash (Next's own 308, moved here — `skipTrailingSlashRedirect`):
   // it runs AFTER the store redirects so an imported WordPress URL such as
   // `/produkt/x/` 301s to its target in one hop instead of 308 → 301.
-  const slashRedirect = stripTrailingSlash(request);
+  // M156: on a locale-path market a slash form whose slash-less path would
+  // 301 again (`/de/` -> `/de` -> `/de-de`) gets that final 301 directly.
+  const slashRedirect =
+    (storeSlug && route?.market && usesLocalePaths(route.market) && !isStaticLike
+      ? localePathSlashRedirect(request, storeSlug, route.market)
+      : null) ?? stripTrailingSlash(request);
   if (slashRedirect) return slashRedirect;
 
   if (isStaticLike) return NextResponse.next();
@@ -607,6 +688,12 @@ export async function proxy(request: NextRequest) {
       newUrl.searchParams.set('lang', decision.urlLocale);
       requestHeaders.set('x-locale', decision.urlLocale);
     }
+    // M156 (locale-path markets only): the link prefix of this request and
+    // the country of a language-country path, for the pages and layouts.
+    if (decision.pathPrefix !== undefined) {
+      requestHeaders.set(STORE_PATH_PREFIX_HEADER, decision.pathPrefix || '/');
+      if (decision.pathCountry) requestHeaders.set(LOCALE_COUNTRY_HEADER, decision.pathCountry);
+    }
 
     // Geo suggestion (L7): CDN country header first, Accept-Language region
     // as a weak fallback; never redirects, skipped for bots, once the
@@ -637,6 +724,17 @@ export async function proxy(request: NextRequest) {
     // is unprefixed) so request.ts / app/layout.tsx resolve it without a
     // store fetch. Legacy stores keep writing '' below.
     response.cookies.set('x-store-locale', decision.cookieLocale, { path: '/' });
+    // M156: a language-country path stores its country as the visitor's
+    // region (checkout prefill AT on `/de-at/`). The value comes from the
+    // active row only. Not on a preview host (the merchant is looking).
+    if (decision.pathCountry && !preview && request.cookies.get(REGION_COOKIE)?.value !== decision.pathCountry) {
+      response.cookies.set(REGION_COOKIE, decision.pathCountry, {
+        path: '/',
+        maxAge: REGION_MAX_AGE_S,
+        sameSite: 'lax',
+        secure: request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https',
+      });
+    }
     return response;
   }
 

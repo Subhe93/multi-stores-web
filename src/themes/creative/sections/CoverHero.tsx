@@ -169,7 +169,7 @@ function CaptionBlock({ caption, motion, alt }: { caption: Caption; motion: Moti
 }
 
 function CoverHero(props: SectionRenderProps) {
-  const { settings, content, locale, primaryLocale, motion, builderPreview, preloaded } = props;
+  const { settings, content, locale, primaryLocale, pathPrefix, motion, builderPreview, preloaded } = props;
 
   const heading = headingLines(content.heading);
   if (!heading) return builderPreview ? <EmptyState name={KEY} /> : null;
@@ -201,7 +201,7 @@ function CoverHero(props: SectionRenderProps) {
         price:
           livePrice === null ? '' : formatPrice(livePrice, str(live?.currency) || props.currency || 'EUR', 'en'),
         soldOut: live?.available === false,
-        href: detailUrl ? sectionHref(detailUrl, locale, primaryLocale) : '',
+        href: detailUrl ? sectionHref(detailUrl, { locale, primaryLocale, pathPrefix }) : '',
       }
     : null;
 
@@ -285,7 +285,7 @@ function CoverHero(props: SectionRenderProps) {
                 {ctaText && (
                   <a
                     className={`cx-ch-btn${b}`}
-                    href={sectionHref(settings.cta_url, locale, primaryLocale)}
+                    href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
                     data-cx-script={script(ctaText)}
                     {...rise(motion, { i: 3 })}
                     {...hover(motion, 'press')}
@@ -297,7 +297,7 @@ function CoverHero(props: SectionRenderProps) {
                 {ctaSecondaryText && (
                   <a
                     className={`cx-ch-btn${b}`}
-                    href={sectionHref(settings.cta_secondary_url, locale, primaryLocale)}
+                    href={sectionHref(settings.cta_secondary_url, { locale, primaryLocale, pathPrefix })}
                     data-cx-variant="outline"
                     data-cx-script={script(ctaSecondaryText)}
                     {...rise(motion, { i: 4 })}

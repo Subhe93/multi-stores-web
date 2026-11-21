@@ -438,7 +438,7 @@ describe('localizeStoreUrl', () => {
 
 describe('storeLocalePrefix', () => {
   it('is empty for the primary locale and /<locale> otherwise', () => {
-    expect(storeLocalePrefix('sv', 'sv')).toBe('');
-    expect(storeLocalePrefix('ar', 'sv')).toBe('/ar');
+    expect(storeLocalePrefix({ locale: 'sv', primaryLocale: 'sv' })).toBe('');
+    expect(storeLocalePrefix({ locale: 'ar', primaryLocale: 'sv' })).toBe('/ar');
   });
 });

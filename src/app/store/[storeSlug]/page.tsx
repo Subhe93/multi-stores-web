@@ -19,7 +19,8 @@ import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
-import { getRequestMarket, getRequestNoindex } from '@/lib/market.server';
+import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
+import { pageLinkPrefix } from '@/lib/localePaths';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { isUsableSlug } from '@/lib/slugRoute';
 
@@ -127,6 +128,7 @@ export async function generateMetadata({
       noindex: await getRequestNoindex(),
       storeCustomDomain: store.custom_domain ?? null,
       storeSlug,
+      pathPrefix: await getRequestPathPrefix(),
     });
 
     // Absolutize: API stores og_image as a relative `/uploads/...` path. Without
@@ -200,7 +202,10 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // The canonical (unprefixed) URL is the store's PRIMARY locale — falling
   // back to 'en' here made every German store render its home in English.
   const locale = lang || store.language_config?.primary_locale || 'en';
-  const lp = lang ? `/${lang}` : '';
+  // Link prefix: the proxy's path prefix on a locale-path market (M156),
+  // else the URL's own locale folder.
+  const pathPrefix = await getRequestPathPrefix();
+  const lp = pageLinkPrefix(pathPrefix, lang);
 
   // Currency from the store, used by sections that render prices (FeaturedProducts).
   const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';
@@ -221,6 +226,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     description: homeTr?.meta_description || storeDescription,
     canonical: publishedHome?.seo?.canonical,
     robots: publishedHome?.seo?.robots,
+    pathPrefix,
   });
   const homeLdScript = homeLd ? (
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(homeLd) }} />
@@ -248,6 +254,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
           sections={publishedHome.snapshot.sections}
           locale={locale}
           primaryLocale={primaryLocale}
+          pathPrefix={pathPrefix}
           storeSlug={storeSlug}
           motion={storeMotionOf(store)}
           currency={storeCurrency}

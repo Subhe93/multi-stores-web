@@ -44,7 +44,7 @@ function formatters(locale: string) {
   }
 }
 
-function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function ProgressSpotlight({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -233,7 +233,7 @@ function ProgressSpotlight({ settings, content, locale, primaryLocale, builderPr
       {ctaText && (
         <div className="mt-6" {...rise(motion, { i: 4 })}>
           <a
-            href={sectionHref(settings.cta_url, locale, primaryLocale)}
+            href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}
             className={`inline-flex items-center gap-2 px-6 py-3 motion-safe:transition-opacity hover:opacity-90 ${FOCUS_RING}`}
             style={{ ...ctaStyle, fontWeight: 'var(--theme-weight-bold)', outlineColor: colors.text }}
             {...hover(motion, 'press')}

@@ -47,6 +47,31 @@ export interface MarketRoute {
    * Hreflang falls back to the default market when it is not indexable.
    */
   is_x_default?: true;
+  /**
+   * M156: optional language-country URL paths (`/de-de/`, `/de-at/`). ACTIVE
+   * rows only, in stored order; absent when the market has none, and then
+   * every layer keeps the bare `/<locale>/` folders. Read it through
+   * `activeLocalePaths` (lib/localePaths.ts), which re-checks every row.
+   */
+  locale_paths?: MarketLocalePath[];
+}
+
+/**
+ * M156: one language-country URL path of a market (mirror of the shared
+ * contract, M156-LANG-COUNTRY-URLS-DESIGN.md §9). `path` is the first URL
+ * segment: `${locale}-${country.toLowerCase()}` for a country row, `locale`
+ * for a language-only row (country null). The root `/` always serves the
+ * market's default_locale and never appears here.
+ */
+export interface MarketLocalePath {
+  /** /^[a-z]{2}(-[a-z]{2})?$/, e.g. 'de-at' or 'ar'. Unique per market. */
+  path: string;
+  /** ISO 639-1, lower case; never the market's default_locale. */
+  locale: string;
+  /** ISO 3166-1 alpha-2, upper case, in market.countries; null = every country. */
+  country: string | null;
+  /** hreflang codes this URL answers for; first = primary ('de-AT'); each code unique per market. */
+  hreflang: string[];
 }
 
 /** `Market.indexing` values (M6.1). */
@@ -115,6 +140,32 @@ export function requestMarketRef(h: Headers): { key: string; preview?: true } | 
 export function requestNoindex(h: Headers): boolean {
   return h.get(STORE_NOINDEX_HEADER) === '1';
 }
+/**
+ * M156 (locale-path markets only): the URL prefix of the request as the
+ * proxy matched it: `/` for the root, else `/de-at`, `/ar` or `/de`. Every
+ * link builder reads it instead of deriving the prefix from the locale.
+ */
+export const STORE_PATH_PREFIX_HEADER = 'x-store-path-prefix';
+/** M156: ISO2 country of the visited language-country path (`/de-at` -> AT). */
+export const LOCALE_COUNTRY_HEADER = 'x-locale-country';
+
+/** `x-store-path-prefix` value -> link prefix ('' = root); undefined when absent or malformed. */
+export function parsePathPrefixHeader(raw: string | null | undefined): string | undefined {
+  if (raw === null || raw === undefined || raw === '') return undefined;
+  if (raw === '/') return '';
+  return /^\/[a-z]{2}(?:-[a-z]{2})?$/.test(raw) ? raw : undefined;
+}
+
+/** `x-locale-country` value -> ISO2, or null. */
+export function parseLocaleCountryHeader(raw: string | null | undefined): string | null {
+  return raw && /^[A-Z]{2}$/.test(raw) ? raw : null;
+}
+
+/** Link prefix of a route handler's request (see `STORE_PATH_PREFIX_HEADER`). */
+export function requestPathPrefix(h: Headers): string | undefined {
+  return parsePathPrefixHeader(h.get(STORE_PATH_PREFIX_HEADER));
+}
+
 export const MARKET_LOCALE_HEADER = 'x-market-locale';
 export const MARKET_SUGGEST_HEADER = 'x-market-suggest';
 /** Visitor country (ISO2) the suggestion was derived from. */

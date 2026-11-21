@@ -67,7 +67,7 @@ const MEGA_MENU_CSS = `
 .mega-menu-mobile details > summary { list-style: none; }
 `;
 
-function MegaMenu({ settings, content, locale, primaryLocale, motion }: SectionRenderProps) {
+function MegaMenu({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const triggers = ((content.triggers as MegaMenuTrigger[]) || []).filter((t) => t.label);
   const alignment = (settings.alignment as 'start' | 'center' | 'end') || 'center';
   const bg = colorOr(settings.bg_color, 'var(--theme-colors-background)');
@@ -77,7 +77,7 @@ function MegaMenu({ settings, content, locale, primaryLocale, motion }: SectionR
   const accentColor = colorOr(settings.accent_color, 'var(--theme-colors-primary)');
   const borderColor = colorOr(settings.border_color, 'var(--theme-colors-border)');
   // Secondary-locale visitors keep their locale prefix (same rule as HeaderBar).
-  const lp = storeLocalePrefix(locale, primaryLocale);
+  const lp = storeLocalePrefix({ locale, primaryLocale, pathPrefix });
   const href = (url: string | undefined) => localizeStoreUrl(url, lp, locale);
 
   const justify =

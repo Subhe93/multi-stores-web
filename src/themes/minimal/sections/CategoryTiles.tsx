@@ -105,7 +105,7 @@ function Cell({
   );
 }
 
-function CategoryTiles({ settings, content, locale, primaryLocale, builderPreview, motion }: SectionRenderProps) {
+function CategoryTiles({ settings, content, locale, primaryLocale, pathPrefix, builderPreview, motion }: SectionRenderProps) {
   // Non-async shared component: the hook works on the server and in the
   // client-rendered builder preview.
   const t = useTranslations('sections');
@@ -197,7 +197,7 @@ function CategoryTiles({ settings, content, locale, primaryLocale, builderPrevie
           // without a name: give it a generic one.
           const unnamed = !title && !subtitle && !str(tile.alt);
           const linkProps = url
-            ? { href: sectionHref(url, locale, primaryLocale), ...(unnamed ? { 'aria-label': t('viewDetails') } : {}) }
+            ? { href: sectionHref(url, { locale, primaryLocale, pathPrefix }), ...(unnamed ? { 'aria-label': t('viewDetails') } : {}) }
             : {};
           const image = img ? (
             <StoreImage

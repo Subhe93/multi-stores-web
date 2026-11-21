@@ -12,10 +12,11 @@
 import type { MarketRoute } from './market';
 import { isServableMarket } from './storeUrl';
 import { switcherLocales } from './storeLocales';
+import { activeLocalePaths, isRemappedLocale, usesLocalePaths } from './localePaths';
 
 export type RegionMarket = Pick<
   MarketRoute,
-  'key' | 'default_locale' | 'locales' | 'countries' | 'currency' | 'is_default' | 'primary_hostname' | 'status'
+  'key' | 'default_locale' | 'locales' | 'countries' | 'currency' | 'is_default' | 'primary_hostname' | 'status' | 'locale_paths'
 >;
 
 /** One row of the country list. `country: null` = "Other countries" (default market). */
@@ -143,6 +144,16 @@ export function regionLocales(country: string | null, ctx: RegionLocalesContext)
   }
   const marketList = uniq([m.default_locale, ...switcherLocales(m.default_locale, m.locales, ctx.currentLocale)]);
   const c = normCountry(country);
+  // M156: a locale-path market offers the languages of the country's own
+  // rows first (BE -> fr), then the default locale and every served locale
+  // that is not remapped to country paths (en, ar). A remapped language (de)
+  // is offered only in the countries that have a row for it.
+  if (usesLocalePaths(m)) {
+    const allowed = new Set(marketList);
+    const own = c ? activeLocalePaths(m).filter((r) => r.country === c).map((r) => r.locale) : [];
+    const open = [m.default_locale, ...m.locales.filter((l) => !isRemappedLocale(m, l))];
+    return uniq([...own, ...open]).filter((l) => allowed.has(l));
+  }
   const override = c ? ctx.countryLocales?.[c] : undefined;
   if (override) {
     const served = new Set([m.default_locale, ...m.locales]);
@@ -180,4 +191,14 @@ export function regionCookieString(country: string | null, secure = false): stri
   const sec = secure ? '; secure' : '';
   if (!c) return `${REGION_COOKIE}=; path=/; max-age=0; samesite=lax${sec}`;
   return `${REGION_COOKIE}=${c}; path=/; max-age=${REGION_MAX_AGE_S}; samesite=lax${sec}`;
+}
+
+/**
+ * The visitor's preferred country for this request (store layouts): the
+ * country of the visited language-country path (M156, `/de-at` -> AT) wins
+ * over the `ms-region` cookie, which the proxy only updates for the next
+ * request. Without a path country: the cookie, as before.
+ */
+export function requestRegionCountry(pathCountry: string | null | undefined, cookieValue: string | null | undefined): string | null {
+  return normCountry(pathCountry) ?? parseRegionCookie(cookieValue);
 }

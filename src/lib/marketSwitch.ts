@@ -6,6 +6,7 @@ import type { MarketRoute } from './market';
 import { buildStoreOrigin, marketOrigin, storeLocalePath } from './storeUrl';
 import { formatLocale } from './storeLocales';
 import { appendHandoffParam, CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM } from './cartHandoff';
+import { localePathPrefix, stripStorePrefix, usesLocalePaths, type PathMarket } from './localePaths';
 
 /**
  * URL of the current page on `target`'s origin.
@@ -17,8 +18,9 @@ import { appendHandoffParam, CART_HANDOFF_DROPPED_PARAM, CART_HANDOFF_PARAM } fr
  */
 export function buildMarketSwitchUrl(opts: {
   storeSlug: string;
-  current: Pick<MarketRoute, 'default_locale' | 'locales'>;
-  target: Pick<MarketRoute, 'default_locale' | 'locales' | 'primary_hostname' | 'is_default'>;
+  current: Pick<MarketRoute, 'default_locale' | 'locales'> & Pick<PathMarket, 'countries' | 'locale_paths'>;
+  target: Pick<MarketRoute, 'default_locale' | 'locales' | 'primary_hostname' | 'is_default'> &
+    Pick<PathMarket, 'countries' | 'locale_paths'>;
   /**
    * Legacy `Store.custom_domain` (M6.1): public host of the DEFAULT market
    * when it has no StoreDomain row, so the switch lands there directly
@@ -36,6 +38,12 @@ export function buildMarketSwitchUrl(opts: {
    * given; the target's default locale still applies when it is not served.
    */
   targetLocale?: string;
+  /**
+   * M156: the country the visitor chose (region picker). On a target market
+   * with language-country paths it picks the path (`/fr-be/`); ignored
+   * otherwise.
+   */
+  targetCountry?: string | null;
   pathByLocale?: Record<string, string | undefined> | null;
   cartParam?: string | null;
   /** Lines `encodeGuestCart` had to drop; surfaced on the landing side. */
@@ -44,8 +52,9 @@ export function buildMarketSwitchUrl(opts: {
   const { storeSlug, current, target, pathname, search = '', locale: currentLocale, targetLocale: wantedLocale, pathByLocale, cartParam, cartDropped = 0, storeCustomDomain = null } = opts;
 
   const currentLocales = [current.default_locale, ...current.locales];
-  const prefix = currentLocales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`);
-  const cleanPath = prefix ? pathname.slice(`/${prefix}`.length) || '/' : pathname;
+  // The current prefix: a language-country path of the current market
+  // (M156, `/de-at`) or a bare locale folder.
+  const cleanPath = stripStorePrefix(pathname, current, currentLocales).rest;
 
   const locale = wantedLocale || currentLocale;
   const targetLocales = [target.default_locale, ...target.locales];
@@ -53,7 +62,12 @@ export function buildMarketSwitchUrl(opts: {
   const path = pathByLocale?.[targetLocale] ?? cleanPath;
 
   const origin = marketOrigin(target, buildStoreOrigin(storeSlug, null), storeCustomDomain);
-  const url = storeLocalePath(origin, targetLocale, target.default_locale, path === '/' ? '' : path);
+  // M156: a target with language-country paths gets the path for the chosen
+  // country (`/fr-be`); every other target keeps the `/<locale>` form.
+  const targetPrefix = usesLocalePaths(target)
+    ? localePathPrefix(target, targetLocale, opts.targetCountry ?? null)
+    : undefined;
+  const url = storeLocalePath(origin, targetLocale, target.default_locale, path === '/' ? '' : path, targetPrefix);
   // Drop a stale hand-off param from the current URL before appending ours.
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   params.delete(CART_HANDOFF_PARAM);

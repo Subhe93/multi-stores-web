@@ -1,6 +1,16 @@
 import 'server-only';
 import { headers } from 'next/headers';
-import { MARKET_GEO_HEADER, MARKET_HEADER, MARKET_PREVIEW_HEADER, MARKET_SUGGEST_HEADER, STORE_NOINDEX_HEADER } from './market';
+import {
+  LOCALE_COUNTRY_HEADER,
+  MARKET_GEO_HEADER,
+  MARKET_HEADER,
+  MARKET_PREVIEW_HEADER,
+  MARKET_SUGGEST_HEADER,
+  STORE_NOINDEX_HEADER,
+  STORE_PATH_PREFIX_HEADER,
+  parseLocaleCountryHeader,
+  parsePathPrefixHeader,
+} from './market';
 
 // Request-scoped readers of the headers `src/proxy.ts` sets for market
 // stores. Server components / route handlers only — `src/lib/market.ts`
@@ -54,6 +64,28 @@ export async function getRequestSuggestedMarket(): Promise<{ key: string; countr
     const key = reqHeaders.get(MARKET_SUGGEST_HEADER);
     if (!key) return null;
     return { key, country: reqHeaders.get(MARKET_GEO_HEADER) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * M156: link prefix of the request on a locale-path market ('' = root,
+ * '/de-at', '/ar', '/de'); undefined for every other market and store, so
+ * callers keep their legacy `/<locale>` formula (see `linkPrefix`).
+ */
+export async function getRequestPathPrefix(): Promise<string | undefined> {
+  try {
+    return parsePathPrefixHeader((await headers()).get(STORE_PATH_PREFIX_HEADER));
+  } catch {
+    return undefined;
+  }
+}
+
+/** M156: country of the visited language-country path (`/de-at` -> 'AT'), else null. */
+export async function getRequestPathCountry(): Promise<string | null> {
+  try {
+    return parseLocaleCountryHeader((await headers()).get(LOCALE_COUNTRY_HEADER));
   } catch {
     return null;
   }

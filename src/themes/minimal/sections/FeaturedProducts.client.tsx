@@ -3,6 +3,7 @@
 // Component implementation. Definition stays in FeaturedProducts.tsx so the
 // server-side theme registry can read `.Component` as a ClientReference.
 
+import { useStorePathPrefix } from '@/hooks/useStorePathPrefix';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
@@ -68,7 +69,8 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   const linkLabel = ((content.link_label as string) || '').trim() || tCommon('viewAll');
   // Storefront routes are exposed under the store's subdomain (see proxy.ts);
   // the secondary-locale prefix is the only thing we add to the public path.
-  const localePrefix = locale && locale !== primaryLocale ? `/${locale}` : '';
+  // Link prefix of the request (M156 locale paths), else `/<locale>`.
+  const localePrefix = useStorePathPrefix(locale, primaryLocale);
   const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other FeaturedProducts instances on

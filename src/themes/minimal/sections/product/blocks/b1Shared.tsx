@@ -8,6 +8,7 @@
 // the monolith `product-page` (ProductDetailClient).
 
 import type { CSSProperties, ReactNode } from 'react';
+import { linkPrefix } from '@/lib/localePaths';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Check, Tag, X } from 'lucide-react';
@@ -28,9 +29,13 @@ export const B1_SCOPE_STYLE = {
   ['--store-primary-contrast' as string]: 'var(--theme-colors-primaryContrast, #fff)',
 } as CSSProperties;
 
-/** Path prefix for secondary locales; the primary locale stays canonical. */
-export function b1LangPrefix(locale: string, primaryLocale: string): string {
-  return locale && locale !== primaryLocale ? `/${locale}` : '';
+/**
+ * Link prefix of the product blocks: the request's path prefix on a
+ * locale-path market (M156, `useStorePathPrefixValue()`), else `/<locale>`
+ * for a secondary locale and '' for the primary one.
+ */
+export function b1LangPrefix(locale: string, primaryLocale: string, pathPrefix?: string): string {
+  return linkPrefix({ locale, primaryLocale, pathPrefix });
 }
 
 /**

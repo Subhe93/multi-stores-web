@@ -40,7 +40,7 @@ function readSteps(raw: unknown): Step[] {
   return steps;
 }
 
-function StickySteps({ settings, content, locale, primaryLocale, builderPreview }: SectionRenderProps) {
+function StickySteps({ settings, content, locale, primaryLocale, pathPrefix, builderPreview }: SectionRenderProps) {
   const headingId = useId();
   const heading = headingLines(content.heading);
   const eyebrow = str(content.eyebrow);
@@ -112,7 +112,7 @@ function StickySteps({ settings, content, locale, primaryLocale, builderPreview 
             )}
             {ctaText && (
               <div className="cx-st-cta" data-cx-reveal="rise" style={{ '--cx-delay': '.25s' } as CSSProperties}>
-                <PillButton href={sectionHref(settings.cta_url, locale, primaryLocale)}>{ctaText}</PillButton>
+                <PillButton href={sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix })}>{ctaText}</PillButton>
               </div>
             )}
           </div>
