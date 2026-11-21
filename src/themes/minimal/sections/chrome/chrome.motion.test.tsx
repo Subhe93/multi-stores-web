@@ -525,6 +525,9 @@ describe('chrome stylesheet', () => {
   it('carries the contract numbers', () => {
     expect(CHROME_CSS).toContain('cx-drawer-in .6s');
     expect(CHROME_CSS).toContain('cx-menu-in .35s');
+    // The region dialog is portalled to <body>: its rules use the document gate, not `.store-root`.
+    expect(CHROME_CSS).toMatch(/html\[data-cx-motion\]:not\([^{]*\) \[data-cx-dialog="region"\]\[data-cx-closing\]\{/);
+    expect(CHROME_CSS).toMatch(/:not\([^{]*\) \[data-cx-backdrop="region"\]\[data-cx-closing\]\{/);
     expect(CHROME_CSS).toContain('[data-cx-swap]{transition:opacity .45s ease}');
     // Nothing loops and nothing is keyed on the physical side.
     expect(CHROME_CSS).not.toContain('infinite');

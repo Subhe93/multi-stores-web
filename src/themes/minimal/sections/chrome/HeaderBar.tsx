@@ -27,7 +27,8 @@ import { HeaderBarDesktopNav, type DesktopNavItem } from './HeaderBarDesktopNav.
 import { ActiveLink } from './ActiveLink.client';
 import { navActiveLook, parseNavActiveStyle } from './navActiveLook';
 import { headerLogoBox, parseLogoFit } from './headerLogo';
-import { LocaleSwitcher } from './LocaleSwitcher.client';
+import { HeaderLocaleControl } from './HeaderLocaleControl.client';
+import { isRegionMode } from '@/lib/region';
 import { HeaderCartButton } from './HeaderCartButton.client';
 import { BlurOnNavigate } from './BlurOnNavigate.client';
 import { HeaderScrollState } from './HeaderScrollState.client';
@@ -111,7 +112,7 @@ export function parseOverlayHero(raw: unknown): OverlayHero {
   return raw === 'home' || raw === 'all' ? raw : 'off';
 }
 
-function HeaderBar({ settings, content, locale, primaryLocale, storeContext, motion }: SectionRenderProps) {
+function HeaderBar({ settings, content, locale, primaryLocale, storeSlug, storeContext, motion }: SectionRenderProps) {
   const ctx = storeContext;
   // Shared (non-async) component: next-intl's hook works both in the RSC
   // storefront and in the client-rendered builder preview.
@@ -133,7 +134,10 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
   // real language and gets no switcher. Locales in review ('ku') are left
   // out unless they are the one being rendered (switcherLocales).
   const effectiveSecondaryLocales = switcherLocales(ctx?.primaryLocale, ctx?.secondaryLocales, locale);
-  const showLocale = settings.show_locale !== false && effectiveSecondaryLocales.length > 0;
+  // A store with two or more markets shows the country/region + language
+  // picker even with one language per market (M155).
+  const showLocale =
+    settings.show_locale !== false && (effectiveSecondaryLocales.length > 0 || isRegionMode(ctx?.markets));
   // Backwards-compat: the old boolean `sticky` maps to 'always' / 'none' when
   // the newer `sticky_mode` select isn't present.
   const stickyMode: StickyMode =
@@ -417,7 +421,8 @@ function HeaderBar({ settings, content, locale, primaryLocale, storeContext, mot
               </Link>
             )}
             {showLocale && ctx && (
-              <LocaleSwitcher
+              <HeaderLocaleControl
+                storeSlug={storeSlug}
                 current={locale}
                 primary={ctx.primaryLocale}
                 others={effectiveSecondaryLocales}

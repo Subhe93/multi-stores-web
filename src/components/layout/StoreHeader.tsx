@@ -14,7 +14,9 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { switcherLocales } from '@/lib/storeLocales';
-import { CountrySwitcher } from './CountrySwitcher';
+import { RegionPicker } from '@/components/region/RegionPicker';
+import { useMarkets } from '@/hooks/useMarket';
+import { isRegionMode } from '@/lib/region';
 import { BuyerTypeToggle } from './BuyerTypeToggle';
 import { CartBadge } from './CartBadge';
 import { IfApp } from '@/components/IfApp';
@@ -346,6 +348,7 @@ interface MobileMenuProps {
 }
 
 function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en', secondaryLocales = [], currentLang, storeSlug }: MobileMenuProps) {
+  const regionMode = isRegionMode(useMarkets());
   const [open, setOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const t = useTranslations();
@@ -475,8 +478,15 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
               )}
             </div>
 
-            {/* Language switcher inside mobile menu */}
-            {secondaryLocales.length > 0 && (
+            {/* Country/region + language picker (two markets or more), else
+                the language switcher inside the mobile menu */}
+            {regionMode ? (
+              <IfApp app="markets">
+                <div className="pt-3 pb-1">
+                  <RegionPicker storeSlug={storeSlug} variant="drawer" accent={primaryColor} />
+                </div>
+              </IfApp>
+            ) : secondaryLocales.length > 0 && (
               <div className="pt-3 pb-1">
                 <Suspense fallback={null}>
                   <LanguageSwitcher
@@ -488,12 +498,6 @@ function MobileMenu({ navPages, collections, primaryColor, primaryLocale = 'en',
                 </Suspense>
               </div>
             )}
-            {/* Country (market) switcher — markets app only */}
-            <IfApp app="markets">
-              <div className="pt-1 pb-1">
-                <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
-              </div>
-            </IfApp>
             {/* Person | Company toggle — b2b app only */}
             <IfApp app="b2b">
               <div className="pt-1 pb-1">
@@ -532,6 +536,7 @@ export function StoreHeader({
   // Locales in review ('ku') are left out unless they are the one being
   // rendered, so a reviewer on /ku/ can switch back (switcherLocales).
   const effectiveSecondaryLocales = switcherLocales(primaryLocale, secondaryLocales, currentLang);
+  const regionMode = isRegionMode(useMarkets());
 
   // Active link underline color used via inline style (Tailwind cannot generate arbitrary colors)
   const activeLinkStyle = { color: primaryColor || '#111827' };
@@ -606,9 +611,16 @@ export function StoreHeader({
 
         {/* Right: language switcher + cart icon + mobile hamburger */}
         <div className="flex items-center gap-3">
-          {/* Language switcher — only rendered when the store actually has
-              more than one language */}
-          {effectiveSecondaryLocales.length > 0 && (
+          {/* Country/region + language picker for a store with two markets
+              or more (M155); else the language switcher, only rendered when
+              the store actually has more than one language */}
+          {regionMode ? (
+            <IfApp app="markets">
+              <div className="hidden md:block">
+                <RegionPicker storeSlug={storeSlug} variant="header" accent={primaryColor} />
+              </div>
+            </IfApp>
+          ) : effectiveSecondaryLocales.length > 0 && (
             <div className="hidden md:block">
               <Suspense fallback={null}>
                 <LanguageSwitcher
@@ -620,14 +632,6 @@ export function StoreHeader({
               </Suspense>
             </div>
           )}
-
-          {/* Country (market) switcher — markets app only; renders nothing
-              for other stores and for single-market stores. */}
-          <IfApp app="markets">
-            <div className="hidden md:block">
-              <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
-            </div>
-          </IfApp>
 
           {/* Person | Company toggle — b2b app only (M2-DESIGN §4.2). */}
           <IfApp app="b2b">

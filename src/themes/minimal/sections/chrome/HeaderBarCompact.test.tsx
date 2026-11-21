@@ -15,7 +15,7 @@ vi.mock('./ActiveLink.client', () => ({
     </a>
   ),
 }));
-vi.mock('./LocaleSwitcher.client', () => ({ LocaleSwitcher: () => <i data-stub="locale-switcher" /> }));
+vi.mock('./HeaderLocaleControl.client', () => ({ HeaderLocaleControl: () => <i data-stub="locale-switcher" /> }));
 vi.mock('./HeaderCartButton.client', () => ({ HeaderCartButton: () => <i data-stub="cart" /> }));
 vi.mock('./BlurOnNavigate.client', () => ({ BlurOnNavigate: () => null }));
 vi.mock('./HeaderScrollState.client', () => ({ HeaderScrollState: () => <i data-stub="scroll-state" /> }));

@@ -819,17 +819,27 @@
     "previewBarExit": "Exit preview"
   },
   "market": {
-    "switchCountry": "Switch country",
     "preview": {
       "banner": "Preview of the {name} market — checkout is disabled",
       "checkoutDisabled": "This is a market preview — orders cannot be placed here."
     },
     "suggest": {
-      "title": "It looks like you are in {country}. Switch to {market}?",
-      "cta": "Switch to {market}",
+      "title": "It looks like you are in {country}.",
+      "cta": "Shop for {country} ({currency})",
       "dismiss": "Dismiss"
     },
     "notFound": "This language is not available for this country."
+  },
+  "region": {
+    "title": "Country/region and language",
+    "country": "Country/region",
+    "language": "Language",
+    "search": "Search country/region",
+    "noResults": "No matching country/region",
+    "otherCountries": "Other countries",
+    "apply": "Save",
+    "close": "Close",
+    "trigger": "Country/region and language: {summary}"
   },
   "b2b": {
     "person": "Person",

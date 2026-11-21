@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveLocaleMeta } from './localeMeta';
+import { countryFlagUrl, resolveLocaleMeta } from './localeMeta';
 
 describe('resolveLocaleMeta', () => {
   it('maps the store content locales to their flag and native name', () => {
@@ -31,5 +31,15 @@ describe('resolveLocaleMeta', () => {
 
   it('an unknown locale has no flag and shows its code', () => {
     expect(resolveLocaleMeta('xx')).toEqual({ code: 'xx', label: 'XX', flagUrl: '' });
+  });
+});
+
+describe('countryFlagUrl', () => {
+  it('builds the flagcdn URL of an ISO2 country, else empty (globe fallback)', () => {
+    expect(countryFlagUrl('BE')).toBe('https://flagcdn.com/be.svg');
+    expect(countryFlagUrl(' se ')).toBe('https://flagcdn.com/se.svg');
+    expect(countryFlagUrl('BEL')).toBe('');
+    expect(countryFlagUrl(null)).toBe('');
+    expect(countryFlagUrl('../x')).toBe('');
   });
 });

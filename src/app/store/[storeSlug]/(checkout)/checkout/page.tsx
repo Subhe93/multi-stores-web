@@ -16,7 +16,7 @@ import {
 } from '@/lib/guestOrder';
 import { useCart } from '@/hooks/useCart';
 import { migrationDropMessageKey } from '@/lib/guestCart';
-import { useMarket, useMarkets, useMarketPreview } from '@/hooks/useMarket';
+import { useMarket, useMarkets, useMarketPreview, usePreferredCountry } from '@/hooks/useMarket';
 import { api, storefront, type ApiError } from '@/lib/api';
 import { marketBody, marketQuery } from '@/lib/market';
 import { nameStatesDeliveryTime } from '@/lib/shippingDeliveryTime';
@@ -502,9 +502,12 @@ function CheckoutForm({
   // shippable list so a country the cart cannot ship to is not picked.
   const defaultCountry = useDefaultQuoteCountry();
   const countryPrefilledRef = useRef(false);
+  // Region picker country (M155): tried first when it is offered (shippable).
+  const preferredCountry = usePreferredCountry();
   useEffect(() => {
     if (!defaultCountry.done || !shippableSettled) return;
     const code = checkoutPrefillCountry({
+      preferredCountry,
       defaultCountry: defaultCountry.country,
       formCountry: form.country_code,
       alreadyPrefilled: countryPrefilledRef.current,
@@ -512,7 +515,7 @@ function CheckoutForm({
     });
     countryPrefilledRef.current = true;
     if (code) setForm((p) => (p.country_code ? p : { ...p, country_code: code }));
-  }, [defaultCountry.done, defaultCountry.country, shippableSettled, form.country_code, countryOptions]);
+  }, [preferredCountry, defaultCountry.done, defaultCountry.country, shippableSettled, form.country_code, countryOptions]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
   // Availability is resolved by CheckoutRouter before either mode mounts.

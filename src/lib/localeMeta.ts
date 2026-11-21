@@ -70,3 +70,12 @@ export function resolveLocaleMeta(locale: string): ResolvedLocale {
     flagUrl: meta?.flag ?? (meta?.cc ? `https://flagcdn.com/${meta.cc}.svg` : ''),
   };
 }
+
+/**
+ * Flag image of a country (ISO 3166-1 alpha-2) for the region picker, or ''
+ * for anything that is not a two-letter code (the Flag shows a globe).
+ */
+export function countryFlagUrl(cc: string | null | undefined): string {
+  const code = (cc ?? '').trim().toLowerCase();
+  return /^[a-z]{2}$/.test(code) ? `https://flagcdn.com/${code}.svg` : '';
+}

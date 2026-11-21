@@ -34,7 +34,9 @@ import { StoreGatePage } from '@/components/layout/StoreGatePage';
 import { StorePreviewBar } from '@/components/layout/StorePreviewBar';
 import { StorePreviewReset } from '@/components/layout/StorePreviewUnlock';
 import { sellerDetailsOf, type TraderDetails } from '@/lib/traderDetails';
-import { CountrySwitcher } from '@/components/layout/CountrySwitcher';
+import { RegionPicker } from '@/components/region/RegionPicker';
+import { isRegionMode, parseRegionCookie, REGION_COOKIE } from '@/lib/region';
+import { headerLocaleControlBreakpoints, stripPickerHideClasses } from '@/lib/regionHeader';
 import { IfApp } from '@/components/IfApp';
 import { BuyerTypeToggle } from '@/components/layout/BuyerTypeToggle';
 import { normalizeB2bSettings } from '@/lib/b2bSettings';
@@ -604,7 +606,7 @@ export default async function StoreLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? parseRegionCookie(cookieStore.get(REGION_COOKIE)?.value) : null} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />
         ) : selfHostedFonts && (
@@ -722,6 +724,20 @@ export default async function StoreLayout({
 
             const headerSections = publishedHeader?.snapshot?.sections;
             const footerSections = publishedFooter?.snapshot?.sections;
+            // Country/language picker in the strip under a published header,
+            // on the breakpoints where the header shows no control of its own
+            // (a `header-bar` can be hidden per breakpoint).
+            const headerControlAt = headerLocaleControlBreakpoints(headerSections);
+            const stripPicker = Boolean(store.market && isRegionMode(store.markets) && headerControlAt.size < 3);
+            const stripPickerHide = stripPicker ? stripPickerHideClasses(headerControlAt) : '';
+            // The strip shows where the picker shows, and from md for the b2b
+            // toggle (on phones that toggle sits in the menu drawer).
+            const stripHiddenAt = new Set(
+              (['desktop', 'tablet', 'mobile'] as const).filter(
+                (bp) => !(stripPicker && !headerControlAt.has(bp)) && !(storeApps.b2b && bp !== 'mobile'),
+              ),
+            );
+            const stripClasses = stripPickerHideClasses(stripHiddenAt);
 
             // "You seem to be in {country} — switch market?" strip under the
             // header. Only market stores receive the proxy's suggestion, and
@@ -757,23 +773,28 @@ export default async function StoreLayout({
                     storeContext={storeCtx}
                     chrome
                   />
-                  {/* A published chrome header has no built-in switcher slot
-                      yet (a chrome section is a later milestone), so market
-                      stores get a slim strip with the country switcher, and
-                      b2b stores the Person | Company toggle (M2-DESIGN §4.2). */}
-                  {(store.market || storeApps.b2b) && (
+                  {/* A published chrome header without a `header-bar` (or with its
+                      language control switched off) has no place for the
+                      country/language picker, so market stores with two
+                      markets or more get a slim strip with it, and b2b stores
+                      the Person | Company toggle (M2-DESIGN §4.2). A
+                      `header-bar` that shows the control already renders the
+                      picker itself (no second one here). */}
+                  {(stripPicker || storeApps.b2b) && (
                     // Phones: the buyer toggle sits in the header's menu drawer,
                     // so the strip shows below md only when it also carries the
-                    // country switcher (which needs two markets or more).
-                    <div className={`store-surface store-bd border-b px-4 py-1 justify-end items-center gap-3 ${store.market && (store.markets?.length ?? 0) >= 2 ? 'flex' : 'hidden md:flex'}`}>
+                    // picker.
+                    <div className={`store-surface store-bd border-b px-4 py-1 flex justify-end items-center gap-3 ${stripClasses}`}>
                       <IfApp app="b2b">
                         <div className="hidden md:block">
                           <BuyerTypeToggle primaryColor={primaryColor} />
                         </div>
                       </IfApp>
-                      {store.market && (
+                      {stripPicker && (
                         <IfApp app="markets">
-                          <CountrySwitcher storeSlug={storeSlug} primaryColor={primaryColor} />
+                          <div className={stripPickerHide || undefined}>
+                            <RegionPicker storeSlug={storeSlug} variant="strip" />
+                          </div>
                         </IfApp>
                       )}
                     </div>

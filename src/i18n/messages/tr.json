@@ -819,17 +819,27 @@
     "previewBarExit": "Önizlemeden çık"
   },
   "market": {
-    "switchCountry": "Ülke değiştir",
     "preview": {
       "banner": "{name} pazarının önizlemesi — ödeme kapalı",
       "checkoutDisabled": "Bu bir pazar önizlemesidir — burada sipariş verilemez."
     },
     "suggest": {
-      "title": "Görünüşe göre {country} konumundasınız. {market} sürümüne geçmek ister misiniz?",
-      "cta": "{market} sürümüne geç",
+      "title": "Konumunuz {country} gibi görünüyor.",
+      "cta": "{country} için alışveriş yap ({currency})",
       "dismiss": "Kapat"
     },
     "notFound": "Bu dil bu ülke için kullanılamıyor."
+  },
+  "region": {
+    "title": "Ülke/bölge ve dil",
+    "country": "Ülke/bölge",
+    "language": "Dil",
+    "search": "Ülke veya bölge ara",
+    "noResults": "Eşleşen ülke veya bölge yok",
+    "otherCountries": "Diğer ülkeler",
+    "apply": "Kaydet",
+    "close": "Kapat",
+    "trigger": "Ülke/bölge ve dil: {summary}"
   },
   "b2b": {
     "person": "Bireysel",

@@ -115,21 +115,28 @@ export function restrictToShippable(
 }
 
 /**
- * Country the classic checkout pre-selects: the cart quote's default
- * country, once known, when the form is still empty, nothing was
+ * Country the classic checkout pre-selects: the visitor's region-picker
+ * country (M155, `ms-region`) when it is offered, else the cart quote's
+ * default country, once known, when the form is still empty, nothing was
  * pre-selected before (the shopper may clear it on purpose), and the
- * country is one of the offered options. Null = leave the form as it is.
+ * country is one of the offered options. The options are already
+ * market-scoped and shippable-filtered, so "offered" implies "shippable".
+ * Null = leave the form as it is.
  */
 export function checkoutPrefillCountry(input: {
+  /** Region picker choice (`ms-region`), tried first. */
+  preferredCountry?: string | null;
   defaultCountry: string | null;
   formCountry: string;
   alreadyPrefilled: boolean;
   options: readonly CountryOption[];
 }): string | null {
   if (input.alreadyPrefilled || input.formCountry) return null;
-  const code = input.defaultCountry?.trim().toUpperCase();
-  if (!code) return null;
-  return input.options.some((o) => o.code === code) ? code : null;
+  for (const raw of [input.preferredCountry, input.defaultCountry]) {
+    const code = raw?.trim().toUpperCase();
+    if (code && input.options.some((o) => o.code === code)) return code;
+  }
+  return null;
 }
 
 function normalize(countries: readonly string[] | null | undefined): string[] {

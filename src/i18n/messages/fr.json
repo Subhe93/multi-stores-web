@@ -819,17 +819,27 @@
     "previewBarExit": "Quitter l’aperçu"
   },
   "market": {
-    "switchCountry": "Changer de pays",
     "preview": {
       "banner": "Aperçu du marché {name} — le paiement est désactivé",
       "checkoutDisabled": "Ceci est un aperçu du marché — aucune commande ne peut être passée ici."
     },
     "suggest": {
-      "title": "Il semble que vous soyez en {country}. Passer à {market} ?",
-      "cta": "Passer à {market}",
+      "title": "Vous semblez vous trouver ici : {country}.",
+      "cta": "Continuer : {country} ({currency})",
       "dismiss": "Fermer"
     },
     "notFound": "Cette langue n'est pas disponible pour ce pays."
+  },
+  "region": {
+    "title": "Pays/région et langue",
+    "country": "Pays/région",
+    "language": "Langue",
+    "search": "Rechercher un pays ou une région",
+    "noResults": "Aucun pays ni aucune région ne correspond",
+    "otherCountries": "Autres pays",
+    "apply": "Enregistrer",
+    "close": "Fermer",
+    "trigger": "Pays/région et langue : {summary}"
   },
   "b2b": {
     "person": "Particulier",

@@ -47,4 +47,11 @@ describe('buildMarketSwitchUrl', () => {
       pathByLocale: { sv: '/products/metallkort', en: '/products/metal-card' },
     })).toBe('https://namez.se/products/metallkort');
   });
+
+  it('M155: targetLocale replaces the current locale when the target serves it', () => {
+    expect(buildMarketSwitchUrl({ storeSlug: 'namez', current: se, target: eu, pathname: '/products/x', locale: 'sv', targetLocale: 'de' }))
+      .toBe('https://namez.shop/de/products/x');
+    expect(buildMarketSwitchUrl({ storeSlug: 'namez', current: eu, target: se, pathname: '/de/products/x', locale: 'de', targetLocale: 'fr' }))
+      .toBe('https://namez.se/products/x');
+  });
 });

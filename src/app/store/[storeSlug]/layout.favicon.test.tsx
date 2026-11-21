@@ -44,7 +44,7 @@ vi.mock('@/components/layout/FocusedFooter', () => ({ FocusedFooter: () => null 
 vi.mock('@/components/providers/StoreProviders', () => ({ StoreProviders: () => null }));
 vi.mock('@/components/layout/MarketSuggestBanner', () => ({ MarketSuggestBanner: () => null }));
 vi.mock('@/components/layout/MarketPreviewBanner', () => ({ MarketPreviewBanner: () => null }));
-vi.mock('@/components/layout/CountrySwitcher', () => ({ CountrySwitcher: () => null }));
+vi.mock('@/components/region/RegionPicker', () => ({ RegionPicker: () => null }));
 vi.mock('@/components/layout/BuyerTypeToggle', () => ({ BuyerTypeToggle: () => null }));
 vi.mock('@/components/IfApp', () => ({ IfApp: () => null }));
 vi.mock('@/components/edit-hint/EditHintBoot', () => ({ EditHintBoot: () => null }));

@@ -120,4 +120,18 @@ describe('checkoutPrefillCountry', () => {
     expect(checkoutPrefillCountry({ ...base, defaultCountry: null })).toBeNull();
     expect(checkoutPrefillCountry({ ...base, defaultCountry: 'DE' })).toBeNull();
   });
+
+  it('M155: the region picker country wins when it is offered', () => {
+    expect(checkoutPrefillCountry({ ...base, preferredCountry: 'no' })).toBe('NO');
+  });
+
+  it('M155: a preferred country that is not offered (not shippable / other market) falls back to the default', () => {
+    expect(checkoutPrefillCountry({ ...base, preferredCountry: 'BE' })).toBe('SE');
+    expect(checkoutPrefillCountry({ ...base, preferredCountry: 'BE', defaultCountry: null })).toBeNull();
+  });
+
+  it('M155: a preferred country never overrides a chosen country or prefills twice', () => {
+    expect(checkoutPrefillCountry({ ...base, preferredCountry: 'NO', formCountry: 'SE' })).toBeNull();
+    expect(checkoutPrefillCountry({ ...base, preferredCountry: 'NO', alreadyPrefilled: true })).toBeNull();
+  });
 });

@@ -819,17 +819,27 @@
     "previewBarExit": "Vorschau beenden"
   },
   "market": {
-    "switchCountry": "Land wechseln",
     "preview": {
       "banner": "Vorschau des Marktes {name} — die Kasse ist deaktiviert",
       "checkoutDisabled": "Dies ist eine Marktvorschau — Bestellungen sind hier nicht möglich."
     },
     "suggest": {
-      "title": "Sie scheinen sich in {country} zu befinden. Zu {market} wechseln?",
-      "cta": "Zu {market} wechseln",
+      "title": "Sie scheinen sich in {country} zu befinden.",
+      "cta": "Für {country} einkaufen ({currency})",
       "dismiss": "Schließen"
     },
     "notFound": "Diese Sprache ist für dieses Land nicht verfügbar."
+  },
+  "region": {
+    "title": "Land/Region und Sprache",
+    "country": "Land/Region",
+    "language": "Sprache",
+    "search": "Land oder Region suchen",
+    "noResults": "Kein passendes Land und keine passende Region",
+    "otherCountries": "Andere Länder",
+    "apply": "Speichern",
+    "close": "Schließen",
+    "trigger": "Land/Region und Sprache: {summary}"
   },
   "b2b": {
     "person": "Privatperson",

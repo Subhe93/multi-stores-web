@@ -819,17 +819,27 @@
     "previewBarExit": "إنهاء المعاينة"
   },
   "market": {
-    "switchCountry": "تغيير الدولة",
     "preview": {
       "banner": "معاينة السوق {name} — صفحة الدفع معطّلة",
       "checkoutDisabled": "هذه معاينة للسوق — لا يمكن إتمام الطلبات هنا."
     },
     "suggest": {
-      "title": "يبدو أنك في {country}. هل تريد الانتقال إلى {market}؟",
-      "cta": "الانتقال إلى {market}",
+      "title": "يبدو أنك في {country}.",
+      "cta": "تسوّق في {country} ({currency})",
       "dismiss": "إغلاق"
     },
     "notFound": "هذه اللغة غير متاحة لهذه الدولة."
+  },
+  "region": {
+    "title": "الدولة/المنطقة واللغة",
+    "country": "الدولة/المنطقة",
+    "language": "اللغة",
+    "search": "ابحث عن دولة أو منطقة",
+    "noResults": "لا توجد دولة أو منطقة مطابقة",
+    "otherCountries": "دول أخرى",
+    "apply": "حفظ",
+    "close": "إغلاق",
+    "trigger": "الدولة/المنطقة واللغة: {summary}"
   },
   "b2b": {
     "person": "فرد",

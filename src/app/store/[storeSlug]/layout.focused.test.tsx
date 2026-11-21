@@ -128,7 +128,7 @@ vi.mock('@/components/providers/StoreProviders', () => ({
 }));
 vi.mock('@/components/layout/MarketSuggestBanner', () => ({ MarketSuggestBanner: () => <div data-testid="market-suggest" /> }));
 vi.mock('@/components/layout/MarketPreviewBanner', () => ({ MarketPreviewBanner: () => null }));
-vi.mock('@/components/layout/CountrySwitcher', () => ({ CountrySwitcher: () => <div data-testid="country-switcher" /> }));
+vi.mock('@/components/region/RegionPicker', () => ({ RegionPicker: () => <div data-testid="region-picker" /> }));
 vi.mock('@/components/layout/BuyerTypeToggle', () => ({ BuyerTypeToggle: () => <div data-testid="buyer-toggle" /> }));
 vi.mock('@/components/IfApp', () => ({ IfApp: ({ children }: { children: ReactNode }) => <>{children}</> }));
 vi.mock('@/components/edit-hint/EditHintBoot', () => ({ EditHintBoot: () => null }));
@@ -158,6 +158,9 @@ const HEADER_PAGE = {
   id: 'h1',
   snapshot: { sections: [{ id: 'a', section_key: 'announcement-bar' }, { id: 'b', section_key: 'header-bar' }, { id: 'c', section_key: 'mobile-bottom-nav' }] },
 };
+const HEADER_WITHOUT_BAR = { id: 'h2', snapshot: { sections: [{ id: 'a', section_key: 'announcement-bar' }] } };
+const SE = { key: 'se', default_locale: 'sv', locales: [], countries: ['SE'], currency: 'SEK', is_default: true, primary_hostname: 'namez.se', status: 'LIVE' };
+const EU = { key: 'eu', default_locale: 'en', locales: ['de'], countries: ['DE', 'BE'], currency: 'EUR', is_default: false, primary_hostname: 'namez.shop', status: 'LIVE' };
 const FOOTER_PAGE = { id: 'f1', snapshot: { sections: [{ id: 'd', section_key: 'footer-columns' }, { id: 'e', section_key: 'newsletter-signup' }] } };
 
 async function renderLayout() {
@@ -289,28 +292,58 @@ describe('store layout: chrome gate of the focused storefront', () => {
     expect(focusedFooter?.getAttribute('data-legal')).toBe('privacy,terms');
   });
 
-  it('focused: no market suggestion banner, country switcher or buyer toggle', async () => {
+  it('focused: no market suggestion banner, region picker or buyer toggle', async () => {
     state.suggestedMarket = { key: 'no', country: 'NO' };
-    state.publishedHeader = HEADER_PAGE;
-    const market = { key: 'se', default_locale: 'sv', locales: ['sv'], countries: ['SE'] };
+    state.publishedHeader = HEADER_WITHOUT_BAR;
 
-    state.store = { ...baseStore({ external_site_url: SITE }), market, markets: [market], apps: { b2b: { settings: {} } } };
+    state.store = { ...baseStore({ external_site_url: SITE }), market: SE, markets: [SE, EU], apps: { b2b: { settings: {} } } };
     const normal = await renderLayout();
     expect(q(normal.container, 'market-suggest')).not.toBeNull();
-    expect(q(normal.container, 'country-switcher')).not.toBeNull();
+    expect(q(normal.container, 'region-picker')).not.toBeNull();
     normal.unmount();
 
     state.store = {
       ...baseStore({ external_site_url: SITE, external_focus: true }),
-      market,
-      markets: [market],
+      market: SE,
+      markets: [SE, EU],
       apps: { b2b: { settings: {} } },
     };
     const { container } = await renderLayout();
     expect(q(container, 'focused-header')).not.toBeNull();
     expect(q(container, 'market-suggest')).toBeNull();
-    expect(q(container, 'country-switcher')).toBeNull();
+    expect(q(container, 'region-picker')).toBeNull();
     expect(q(container, 'buyer-toggle')).toBeNull();
+  });
+
+  it('M155: the strip under a published header carries the picker only without a header-bar that shows it', async () => {
+    const multi = { ...baseStore(), market: SE, markets: [SE, EU] };
+
+    // A header-bar with the language control renders the picker itself.
+    state.store = multi;
+    state.publishedHeader = HEADER_PAGE;
+    let r = await renderLayout();
+    expect(q(r.container, 'region-picker')).toBeNull();
+    r.unmount();
+
+    // header-bar with the control switched off: the strip picker.
+    state.publishedHeader = {
+      id: 'h3',
+      snapshot: { sections: [{ id: 'b', section_key: 'header-bar', settings: { show_locale: false } }] },
+    };
+    r = await renderLayout();
+    expect(q(r.container, 'region-picker')).not.toBeNull();
+    r.unmount();
+
+    // No header-bar at all: the strip picker.
+    state.publishedHeader = HEADER_WITHOUT_BAR;
+    r = await renderLayout();
+    expect(q(r.container, 'region-picker')).not.toBeNull();
+    r.unmount();
+
+    // One market: no picker and no strip.
+    state.store = { ...baseStore(), market: SE, markets: [SE] };
+    r = await renderLayout();
+    expect(q(r.container, 'region-picker')).toBeNull();
   });
 
   it('focused but the external site is the host being served: the normal chrome (loop guard)', async () => {

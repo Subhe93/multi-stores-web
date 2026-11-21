@@ -14,6 +14,7 @@
 // - Mobile menu drawer and cart drawer: the panel slides from its inline
 //   side over 0.6 s, the backdrop fades over 0.35 s, the rows rise with the
 //   fast timing after the panel started; 0.35 s to close.
+// - Country/region dialog: the list timing, outside `.store-root` (gate GB).
 // - Announcement bar: 0.45 s cross-fade between messages.
 //
 // Open animations are keyframes with only a `from` and fill "backwards":
@@ -113,8 +114,17 @@ ${rowDelays}
 ${GB} [data-cx-drawer="cart"][data-cx-open] [data-cx-rows]>:nth-child(n+5){animation-delay:.28s}
 `;
 
+// Country/region dialog (portalled to <body>): the list timing of the
+// menus above (0.35 s in on the expo curve, 0.2 s out), the backdrop fades.
+const REGION = `
+${GB} [data-cx-dialog="region"]{animation:cx-menu-in .35s ${EXPO} backwards}
+${GB} [data-cx-dialog="region"][data-cx-closing]{animation:none;opacity:0;translate:0 8px;transition:opacity .2s ease,translate .2s ease}
+${GB} [data-cx-backdrop="region"]{animation:cx-backdrop-in .35s ease backwards}
+${GB} [data-cx-backdrop="region"][data-cx-closing]{animation:none;opacity:0;transition:opacity .2s ease}
+`;
+
 const ANNOUNCEMENT = `
 ${G} [data-cx-swap]{transition:opacity .45s ease}
 `;
 
-export const CHROME_CSS: string = minifyCss(KEYFRAMES + NAV + MENUS + DRAWER + CART + ANNOUNCEMENT);
+export const CHROME_CSS: string = minifyCss(KEYFRAMES + NAV + MENUS + DRAWER + CART + REGION + ANNOUNCEMENT);

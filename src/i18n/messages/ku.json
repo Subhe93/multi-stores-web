@@ -819,17 +819,27 @@
     "previewBarExit": "Ji pêşdîtinê derkeve"
   },
   "market": {
-    "switchCountry": "Welat biguherîne",
     "preview": {
       "banner": "Pêşdîtina bazara {name} — temamkirina kirînê girtî ye",
       "checkoutDisabled": "Ev pêşdîtina bazarê ye — li vir siparîş nayên dayîn."
     },
     "suggest": {
-      "title": "Xuya ye ku hûn li {country} in. Derbasî {market} bibin?",
-      "cta": "Derbasî {market} bibe",
+      "title": "Xuya ye ku hûn li {country} in.",
+      "cta": "Ji bo {country} bikirin ({currency})",
       "dismiss": "Bigire"
     },
     "notFound": "Ev ziman ji bo vî welatî ne berdest e."
+  },
+  "region": {
+    "title": "Welat/herêm û ziman",
+    "country": "Welat/herêm",
+    "language": "Ziman",
+    "search": "Li welat an herêmê bigere",
+    "noResults": "Tu welat an herêm li hev nayê",
+    "otherCountries": "Welatên din",
+    "apply": "Tomar bike",
+    "close": "Bigire",
+    "trigger": "Welat/herêm û ziman: {summary}"
   },
   "b2b": {
     "person": "Kes",

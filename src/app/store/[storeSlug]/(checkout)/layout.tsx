@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { responsiveImgProps } from '@/lib/storeMedia';
 import { StoreProviders } from '@/components/providers/StoreProviders';
+import { parseRegionCookie, REGION_COOKIE } from '@/lib/region';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
@@ -36,6 +37,8 @@ interface Store {
   /** Markets app only (M1-DESIGN §3.3): absent for other stores. */
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Legacy custom domain (M6.1): the default market's host without a StoreDomain row. */
+  custom_domain?: string | null;
   /** Checkout behaviour overrides (M5.1): absent for stores on the defaults. */
   checkout?: unknown;
   logo_url?: string;
@@ -122,7 +125,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} primaryLocale={primaryLocale} checkout={checkoutSettings}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? parseRegionCookie(cookieStore.get(REGION_COOKIE)?.value) : null} primaryLocale={primaryLocale} checkout={checkoutSettings}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

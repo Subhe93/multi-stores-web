@@ -819,17 +819,27 @@
     "previewBarExit": "Avsluta förhandsgranskning"
   },
   "market": {
-    "switchCountry": "Byt land",
     "preview": {
       "banner": "Förhandsvisning av marknaden {name} — kassan är avstängd",
       "checkoutDisabled": "Det här är en förhandsvisning av marknaden — inga beställningar kan läggas här."
     },
     "suggest": {
-      "title": "Det verkar som att du befinner dig i {country}. Byt till {market}?",
-      "cta": "Byt till {market}",
+      "title": "Det verkar som att du befinner dig i {country}.",
+      "cta": "Handla för {country} ({currency})",
       "dismiss": "Stäng"
     },
     "notFound": "Det här språket är inte tillgängligt för det här landet."
+  },
+  "region": {
+    "title": "Land/region och språk",
+    "country": "Land/region",
+    "language": "Språk",
+    "search": "Sök land eller region",
+    "noResults": "Inget land eller region matchar",
+    "otherCountries": "Övriga länder",
+    "apply": "Spara",
+    "close": "Stäng",
+    "trigger": "Land/region och språk: {summary}"
   },
   "b2b": {
     "person": "Privatperson",

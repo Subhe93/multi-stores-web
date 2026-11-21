@@ -31,17 +31,23 @@ export function buildMarketSwitchUrl(opts: {
   search?: string;
   /** Current locale being rendered. */
   locale: string;
+  /**
+   * Locale the visitor chose (region picker). Used in place of `locale` when
+   * given; the target's default locale still applies when it is not served.
+   */
+  targetLocale?: string;
   pathByLocale?: Record<string, string | undefined> | null;
   cartParam?: string | null;
   /** Lines `encodeGuestCart` had to drop; surfaced on the landing side. */
   cartDropped?: number;
 }): string {
-  const { storeSlug, current, target, pathname, search = '', locale, pathByLocale, cartParam, cartDropped = 0, storeCustomDomain = null } = opts;
+  const { storeSlug, current, target, pathname, search = '', locale: currentLocale, targetLocale: wantedLocale, pathByLocale, cartParam, cartDropped = 0, storeCustomDomain = null } = opts;
 
   const currentLocales = [current.default_locale, ...current.locales];
   const prefix = currentLocales.find((l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`);
   const cleanPath = prefix ? pathname.slice(`/${prefix}`.length) || '/' : pathname;
 
+  const locale = wantedLocale || currentLocale;
   const targetLocales = [target.default_locale, ...target.locales];
   const targetLocale = targetLocales.includes(locale) ? locale : target.default_locale;
   const path = pathByLocale?.[targetLocale] ?? cleanPath;

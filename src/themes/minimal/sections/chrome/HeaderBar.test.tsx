@@ -15,7 +15,7 @@ vi.mock('./ActiveLink.client', () => ({
     </a>
   ),
 }));
-vi.mock('./LocaleSwitcher.client', () => ({ LocaleSwitcher: () => <i data-stub="locale-switcher" /> }));
+vi.mock('./HeaderLocaleControl.client', () => ({ HeaderLocaleControl: () => <i data-stub="locale-switcher" /> }));
 vi.mock('./HeaderCartButton.client', () => ({ HeaderCartButton: () => <i data-stub="cart" /> }));
 vi.mock('./BlurOnNavigate.client', () => ({ BlurOnNavigate: () => null }));
 
@@ -149,5 +149,27 @@ describe('header-bar logo fit', () => {
     expect(fields[at]).toMatchObject({ type: 'select', defaultValue: 'box' });
     expect(fields[at].options?.map((o) => o.value)).toEqual(['box', 'height']);
     expect(headerBarSection.defaultSettings?.logo_fit).toBe('height');
+  });
+});
+
+describe('header-bar country/language control (M155)', () => {
+  const se = { key: 'se', default_locale: 'en', locales: [], countries: ['SE'], currency: 'SEK', is_default: true, primary_hostname: 'a.se', status: 'LIVE' as const };
+  const eu = { key: 'eu', default_locale: 'en', locales: [], countries: ['DE'], currency: 'EUR', is_default: false, primary_hostname: 'a.eu', status: 'LIVE' as const };
+  const ONE_LANGUAGE: StoreContext = { ...CTX, secondaryLocales: [] };
+
+  it('one language and no markets: no control', () => {
+    expect(html({}, ONE_LANGUAGE)).not.toContain('data-stub="locale-switcher"');
+  });
+
+  it('one language but two markets: the control renders', () => {
+    expect(html({}, { ...ONE_LANGUAGE, market: se, markets: [se, eu] })).toContain('data-stub="locale-switcher"');
+    // A second market that cannot be served does not count.
+    expect(html({}, { ...ONE_LANGUAGE, market: se, markets: [se, { ...eu, status: 'DRAFT' }] }))
+      .not.toContain('data-stub="locale-switcher"');
+  });
+
+  it('show_locale: false hides it in region mode too', () => {
+    expect(html({ show_locale: false }, { ...ONE_LANGUAGE, market: se, markets: [se, eu] }))
+      .not.toContain('data-stub="locale-switcher"');
   });
 });
