@@ -11,6 +11,7 @@ import { formatLocale } from '@/lib/storeLocales';
 import type { RegionOption } from '@/lib/region';
 import { Flag } from './Flag';
 import { useModalDialog } from './useModalDialog';
+import { readableTextOn } from '@/lib/readableText';
 
 /**
  * Draft country of the panel: an ISO2 code, null for "Other countries" (the
@@ -129,6 +130,19 @@ export function RegionPanel({
   const lineColor = panelStyle.borderColor as string;
   const primary = accent || 'var(--store-primary, #2563eb)';
   const dir = isRtl(locale) ? 'rtl' : 'ltr';
+  // Brand colours can be light (Namez yellow): never use them as text on the
+  // panel surface, and pick the Save label colour by contrast.
+  const panelBg = (panelStyle.backgroundColor as string) || '#fff';
+  const onPrimary = accent && /^(#|rgb|hsl)/i.test(accent.trim())
+    ? readableTextOn(accent)
+    : 'var(--store-primary-contrast, #fff)';
+  const selectedRowStyle: CSSProperties = {
+    fontWeight: 600,
+    backgroundColor: `color-mix(in srgb, ${primary} 14%, transparent)`,
+  };
+  // Custom-drawn radio: native radios render inconsistently (WebKit/iOS draws
+  // every unchecked radio as a dark disc with accent-color).
+  const radioBase: CSSProperties = { borderColor: 'color-mix(in srgb, currentColor 45%, transparent)' };
 
   return createPortal(
     <div
@@ -194,7 +208,7 @@ export function RegionPanel({
                     <label
                       key={r.id || 'other'}
                       className="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-black/5"
-                      style={checked ? { color: primary } : undefined}
+                      style={checked ? selectedRowStyle : undefined}
                     >
                       <input
                         type="radio"
@@ -202,8 +216,8 @@ export function RegionPanel({
                         value={r.id}
                         checked={checked}
                         onChange={() => pickCountry(r.country)}
-                        className="size-4 shrink-0"
-                        style={{ accentColor: primary }}
+                        className="size-4 shrink-0 cursor-pointer appearance-none rounded-full border"
+                        style={checked ? { ...radioBase, borderColor: 'currentColor', boxShadow: `inset 0 0 0 3px ${panelBg}, inset 0 0 0 8px ${primary}` } : radioBase}
                       />
                       {r.country ? (
                         <Flag url={countryFlagUrl(r.country)} />
@@ -230,7 +244,7 @@ export function RegionPanel({
                     <label
                       key={l}
                       className="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-black/5"
-                      style={checked ? { color: primary } : undefined}
+                      style={checked ? selectedRowStyle : undefined}
                     >
                       <input
                         type="radio"
@@ -238,8 +252,8 @@ export function RegionPanel({
                         value={l}
                         checked={checked}
                         onChange={() => setLang(l)}
-                        className="size-4 shrink-0"
-                        style={{ accentColor: primary }}
+                        className="size-4 shrink-0 cursor-pointer appearance-none rounded-full border"
+                        style={checked ? { ...radioBase, borderColor: 'currentColor', boxShadow: `inset 0 0 0 3px ${panelBg}, inset 0 0 0 8px ${primary}` } : radioBase}
                       />
                       <span lang={l} className="flex-1 text-start">{resolveLocaleMeta(l).label}</span>
                     </label>
@@ -253,7 +267,7 @@ export function RegionPanel({
             <button
               type="submit"
               className="h-11 w-full rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: primary, color: accent ? '#fff' : 'var(--store-primary-contrast, #fff)' }}
+              style={{ backgroundColor: primary, color: onPrimary }}
             >
               {t('apply')}
             </button>
