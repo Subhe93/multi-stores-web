@@ -1,7 +1,7 @@
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import type { CSSProperties, ReactNode } from 'react';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
@@ -79,7 +79,7 @@ function Cell({
 // A modern asymmetric "bento" grid of tiles in mixed sizes. Each tile can carry
 // an image (with overlaid text) or a title + body on a coloured surface. Tiles
 // reveal in a stagger and lift on hover.
-function BentoGrid({ settings, content, locale, motion }: SectionRenderProps) {
+function BentoGrid({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const tiles = ((content.tiles as BentoTile[]) || []).filter((t) => t.title || t.text || t.image);
@@ -121,7 +121,7 @@ function BentoGrid({ settings, content, locale, motion }: SectionRenderProps) {
           return (
             <Cell key={i} motion={motion} index={i} className={`${SPAN[size]} min-h-[170px]`}>
               <Wrapper
-                {...(t.url ? { href: storeHref(t.url) } : {})}
+                {...(t.url ? { href: sectionHref(t.url, { locale, primaryLocale, pathPrefix }) } : {})}
                 {...(img ? hover(motion, 'media') : null)}
                 className="card-lift relative flex h-full flex-col justify-end overflow-hidden p-5"
                 style={{

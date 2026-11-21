@@ -1,5 +1,5 @@
 import { resolveMediaUrl } from '@/lib/api';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
@@ -28,7 +28,7 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
   full: 'min-h-[calc(100vh-80px)]',
 };
 
-function HeroBanner({ settings, content, motion }: SectionRenderProps) {
+function HeroBanner({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -40,9 +40,9 @@ function HeroBanner({ settings, content, motion }: SectionRenderProps) {
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = storeHref((settings.cta_url as string) || '#');
+  const ctaUrl = sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix });
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const ctaSecondaryUrl = storeHref((settings.cta_secondary_url as string) || '#');
+  const ctaSecondaryUrl = sectionHref(settings.cta_secondary_url, { locale, primaryLocale, pathPrefix });
   const eyebrow = (content.eyebrow as string) || '';
   const resolvedImage = image ? resolveMediaUrl(image) : '';
 

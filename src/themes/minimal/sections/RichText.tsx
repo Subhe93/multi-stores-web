@@ -1,4 +1,5 @@
 import type { SectionDefinition, SectionRenderProps } from '../../types';
+import { sectionHtml } from './_shared/links';
 import { CONTENT_SOURCE_FIELDS, STATIC_CONTENT_SHOW_IF } from './_shared/dynamicSourceFields';
 import { headingTag, textTag } from './_shared/headingLevel';
 import { Heading } from './_shared/Heading';
@@ -142,7 +143,7 @@ function RichText(props: SectionRenderProps) {
   return <StaticRichText {...props} />;
 }
 
-function StaticRichText({ settings, content, motion }: SectionRenderProps) {
+function StaticRichText({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'p');
   const html = (content.html as string) || '';
@@ -205,7 +206,7 @@ function StaticRichText({ settings, content, motion }: SectionRenderProps) {
             style={{ color: 'var(--theme-colors-text)' }}
             // One block: the body rises as a whole, never paragraph by paragraph.
             {...rise(motion, { i: 2 })}
-            dangerouslySetInnerHTML={{ __html: html }}
+            dangerouslySetInnerHTML={{ __html: sectionHtml(html, { locale, primaryLocale, pathPrefix }) }}
           />
         )}
       </div>

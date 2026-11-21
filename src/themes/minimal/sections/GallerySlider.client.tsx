@@ -2,7 +2,7 @@
 
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import type { SectionRenderProps } from '../../types';
 import { Slider } from './_shared/Slider.client';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -32,7 +32,7 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-export function GallerySlider({ settings, content, locale, motion }: SectionRenderProps) {
+export function GallerySlider({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const t = useTranslations('slider');
   const headingLevel = headingTag(settings.heading_level, 'h2');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -87,7 +87,7 @@ export function GallerySlider({ settings, content, locale, motion }: SectionRend
     return item.href ? (
       <a
         key={i}
-        href={storeHref(item.href)}
+        href={sectionHref(item.href, { locale, primaryLocale, pathPrefix })}
         className="block"
         aria-label={alt || t('galleryItem', { n: i + 1 })}
       >

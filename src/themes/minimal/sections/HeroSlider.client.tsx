@@ -7,7 +7,7 @@
 
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import type { SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { Slider } from './_shared/Slider.client';
@@ -42,7 +42,7 @@ const HEIGHT_CLASS: Record<HeroHeight, string> = {
   full: 'min-h-[calc(100vh-80px)]',
 };
 
-export function HeroSlider({ settings, content, locale, motion }: SectionRenderProps) {
+export function HeroSlider({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   // First slide carries the section's heading level (default h1: a slider
   // usually opens the page); later slides step down to h2 when it is h1.
   const firstHeading = headingTag(settings.heading_level, 'h1');
@@ -196,7 +196,7 @@ export function HeroSlider({ settings, content, locale, motion }: SectionRenderP
           )}
           {slide.cta_text && (
             <a
-              href={storeHref(slide.cta_url || '#')}
+              href={sectionHref(slide.cta_url, { locale, primaryLocale, pathPrefix })}
               className={withMotion(
                 m,
                 'inline-flex items-center justify-center px-8 py-3 mt-2 transition-all hover:opacity-90 hover:-translate-y-px self-start',

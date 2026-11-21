@@ -12,7 +12,7 @@ import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import { collectionProductsLimit, collectionProductsParams } from '@/lib/preloadSections';
 import { StoreImage } from '@/components/StoreImage';
-import { storeHref } from '@/lib/storeUrl';
+import { localizeStoreUrl, storeHref } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
@@ -84,7 +84,7 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   // than send visitors and crawlers to the unrelated all-products page.
   const explicitLink = ((settings.link_url as string) || '').trim();
   const linkUrl = explicitLink
-    ? storeHref(explicitLink)
+    ? localizeStoreUrl(explicitLink, localePrefix, locale)
     : categoryRef
       ? null
       : storeHref(`${localePrefix}/products`);

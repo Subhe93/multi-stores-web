@@ -1,7 +1,7 @@
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import { MotionMedia, MotionText } from '../../creative/primitives/Motion';
@@ -10,12 +10,12 @@ import { MotionRise } from './_shared/MotionStagger';
 
 type CtaStyle = 'solid' | 'gradient' | 'image-bg' | 'split';
 
-function CallToAction({ settings, content, motion }: SectionRenderProps) {
+function CallToAction({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
   const style = (settings.style as CtaStyle) || 'solid';
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = storeHref((settings.cta_url as string) || '#');
+  const ctaUrl = sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix });
   const image = (settings.image as string) || '';
   const resolvedImage = image ? resolveMediaUrl(image) : '';
 

@@ -14,7 +14,8 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc, responsiveImgProps } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { colorOr, numberOr } from '../../elementStyles';
-import { storeHref } from '@/lib/storeUrl';
+import type { LinkScope } from '@/lib/localePaths';
+import { sectionHref, sectionHtml } from './_shared/links';
 import {
   PLATFORMS,
   PLATFORM_ORDER,
@@ -151,16 +152,18 @@ function toneColor(tone: Block['tone']): string {
 /** A block's link: external URLs open in a new tab, store URLs stay in place. */
 function BlockLink({
   href,
+  scope,
   className,
   style,
   children,
 }: {
   href: string;
+  scope: LinkScope;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
-  const target = storeHref(href);
+  const target = sectionHref(href, scope);
   const external = /^https?:\/\//i.test(target);
   return (
     <a
@@ -180,7 +183,7 @@ function BlockLink({
 const IMAGE_CONTAINER = { desktop: '50vw', mobile: '100vw' } as const;
 
 /** Image block with `image_size` (plans/image-sizing/SPEC.md). */
-function SizedImageBlock({ block }: { block: Block }) {
+function SizedImageBlock({ block, scope: linkScope }: { block: Block; scope: LinkScope }) {
   const scope = useImageSizeScope();
   const layout = sizedImageLayout(block.image_size as ImageSizeSettings, scope, IMAGE_CONTAINER);
   const src = resolveMediaUrl(block.image || '');
@@ -189,13 +192,13 @@ function SizedImageBlock({ block }: { block: Block }) {
     : undefined;
   let link: { href: string; target?: string; rel?: string } | undefined;
   if (block.link) {
-    const href = storeHref(block.link);
+    const href = sectionHref(block.link, linkScope);
     link = /^https?:\/\//i.test(href) ? { href, target: '_blank', rel: 'noopener noreferrer' } : { href };
   }
   return <SizedImage layout={layout} src={src} alt={block.alt || ''} frameStyle={frameStyle} link={link} />;
 }
 
-function BlockView({ block }: { block: Block }) {
+function BlockView({ block, scope }: { block: Block; scope: LinkScope }) {
   const type = block.type || 'text';
   // The builder's shared alignment select stores left/right; blocks use
   // logical start/end.
@@ -232,7 +235,7 @@ function BlockView({ block }: { block: Block }) {
           }
         >
           {block.link ? (
-            <BlockLink href={block.link} className="hover:opacity-70 transition-opacity" style={{ color: 'inherit' }}>
+            <BlockLink scope={scope} href={block.link} className="hover:opacity-70 transition-opacity" style={{ color: 'inherit' }}>
               {label}
             </BlockLink>
           ) : (
@@ -258,14 +261,14 @@ function BlockView({ block }: { block: Block }) {
             lineHeight: 'var(--theme-line-body)',
           }}
           // Rich text is creator-authored via the dashboard editor.
-          dangerouslySetInnerHTML={{ __html: block.html || '' }}
+          dangerouslySetInnerHTML={{ __html: sectionHtml(block.html, scope) }}
         />
       );
     case 'image': {
       if (!block.image) return null;
       // `image_size` set: the sized renderer. Without it the legacy markup
       // below stays byte-identical (saved sections, live stores).
-      if (hasImageSize(block.image_size)) return <SizedImageBlock block={block} />;
+      if (hasImageSize(block.image_size)) return <SizedImageBlock block={block} scope={scope} />;
       const aspect = block.aspect || 'auto';
       const src = resolveMediaUrl(block.image);
       const radius = block.rounded ? { borderRadius: 'var(--theme-radius-md)' } : undefined;
@@ -298,7 +301,7 @@ function BlockView({ block }: { block: Block }) {
           </div>
         );
       return block.link ? (
-        <BlockLink href={block.link} className={widthPx ? 'block' : 'block w-full'} style={box}>
+        <BlockLink scope={scope} href={block.link} className={widthPx ? 'block' : 'block w-full'} style={box}>
           {img}
         </BlockLink>
       ) : (
@@ -329,7 +332,7 @@ function BlockView({ block }: { block: Block }) {
               />
             );
             return item.link ? (
-              <BlockLink key={i} href={item.link} className="inline-block hover:opacity-80 transition-opacity">
+              <BlockLink key={i} scope={scope} href={item.link} className="inline-block hover:opacity-80 transition-opacity">
                 {img}
               </BlockLink>
             ) : (
@@ -415,7 +418,7 @@ function BlockView({ block }: { block: Block }) {
       return (
         <div
           className={alignClass}
-          dangerouslySetInnerHTML={{ __html: block.raw_html || '' }}
+          dangerouslySetInnerHTML={{ __html: sectionHtml(block.raw_html, scope) }}
         />
       );
     default:
@@ -425,7 +428,8 @@ function BlockView({ block }: { block: Block }) {
 
 // ── Section ─────────────────────────────────────────────────────
 
-function LayoutColumns({ settings, content, locale, motion }: SectionRenderProps) {
+function LayoutColumns({ settings, content, locale, primaryLocale, pathPrefix, motion }: SectionRenderProps) {
+  const scope: LinkScope = { locale, primaryLocale, pathPrefix };
   const cells = ((content.cells as Cell[]) || []).filter((c) => (c.blocks?.length ?? 0) > 0);
 
   const mode = (settings.mode as Mode) || 'grid';
@@ -482,7 +486,7 @@ function LayoutColumns({ settings, content, locale, motion }: SectionRenderProps
         {...item(motion, i)}
       >
         {blocks.map((b, j) => (
-          <BlockView key={j} block={b} />
+          <BlockView key={j} block={b} scope={scope} />
         ))}
       </div>
     );

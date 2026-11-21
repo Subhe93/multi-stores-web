@@ -5,7 +5,7 @@
 
 import { motion } from 'framer-motion';
 import { withReducedMotion } from '../../_motion/withReducedMotion';
-import { storeHref } from '@/lib/storeUrl';
+import { sectionHref } from './_shared/links';
 import { buttonStyles, colorOr } from '../../elementStyles';
 import type { SectionRenderProps } from '../../types';
 import { headingTag, textTag } from './_shared/headingLevel';
@@ -29,7 +29,7 @@ const HEIGHT_CLASS: Record<Height, string> = {
 // blurred so they read as a living gradient. Degrades gracefully: under reduced
 // motion the blobs simply rest in place.
 // `phase`: the store motion value (`motion` is the framer import here).
-export function AuroraHero({ settings, content, motion: phase }: SectionRenderProps) {
+export function AuroraHero({ settings, content, locale, primaryLocale, pathPrefix, motion: phase }: SectionRenderProps) {
   const headingLevel = headingTag(settings.heading_level, 'h1');
   const eyebrowTag = textTag(settings.eyebrow_tag, 'span');
   const subheadingTag = textTag(settings.subheading_tag, 'p');
@@ -43,9 +43,9 @@ export function AuroraHero({ settings, content, motion: phase }: SectionRenderPr
   const heading = (content.heading as string) || '';
   const subheading = (content.subheading as string) || '';
   const ctaText = (content.cta_text as string) || '';
-  const ctaUrl = storeHref((settings.cta_url as string) || '#');
+  const ctaUrl = sectionHref(settings.cta_url, { locale, primaryLocale, pathPrefix });
   const ctaSecondaryText = (content.cta_secondary_text as string) || '';
-  const ctaSecondaryUrl = storeHref((settings.cta_secondary_url as string) || '#');
+  const ctaSecondaryUrl = sectionHref(settings.cta_secondary_url, { locale, primaryLocale, pathPrefix });
 
   const headingColor = colorOr(settings.heading_color, '#ffffff');
   const subheadingColor = colorOr(settings.subheading_color, 'rgba(255,255,255,0.82)');

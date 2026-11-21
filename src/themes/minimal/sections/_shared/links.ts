@@ -16,3 +16,20 @@ export function sectionHref(raw: unknown, scope: LinkScope): string {
   if (!url) return '#';
   return localizeStoreUrl(url, storeLocalePrefix(scope), scope.locale);
 }
+
+/**
+ * Owner-written HTML (rich text, custom HTML blocks): every internal
+ * `href="/…"` gets the same link prefix as `sectionHref`, so a visitor on
+ * `/de-at` (or `/ar`) stays there when following a link in the text.
+ * External, protocol-relative, hash-only and mailto/tel links are untouched.
+ */
+export function sectionHtml(html: string | undefined | null, scope: LinkScope): string {
+  if (!html) return '';
+  const prefix = storeLocalePrefix(scope);
+  if (!prefix) return html;
+  return html.replace(
+    /(\shref\s*=\s*)(["'])(\/(?!\/)[^"']*)\2/gi,
+    (_m, attr: string, quote: string, url: string) =>
+      `${attr}${quote}${localizeStoreUrl(url, prefix, scope.locale)}${quote}`,
+  );
+}

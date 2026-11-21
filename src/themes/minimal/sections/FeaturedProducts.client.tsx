@@ -10,7 +10,7 @@ import { ChevronRight } from 'lucide-react';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import { featuredProductsLimit, featuredProductsParams } from '@/lib/preloadSections';
 import { StoreImage } from '@/components/StoreImage';
-import { storeHref } from '@/lib/storeUrl';
+import { localizeStoreUrl } from '@/lib/storeUrl';
 import type { SectionRenderProps } from '../../types';
 import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
@@ -71,7 +71,9 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
   // the secondary-locale prefix is the only thing we add to the public path.
   // Link prefix of the request (M156 locale paths), else `/<locale>`.
   const localePrefix = useStorePathPrefix(locale, primaryLocale);
-  const linkUrl = storeHref((settings.link_url as string) || `${localePrefix}/products`);
+  const linkUrl = settings.link_url
+    ? localizeStoreUrl(settings.link_url as string, localePrefix, locale)
+    : `${localePrefix}/products`;
   // Scoped class so the per-breakpoint grid-template-columns rules in the
   // injected <style> below don't leak to other FeaturedProducts instances on
   // the same page.
