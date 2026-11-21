@@ -117,6 +117,7 @@ export async function generateMetadata({
     // Canonical = subdomain root with primary locale (no prefix). Alternates
     // use path-prefix form `/{locale}` (no query strings).
     const origin = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
+    const noindex = await getRequestNoindex();
     const alternates = buildStoreAlternates({
       origin: origin,
       locale,
@@ -125,7 +126,7 @@ export async function generateMetadata({
       path: '',
       markets: store.markets,
       market: store.market,
-      noindex: await getRequestNoindex(),
+      noindex,
       storeCustomDomain: store.custom_domain ?? null,
       storeSlug,
       pathPrefix: await getRequestPathPrefix(),
@@ -157,7 +158,9 @@ export async function generateMetadata({
         description: tr?.meta_description,
         image: ogImage,
       }),
-      robots: published.seo?.robots,
+      // A noindex request already gets the layout's noindex meta; the page's
+      // own robots (often "index, follow") would add a second, conflicting one.
+      robots: noindex ? undefined : published.seo?.robots,
     };
   } catch {
     return {};

@@ -162,6 +162,7 @@ export async function buildStorePageMetadata({
   // Canonical = subdomain URL with primary locale (no prefix). Alternates
   // use path-prefix `/{locale}/...` for secondary locales.
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
+  const noindex = await getRequestNoindex();
   const alternates = buildStoreAlternates({
     pathPrefix: await getRequestPathPrefix(),
     origin: origin,
@@ -171,7 +172,7 @@ export async function buildStorePageMetadata({
     path: await canonicalPath(storeSlug, pageSlug, locale, path),
     markets: store?.markets,
     market: store?.market,
-    noindex: await getRequestNoindex(),
+    noindex,
     storeCustomDomain: store?.custom_domain ?? null,
     storeSlug,
   });
@@ -207,7 +208,8 @@ export async function buildStorePageMetadata({
         description,
         image: ogImage,
       }),
-      robots: v2.seo?.robots,
+      // The layout already emits noindex for such requests; skip the page's own robots.
+      robots: noindex ? undefined : v2.seo?.robots,
     };
   }
 

@@ -91,12 +91,14 @@ describe('LocaleSwitcher on a locale-path market', () => {
     const r = renderSwitcher(NAMEZ_EU, 'AT');
     pick(r.container, 0); // English
     expect(assign).toHaveBeenLastCalledWith('/products/x');
-    pick(r.container, 3); // Arabic (language-only path)
+    // AT lists [en, de, ar]: fr has no AT path, so it is not offered.
+    pick(r.container, 2); // Arabic (language-only path)
     expect(assign).toHaveBeenLastCalledWith('/ar/products/x');
     r.unmount();
     stubLocation('/products/x');
     const be = renderSwitcher(NAMEZ_EU, 'BE', 'en');
-    pick(be.container, 2); // French
+    // BE lists [en, fr, ar]: de has no BE path.
+    pick(be.container, 1); // French
     expect(assign).toHaveBeenLastCalledWith('/fr-be/products/x');
   });
 
