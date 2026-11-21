@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { trackingBody } from '@/lib/trackEvents';
 import { readUnavailableError, unavailableRefKey, type UnavailableRef } from '@/lib/cartUnavailable';
 import { kustomRefusalReason, type KustomRefusalReason } from '@/lib/kustomRefusal';
+import { apiErrorCode } from '@/lib/checkoutPayment';
 import type { CartItem } from '@/hooks/useCart';
 import {
   normalizeB2bNetTotals,
@@ -338,6 +339,10 @@ export interface UseKustomCheckoutResult {
   /** Why the last create / update was refused when the cart can fix it
    *  (per-order limit, invalid participant number); null otherwise. */
   refusal: KustomRefusalReason | null;
+  /** API error `code` of the last failed create / update (M157: e.g.
+   *  MARKET_PAYMENT_METHOD_NOT_ALLOWED, KUSTOM_CURRENCY_NOT_ENABLED); null
+   *  after a success or when the error had no code. */
+  failedCode: string | null;
   /** Totals of the last successful POST / PUT — what the iframe charges. */
   totals: KustomSessionTotals | null;
   /** Buyer type `totals` were priced for (b2b app); lets the page ignore an
@@ -370,6 +375,7 @@ export function useKustomCheckout({
   // Why the last create / update was refused, when the cart can fix it
   // (B4: over the per-order limit, invalid participant number); else null.
   const [refusal, setRefusal] = useState<KustomRefusalReason | null>(null);
+  const [failedCode, setFailedCode] = useState<string | null>(null);
   const [totals, setTotals] = useState<KustomSessionTotals | null>(null);
   const [totalsBuyer, setTotalsBuyer] = useState<'person' | 'company' | null>(null);
   // Buyer type of the last create / update sent.
@@ -565,6 +571,7 @@ export function useKustomCheckout({
     setLoading(true);
     setFailed(false);
     setRefusal(null);
+    setFailedCode(null);
     setUnavailableBlocked(false);
     promise
       .then((res) => {
@@ -578,6 +585,7 @@ export function useKustomCheckout({
         if (cancelled) return;
         setFailed(true);
         setRefusal(kustomRefusalReason(err));
+        setFailedCode(apiErrorCode(err));
         // A deleted product blocked the session: once its lines are gone,
         // create the session again with the remaining cart.
         void handleUnavailable(err).then((outcome) => {
@@ -629,12 +637,14 @@ export function useKustomCheckout({
           setTotalsBuyer(sentBuyerRef.current);
           setSyncFailed(false);
           setRefusal(null);
+          setFailedCode(null);
           // With the JS API the iframe reloads the order itself on resume; a
           // new session (or no API) needs the fresh snippet mounted instead.
           if (recreated || !checkoutApi) setHtml(res.html_snippet);
         } catch (err) {
           setSyncFailed(true);
           setRefusal(kustomRefusalReason(err));
+          setFailedCode(apiErrorCode(err));
           // Dropping the lines changes `changeKey`, which re-syncs.
           void handleUnavailable(err);
         } finally {
@@ -664,5 +674,5 @@ export function useKustomCheckout({
     setAttempt((n) => n + 1);
   }, []);
 
-  return { html, loading, updating, failed, unavailableBlocked, syncFailed, refusal, totals, totalsBuyer, session, retry };
+  return { html, loading, updating, failed, unavailableBlocked, syncFailed, refusal, failedCode, totals, totalsBuyer, session, retry };
 }

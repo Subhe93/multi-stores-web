@@ -580,7 +580,8 @@
       "couponInvalid": "Rabattkoden är inte längre giltig. Ta bort den och försök igen.",
       "unavailable": "En eller flera varor i din varukorg är inte längre tillgängliga. Uppdatera din varukorg och försök igen.",
       "maxPerOrder": "Din varukorg innehåller fler av en produkt än en beställning tillåter. Minska antalet i varukorgen och försök igen.",
-      "invalidParticipant": "Ett personnummer för en deltagare är inte giltigt. Kontrollera deltagaruppgifterna i varukorgen och försök igen."
+      "invalidParticipant": "Ett personnummer för en deltagare är inte giltigt. Kontrollera deltagaruppgifterna i varukorgen och försök igen.",
+      "paymentMethodUnavailable": "Det här betalsättet är inte längre tillgängligt här. Välj ett annat."
     },
     "personalizationInvalid": "Personaliseringen av {products} måste uppdateras innan du kan gå till kassan.",
     "personalizationInvalidGeneric": "Personaliseringen av en artikel i din varukorg måste uppdateras innan du kan gå till kassan.",
@@ -605,7 +606,10 @@
     "paymentFormSlow": "Det här tar längre tid än vanligt",
     "itemsUnavailable": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
     "ownerPreviewNotice": "Förhandsvisning av butiken: butiken är inte live ännu, så här kan bara testbetalningar med kort göras.",
-    "addressLine2Placeholder": "Lägenhet, c/o, etc. (valfritt)"
+    "addressLine2Placeholder": "Lägenhet, c/o, etc. (valfritt)",
+    "kustomCurrencyNotEnabled": "Betalning med Klarna är inte tillgänglig i den här valutan just nu. Du kan betala med kort istället.",
+    "kustomCurrencyNotEnabledNoCard": "Betalning med Klarna är inte tillgänglig i den här valutan just nu. Välj ett annat betalsätt eller kontakta butiken.",
+    "payByCardInstead": "Betala med kort"
   },
   "auth": {
     "passwordPlaceholder": "Ange ditt lösenord",
@@ -1115,7 +1119,9 @@
     "CART_ITEMS_UNAVAILABLE": "Några varor i din varukorg finns inte längre. Kontrollera varukorgen och försök igen.",
     "STORE_NOT_LIVE": "Den här butiken tar inte emot beställningar ännu.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Din beställning når inte minimibeloppet för den här rabattkoden",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Din beställning har för få artiklar för den här rabattkoden"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Din beställning har för få artiklar för den här rabattkoden",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "Det här betalsättet är inte tillgängligt för ditt land. Välj ett annat.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Klarna kan inte ta emot betalningar i den här valutan ännu. Välj ett annat betalsätt."
   },
   "builderPreview": {
     "selectParent": "Välj överordnad",

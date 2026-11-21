@@ -218,7 +218,8 @@
       "couponInvalid": "Koda daxistinê êdî ne derbasdar e. Ji kerema xwe wê rakin û dîsa biceribînin.",
       "unavailable": "Yek an çend berhemên di selika we de êdî peyda nabin. Ji kerema xwe selika xwe nû bikin û dîsa biceribînin.",
       "maxPerOrder": "Di selika we de ji berhemekê zêdetir heye ji ya ku siparîşek destûr dide. Ji kerema xwe hejmarê di selika xwe de kêm bikin û dîsa biceribînin.",
-      "invalidParticipant": "Hejmara nasnameya kesane ya beşdarekî ne derbasdar e. Ji kerema xwe hûrguliyên beşdaran di selika xwe de kontrol bikin û dîsa biceribînin."
+      "invalidParticipant": "Hejmara nasnameya kesane ya beşdarekî ne derbasdar e. Ji kerema xwe hûrguliyên beşdaran di selika xwe de kontrol bikin û dîsa biceribînin.",
+      "paymentMethodUnavailable": "Ev rêbaza dayînê êdî li vir ne berdest e. Ji kerema xwe yeke din hilbijêrin."
     },
     "personalizationInvalid": "Divê kesanekirina {products} were nûkirin berî ku hûn kirînê temam bikin.",
     "personalizationInvalidGeneric": "Divê kesanekirina berhemekê di selika we de were nûkirin berî ku hûn kirînê temam bikin.",
@@ -243,7 +244,10 @@
     "paymentFormSlow": "Ev ji ya asayî dirêjtir dikişîne",
     "itemsUnavailable": "Hin berhemên di selika we de êdî peyda nabin. Ji kerema xwe selika xwe kontrol bikin û dîsa biceribînin.",
     "ownerPreviewNotice": "Pêşdîtina firoşgehê: firoşgeh hîn ne çalak e, ji ber vê yekê li vir tenê dayînên bi karta ceribandinê dikarin werin kirin.",
-    "addressLine2Placeholder": "Apartman, qat û hwd. (ne mecbûrî)"
+    "addressLine2Placeholder": "Apartman, qat û hwd. (ne mecbûrî)",
+    "kustomCurrencyNotEnabled": "Dayîna bi Klarna niha bi vê diravê ne berdest e. Hûn dikarin li şûna vê bi kartê pere bidin.",
+    "kustomCurrencyNotEnabledNoCard": "Dayîna bi Klarna niha bi vê diravê ne berdest e. Ji kerema xwe rêbazeke din a dayînê hilbijêrin an bi firoşgehê re têkilî daynin.",
+    "payByCardInstead": "Bi kartê pere bide"
   },
   "account": {
     "fullNamePlaceholder": "Navê tevahî",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, ChevronRight, Loader2, Lock, ShoppingBag } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
@@ -24,6 +24,7 @@ import { exemptLinePrices } from '@/lib/taxExemption';
 import { rememberPurchaseSnapshot } from '@/lib/trackEvents';
 import { availableLines } from '@/lib/cartAvailability';
 import { cartRequiresShipping } from '@/lib/requiresShipping';
+import { kustomFailureAction, KUSTOM_REASON_PAYMENT_METHOD_UNAVAILABLE } from '@/lib/checkoutPayment';
 
 // ── Kustom-first checkout ─────────────────────────────────────────────────────
 // Address, shipping and payment all happen inside Kustom's iframe; this page
@@ -35,6 +36,8 @@ interface KustomCheckoutProps {
   storeSlug: string;
   /** COD or card is available, so a link to the classic form is offered. */
   classicAvailable: boolean;
+  /** Card (Stripe Payment Element) is available on the classic form. */
+  cardAvailable?: boolean;
 }
 
 // `reason` codes the API puts on `?error=kustom_validation` redirects
@@ -47,6 +50,8 @@ const VALIDATION_REASON_KEYS: Record<string, string> = {
   // Headless booking B4: fixable in the cart.
   max_per_order: 'checkout.kustomValidationReasons.maxPerOrder',
   invalid_participant: 'checkout.kustomValidationReasons.invalidParticipant',
+  // M157: the market stopped offering Kustom.
+  [KUSTOM_REASON_PAYMENT_METHOD_UNAVAILABLE]: 'checkout.kustomValidationReasons.paymentMethodUnavailable',
 };
 
 // Reasons the shopper fixes in the cart: their message links back to it.
@@ -68,10 +73,11 @@ function LoadingState({ label }: { label: string }) {
   );
 }
 
-export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutProps) {
+export function KustomCheckout({ storeSlug, classicAvailable, cardAvailable = false }: KustomCheckoutProps) {
   const t = useTranslations();
   const locale = useLocale();
   const lp = useLocalePath();
+  const router = useRouter();
   // Continue shopping leads to the external site when the store has one (P3).
   const shoppingLink = useContinueShoppingLink(lp('/products'));
   const searchParams = useSearchParams();
@@ -136,7 +142,7 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
   const [couponError, setCouponError] = useState('');
 
 
-  const { html, loading, updating, failed, unavailableBlocked, syncFailed, refusal, totals, totalsBuyer, session, retry } = useKustomCheckout({
+  const { html, loading, updating, failed, unavailableBlocked, syncFailed, refusal, failedCode, totals, totalsBuyer, session, retry } = useKustomCheckout({
     storeSlug,
     locale,
     marketKey: market?.key ?? null,
@@ -154,6 +160,17 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
     onUnavailable: (refs) => removeUnavailableLines(refs, token),
     company: companyPrefill,
   });
+
+  // M157: coded refusals of the session create / update. The market no
+  // longer offering Kustom sends the shopper to the classic form (when it
+  // has something to pay with); a currency Kustom cannot take shows a
+  // friendly message instead of a retry that cannot help.
+  const failureAction = kustomFailureAction(failed || syncFailed ? failedCode : null, { classicAvailable, cardAvailable });
+  const classicHref = lp('/checkout?method=classic');
+  const goClassic = failureAction.kind === 'classic';
+  useEffect(() => {
+    if (goClassic) router.replace(classicHref);
+  }, [goClassic, classicHref, router]);
 
   // The session's `totals` are what the iframe charges (shipping once Kustom
   // knows the address, tax for the destination), so the summary prefers them
@@ -294,7 +311,13 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
-            {refusal ? t(VALIDATION_REASON_KEYS[refusal]) : t('checkout.kustomSyncFailed')}
+            {refusal
+              ? t(VALIDATION_REASON_KEYS[refusal])
+              : failureAction.kind === 'currency'
+                ? t(failureAction.payByCard ? 'checkout.kustomCurrencyNotEnabled' : 'checkout.kustomCurrencyNotEnabledNoCard')
+                : failureAction.kind === 'methodNotAllowed'
+                  ? t('errors.MARKET_PAYMENT_METHOD_NOT_ALLOWED')
+                  : t('checkout.kustomSyncFailed')}
             {refusal && (
               <>
                 {' '}
@@ -438,6 +461,25 @@ export function KustomCheckout({ storeSlug, classicAvailable }: KustomCheckoutPr
             </div>
           ) : personalizationBlocked ? (
             <InvalidPersonalizationHint items={items} />
+          ) : failed && failureAction.kind === 'currency' ? (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-4 text-sm text-amber-800" role="alert">
+              <p>{t(failureAction.payByCard ? 'checkout.kustomCurrencyNotEnabled' : 'checkout.kustomCurrencyNotEnabledNoCard')}</p>
+              {(failureAction.payByCard || failureAction.otherWay) && (
+                <Link
+                  href={classicHref}
+                  className="inline-flex items-center justify-center mt-3 rounded-md px-5 py-2.5 text-sm font-medium hover:opacity-90 transition"
+                  style={{ backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' }}
+                >
+                  {t(failureAction.payByCard ? 'checkout.payByCardInstead' : 'checkout.payOtherWay')}
+                </Link>
+              )}
+            </div>
+          ) : failed && failureAction.kind === 'classic' ? (
+            <LoadingState label={t('common.loading')} />
+          ) : failed && failureAction.kind === 'methodNotAllowed' ? (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700" role="alert">
+              <p>{t('errors.MARKET_PAYMENT_METHOD_NOT_ALLOWED')}</p>
+            </div>
           ) : failed ? (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
               {/* A product of the cart is gone and could not be dropped

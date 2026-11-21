@@ -228,7 +228,9 @@
     "CART_ITEMS_UNAVAILABLE": "Hin berhemên di selika we de êdî ne berdest in. Ji kerema xwe li selika xwe binêrin û dîsa biceribînin.",
     "STORE_NOT_LIVE": "Ev firoşgeh hîn ji bo siparîşan ne vekirî ye.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Siparîşa we nagihîje mîqdara herî kêm a vê koda daxistinê",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Di siparîşa we de ji bo vê koda daxistinê têra xwe berhem tune ne"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Di siparîşa we de ji bo vê koda daxistinê têra xwe berhem tune ne",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "Ev rêbaza dayînê ji bo welatê we ne berdest e. Ji kerema xwe yeke din hilbijêrin.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Bi Klarna hîn nikare bi vê diravê pere were dayîn. Ji kerema xwe rêbazeke din a dayînê hilbijêrin."
   },
   "auth": {
     "passwordPlaceholder": "Şîfreya xwe binivîsin",

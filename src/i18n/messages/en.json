@@ -580,7 +580,8 @@
       "couponInvalid": "The coupon code is no longer valid. Please remove it and try again.",
       "unavailable": "One or more items in your cart are no longer available. Please update your cart and try again.",
       "maxPerOrder": "Your cart has more of a product than one order allows. Please lower the quantity in your cart and try again.",
-      "invalidParticipant": "A participant's personal identity number is not valid. Please check the participant details in your cart and try again."
+      "invalidParticipant": "A participant's personal identity number is not valid. Please check the participant details in your cart and try again.",
+      "paymentMethodUnavailable": "This payment method is no longer available here. Please choose another one."
     },
     "personalizationInvalid": "The personalization of {products} needs to be updated before you can check out.",
     "personalizationInvalidGeneric": "The personalization of an item in your cart needs to be updated before you can check out.",
@@ -605,7 +606,10 @@
     "paymentFormSlow": "This is taking longer than usual",
     "itemsUnavailable": "Some items in your cart are no longer available. Please review your cart and try again.",
     "ownerPreviewNotice": "Store preview: the store is not live yet, so only test card payments can be placed here.",
-    "addressLine2Placeholder": "Apartment, suite, etc. (optional)"
+    "addressLine2Placeholder": "Apartment, suite, etc. (optional)",
+    "kustomCurrencyNotEnabled": "Paying with Klarna isn't available in this currency right now. You can pay by card instead.",
+    "kustomCurrencyNotEnabledNoCard": "Paying with Klarna isn't available in this currency right now. Please choose another way to pay or contact the store.",
+    "payByCardInstead": "Pay by card"
   },
   "auth": {
     "passwordPlaceholder": "Enter your password",
@@ -1115,7 +1119,9 @@
     "CART_ITEMS_UNAVAILABLE": "Some items in your cart are no longer available. Please review your cart and try again.",
     "STORE_NOT_LIVE": "This store is not open for orders yet.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Your order does not reach the minimum amount for this coupon",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Your order does not have enough items for this coupon"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Your order does not have enough items for this coupon",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "This payment method isn't available for your country. Please choose another one.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Klarna can't take payments in this currency yet. Please choose another payment method."
   },
   "builderPreview": {
     "selectParent": "Select parent",

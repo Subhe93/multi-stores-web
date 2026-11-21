@@ -3,12 +3,14 @@
 import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { AlertTriangle, ChevronRight, Loader2, Lock } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { api, storefront } from '@/lib/api';
+import { useMarket } from '@/hooks/useMarket';
+import { apiErrorCode, kustomOrderFirstAction, type StorePaymentPayload } from '@/lib/checkoutPayment';
 import { KustomSnippet } from '@/components/checkout/KustomSnippet';
 import { navigateRespectingClarity } from '@/components/tracking/clarity';
 
@@ -22,6 +24,8 @@ interface KustomSessionResponse {
 interface SessionError {
   /** Server-provided message when available; empty means "use the generic copy". */
   message: string;
+  /** Translation key that replaces the message (M157 coded refusals). */
+  messageKey?: string;
 }
 
 function LoadingState({ label }: { label: string }) {
@@ -47,6 +51,28 @@ function KustomCheckoutContent() {
   const orderId = searchParams.get('orderId');
   const validationFailed = searchParams.get('error') === 'kustom_validation';
   const { token, loading: authLoading } = useAuth();
+  const storeSlug = (useParams<{ storeSlug: string }>()?.storeSlug as string) || '';
+  // Markets app (M157): a market may not offer Kustom. The store payload of
+  // the request market says so (`kustom_enabled: false`); the session is then
+  // never requested and the shopper goes back to the checkout.
+  const market = useMarket();
+  const marketKey = market?.key;
+  const [kustomAllowed, setKustomAllowed] = useState<boolean | null>(storeSlug ? null : true);
+  useEffect(() => {
+    if (!storeSlug) return;
+    let cancelled = false;
+    storefront.getStore(storeSlug, market)
+      .then((store) => {
+        if (cancelled) return;
+        const offersKustom = (store as StorePaymentPayload).kustom_enabled !== false;
+        if (!offersKustom) router.replace(lp('/checkout'));
+        setKustomAllowed(offersKustom);
+      })
+      // A failed read does not block: the session endpoint enforces the rule.
+      .catch(() => { if (!cancelled) setKustomAllowed(true); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `market` only changes with its key
+  }, [storeSlug, marketKey]);
 
   const [html, setHtml] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState<SessionError | null>(null);
@@ -63,7 +89,7 @@ function KustomCheckoutContent() {
   }, [authLoading, token, router, lp]);
 
   useEffect(() => {
-    if (!token || !orderId) return;
+    if (!token || !orderId || kustomAllowed !== true) return;
     let cancelled = false;
     let request = requestRef.current;
     if (!request || request.orderId !== orderId) {
@@ -99,6 +125,18 @@ function KustomCheckoutContent() {
         if (cancelled) return;
         // Allow a retry on the next render cycle (e.g. after a re-login).
         if (requestRef.current === request) requestRef.current = null;
+        // M157: Kustom is not offered for this order here (market setting,
+        // or Kustom off): back to the checkout. A currency Kustom cannot
+        // take gets a friendly message instead of the raw one.
+        const action = kustomOrderFirstAction(apiErrorCode(err));
+        if (action === 'checkout') {
+          router.replace(lp('/checkout'));
+          return;
+        }
+        if (action === 'currency') {
+          setSessionError({ message: '', messageKey: 'checkout.kustomCurrencyNotEnabledNoCard' });
+          return;
+        }
         // Our own API messages are written for customers; raw upstream
         // (Kustom) errors are not, so those fall back to the generic copy.
         const message = err instanceof Error ? err.message : '';
@@ -108,12 +146,12 @@ function KustomCheckoutContent() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [token, orderId, router, lp]);
+  }, [token, orderId, router, lp, kustomAllowed]);
 
   const missingOrder = !orderId;
   const showError = missingOrder || sessionError !== null;
   // Auth still resolving, redirect pending, or the session request in flight.
-  const showLoading = !showError && (authLoading || !token || loading);
+  const showLoading = !showError && (authLoading || !token || loading || kustomAllowed !== true);
 
   return (
     <div className="max-w-[1100px] mx-auto w-full px-5 sm:px-8 py-8">
@@ -143,7 +181,7 @@ function KustomCheckoutContent() {
 
       {showError && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
-          <p>{sessionError?.message || t('checkout.kustomSessionFailed')}</p>
+          <p>{sessionError?.messageKey ? t(sessionError.messageKey) : sessionError?.message || t('checkout.kustomSessionFailed')}</p>
           <Link
             href={lp('/checkout')}
             className="inline-flex items-center gap-1.5 mt-3 font-medium text-red-700 underline underline-offset-2 hover:text-red-800"

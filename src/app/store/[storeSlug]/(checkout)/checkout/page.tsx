@@ -38,7 +38,6 @@ import {
   toStripeLocale,
   toStripeMinorAmount,
   type CreateIntentResponse,
-  type PaymentRoute,
   type ReconcileResponse,
 } from '@/lib/stripeElements';
 import { formatPrice } from '@/lib/format';
@@ -83,22 +82,17 @@ import {
 } from '@/lib/checkoutCountries';
 import { useDefaultQuoteCountry } from '@/hooks/useCartQuote';
 import { CUSTOMER_CAPTCHA_ON, CustomerCaptcha } from '@/components/auth/CustomerCaptcha';
-import { storeOffersCod } from '@/lib/codPolicy';
+import {
+  buildAvailability, checkoutMode, classicPossible as classicPossibleFor, defaultStorePaymentFlags,
+  KUSTOM_REASON_PAYMENT_METHOD_UNAVAILABLE, MARKET_PAYMENT_METHOD_NOT_ALLOWED, storeFlagsAfterRefusal,
+  storePaymentFlags,
+  type PaymentAvailability, type PaymentConfig, type RefusedClassicMethod, type StorePaymentFlags,
+  type StorePaymentPayload,
+} from '@/lib/checkoutPayment';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AddressResponse { id: string }
 interface OrderResponse { id: string; order_number?: string }
-interface PaymentConfig {
-  stripeConfigured: boolean;
-  publishableKey: string | null;
-  stripeAccount: string | null;
-  /** Kustom Checkout is offered (independent store with configured credentials). */
-  kustomEnabled: boolean;
-  /** Which Stripe account charges: the owner's own key, legacy Connect, or the platform. */
-  route?: PaymentRoute;
-  /** Owner preview with a Stripe test key: nothing real is charged. */
-  test_mode?: boolean;
-}
 // The unpaid Stripe order of the last attempt, reused when the shopper retries
 // without changing anything (no second order for the same cart).
 interface PendingStripeOrder {
@@ -116,66 +110,6 @@ interface PendingStripeOrder {
 // Own-key errors from the API that mean "card payments are down for this
 // store right now" rather than a problem with the order itself.
 const STRIPE_UNAVAILABLE_CODES = new Set(['OWN_KEY_NOT_ACTIVE', 'OWN_KEY_INVALID_OR_REVOKED']);
-// Resolved once per visit (store flags + platform payment config) and shared
-// by both checkout modes.
-interface PaymentAvailability {
-  storeId?: string;
-  cod: boolean;
-  stripe: boolean;
-  kustom: boolean;
-  publishableKey: string | null;
-  stripeAccount: string | null;
-  /** Route the publishable key belongs to (absent on older APIs). */
-  route?: PaymentRoute;
-  testMode: boolean;
-  /** Owner / admin preview of a store that is not LIVE yet (`preview` payload). */
-  ownerPreview: boolean;
-}
-// Store-level flags of the availability (the payment config is reloadable).
-interface StorePaymentFlags {
-  storeId?: string;
-  cod: boolean;
-  card: boolean;
-  kustom: boolean;
-  /** The full payload of a non-LIVE store was served to its owner / an admin. */
-  ownerPreview: boolean;
-}
-function buildAvailability(flags: StorePaymentFlags, config: PaymentConfig | null): PaymentAvailability {
-  // Before go-live the API takes an order only from the owner, paid with the
-  // store's own TEST key (fix batch 1, item 4): COD and Kustom would be
-  // refused (409 STORE_NOT_LIVE), so the preview offers only the test card.
-  if (flags.ownerPreview) {
-    const testCard = Boolean(config?.stripeConfigured) && config?.test_mode === true;
-    return {
-      storeId: flags.storeId,
-      cod: false,
-      stripe: testCard,
-      kustom: false,
-      publishableKey: testCard ? config?.publishableKey ?? null : null,
-      stripeAccount: testCard ? config?.stripeAccount ?? null : null,
-      route: config?.route,
-      testMode: testCard,
-      ownerPreview: true,
-    };
-  }
-  return {
-    storeId: flags.storeId,
-    cod: flags.cod,
-    // Card is offered only when Stripe is configured (and active) for the
-    // store AND the store creator can accept charges. The public store read
-    // says "no card" while only a TEST key is connected; the viewer-aware
-    // config (`test_mode`, owner / admin only) overrides that for the owner.
-    stripe: Boolean(config?.stripeConfigured) && (flags.card || config?.test_mode === true),
-    // Kustom is offered only when the payment config says so AND the store
-    // itself hasn't turned it off.
-    kustom: config?.kustomEnabled === true && flags.kustom,
-    publishableKey: config?.publishableKey ?? null,
-    stripeAccount: config?.stripeAccount ?? null,
-    route: config?.route,
-    testMode: config?.test_mode === true,
-    ownerPreview: false,
-  };
-}
 // Live Stripe.js + Elements of the mounted Payment Element.
 interface StripeHandles { stripe: Stripe; elements: StripeElements }
 
@@ -356,8 +290,11 @@ function CheckoutForm({
   availability, reloadPaymentConfig,
 }: {
   availability: PaymentAvailability;
-  /** Re-reads /payments/config (route / key changed); resolves when applied. */
-  reloadPaymentConfig: () => Promise<void>;
+  /**
+   * Re-reads /payments/config (route / key changed); resolves when applied.
+   * With `refused`, also re-reads the store flags and keeps that method off.
+   */
+  reloadPaymentConfig: (opts?: { refused?: RefusedClassicMethod }) => Promise<void>;
 }) {
   const router = useRouter();
   const t = useTranslations();
@@ -365,6 +302,10 @@ function CheckoutForm({
   const codedError = useCodedApiError();
   const locale = useLocale();
   const lp = useLocalePath();
+  const formSearchParams = useSearchParams();
+  const methodUnavailableNotice =
+    formSearchParams.get('error') === 'kustom_validation' &&
+    formSearchParams.get('reason') === KUSTOM_REASON_PAYMENT_METHOD_UNAVAILABLE;
   // Store motion style: pressed-state feedback of the pay button only (no entrance).
   const motion = useFlowMotion();
   // Stripe.js + Elements of the mounted Payment Element (null until ready).
@@ -1585,6 +1526,17 @@ function CheckoutForm({
         setError(t('errors.OWN_KEY_NOT_ACTIVE'));
         setErrorFocusTick((n) => n + 1);
         void reloadPaymentConfig().catch(() => { /* keep the current options */ });
+      } else if (code === MARKET_PAYMENT_METHOD_NOT_ALLOWED) {
+        // M157: the market stopped offering the chosen method while the page
+        // was open (nothing was charged). Drop the order of this attempt and
+        // reload the store flags + config with the refused method kept off
+        // (COD comes only from the store flags, so a config reload alone
+        // would leave it on screen).
+        pendingStripeRef.current = null;
+        setError(t('errors.MARKET_PAYMENT_METHOD_NOT_ALLOWED'));
+        setErrorFocusTick((n) => n + 1);
+        const refused: RefusedClassicMethod = paymentMethod === 'cod' ? 'cod' : 'card';
+        void reloadPaymentConfig({ refused }).catch(() => { /* keep the current options */ });
       } else if (code === 'ORDER_SHIPPING_METHOD_INVALID') {
         // The chosen method was removed/disabled meanwhile: show a friendly
         // message and re-quote so the list (and the selection) refresh.
@@ -1817,6 +1769,14 @@ function CheckoutForm({
             <CouponAutoApplyNotice className="mb-5" />
             {/* Lines of deleted / unpublished products were dropped. */}
             <UnavailableRemovedNotice className="mb-5" />
+            {/* M157: Kustom's validation refused the purchase because the
+                market no longer offers Kustom; the shopper lands here. */}
+            {methodUnavailableNotice && (
+              <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{t('checkout.kustomValidationReasons.paymentMethodUnavailable')}</span>
+              </div>
+            )}
 
               {/* ── Returning customer login ── */}
               {!isLoggedIn && (
@@ -2377,28 +2337,14 @@ function CheckoutRouter() {
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      const flags: StorePaymentFlags = { storeId: undefined, cod: false, card: true, kustom: true, ownerPreview: false };
+      // Both reads carry the request market (`?market=`, `&preview=1`), so
+      // the API narrows the flags and the config to the methods the market
+      // offers (M157); a failed store read falls back to the config alone.
+      let flags: StorePaymentFlags = defaultStorePaymentFlags();
       if (storeSlug) {
         try {
-          const store = await storefront.getStore(storeSlug, routerMarket) as {
-            id: string;
-            card_payments_enabled?: boolean;
-            cod_enabled?: boolean;
-            store_type?: string;
-            kustom_enabled?: boolean;
-            preview?: boolean;
-          };
-          flags.storeId = store.id;
-          // `preview: true` = a non-LIVE store served to its owner / an admin.
-          flags.ownerPreview = store.preview === true;
-          // The creator must have completed Stripe onboarding for this
-          // store to accept card payments.
-          flags.card = store.card_payments_enabled !== false;
-          // Cash on delivery is opt-in per store (off by default server-side):
-          // strict check so COD stays hidden for stores that haven't enabled it.
-          // Never offered by a MARKETPLACE store (platform rule).
-          flags.cod = storeOffersCod(store);
-          flags.kustom = store.kustom_enabled !== false;
+          const store = await storefront.getStore(storeSlug, routerMarket) as StorePaymentPayload;
+          flags = storePaymentFlags(store);
         } catch { /* ignore */ }
       }
       let config: PaymentConfig | null = null;
@@ -2416,10 +2362,26 @@ function CheckoutRouter() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `routerMarket` only changes with its key
   }, [storeSlug, routerMarketKey]);
 
-  // Re-read only the payment config (no loading state: the form stays).
-  const reloadPaymentConfig = useCallback(async () => {
-    const flags = storeFlagsRef.current;
+  // Re-read the payment config (no loading state: the form stays). After a
+  // MARKET_PAYMENT_METHOD_NOT_ALLOWED refusal the store flags are re-read too
+  // and the refused method stays off for the rest of the visit.
+  const reloadPaymentConfig = useCallback(async (opts?: { refused?: RefusedClassicMethod }) => {
+    let flags = storeFlagsRef.current;
     if (!flags) return;
+    const refused = opts?.refused;
+    if (refused) {
+      let fresh: StorePaymentFlags | null = null;
+      if (storeSlug) {
+        try {
+          fresh = storePaymentFlags(await storefront.getStore(storeSlug, routerMarket) as StorePaymentPayload);
+        } catch { /* keep the cached flags minus the refused method */ }
+      }
+      flags = storeFlagsAfterRefusal(flags, fresh, refused);
+      storeFlagsRef.current = flags;
+      // Hide the refused method now, even if the config read below fails.
+      const hidden = refused === 'cod' ? 'cod' : 'stripe';
+      setAvailability((prev) => (prev ? { ...prev, [hidden]: false } : prev));
+    }
     const config = await api<PaymentConfig>(paymentConfigPath(storeSlug, routerMarket), paymentConfigFetchOptions(storeSlug));
     setAvailability(buildAvailability(flags, config));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `routerMarket` only changes with its key
@@ -2427,12 +2389,12 @@ function CheckoutRouter() {
 
   if (!availability) return <LoadingState />;
 
-  const classicPossible = availability.cod || availability.stripe;
+  const classicPossible = classicPossibleFor(availability);
   // `?method=classic` is honoured only when there is something to pay with there.
-  const mode = !previewMode && availability.kustom && (!wantsClassic || !classicPossible) ? 'kustom' : 'classic';
+  const mode = checkoutMode(availability, { wantsClassic, previewMode });
 
   if (mode === 'kustom') {
-    return <KustomCheckout storeSlug={storeSlug} classicAvailable={classicPossible} />;
+    return <KustomCheckout storeSlug={storeSlug} classicAvailable={classicPossible} cardAvailable={availability.stripe} />;
   }
   return <CheckoutForm availability={availability} reloadPaymentConfig={reloadPaymentConfig} />;
 }

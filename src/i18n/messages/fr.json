@@ -580,7 +580,8 @@
       "couponInvalid": "Le code promo n’est plus valable. Veuillez le retirer et réessayer.",
       "unavailable": "Un ou plusieurs articles de votre panier ne sont plus disponibles. Veuillez mettre à jour votre panier et réessayer.",
       "maxPerOrder": "Votre panier contient plus d'un produit qu'une commande ne le permet. Veuillez réduire la quantité dans votre panier et réessayer.",
-      "invalidParticipant": "Le numéro d'identité personnel d'un participant n'est pas valide. Veuillez vérifier les informations des participants dans votre panier et réessayer."
+      "invalidParticipant": "Le numéro d'identité personnel d'un participant n'est pas valide. Veuillez vérifier les informations des participants dans votre panier et réessayer.",
+      "paymentMethodUnavailable": "Ce moyen de paiement n'est plus disponible ici. Veuillez en choisir un autre."
     },
     "personalizationInvalid": "La personnalisation de {products} doit être mise à jour avant de passer commande.",
     "personalizationInvalidGeneric": "La personnalisation d’un article de votre panier doit être mise à jour avant de passer commande.",
@@ -605,7 +606,10 @@
     "paymentFormSlow": "Cela prend plus de temps que d’habitude",
     "itemsUnavailable": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
     "ownerPreviewNotice": "Aperçu de la boutique : la boutique n’est pas encore en ligne, seuls des paiements par carte de test sont possibles ici.",
-    "addressLine2Placeholder": "Appartement, bâtiment, etc. (facultatif)"
+    "addressLine2Placeholder": "Appartement, bâtiment, etc. (facultatif)",
+    "kustomCurrencyNotEnabled": "Le paiement avec Klarna n'est pas disponible dans cette devise pour le moment. Vous pouvez payer par carte à la place.",
+    "kustomCurrencyNotEnabledNoCard": "Le paiement avec Klarna n'est pas disponible dans cette devise pour le moment. Veuillez choisir un autre moyen de paiement ou contacter la boutique.",
+    "payByCardInstead": "Payer par carte"
   },
   "auth": {
     "passwordPlaceholder": "Saisissez votre mot de passe",
@@ -1115,7 +1119,9 @@
     "CART_ITEMS_UNAVAILABLE": "Certains articles de votre panier ne sont plus disponibles. Vérifiez votre panier et réessayez.",
     "STORE_NOT_LIVE": "Cette boutique n’accepte pas encore de commandes.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Votre commande n’atteint pas le montant minimum pour ce code promo",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Votre commande ne contient pas assez d’articles pour ce code promo"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Votre commande ne contient pas assez d’articles pour ce code promo",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "Ce moyen de paiement n'est pas disponible pour votre pays. Veuillez en choisir un autre.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Klarna ne peut pas encore accepter de paiements dans cette devise. Veuillez choisir un autre moyen de paiement."
   },
   "builderPreview": {
     "selectParent": "Sélectionner le parent",

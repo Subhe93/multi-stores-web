@@ -580,7 +580,8 @@
       "couponInvalid": "Der Gutscheincode ist nicht mehr gültig. Bitte entfernen Sie ihn und versuchen Sie es erneut.",
       "unavailable": "Ein oder mehrere Artikel in Ihrem Warenkorb sind nicht mehr verfügbar. Bitte aktualisieren Sie Ihren Warenkorb und versuchen Sie es erneut.",
       "maxPerOrder": "Ihr Warenkorb enthält mehr von einem Produkt, als eine Bestellung erlaubt. Bitte verringern Sie die Menge in Ihrem Warenkorb und versuchen Sie es erneut.",
-      "invalidParticipant": "Die Personennummer eines Teilnehmers ist ungültig. Bitte prüfen Sie die Teilnehmerangaben in Ihrem Warenkorb und versuchen Sie es erneut."
+      "invalidParticipant": "Die Personennummer eines Teilnehmers ist ungültig. Bitte prüfen Sie die Teilnehmerangaben in Ihrem Warenkorb und versuchen Sie es erneut.",
+      "paymentMethodUnavailable": "Diese Zahlungsart ist hier nicht mehr verfügbar. Bitte wählen Sie eine andere."
     },
     "personalizationInvalid": "Die Personalisierung von {products} muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
     "personalizationInvalidGeneric": "Die Personalisierung eines Artikels in Ihrem Warenkorb muss aktualisiert werden, bevor Sie zur Kasse gehen können.",
@@ -605,7 +606,10 @@
     "paymentFormSlow": "Das dauert länger als gewöhnlich",
     "itemsUnavailable": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
     "ownerPreviewNotice": "Shop-Vorschau: Der Shop ist noch nicht live, daher sind hier nur Testzahlungen mit Karte möglich.",
-    "addressLine2Placeholder": "Wohnung, Etage usw. (optional)"
+    "addressLine2Placeholder": "Wohnung, Etage usw. (optional)",
+    "kustomCurrencyNotEnabled": "Die Zahlung mit Klarna ist in dieser Währung derzeit nicht verfügbar. Sie können stattdessen per Karte bezahlen.",
+    "kustomCurrencyNotEnabledNoCard": "Die Zahlung mit Klarna ist in dieser Währung derzeit nicht verfügbar. Bitte wählen Sie eine andere Zahlungsart oder kontaktieren Sie den Shop.",
+    "payByCardInstead": "Mit Karte bezahlen"
   },
   "auth": {
     "passwordPlaceholder": "Passwort eingeben",
@@ -1115,7 +1119,9 @@
     "CART_ITEMS_UNAVAILABLE": "Einige Artikel in deinem Warenkorb sind nicht mehr verfügbar. Bitte prüfe deinen Warenkorb und versuche es erneut.",
     "STORE_NOT_LIVE": "Dieser Shop nimmt noch keine Bestellungen an.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Ihre Bestellung erreicht den Mindestbetrag für diesen Gutschein nicht",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Ihre Bestellung enthält zu wenige Artikel für diesen Gutschein"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Ihre Bestellung enthält zu wenige Artikel für diesen Gutschein",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "Diese Zahlungsart ist für Ihr Land nicht verfügbar. Bitte wählen Sie eine andere.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Mit Klarna kann in dieser Währung noch nicht bezahlt werden. Bitte wählen Sie eine andere Zahlungsart."
   },
   "builderPreview": {
     "selectParent": "Übergeordnetes Element auswählen",

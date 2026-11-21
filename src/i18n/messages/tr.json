@@ -580,7 +580,8 @@
       "couponInvalid": "Kupon kodu artık geçerli değil. Lütfen kaldırıp tekrar deneyin.",
       "unavailable": "Sepetinizdeki bir veya daha fazla ürün artık mevcut değil. Lütfen sepetinizi güncelleyip tekrar deneyin.",
       "maxPerOrder": "Sepetinizde bir üründen bir siparişin izin verdiğinden fazla var. Lütfen sepetinizdeki miktarı azaltıp tekrar deneyin.",
-      "invalidParticipant": "Bir katılımcının kişisel kimlik numarası geçerli değil. Lütfen sepetinizdeki katılımcı bilgilerini kontrol edip tekrar deneyin."
+      "invalidParticipant": "Bir katılımcının kişisel kimlik numarası geçerli değil. Lütfen sepetinizdeki katılımcı bilgilerini kontrol edip tekrar deneyin.",
+      "paymentMethodUnavailable": "Bu ödeme yöntemi artık burada kullanılamıyor. Lütfen başka bir yöntem seçin."
     },
     "personalizationInvalid": "Ödemeye geçmeden önce {products} için kişiselleştirmenin güncellenmesi gerekiyor.",
     "personalizationInvalidGeneric": "Ödemeye geçmeden önce sepetinizdeki bir ürünün kişiselleştirmesinin güncellenmesi gerekiyor.",
@@ -605,7 +606,10 @@
     "paymentFormSlow": "Bu işlem normalden uzun sürüyor",
     "itemsUnavailable": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
     "ownerPreviewNotice": "Mağaza önizlemesi: mağaza henüz yayında değil, bu yüzden burada yalnızca test kartı ödemeleri yapılabilir.",
-    "addressLine2Placeholder": "Daire, kat vb. (isteğe bağlı)"
+    "addressLine2Placeholder": "Daire, kat vb. (isteğe bağlı)",
+    "kustomCurrencyNotEnabled": "Klarna ile ödeme şu anda bu para biriminde kullanılamıyor. Bunun yerine kartla ödeyebilirsiniz.",
+    "kustomCurrencyNotEnabledNoCard": "Klarna ile ödeme şu anda bu para biriminde kullanılamıyor. Lütfen başka bir ödeme yöntemi seçin veya mağazayla iletişime geçin.",
+    "payByCardInstead": "Kartla öde"
   },
   "auth": {
     "passwordPlaceholder": "Şifrenizi girin",
@@ -1115,7 +1119,9 @@
     "CART_ITEMS_UNAVAILABLE": "Sepetinizdeki bazı ürünler artık mevcut değil. Lütfen sepetinizi kontrol edip tekrar deneyin.",
     "STORE_NOT_LIVE": "Bu mağaza henüz sipariş kabul etmiyor.",
     "PROMOTION_COUPON_MIN_AMOUNT": "Siparişiniz bu kupon için minimum tutara ulaşmıyor",
-    "PROMOTION_COUPON_MIN_QUANTITY": "Siparişinizde bu kupon için yeterli ürün yok"
+    "PROMOTION_COUPON_MIN_QUANTITY": "Siparişinizde bu kupon için yeterli ürün yok",
+    "MARKET_PAYMENT_METHOD_NOT_ALLOWED": "Bu ödeme yöntemi ülkeniz için kullanılamıyor. Lütfen başka bir yöntem seçin.",
+    "KUSTOM_CURRENCY_NOT_ENABLED": "Klarna bu para biriminde henüz ödeme alamıyor. Lütfen başka bir ödeme yöntemi seçin."
   },
   "builderPreview": {
     "selectParent": "Üst öğeyi seç",
