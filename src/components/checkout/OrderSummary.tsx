@@ -11,6 +11,7 @@ import type { B2bNetTotals, TaxExemptReason, TaxLine, TaxPricingMode } from '@/l
 import { summaryUnitAmounts, type ExemptLinePrice } from '@/lib/taxExemption';
 import { netFromGross } from '@/lib/b2bPrice';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { TaxIncludedSummary } from '@/components/cart/TaxIncludedSummary';
 import { UnavailableInMarketNotice } from '@/components/cart/UnavailableInMarket';
 import { CartFieldValue } from '@/components/cart/CartItem';
 import { PersonalizationSummary, type SummaryDisplayLine } from '@/components/cart/PersonalizationSummary';
@@ -454,9 +455,7 @@ export function OrderSummary({
         )}
         {/* INCLUSIVE: informational, prices already contain the tax. */}
         {!exclusive && !companyNet && taxLines.length > 0 && (
-          <div className="pt-1 space-y-0.5">
-            <TaxLineRows lines={taxLines} currency={currency} locale={locale} variant="muted" />
-          </div>
+          <TaxIncludedSummary lines={taxLines} currency={currency} locale={locale} className="pt-1" />
         )}
         {taxLines.length > 0 && taxEstimated && (
           <p className="text-xs text-gray-500 pt-1">{t('cart.taxEstimatedNote')}</p>

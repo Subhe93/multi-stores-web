@@ -153,6 +153,8 @@ export function addGuestLine(
     ...(typeof metadata?.stockOnHand === 'number' ? { stockOnHand: metadata.stockOnHand } : {}),
     // No shipping (service / digital product): only on such lines.
     ...(lineRequiresShipping(metadata) ? {} : { requiresShipping: false as const }),
+    // M160: locale of the stored title / variant; only when known.
+    ...(metadata?.displayLocale ? { displayLocale: metadata.displayLocale } : {}),
     // Designer app (M4.2): only on designer lines, so other lines keep their shape.
     ...(design
       ? {

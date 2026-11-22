@@ -39,9 +39,11 @@ interface TaxLineRowsProps {
   variant?: 'muted' | 'row';
   /** Custom formatter (receipts use their own Intl instance). */
   format?: (amount: number) => string;
+  /** Muted rows only: prefix the label with "Incl." (default true). Off when a statement above already says so. */
+  prefixIncluded?: boolean;
 }
 
-export function TaxLineRows({ lines, currency, locale: localeProp, variant = 'row', format }: TaxLineRowsProps) {
+export function TaxLineRows({ lines, currency, locale: localeProp, variant = 'row', format, prefixIncluded = true }: TaxLineRowsProps) {
   const label = useTaxLineLabel();
   const intlLocale = useLocale();
   const locale = localeProp ?? intlLocale;
@@ -50,7 +52,7 @@ export function TaxLineRows({ lines, currency, locale: localeProp, variant = 'ro
   // Muted = the tax is already part of the total above: say so in the row.
   const rowLabel = (line: TaxLine) => {
     const text = label(line);
-    if (variant !== 'muted' || line.exempt_reason) return text;
+    if (variant !== 'muted' || !prefixIncluded || line.exempt_reason) return text;
     return tCart('taxIncludedRow', { label: text, labelLower: lowerFirstLabel(text) });
   };
   const fmt = format ?? ((amount: number) => formatPrice(amount, currency, locale));

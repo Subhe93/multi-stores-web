@@ -1,11 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { OrderSummary, shippingValueClass, type OrderSummaryProps } from './OrderSummary';
 
 // Shipping value colour (store-kind audit gap 7): an unknown cost must not
 // look free; green only for a real 0 or a free-shipping coupon.
 
-vi.mock('@/hooks/useBuyerType', () => ({ useBuyerType: () => ({ isCompany: false, settings: {} }) }));
+const buyer = vi.hoisted(() => ({ isCompany: false }));
+vi.mock('@/hooks/useBuyerType', () => ({ useBuyerType: () => ({ isCompany: buyer.isCompany, settings: {} }) }));
 vi.mock('next-intl', () => ({
   useLocale: () => 'sv',
   useTranslations: () => (key: string, values?: Record<string, string>) => (values?.label ? `${key}:${values.label}` : key),
@@ -77,7 +78,9 @@ describe('OrderSummary money format', () => {
 
   it('formats the tax rows in the same locale', () => {
     render(<OrderSummary {...props({ taxLines: [{ label: 'Moms', rate_bp: 2500, tax_amount: 55, taxable_amount: 220 } as never] })} />);
-    expect(screen.getByText(kr('55,00'))).toBeTruthy();
+    // M160: INCLUSIVE + private buyer → the amount sits behind the details toggle.
+    fireEvent.click(screen.getByRole('button', { name: /taxDetails/ }));
+    expect(screen.getByText(kr('55,00'))).toBeVisible();
   });
 
   it('an explicit locale prop wins', () => {
@@ -119,5 +122,37 @@ describe('OrderSummary without shipping', () => {
     const explicit = render(<OrderSummary {...props({ shippingCost: 49, effectiveShipping: 49, requiresShipping: true })} />);
     expect(explicit.container.innerHTML).toBe(html);
     expect(screen.getByTestId('summary-shipping')).toBeTruthy();
+  });
+});
+
+// M160: the VAT amount is collapsed only for private buyers with INCLUSIVE
+// prices; the company view and EXCLUSIVE (net) prices keep it visible.
+describe('OrderSummary VAT toggle exceptions', () => {
+  const kr = (n: string) => new RegExp(`^-?${n}\\s*kr$`);
+  const taxLines = [{ label: 'Moms', rate_bp: 2500, tax_amount: 55, taxable_amount: 220 } as never];
+
+  it('INCLUSIVE private view collapses the amount by default', () => {
+    render(<OrderSummary {...props({ taxLines })} />);
+    expect(screen.getByText('taxIncludedStatement:Moms')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /taxDetails/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByText(kr('55,00'))).not.toBeVisible();
+  });
+
+  it('company view shows the VAT amount without a toggle', () => {
+    buyer.isCompany = true;
+    try {
+      render(<OrderSummary {...props({ taxLines })} />);
+      expect(screen.queryByRole('button', { name: /taxDetails/ })).toBeNull();
+      expect(screen.getAllByText(kr('55,00')).length).toBeGreaterThanOrEqual(1);
+      for (const el of screen.getAllByText(kr('55,00'))) expect(el).toBeVisible();
+    } finally {
+      buyer.isCompany = false;
+    }
+  });
+
+  it('EXCLUSIVE shows rows without a toggle', () => {
+    render(<OrderSummary {...props({ taxLines, pricingMode: 'EXCLUSIVE' })} />);
+    expect(screen.queryByRole('button', { name: /taxDetails/ })).toBeNull();
+    expect(screen.getByText(kr('55,00'))).toBeVisible();
   });
 });

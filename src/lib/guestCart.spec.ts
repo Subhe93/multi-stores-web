@@ -330,3 +330,22 @@ describe('addGuestLine requiresShipping', () => {
     expect('requiresShipping' in mug[0]!).toBe(false);
   });
 });
+
+describe('addGuestLine displayLocale (M160)', () => {
+  it('copies the locale onto a new line when given', () => {
+    const [line] = addGuestLine([], 'p1', null, 1, undefined, { title: 'Pferd', price: 10, displayLocale: 'de' }, () => 'l1');
+    expect(line!.displayLocale).toBe('de');
+  });
+
+  it('omits the key otherwise (stored shape unchanged)', () => {
+    const [line] = addGuestLine([], 'p1', null, 1, undefined, { title: 'Mug', price: 10 }, () => 'l1');
+    expect('displayLocale' in line!).toBe(false);
+  });
+
+  it('a merge leaves the existing line locale unchanged', () => {
+    let cart = addGuestLine([], 'p1', null, 1, undefined, { title: 'Häst', price: 10, displayLocale: 'sv' }, () => 'l1');
+    cart = addGuestLine(cart, 'p1', null, 1, undefined, { title: 'Pferd', price: 10, displayLocale: 'de' }, () => 'l2');
+    expect(cart).toHaveLength(1);
+    expect(cart[0]).toMatchObject({ quantity: 2, title: 'Häst', displayLocale: 'sv' });
+  });
+});

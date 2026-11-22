@@ -67,6 +67,7 @@ import {
   type GuestPersonalizationCheck,
 } from '@/components/product/personalization/validateApi';
 import { trackAddToCart } from '@/lib/trackEvents';
+import { useGuestCartDisplay } from '@/hooks/useGuestCartDisplay';
 import {
   classifyCouponError,
   couponCartKey,
@@ -135,6 +136,9 @@ export interface CartItem {
    *  `requires_shipping: false`, or copied from the product at add time for
    *  guests. Present only when false; read through `lib/requiresShipping`. */
   requiresShipping?: false;
+  /** Guest lines (M160): page locale the stored `title` / `variant` were
+   *  captured in. Absent on older lines (treated as possibly stale). */
+  displayLocale?: string;
 }
 
 /** Design of a designer cart line. */
@@ -223,6 +227,9 @@ export interface CartItemMetadata {
   /** The product needs no shipping; kept on guest lines (absent = ships).
    *  Never sent to the server, which reads the product itself. */
   requiresShipping?: false;
+  /** Guest lines (M160): page locale of `title` / `variant`; set by the
+   *  provider from its `locale` prop. */
+  displayLocale?: string;
 }
 
 /** Applied coupon (shape and discount rule live in `@/lib/couponDiscount`). */
@@ -1127,9 +1134,12 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
           fields = result.custom_fields;
           meta = applyValidateResult(metadata, result);
         }
+        // M160: the stored title / variant are in the page locale.
+        if (locale) meta = { ...meta, displayLocale: locale };
+        const lineMeta = meta;
         setItems((prev) => {
           // Merges only into a line with the same personalization (line key).
-          return addGuestLine(prev, productId, variantId, quantity, fields, meta);
+          return addGuestLine(prev, productId, variantId, quantity, fields, lineMeta);
         });
         // Guests: the validated metadata carries the server-priced unit price.
         trackedMeta = meta;
@@ -1146,7 +1156,7 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
         quantity,
       });
     },
-    [isAuthenticated, token, localeQuery, ownerHeaders, storeCurrency, adoptServerCart]
+    [isAuthenticated, token, localeQuery, locale, ownerHeaders, storeCurrency, adoptServerCart]
   );
 
   // ── Update quantity ────────────────────────────────
@@ -1764,8 +1774,18 @@ export function CartProvider({ children, token, locale, storeId, storeCurrency, 
 
   // ── Context value ──────────────────────────────────
 
-  const value: CartContextValue = {
+  // M160: guest lines shown with titles / variant labels in the page locale
+  // (display only; everything above keeps working on the stored lines).
+  const shownItems = useGuestCartDisplay({
     items,
+    enabled: !isAuthenticated && guestLoaded,
+    storeSlug,
+    locale,
+    headers: ownerHeaders,
+  });
+
+  const value: CartContextValue = {
+    items: shownItems,
     loading,
     // A legacy coupon still being validated for this store is not applied
     // yet: no surface shows it and no quote / order sends it.

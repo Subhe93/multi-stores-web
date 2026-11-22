@@ -13,6 +13,7 @@ import { collapseLine, enter, flowMotionLive, useFlowMotion } from '@/components
 import { hover, surface } from '@/themes/creative/recipes';
 import { formatPrice } from '@/lib/format';
 import { TaxLineRows } from '@/components/cart/TaxLineRows';
+import { TaxIncludedSummary } from '@/components/cart/TaxIncludedSummary';
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
@@ -744,9 +745,7 @@ export default function StoreCartPage() {
                   )
                 ) : (
                   // Prices are tax inclusive: informational rows, the total is unchanged.
-                  <div className="-mt-2 pb-2 space-y-0.5">
-                    <TaxLineRows lines={shownTaxLines} currency={currency} variant="muted" />
-                  </div>
+                  <TaxIncludedSummary lines={shownTaxLines} currency={currency} className="-mt-2 pb-2" />
                 )}
                 </>
                 )}

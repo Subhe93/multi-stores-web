@@ -5,6 +5,7 @@ import { formatPrice } from '@/lib/format';
 import type { B2bNetTotals, TaxLine, TaxPricingMode } from '@/lib/tax';
 import { useBuyerType } from '@/hooks/useBuyerType';
 import { TaxLineRows } from './TaxLineRows';
+import { TaxIncludedSummary } from './TaxIncludedSummary';
 import { ReverseChargeCartHint } from './ReverseChargeCartHint';
 
 interface CartSummaryProps {
@@ -166,9 +167,7 @@ export function CartSummary({
           )
         ) : (
           // Prices are tax inclusive: informational, the total is unchanged.
-          <div className="mt-1 space-y-0.5">
-            <TaxLineRows lines={taxLines} currency={currency} locale={locale} variant="muted" />
-          </div>
+          <TaxIncludedSummary lines={taxLines} currency={currency} locale={locale} className="mt-1" />
         )}
       </div>
     </div>
