@@ -106,13 +106,13 @@ describe('mergeHandoffLines', () => {
       line({ id: 'c', customFields: { f1: 'OLLE' } }),
     ]);
     expect(next).toHaveLength(2);
-    expect(next[0]).toMatchObject({ id: 'a', quantity: 3, price: 12 });
+    expect(next[0]).toMatchObject({ id: 'a', quantity: 2, price: 12 });
     expect(next[1]).toMatchObject({ id: 'c' });
   });
 
-  it('lines without personalization merge as before', () => {
+  it('lines without personalization take the incoming quantity (no doubling)', () => {
     const next = mergeHandoffLines([line({ id: 'a' })], [line({ id: 'b', quantity: 4, price: 8 })]);
-    expect(next).toEqual([line({ id: 'a', quantity: 5, price: 8 })]);
+    expect(next).toEqual([line({ id: 'a', quantity: 4, price: 8 })]);
   });
 });
 

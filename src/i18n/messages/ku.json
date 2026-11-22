@@ -441,7 +441,7 @@
     "taxIncludedStatement": "Bi {labelLower} ve",
     "taxIncludedGeneric": "Bi bacê ve",
     "taxDetails": "Hûrgulî",
-    "pricesUpdatedForMarket": "Biha ji bo vê bazarê hatin nûkirin.",
+    "pricesUpdatedForMarket": "Selika te ji firoşgeha din hat veguhestin. Biha niha bi {currency} têne nîşandan.",
     "linesDroppedForMarket": "{count, plural, one {# berhem nehat veguhastin bo vê bazarê.} other {# berhem nehatin veguhastin bo vê bazarê.}}",
     "linesNotMoved": "{count, plural, one {# berhem nehat veguhastin bo hesabê we, ji ber ku kesanekirina wê êdî ne derbasdar e.} other {# berhem nehatin veguhastin bo hesabê we, ji ber ku kesanekirina wan êdî ne derbasdar e.}}",
     "linesNotMovedStock": "{count, plural, one {# berhem nehat veguhastin bo hesabê we, ji ber ku stok têr nake.} other {# berhem nehatin veguhastin bo hesabê we, ji ber ku stok têr nake.}}",

@@ -10,6 +10,8 @@ import { StoreProviders } from '@/components/providers/StoreProviders';
 import { REGION_COOKIE, requestRegionCountry } from '@/lib/region';
 import { normalizeStoreTax, type StoreTaxConfig } from '@/lib/tax';
 import { normalizeStoreApps, type StorefrontApps } from '@/lib/storeApps';
+import { normalizeB2bSettings } from '@/lib/b2bSettings';
+import { BUYER_COOKIE, resolveInitialBuyerType, type BuyerType } from '@/lib/buyerType';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { externalSiteHost, externalSiteUrl, resolveBackLabel } from '@/lib/externalReturn';
 import { focusedStorefront, resolveFocusForHost } from '@/lib/focusedStorefront';
@@ -116,6 +118,16 @@ export default async function CheckoutLayout({
   // focused header (logo, back link, cart, step indicator) of steps 1 and 2.
   const focus = focusedStorefront(checkoutSettings);
   const externalSite = externalSiteUrl(checkoutSettings);
+  // b2b app: seed the buyer type from the `ms-buyer-type` cookie exactly like
+  // the store layout does; without it a "Firma" choice made in the cart was
+  // lost on the checkout (the provider fell back to 'person').
+  const checkoutApps = normalizeStoreApps(store.apps);
+  const buyerType: BuyerType | undefined = checkoutApps.b2b
+    ? resolveInitialBuyerType({
+        cookie: cookieStore.get(BUYER_COOKIE)?.value,
+        settings: normalizeB2bSettings(checkoutApps.b2b.settings),
+      })
+    : undefined;
   const externalHost = externalSiteHost(checkoutSettings);
   const homeHref = externalSite ?? `/`;
   const homeRel = externalSite ? 'noreferrer' : undefined;
@@ -125,7 +137,7 @@ export default async function CheckoutLayout({
 
   return (
     <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
-      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={normalizeStoreApps(store.apps)} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? requestRegionCountry(await getRequestPathCountry(), cookieStore.get(REGION_COOKIE)?.value) : null} pathPrefix={await getRequestPathPrefix()} primaryLocale={primaryLocale} checkout={checkoutSettings}>
+      <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={checkoutApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? requestRegionCountry(await getRequestPathCountry(), cookieStore.get(REGION_COOKIE)?.value) : null} pathPrefix={await getRequestPathPrefix()} primaryLocale={primaryLocale} buyerType={buyerType} checkout={checkoutSettings}>
         {/*
           Hide the parent StoreLayout's header and footer on all checkout pages.
           The checkout has its own minimal Shopify-style header and footer below.

@@ -155,7 +155,7 @@ export function CartDrawer({ isOpen, onClose, motion }: CartDrawerProps) {
               {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (
                 <div role="status" className="mx-6 mb-2 px-3 py-2 rounded-md bg-amber-50 text-amber-800 text-xs flex items-start gap-2">
                   <span className="flex-1">
-                    {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
+                    {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket', { currency: currency || '' })}</span>}
                     {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
                     {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
                   </span>

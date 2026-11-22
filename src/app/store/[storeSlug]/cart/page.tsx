@@ -466,7 +466,7 @@ export default function StoreCartPage() {
         {(pricesUpdated || handoffDropped > 0 || migrationDropped > 0) && (
           <div role="status" className="mb-6 px-4 py-3 rounded-lg bg-amber-50 text-amber-800 text-sm flex items-start gap-3">
             <span className="flex-1">
-              {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket')}</span>}
+              {pricesUpdated && <span className="block">{t('cart.pricesUpdatedForMarket', { currency: currency || '' })}</span>}
               {handoffDropped > 0 && <span className="block">{t('cart.linesDroppedForMarket', { count: handoffDropped })}</span>}
               {migrationDropped > 0 && <span className="block">{[t(migrationDropMessageKey(migrationDropError), { count: migrationDropped }), codedError(migrationDropError)].filter(Boolean).join(' ')}</span>}
             </span>

@@ -441,7 +441,7 @@
     "taxIncludedStatement": "Inkl. {labelLower}",
     "taxIncludedGeneric": "Inkl. moms",
     "taxDetails": "Detaljer",
-    "pricesUpdatedForMarket": "Priserna har uppdaterats för den här marknaden.",
+    "pricesUpdatedForMarket": "Din varukorg har flyttats från den andra butiken. Priserna visas nu i {currency}.",
     "linesDroppedForMarket": "{count, plural, one {# vara kunde inte flyttas till den här marknaden.} other {# varor kunde inte flyttas till den här marknaden.}}",
     "linesNotMoved": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom dess personalisering inte längre är giltig.} other {# varor kunde inte flyttas till ditt konto eftersom deras personalisering inte längre är giltig.}}",
     "linesNotMovedStock": "{count, plural, one {# vara kunde inte flyttas till ditt konto eftersom lagret inte räcker.} other {# varor kunde inte flyttas till ditt konto eftersom lagret inte räcker.}}",

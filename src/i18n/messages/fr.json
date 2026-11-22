@@ -441,7 +441,7 @@
     "taxIncludedStatement": "{label} incluse",
     "taxIncludedGeneric": "TVA incluse",
     "taxDetails": "Détails",
-    "pricesUpdatedForMarket": "Les prix ont été mis à jour pour ce marché.",
+    "pricesUpdatedForMarket": "Votre panier a été transféré depuis l’autre boutique. Les prix sont désormais affichés en {currency}.",
     "linesDroppedForMarket": "{count, plural, one {# article n'a pas pu être transféré vers ce marché.} other {# articles n'ont pas pu être transférés vers ce marché.}}",
     "linesNotMoved": "{count, plural, one {# article n'a pas pu être transféré vers votre compte car sa personnalisation n'est plus valide.} other {# articles n'ont pas pu être transférés vers votre compte car leur personnalisation n'est plus valide.}}",
     "linesNotMovedStock": "{count, plural, one {# article n'a pas pu être transféré vers votre compte car le stock est insuffisant.} other {# articles n'ont pas pu être transférés vers votre compte car le stock est insuffisant.}}",

@@ -246,7 +246,10 @@ export function mergeHandoffLines(prev: CartItem[], incoming: CartItem[]): CartI
   const next = [...prev];
   for (const item of incoming) {
     const idx = next.findIndex((i) => isSameGuestLine(i, item));
-    if (idx >= 0) next[idx] = { ...next[idx]!, quantity: next[idx]!.quantity + item.quantity, price: item.price };
+    // The incoming cart is the one the buyer was just using on the other
+    // market; an older line of this host is replaced, not added to (adding
+    // doubled the quantity when the same item sat in both carts).
+    if (idx >= 0) next[idx] = { ...next[idx]!, quantity: item.quantity, price: item.price };
     else next.push(item);
   }
   return next;
