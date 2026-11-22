@@ -80,10 +80,13 @@ function useProductPageStateValue({
     [variants],
   );
   // M159: display labels of the option names / values in the page locale
-  // (null = canonical text). Keys and selections stay canonical.
+  // (null = canonical text). Keys and selections stay canonical. No
+  // `locale === primaryLocale` shortcut: on a market page `primaryLocale` is
+  // the market default (e.g. `en` on namez.shop), not the store's canonical
+  // language, and the canonical row never carries labels anyway.
   const optionLabels = useMemo(
-    () => (locale === primaryLocale ? null : labelsForLocale(product.translations, locale)),
-    [product.translations, locale, primaryLocale],
+    () => labelsForLocale(product.translations, locale),
+    [product.translations, locale],
   );
 
   // ── State ─────────────────────────────────────────────

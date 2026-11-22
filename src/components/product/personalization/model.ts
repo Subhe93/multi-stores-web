@@ -777,9 +777,10 @@ export function cardMeta(
     return str(m[key]);
   };
   const color = str(m.badge_color);
-  const ownLabel = locale !== primaryLocale ? str(loc[0]?.label) : undefined;
-  const translated =
-    locale !== primaryLocale && translatedValue && translatedValue !== value ? translatedValue : undefined;
+  // No primary-locale guard: a market's default locale may be a translated
+  // one; in the canonical locale `translatedValue` equals `value`.
+  const ownLabel = str(loc[0]?.label);
+  const translated = translatedValue && translatedValue !== value ? translatedValue : undefined;
   const out: CardMeta = {
     label: ownLabel ?? translated ?? pick('label') ?? value,
     sublabel: pick('sublabel'),

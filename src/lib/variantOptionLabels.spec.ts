@@ -75,7 +75,22 @@ describe('variantOptionLabels (mirror of the API module)', () => {
     expect(o).toMatchObject({ label: 'Farbe', display_value: 'Schwarz', value: 'Svart', field_name: 'Färg' });
     expect(o.i18n?.label).toEqual({ sv: 'Färg', de: 'Farbe' });
     expect(f).toBe(field);
-    expect(relabelOptionLines([line], DE, 'sv', 'sv')[0]).toBe(line);
+    expect(relabelOptionLines([line], null, 'sv', 'sv')[0]).toBe(line);
+  });
+
+  it('relabels on a market root whose default locale is a translated one (namez.shop en)', () => {
+    const line: RelabelableLine = {
+      source: 'OPTION',
+      label: 'Färg',
+      value: 'Svart',
+      display_value: 'Svart',
+      field_name: 'Färg',
+      meta: { option_name: 'Färg' },
+      i18n: { label: { sv: 'Färg' }, display_value: { sv: 'Svart' }, group_label: null },
+    };
+    const EN = { names: { Färg: 'Colour' }, values: { Färg: { Svart: 'Black' } } };
+    const [o] = relabelOptionLines([line], EN, 'en', 'en');
+    expect(o).toMatchObject({ label: 'Colour', display_value: 'Black', value: 'Svart' });
   });
 });
 
@@ -220,6 +235,8 @@ describe('variation card label chain', () => {
     expect(cardMeta(config as never, '1 produkt', 'de', 'sv', '1 Produkt').label).toBe('1 Produkt');
     expect(cardMeta(config as never, '1 produkt', 'de', 'sv', '1 produkt').label).toBe('1 st');
     expect(cardMeta(config as never, '1 produkt', 'de', 'sv').label).toBe('1 st');
-    expect(cardMeta(config as never, '1 produkt', 'sv', 'sv', 'x').label).toBe('1 st');
+    expect(cardMeta(config as never, '1 produkt', 'sv', 'sv', '1 produkt').label).toBe('1 st');
+    // Market root whose default locale is translated (namez.shop en).
+    expect(cardMeta(config as never, '1 produkt', 'en', 'en', '1 item').label).toBe('1 item');
   });
 });

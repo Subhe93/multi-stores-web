@@ -175,7 +175,9 @@ export function relabelOptionLines<T extends RelabelableLine>(
    */
   defs?: readonly RelabelableFieldDef[] | null,
 ): T[] {
-  if (!labels || !locale || (primaryLocale && locale === primaryLocale)) return lines.slice();
+  // No `locale === primaryLocale` shortcut: on a market page the primary is
+  // the market default locale, which can be a translated one (namez.shop `en`).
+  if (!labels || !locale) return lines.slice();
   const fieldDefs = indexFieldDefs(defs);
   return lines.map((line) => {
     if (line.source === 'FIELD') return relabelPaletteLine(line, fieldDefs, labels, locale, primaryLocale);
@@ -266,7 +268,7 @@ function relabelPaletteLine<T extends RelabelableLine>(
   if (valueLabel === null) return line;
   const prev = line.i18n?.display_value ?? null;
   const display: Record<string, string> = { ...(prev ?? {}) };
-  if (primaryLocale && !hasOwn(display, primaryLocale)) display[primaryLocale] = line.value;
+  if (primaryLocale && primaryLocale !== locale && !hasOwn(display, primaryLocale)) display[primaryLocale] = line.value;
   display[locale] = valueLabel;
   const i18n = line.i18n ? { ...line.i18n, display_value: display } : line.i18n;
   return { ...line, display_value: valueLabel, i18n };
