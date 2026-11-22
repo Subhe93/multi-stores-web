@@ -1,5 +1,9 @@
 import type { Appearance, CssFontSource, StripeElementLocale } from '@stripe/stripe-js';
 import { currencyMinorDigits } from '@/lib/format';
+import { contrastRatio } from '@/lib/readableText';
+
+/** WCAG minimum contrast for UI components (radio, selected label) on the panel. */
+const MIN_PRIMARY_CONTRAST = 3;
 
 // Helpers for the Stripe Payment Element on the storefront checkout: the
 // display amount (deferred-intent Elements), the store-themed appearance and
@@ -106,7 +110,13 @@ export function buildStripeAppearance(input: StripeThemeInput): Appearance {
   const danger = color(input.danger);
   const r = radius(input.radius);
   const family = primaryFontFamily(input.fontFamily);
-  if (primary) variables.colorPrimary = primary;
+  // Stripe paints the selected method's label, icon and radio in colorPrimary
+  // on the white panel. A light brand colour (yellow, pastel) is unreadable
+  // there, so below the WCAG 3:1 UI contrast the text colour is used instead.
+  if (primary) {
+    const ratio = contrastRatio(primary, background ?? '#ffffff');
+    variables.colorPrimary = ratio !== null && ratio < MIN_PRIMARY_CONTRAST ? (text ?? '#1a1a1a') : primary;
+  }
   if (background) variables.colorBackground = background;
   if (text) variables.colorText = text;
   if (muted) variables.colorTextSecondary = muted;

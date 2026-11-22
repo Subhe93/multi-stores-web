@@ -55,6 +55,12 @@ describe('buildStripeAppearance', () => {
     });
     expect(a.rules?.['.Input']).toEqual({ borderColor: '#ddd' });
   });
+  it('swaps an unreadable light primary (yellow on white) for the text colour', () => {
+    const a = buildStripeAppearance({ primary: 'rgb(255, 235, 59)', background: '#ffffff', text: '#1a1a1a' });
+    expect(a.variables?.colorPrimary).toBe('#1a1a1a');
+    const b = buildStripeAppearance({ primary: '#2563eb', background: '#ffffff', text: '#1a1a1a' });
+    expect(b.variables?.colorPrimary).toBe('#2563eb');
+  });
   it('drops values Stripe cannot parse and caps the radius', () => {
     const a = buildStripeAppearance({ primary: 'oklch(0.6 0.2 30)', radius: '9999px', text: 'var(--x)', fontFamily: 'Bad<Font>' });
     expect(a.variables?.colorPrimary).toBeUndefined();
