@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { useTranslations } from 'next-intl';
 import { Check, Truck } from 'lucide-react';
 import { press, useProductMotion } from '@/components/product/productMotion';
+import { optionNameLabel, optionValueLabel, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 import { formatPrice } from '@/lib/format';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import {
@@ -43,6 +44,8 @@ interface VariantCardsProps {
   isAvailable: (value: string) => boolean;
   onSelect: (value: string) => void;
   settings: VariantCardsConfig;
+  /** M159: option display labels of the page locale (undefined = canonical). */
+  optionLabels?: VariantOptionLabels | null;
 }
 
 // Theme tokens. Text colours are set inline: the store stylesheet colours
@@ -123,6 +126,7 @@ export function VariantCards({
   isAvailable,
   onSelect,
   settings,
+  optionLabels,
 }: VariantCardsProps) {
   const t = useTranslations('personalization');
   // Store motion style (product page only): cards sink a little while pressed.
@@ -140,7 +144,7 @@ export function VariantCards({
   const muted = tone.mutedOk ? MUTED : MUTED_STRONG;
 
   const cards: CardView[] = values.map((value) => {
-    const meta = cardMeta(config, value, locale, settings.primaryLocale);
+    const meta = cardMeta(config, value, locale, settings.primaryLocale, optionValueLabel(optionLabels, option, value));
     const priced = cardPrice(variants, option, value, selections, optionNames, settings.cardPriceMode);
     const amount = priced ? display(priced.price, settings.taxRateBp, currency).amount : null;
     // Savings are opt-in (`card_show_savings: true`): struck price and chip together.
@@ -280,7 +284,7 @@ export function VariantCards({
       <div
         ref={groupRef}
         role="radiogroup"
-        aria-label={option}
+        aria-label={optionNameLabel(optionLabels, option)}
         className={`flex flex-col ${hasRibbon ? 'gap-4 pt-2' : 'gap-2'}`}
       >
         {cards.map((c, i) => (
@@ -337,7 +341,7 @@ export function VariantCards({
     <div
       ref={groupRef}
       role="radiogroup"
-      aria-label={option}
+      aria-label={optionNameLabel(optionLabels, option)}
       className={`grid grid-cols-1 sm:grid-cols-2 ${hasRibbon ? 'gap-x-2 gap-y-4 pt-2' : 'gap-2'}`}
     >
       {cards.map((c, i) => (

@@ -155,7 +155,7 @@ export function ProductSlider({ settings, content, locale, primaryLocale, storeS
         <StoreProductCard
           key={p.id}
           // The attached model of a projected row, else computed from the raw row.
-      card={cardExtrasOf(p as unknown as CardSourceRow)}
+      card={cardExtrasOf(p as unknown as CardSourceRow, locale)}
           productId={p.id}
           productSlug={productPath}
           entrance={motion ? { 'data-cx-slide': '', 'data-cx-i': index > 0 ? String(Math.min(index, 5)) : undefined } : {}}

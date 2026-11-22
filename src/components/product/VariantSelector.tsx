@@ -8,6 +8,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { VariantCards, type VariantCardsConfig } from '@/components/product/personalization/VariantCards';
 import { press, useProductMotion } from '@/components/product/productMotion';
+import { optionNameLabel, optionValueLabel, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 import {
   dualColorBackground,
   isColorOptionKey,
@@ -95,6 +96,10 @@ interface VariantSelectorProps {
   // > 0 marks every group without a pick with an inline error; a new value
   // replays the error's shake.
   missingAttempt?: number;
+  // M159: display labels of the option names / values in the page locale.
+  // Display only: keys, selections, onSelect and every lookup (colours,
+  // images, swatches) stay canonical. Undefined = canonical text.
+  optionLabels?: VariantOptionLabels | null;
 }
 
 // ── Component ──────────────────────────────────────────
@@ -113,12 +118,16 @@ export function VariantSelector({
   optionFilter,
   showStatus = true,
   missingAttempt = 0,
+  optionLabels,
 }: VariantSelectorProps) {
   const t = useTranslations('common');
   const tProduct = useTranslations('product');
   // Store motion style (product page only): chips sink a little while pressed.
   const m = useProductMotion();
   const errorIdBase = useId();
+  // Shown text of an option name / value (canonical when untranslated).
+  const nameOf = (key: string) => optionNameLabel(optionLabels, key);
+  const valueOf = (key: string, value: string) => optionValueLabel(optionLabels, key, value);
 
   // What the variants actually offer, then arranged the way the seller set it
   // up. Neither source of order in the raw data is usable on its own: the
@@ -257,7 +266,7 @@ export function VariantSelector({
           <div
             key={key}
             role="group"
-            aria-label={key}
+            aria-label={nameOf(key)}
             tabIndex={-1}
             className="outline-none"
             aria-describedby={missingAttempt > 0 && !selectedValue ? `${errorIdBase}-${key}` : undefined}
@@ -266,14 +275,14 @@ export function VariantSelector({
           >
             {/* Label */}
             <p className={`text-sm font-semibold mb-3 ${missingAttempt > 0 && !selectedValue ? 'text-red-600' : 'text-gray-900'}`}>
-              {key}
+              {nameOf(key)}
               {selectedValue && (
-                <span className="font-normal text-gray-400 ms-1">— {selectedValue}</span>
+                <span className="font-normal text-gray-400 ms-1">— {valueOf(key, selectedValue)}</span>
               )}
             </p>
             {missingAttempt > 0 && !selectedValue && (
               <p key={missingAttempt} id={`${errorIdBase}-${key}`} className="ms-shake text-sm text-red-600 font-medium -mt-2 mb-3">
-                {tProduct('chooseOptionNamed', { option: key })}
+                {tProduct('chooseOptionNamed', { option: nameOf(key) })}
               </p>
             )}
 
@@ -296,7 +305,7 @@ export function VariantSelector({
                           disabled={!available}
                           onClick={() => handleSelect(key, value)}
                       {...press(m, 'chip')}
-                          title={value}
+                          title={valueOf(key, value)}
                           className={`relative size-11 transition-all duration-200 ${
                             !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                           } ${isSelected ? 'ring-2 ring-offset-3' : 'hover:ring-1 hover:ring-offset-2 hover:ring-gray-300'}`}
@@ -328,7 +337,7 @@ export function VariantSelector({
                         <span className={`text-[10px] leading-tight text-center max-w-12 truncate ${
                           isSelected ? 'text-gray-900 font-medium' : 'text-gray-400'
                         }`}>
-                          {value}
+                          {valueOf(key, value)}
                         </span>
                       </div>
                     );
@@ -351,7 +360,7 @@ export function VariantSelector({
                       }`}
                       style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                     >
-                      {value}
+                      {valueOf(key, value)}
                     </button>
                   );
                 })}
@@ -373,7 +382,7 @@ export function VariantSelector({
                         disabled={!available}
                         onClick={() => handleSelect(key, value)}
                       {...press(m, 'chip')}
-                        title={value}
+                        title={valueOf(key, value)}
                         className={`relative w-20 h-20 rounded-xl overflow-hidden transition-all duration-200 ${
                           !available ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer'
                         } ${
@@ -390,7 +399,7 @@ export function VariantSelector({
                         {imgUrl ? (
                           <StoreImage
                             src={resolveMediaUrl(imgUrl)}
-                            alt={value}
+                            alt={valueOf(key, value)}
                             width={80}
                             height={80}
                             sizes="80px"
@@ -399,7 +408,7 @@ export function VariantSelector({
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xs text-gray-400 font-medium p-1 text-center">
-                            {value}
+                            {valueOf(key, value)}
                           </div>
                         )}
                         {isSelected && (
@@ -420,7 +429,7 @@ export function VariantSelector({
                       <span className={`text-xs leading-tight text-center max-w-20 truncate ${
                         isSelected ? 'text-gray-900 font-medium' : 'text-gray-500'
                       }`}>
-                        {value}
+                        {valueOf(key, value)}
                       </span>
                     </div>
                   );
@@ -441,6 +450,7 @@ export function VariantSelector({
                 isAvailable={(value) => isOptionAvailable(key, value)}
                 onSelect={(value) => handleSelect(key, value)}
                 settings={personalization}
+                optionLabels={optionLabels}
               />
             )}
 
@@ -467,7 +477,7 @@ export function VariantSelector({
                       }`}
                       style={isSelected ? { backgroundColor: 'var(--store-primary, #2563eb)', color: 'var(--store-primary-contrast, #fff)' } : undefined}
                     >
-                      {value}
+                      {valueOf(key, value)}
                     </button>
                   );
                 })}

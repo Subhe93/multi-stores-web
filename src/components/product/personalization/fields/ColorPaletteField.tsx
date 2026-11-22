@@ -6,6 +6,7 @@ import { resolvePalette, type PContext, type PFieldDef } from '@multi-stores/cor
 import { resolveMediaUrl } from '@/lib/api';
 import { StoreImage } from '@/components/StoreImage';
 import { isSvgSrc } from '@/lib/storeMedia';
+import { paletteValueLabel, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 import type { FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 
@@ -15,6 +16,8 @@ interface ColorPaletteFieldProps {
   text: FieldText;
   value: unknown;
   ctx: PContext;
+  /** M159: product option labels of `ctx.locale` (palette from an option). */
+  productOptionLabels?: VariantOptionLabels | null;
   required: boolean;
   error?: string | null;
   onChange: (value: string) => void;
@@ -45,13 +48,17 @@ function isLight(hex: string): boolean {
  * "Djur": one picture per animal) renders its swatch pictures, exactly like
  * VariantSelector's image tiles, instead of grey discs.
  */
-export function ColorPaletteField({ def, inputId, text, value, ctx, required, error, onChange }: ColorPaletteFieldProps) {
+export function ColorPaletteField({ def, inputId, text, value, ctx, productOptionLabels, required, error, onChange }: ColorPaletteFieldProps) {
   const t = useTranslations('personalization');
   const tCommon = useTranslations('common');
   const palette = resolvePalette(def, ctx);
   const tiles = palette.some((e) => e.image);
   const selected = typeof value === 'string' ? value : '';
-  const nameOf = (v: string) => text.optionLabels?.[v] ?? v;
+  // The field's own label of the locale first; for a palette taken from a
+  // product option, else that option's label (so pieces 2..N read like
+  // piece 1), else the field text / canonical value.
+  const nameOf = (v: string) =>
+    paletteValueLabel(def, productOptionLabels, ctx.locale, v) ?? text.optionLabels?.[v] ?? v;
 
   return (
     <FieldShell inputId={inputId} text={text} required={required} error={error} asGroup>

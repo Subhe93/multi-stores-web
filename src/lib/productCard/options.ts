@@ -7,6 +7,7 @@
 
 import { isColorOptionKey, isSizeOptionKey } from '@/lib/optionKeys';
 import { swatchConfiguredImage, swatchCssColor, swatchDualColor, type SwatchMaps } from '@/lib/swatches';
+import { optionValueLabel, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 import {
   CARD_SIZE_MAX,
   CARD_SWATCH_MAX,
@@ -107,8 +108,14 @@ function toSwatch(config: CardOptionConfig | undefined, value: string): CardSwat
   return css ? { value, css } : null;
 }
 
+/** `{ label }` when the value has a display label (M159), else nothing (unchanged shape). */
+function labelOf(labels: VariantOptionLabels | null | undefined, name: string, value: string): { label?: string } {
+  const label = optionValueLabel(labels, name, value);
+  return label !== value ? { label } : {};
+}
+
 /** Colour values of the product's colour option, or null without one. */
-export function cardSwatches(row: CardSourceRow): CardSwatches | null {
+export function cardSwatches(row: CardSourceRow, labels?: VariantOptionLabels | null): CardSwatches | null {
   const { groups } = optionGroups(row);
   // The colour option as the product page sees it: styled as colours by the
   // seller, or named like one.
@@ -122,12 +129,14 @@ export function cardSwatches(row: CardSourceRow): CardSwatches | null {
   // range, so the card prints "N colours" instead (empty items, total set).
   if (resolved.some((s) => s === null)) return { items: [], more: 0, total };
 
-  const items = (resolved as CardSwatch[]).slice(0, CARD_SWATCH_MAX);
+  const items = (resolved as CardSwatch[])
+    .slice(0, CARD_SWATCH_MAX)
+    .map((s) => ({ ...s, ...labelOf(labels, group.name, s.value) }));
   return { items, more: total - items.length, total };
 }
 
 /** Values of the product's size option with their availability, or null without one. */
-export function cardSizes(row: CardSourceRow): CardSizes | null {
+export function cardSizes(row: CardSourceRow, labels?: VariantOptionLabels | null): CardSizes | null {
   const { groups, variants } = optionGroups(row);
   const group = groups.find((g) => isSizeOptionKey(g.name));
   if (!group || group.values.length === 0) return null;
@@ -135,6 +144,7 @@ export function cardSizes(row: CardSourceRow): CardSizes | null {
   const all = group.values.map((value) => ({
     value,
     available: variants.some((v) => v.options?.[group.name] === value && isPurchasable(v)),
+    ...labelOf(labels, group.name, value),
   }));
   const items = all.slice(0, CARD_SIZE_MAX);
   return { items, more: all.length - items.length };

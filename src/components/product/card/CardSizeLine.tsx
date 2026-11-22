@@ -15,7 +15,9 @@ export function CardSizeLine({ sizes }: CardSizeLineProps) {
   const { items, more } = sizes;
   if (items.length === 0) return null;
 
-  const names = items.map((s) => (s.available ? s.value : t('sizeUnavailable', { size: s.value })));
+  // M159: the size in the page language when labelled; keys stay the value.
+  const shown = (s: { value: string; label?: string }) => s.label ?? s.value;
+  const names = items.map((s) => (s.available ? shown(s) : t('sizeUnavailable', { size: shown(s) })));
   if (more > 0) names.push(t('moreSizes', { count: more }));
 
   return (
@@ -23,7 +25,7 @@ export function CardSizeLine({ sizes }: CardSizeLineProps) {
       <span className="sr-only">{t('sizesAvailable', { list: joinNames(locale, names) })}</span>
       {items.map((s) => (
         <span key={s.value} aria-hidden="true" className="pcopt-size" data-out={s.available ? undefined : ''}>
-          {s.value}
+          {shown(s)}
         </span>
       ))}
       {more > 0 ? (

@@ -44,10 +44,13 @@ export function useListingPages({
   storeSlug,
   initial,
   pagination,
+  locale,
 }: {
   storeSlug: string;
   initial: ListingProduct[];
   pagination?: ListingPagination;
+  /** M159: page locale, for the swatch / size names of the card model. */
+  locale?: string;
 }): ListingPages {
   // Markets app: the next pages are priced like the first one (same market,
   // preview flag on a preview host), built exactly as the sections do.
@@ -96,7 +99,7 @@ export function useListingPages({
       .then((res) => {
         if (keyRef.current !== requestKey) return;
         const cards = (res.items as StorefrontProductRow[]).map((row) =>
-          cardSettings ? withCardExtras(toListingCard(row), row as unknown as CardSourceRow) : toListingCard(row),
+          cardSettings ? withCardExtras(toListingCard(row), row as unknown as CardSourceRow, locale) : toListingCard(row),
         );
         setState((prev) => {
           const from = prev && prev.key === requestKey ? prev : base;

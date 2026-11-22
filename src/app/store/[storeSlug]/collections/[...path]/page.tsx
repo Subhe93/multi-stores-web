@@ -260,7 +260,7 @@ export default async function CollectionPage({
           currency,
           settings: listingSettings,
           state: explorerState,
-          products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard)),
+          products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard, locale)),
           total: explorerPage.total,
           hasMore: explorerPage.hasMore,
           facets: explorerPage.facets,
@@ -334,7 +334,7 @@ export default async function CollectionPage({
     const listing: ListingContext = {
       kind: 'collection',
       // Card-level projection only — see lib/listing.ts.
-      products: products.map(listingProjector(Boolean(cardSettings), pagination ? toListingCard : toListingProduct)),
+      products: products.map(listingProjector(Boolean(cardSettings), pagination ? toListingCard : toListingProduct, locale)),
       // The tree only feeds the catalog pills; a collection page reads
       // `collection.children` instead, so it stays out of the RSC payload.
       collections: [],
@@ -590,7 +590,7 @@ export default async function CollectionPage({
           // Server mode: first page from the server, next pages by "load more".
           <ListingPagedGrid
             storeSlug={storeSlug}
-            initial={products.map(listingProjector(Boolean(cardSettings), toListingCard))}
+            initial={products.map(listingProjector(Boolean(cardSettings), toListingCard, locale))}
             pagination={pagination}
             locale={locale}
             lp={lp}
@@ -626,7 +626,7 @@ export default async function CollectionPage({
                   // and the ids quick add reads. Without settings: today's props.
                   {...(cardSettings
                     ? {
-                        card: toCardExtras(product as unknown as CardSourceRow),
+                        card: toCardExtras(product as unknown as CardSourceRow, locale),
                         productId: product.id,
                         productSlug: slugTr?.slug || product.id,
                       }

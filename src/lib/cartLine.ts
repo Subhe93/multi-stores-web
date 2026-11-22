@@ -7,6 +7,7 @@
 import type { CartCustomFieldDisplay, CartItemMetadata } from '@/hooks/useCart';
 import { lineRequiresShipping } from '@/lib/requiresShipping';
 import type { GuestPersonalizationCheck } from '@/components/product/personalization/validateApi';
+import { formatOptionPairs, optionDisplayEntries, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 
 /** The bundle offer chosen on the product page (display texts already resolved). */
 export interface LineBundle {
@@ -28,6 +29,8 @@ export interface LineSource {
   imageUrl?: string;
   /** Options of the resolved variant (`{Color: 'Red', Size: 'M'}`); empty = no variant label. */
   variantOptions?: Record<string, string> | null;
+  /** M159: option display labels of the page locale (guest line label). */
+  optionLabels?: VariantOptionLabels | null;
   currency?: string;
   /** b2b stores: the product's estimated rate, kept on guest lines (L8). */
   taxRateBp?: number | null;
@@ -47,9 +50,17 @@ export interface LineSource {
   requiresShipping?: false;
 }
 
-/** `"Color: Red / Size: M"` label of a variant's options ('' without options). */
-export function variantLabel(options?: Record<string, string> | null): string {
+/**
+ * `"Color: Red / Size: M"` label of a variant's options ('' without options).
+ * M159: with labels, names / values in the page language (canonical text
+ * for the untranslated parts; exactly today's text without labels).
+ */
+export function variantLabel(
+  options?: Record<string, string> | null,
+  labels?: VariantOptionLabels | null,
+): string {
   if (!options) return '';
+  if (labels) return formatOptionPairs(optionDisplayEntries(options, labels));
   return Object.entries(options)
     .map(([k, v]) => `${k}: ${v}`)
     .join(' / ');
@@ -69,7 +80,7 @@ export function buildLineMetadata(
     design?: CartItemMetadata['design'];
   },
 ): CartItemMetadata {
-  const variant = variantLabel(src.variantOptions);
+  const variant = variantLabel(src.variantOptions, src.optionLabels);
   const bundle = src.bundle ?? null;
   return {
     title: src.title,

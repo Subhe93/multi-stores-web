@@ -71,6 +71,8 @@ export interface ProductData {
     description?: string;
     /** M4.4: short summary HTML (sanitized by the API), shown above add-to-cart. */
     short_description?: string | null;
+    /** M159: display labels of the variant options in this locale (null = none). */
+    variant_option_labels?: unknown;
   }[];
   images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
   /** Gallery videos; the API omits the key when the product has none. */
@@ -341,6 +343,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
   const {
     variants,
     variantOptionKeys,
+    optionLabels,
     selectedVariantId,
     setSelectedVariantId,
     selectedVariant,
@@ -750,6 +753,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                 optionConfigs={product.variant_option_config}
                 optionFilter={pieceOptionKeys.length > 0 ? (k) => !pieceOptionKeys.includes(k) : undefined}
                 missingAttempt={variantAttempt}
+                optionLabels={optionLabels}
               />
             </div>
           )}
@@ -786,6 +790,7 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
                       optionFilter={(k) => pieceOptionKeys.includes(k)}
                       showStatus={false}
                       missingAttempt={variantAttempt}
+                      optionLabels={optionLabels}
                     />
                   ) : undefined
                 }

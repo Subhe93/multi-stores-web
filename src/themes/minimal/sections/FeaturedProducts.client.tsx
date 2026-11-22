@@ -246,7 +246,7 @@ export function FeaturedProducts({ settings, content, locale, primaryLocale, sto
                 <StoreProductCard
                   key={p.id}
                   // The attached model of a projected row, else computed from the raw row.
-      card={cardExtrasOf(p as unknown as CardSourceRow)}
+      card={cardExtrasOf(p as unknown as CardSourceRow, locale)}
                   productId={p.id}
                   productSlug={productPath}
                   entrance={item(cards, 0)}

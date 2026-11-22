@@ -128,6 +128,7 @@ export function StateVariantSelector({ state, pieceOne = false }: { state: Produ
             : undefined
       }
       missingAttempt={state.variantAttempt}
+      optionLabels={state.optionLabels}
       {...(pieceOne ? { showStatus: false } : {})}
     />
   );

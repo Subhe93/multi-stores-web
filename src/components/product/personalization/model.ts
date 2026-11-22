@@ -32,6 +32,7 @@ import {
   type POptionConfig,
   type PResult,
 } from '@multi-stores/core/personalization';
+import { relabelOptionLines, type VariantOptionLabels } from '@/lib/variantOptionLabels';
 import { issueMessage, type Translate } from '@/lib/personalization/form';
 
 // ---------------------------------------------------------------------------
@@ -232,9 +233,21 @@ export function formContext(input: FormContextInput): PContext {
   };
 }
 
-/** Runs the evaluator on the form values (app mode). */
-export function evaluateForm(defs: readonly PFieldDef[], values: Record<string, unknown>, ctx: PContext): PResult {
-  return evaluatePersonalization(defs, values, ctx);
+/**
+ * Runs the evaluator on the form values (app mode). M159: with option labels,
+ * the variant OPTION lines (and palette FIELD lines whose palette is a
+ * product option) are relabelled for `ctx.locale` (the same rule as
+ * the API, so guest and signed-in carts show the same text).
+ */
+export function evaluateForm(
+  defs: readonly PFieldDef[],
+  values: Record<string, unknown>,
+  ctx: PContext,
+  optionLabels?: VariantOptionLabels | null,
+): PResult {
+  const result = evaluatePersonalization(defs, values, ctx);
+  if (!optionLabels) return result;
+  return { ...result, lines: relabelOptionLines(result.lines, optionLabels, ctx.locale, ctx.primaryLocale, defs) };
 }
 
 // ---------------------------------------------------------------------------
@@ -745,6 +758,12 @@ export function cardMeta(
   value: string,
   locale: string,
   primaryLocale: string,
+  /**
+   * M159: the option value's display label in `locale` (product option
+   * labels). Wins over the primary-locale card label, never over a card
+   * label written for `locale` itself.
+   */
+  translatedValue?: string,
 ): CardMeta {
   const meta = isPlainObject(config?.valueMeta) ? (config!.valueMeta as Record<string, unknown>)[value] : undefined;
   const m = isPlainObject(meta) ? meta : {};
@@ -758,8 +777,11 @@ export function cardMeta(
     return str(m[key]);
   };
   const color = str(m.badge_color);
+  const ownLabel = locale !== primaryLocale ? str(loc[0]?.label) : undefined;
+  const translated =
+    locale !== primaryLocale && translatedValue && translatedValue !== value ? translatedValue : undefined;
   const out: CardMeta = {
-    label: pick('label') ?? value,
+    label: ownLabel ?? translated ?? pick('label') ?? value,
     sublabel: pick('sublabel'),
     badge: pick('badge'),
     badgeColor: color && CSS_HEX.test(color) ? color : DEFAULT_BADGE_COLOR,

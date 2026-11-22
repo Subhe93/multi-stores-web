@@ -58,7 +58,9 @@ function slimRow(row: Row): Row {
  */
 export function pickTranslationRows<T>(rows: T, locale: string, primaryLocale: string): T {
   if (!Array.isArray(rows)) return rows;
-  const keep = new Set([locale, primaryLocale, 'en']);
+  // M159: plus the base language of a regional locale (option labels fall
+  // back to it: de-AT -> de).
+  const keep = new Set([locale, locale.split(/[-_]/)[0], primaryLocale, 'en']);
   return rows
     .filter((r, i) => i === 0 || (isObj(r) && keep.has(r.locale as string)))
     .map((r) => (isObj(r) ? slimRow(r) : r)) as T;

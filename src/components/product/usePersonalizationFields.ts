@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import type { VariantOptionLabels } from '@/lib/variantOptionLabels';
 import { useTranslations } from 'next-intl';
 import type { CartCustomFieldDisplay } from '@/hooks/useCart';
 import {
@@ -44,6 +45,8 @@ export interface PersonalizationAppInput {
   optionConfig?: POptionConfig[] | null;
   /** Option values present on active variants. */
   activeOptionValues?: Record<string, string[]>;
+  /** M159: option display labels of `locale` (OPTION lines relabelled). */
+  optionLabels?: VariantOptionLabels | null;
 }
 
 /** App-mode state exposed to `PersonalizationForm` (null in M4.0 mode). */
@@ -51,6 +54,8 @@ export interface PersonalizationAdvanced {
   /** Field tree as the storefront sends it (children nested). */
   defs: PFieldDef[];
   ctx: PContext;
+  /** M159: product option labels of `ctx.locale` (palette names from an option). */
+  optionLabels?: VariantOptionLabels | null;
   /** Form values (top level by field id; repeaters as arrays of items). */
   values: Record<string, unknown>;
   result: PResult;
@@ -136,6 +141,7 @@ export function usePersonalizationFields(
   const selections = app?.selections;
   const optionConfig = app?.optionConfig;
   const activeValues = app?.activeOptionValues;
+  const optionLabels = app?.optionLabels;
   const ctx = useMemo<PContext | null>(
     () =>
       appOn
@@ -149,7 +155,10 @@ export function usePersonalizationFields(
         : null,
     [appOn, selections, optionConfig, activeValues, locale, primaryLocale],
   );
-  const evaluation = useMemo(() => (ctx ? evaluateForm(defs, values, ctx) : null), [ctx, defs, values]);
+  const evaluation = useMemo(
+    () => (ctx ? evaluateForm(defs, values, ctx, optionLabels) : null),
+    [ctx, defs, values, optionLabels],
+  );
 
   // Hidden fields and repeater items beyond the count lose their value (D8),
   // adjusted during render; `pruneHidden` returns null once nothing is left
@@ -274,9 +283,9 @@ export function usePersonalizationFields(
   const advanced = useMemo<PersonalizationAdvanced | null>(
     () =>
       evaluation && ctx
-        ? { defs, ctx, values, result: evaluation, errors, summary, setValue: onChange, setChildValue }
+        ? { defs, ctx, optionLabels, values, result: evaluation, errors, summary, setValue: onChange, setChildValue }
         : null,
-    [evaluation, ctx, defs, values, errors, summary, onChange, setChildValue],
+    [evaluation, ctx, optionLabels, defs, values, errors, summary, onChange, setChildValue],
   );
 
   return {

@@ -56,7 +56,7 @@ export function ListingPagedGrid({
   motion?: MotionProp;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const pages = useListingPages({ storeSlug, initial, pagination });
+  const pages = useListingPages({ storeSlug, initial, pagination, locale });
 
   return (
     <>

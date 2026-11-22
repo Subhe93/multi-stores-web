@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { orderLineOptionsLabel } from '@/lib/variantOptionLabels';
 import { useTranslations, useLocale } from 'next-intl';
 import { Package, ArrowRight } from 'lucide-react';
 import { useLocalePath } from '@/hooks/useLocalePath';
@@ -42,6 +43,8 @@ export interface OrderReceiptItem {
     images?: { url: string }[];
   } | null;
   variant?: { options?: Record<string, string> } | null;
+  /** M159: the sold options in the buyer's language at purchase (null = none). */
+  variant_options_display?: unknown;
   /** Personalization snapshot rows (M4.0 §6). */
   custom_field_values?: OrderFieldValueRow[];
   custom_product?: {
@@ -171,7 +174,10 @@ export function OrderReceipt({ order, orderId, showOrderLink = true, externalRet
                 item.custom_product?.mockup_images?.[0]?.url ||
                 item.custom_product?.product?.images?.[0]?.url ||
                 item.product?.images?.[0]?.url;
-              const vLabel = variantLabel(item.variant?.options);
+              // M159: the options as the buyer saw them, else canonical.
+              const vLabel = item.variant?.options
+                ? (orderLineOptionsLabel(item.variant_options_display) ?? variantLabel(item.variant.options))
+                : '';
               const unit = Number(item.unit_price ?? 0);
               const lineTotal = unit * item.quantity;
               return (

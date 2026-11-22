@@ -71,7 +71,9 @@ export function toListingCard(p: StorefrontProductRow): ListingProduct {
 export function listingProjector<R extends StorefrontProductRow>(
   enhanced: boolean,
   base: (p: StorefrontProductRow) => ListingProduct = toListingProduct,
+  /** M159: page locale, for the swatch / size names of the card model. */
+  locale?: string | null,
 ): (p: R) => ListingProduct {
   if (!enhanced) return (p) => base(p);
-  return (p) => withCardExtras(base(p), p as unknown as CardSourceRow);
+  return (p) => withCardExtras(base(p), p as unknown as CardSourceRow, locale);
 }

@@ -9,6 +9,7 @@ import {
   type FacetCollection,
   type FacetRow,
 } from './facetEngine';
+import { labelsForLocale, type LabelRow } from '@/lib/variantOptionLabels';
 import { toApiFilters, type FilterState } from './query';
 import type { ListingFacets } from './types';
 
@@ -77,6 +78,12 @@ export function localPage(
         is_active: v.is_active,
       })),
       variant_option_config: r.variant_option_config,
+      optionLabels:
+        labelsForLocale(r.translations as LabelRow[] | undefined, opts.locale) ??
+        labelsForLocale(
+          (r.product as { translations?: LabelRow[] } | null | undefined)?.translations,
+          opts.locale,
+        ),
     }),
   );
   const collections: FacetCollection[] = source.collections.map((c, i) => ({

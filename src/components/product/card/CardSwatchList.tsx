@@ -47,7 +47,8 @@ export function CardSwatchList({ swatches }: CardSwatchListProps) {
     return <p className="pcopt-count">{t('nColours', { count: total })}</p>;
   }
 
-  const names = items.map((s) => s.value);
+  // M159: screen-reader names in the page language when labelled.
+  const names = items.map((s) => s.label ?? s.value);
   if (more > 0) names.push(t('moreColours', { count: more }));
 
   return (

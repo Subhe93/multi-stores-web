@@ -206,6 +206,7 @@ export function ProductPersonalizationBlock({ settings, locale, product: product
                   optionFilter={(k) => pieceOptionKeys.includes(k)}
                   showStatus={false}
                   missingAttempt={state.variantAttempt}
+                  optionLabels={state.optionLabels}
                 />
               ) : undefined
             }

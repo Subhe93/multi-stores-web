@@ -90,7 +90,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   // Server mode (large catalogue): the route sent the first page and the
   // section appends the next ones. Without `pagination` this returns
   // `listing.products` as is and never fetches.
-  const pages = useListingPages({ storeSlug, initial: listing?.products ?? NO_PRODUCTS, pagination: listing?.pagination });
+  const pages = useListingPages({ storeSlug, initial: listing?.products ?? NO_PRODUCTS, pagination: listing?.pagination, locale });
   const gridRef = useRef<HTMLDivElement>(null);
   // Link prefix of the request (M156 locale paths), else `/<locale>`.
   const lp = useStorePathPrefix(locale, primaryLocale);

@@ -499,7 +499,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                   // and the ids quick add reads. Without settings: today's props.
                   {...(cardSettings
                     ? {
-                        card: toCardExtras(product as unknown as CardSourceRow),
+                        card: toCardExtras(product as unknown as CardSourceRow, locale),
                         productId: product.id,
                         productSlug: slugTr?.slug || product.id,
                       }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import type { VariantOptionLabels } from '@/lib/variantOptionLabels';
 import { useParams } from 'next/navigation';
 import { useStoreApp } from '@/hooks/useStoreApps';
 import { useMarket } from '@/hooks/useMarket';
@@ -41,6 +42,8 @@ export interface PersonalizationAppInput {
    * they resolve to (undefined when incomplete or no such combination).
    */
   onPrefillOptions?: (picks: Record<string, string>, variantId: string | undefined) => void;
+  /** M159: option display labels of `locale` (undefined = canonical text). */
+  optionLabels?: VariantOptionLabels | null;
 }
 
 /**
@@ -63,6 +66,7 @@ export function usePersonalizationApp(input: PersonalizationAppInput) {
     currency,
     taxRateBp,
     onPrefillOptions,
+    optionLabels,
   } = input;
 
   const app = useStoreApp('personalization');
@@ -87,7 +91,7 @@ export function usePersonalizationApp(input: PersonalizationAppInput) {
     locale,
     primaryLocale,
     appOn
-      ? { enabled: true, selections, optionConfig: optionConfig ?? null, activeOptionValues: activeValues }
+      ? { enabled: true, selections, optionConfig: optionConfig ?? null, activeOptionValues: activeValues, optionLabels }
       : undefined,
   );
   const advanced = fields.advanced;

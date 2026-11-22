@@ -1,6 +1,7 @@
 'use client';
 
 import { enter, useFlowMotion } from '@/components/cart/FlowMotion';
+import { orderLineOptionsLabel } from '@/lib/variantOptionLabels';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -67,6 +68,8 @@ interface OrderItem {
   total_price: number;
   product?: OrderItemProduct | null;
   variant?: OrderItemVariant | null;
+  /** M159: the sold options in the buyer's language at purchase (null = none). */
+  variant_options_display?: unknown;
   custom_product?: CustomProduct | null;
   /** Personalization snapshot rows (M4.0 §6); `custom_field` is null once the field was deleted. */
   custom_field_values?: OrderFieldValueRow[];
@@ -324,7 +327,10 @@ export default function StoreOrderDetailPage() {
               item.custom_product?.mockup_images?.[0]?.url ||
               item.custom_product?.product?.images?.[0]?.url ||
               item.product?.images?.[0]?.url;
-            const variantLabel = buildVariantLabel(item.variant?.options);
+            // M159: the options as the buyer saw them, else canonical.
+            const variantLabel = item.variant?.options
+              ? (orderLineOptionsLabel(item.variant_options_display) ?? buildVariantLabel(item.variant.options))
+              : '';
             const price = Number(item.unit_price ?? 0);
             const originalPrice =
               item.original_unit_price != null ? Number(item.original_unit_price) : null;

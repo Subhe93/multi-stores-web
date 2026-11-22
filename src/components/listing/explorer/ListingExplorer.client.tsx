@@ -128,8 +128,8 @@ export function ListingExplorer({
 
   const toCard = useCallback(
     (row: StorefrontProductRow) =>
-      init.card ? withCardExtras(toListingCard(row), row as unknown as CardSourceRow) : toListingCard(row),
-    [init.card],
+      init.card ? withCardExtras(toListingCard(row), row as unknown as CardSourceRow, locale) : toListingCard(row),
+    [init.card, locale],
   );
 
   const [state, setState] = useState<FilterState>(init.state);

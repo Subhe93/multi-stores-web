@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { labelsForLocale } from '@/lib/variantOptionLabels';
 import { useTranslations } from 'next-intl';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { pieceOneOptionKeys, pieceOneRepeater } from '@/components/product/personalization/model';
@@ -78,6 +79,12 @@ function useProductPageStateValue({
     () => Array.from(new Set(variants.flatMap((v) => Object.keys(v.options || {})))),
     [variants],
   );
+  // M159: display labels of the option names / values in the page locale
+  // (null = canonical text). Keys and selections stay canonical.
+  const optionLabels = useMemo(
+    () => (locale === primaryLocale ? null : labelsForLocale(product.translations, locale)),
+    [product.translations, locale, primaryLocale],
+  );
 
   // ── State ─────────────────────────────────────────────
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
@@ -111,6 +118,7 @@ function useProductPageStateValue({
     primaryLocale,
     currency,
     taxRateBp,
+    optionLabels,
     onPrefillOptions: (picks, variantId) => {
       setOptionSelections(picks);
       setSelectedVariantId(variantId);
@@ -446,6 +454,7 @@ function useProductPageStateValue({
       unitPrice: currentPrice,
       imageUrl: galleryImages[0]?.url || resolveMediaUrl(product.images?.[0]?.url),
       variantOptions: selectedVariant?.options ?? null,
+      ...(optionLabels ? { optionLabels } : {}),
       customProductId: product._type === 'custom_product' ? product.id : undefined,
       // b2b stores: keep the estimated rate on guest lines (L8).
       taxRateBp,
@@ -468,7 +477,7 @@ function useProductPageStateValue({
       // per-variant override reads the selected variant here.
       ...(needsShipping ? {} : { requiresShipping: false as const }),
     }),
-    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder, needsShipping, lineStock],
+    [translation, currentPrice, galleryImages, product.images, product._type, product.id, selectedVariant, optionLabels, taxRateBp, selectedBundleOffer, baseUnitPrice, bundlePricing, customerFileUrl, maxPerOrder, needsShipping, lineStock],
   );
 
   const handleAddToCart = useCallback(async () => {
@@ -605,6 +614,7 @@ function useProductPageStateValue({
     // Variants and options
     variants,
     variantOptionKeys,
+    optionLabels,
     selectedVariantId,
     setSelectedVariantId,
     selectedVariant,

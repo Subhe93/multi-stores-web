@@ -101,6 +101,7 @@ export const FieldRenderer = memo(function FieldRenderer({
           text={text}
           value={value}
           ctx={model.ctx}
+          productOptionLabels={model.optionLabels}
           required={def.is_required}
           error={error}
           onChange={onChange}

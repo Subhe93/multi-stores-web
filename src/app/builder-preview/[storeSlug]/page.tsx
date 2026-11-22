@@ -106,7 +106,7 @@ export default async function BuilderPreviewPage({
         params.card = '1';
         const products = (((await storefront.getProducts(storeSlug, params)) as StorefrontProductRow[] | null) || [])
           .slice(0, 12)
-          .map(listingProjector(true));
+          .map(listingProjector(true, undefined, previewLocale));
         listing = {
           kind: isCollection ? 'collection' : 'catalog',
           products,

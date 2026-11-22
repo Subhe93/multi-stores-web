@@ -192,7 +192,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
   const products = fixture.products as unknown as StorefrontProductRow[];
   // Card projection: with the card model when the demo card is on, else as today.
   const toCard = (p: StorefrontProductRow) =>
-    productCard ? withCardExtras(toListingProduct(p), p as unknown as CardSourceRow) : toListingProduct(p);
+    productCard ? withCardExtras(toListingProduct(p), p as unknown as CardSourceRow, locale) : toListingProduct(p);
   let body: ReactNode;
   if (view === 'product' && fixture.product) {
     const clientProduct = projectProductForClient(
