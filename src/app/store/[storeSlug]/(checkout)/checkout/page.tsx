@@ -116,10 +116,22 @@ interface StripeHandles { stripe: Stripe; elements: StripeElements }
 // Lives inside the Elements provider: hands Stripe.js + Elements up to the
 // form (which sits outside the provider so a remount after a payment-route
 // change keeps everything the shopper typed) and renders the element.
+// One list of payment methods with radio buttons and the method logos at the
+// end of each row (card, Klarna, PayPal, ... as enabled in the Stripe account),
+// on desktop and mobile alike. visibleAccordionItemsCount 0 = never collapse
+// methods behind a "More" row.
+const STRIPE_LAYOUT = {
+  type: 'accordion',
+  radios: 'always',
+  spacedAccordionItems: false,
+  defaultCollapsed: false,
+  visibleAccordionItemsCount: 0,
+  paymentMethodLogoPosition: 'end',
+} as const;
+
 function StripePaymentBridge({
-  layout, onBind, onReady, onLoadError,
+  onBind, onReady, onLoadError,
 }: {
-  layout: 'tabs' | 'accordion';
   onBind: (handles: StripeHandles | null) => void;
   onReady: () => void;
   onLoadError: () => void;
@@ -134,7 +146,7 @@ function StripePaymentBridge({
   // confirmPayment, so the element never asks for them again.
   return (
     <PaymentElement
-      options={{ layout, fields: STRIPE_BILLING_FIELDS }}
+      options={{ layout: STRIPE_LAYOUT, fields: STRIPE_BILLING_FIELDS }}
       onReady={onReady}
       onLoadError={onLoadError}
     />
@@ -909,6 +921,9 @@ function CheckoutForm({
   // Kustom is handled by its own checkout mode, so the classic form only
   // counts COD and card.
   const noPaymentMethods = !codAvailable && !stripeAvailable;
+  // Card is the only method of this form: show Stripe's own method list
+  // directly, without the "Card, wallets and more" choice wrapped around it.
+  const stripeOnly = stripeAvailable && !codAvailable;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChange = useCallback(
@@ -1642,11 +1657,10 @@ function CheckoutForm({
   const handleStripeReady = () => { setStripeReady(true); setStripeSlow(false); };
   const handleStripeLoadError = () => setStripeLoadFailed(true);
 
-  // Only one Payment Element may be mounted (one Elements provider per
-  // layout), so the active layout (desktop tabs / mobile accordion) renders
-  // it. A provider keyed by key / account / epoch remounts with a fresh
+  // Only one Payment Element may be mounted (one Elements provider), so only
+  // the active layout (desktop / mobile column) renders it. A provider keyed by key / account / epoch remounts with a fresh
   // Stripe.js after a payment-route change without touching the form.
-  const paymentElement = (layout: 'tabs' | 'accordion') => (
+  const paymentElement = () => (
     nothingToPay ? (
       <p className="text-xs text-gray-600">{t('checkout.zeroTotalNoCard')}</p>
     ) : (
@@ -1680,7 +1694,6 @@ function CheckoutForm({
         >
           <Elements key={stripeElementsKey} stripe={stripePromise} options={stripeOptions}>
             <StripePaymentBridge
-              layout={layout}
               onBind={setStripeHandles}
               onReady={handleStripeReady}
               onLoadError={handleStripeLoadError}
@@ -2145,7 +2158,9 @@ function CheckoutForm({
                   </div>
                 )}
 
-                {stripeAvailable ? (
+                {stripeOnly ? (
+                  isDesktop && paymentElement()
+                ) : stripeAvailable ? (
                   <div>
                     <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
                       <input type="radio" name="payment" value="stripe"
@@ -2158,7 +2173,7 @@ function CheckoutForm({
                     </label>
                     {paymentMethod === 'stripe' && isDesktop && (
                       <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
-                        {paymentElement('tabs')}
+                        {paymentElement()}
                       </div>
                     )}
                   </div>
@@ -2224,7 +2239,8 @@ function CheckoutForm({
                 </label>
               )}
               {stripeUnavailableNote}
-              {stripeAvailable && (
+              {stripeOnly && !isDesktop && paymentElement()}
+              {stripeAvailable && !stripeOnly && (
                 <div>
                   <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
                     <input type="radio" name="payment_mobile" value="stripe"
@@ -2237,7 +2253,7 @@ function CheckoutForm({
                   </label>
                   {paymentMethod === 'stripe' && !isDesktop && (
                     <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3">
-                      {paymentElement('accordion')}
+                      {paymentElement()}
                     </div>
                   )}
                 </div>
