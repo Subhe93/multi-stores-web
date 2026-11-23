@@ -313,3 +313,64 @@ describe('useListingPages without pagination', () => {
     expect(result.current.products).toBe(initial);
   });
 });
+
+// M166 A: crawlable pagination. The "load more" control is a real link to
+// the next page; a plain click still loads in place, a modified click is the
+// browser's (new tab), and the pager links every page.
+describe('crawlable pagination (M166 A)', () => {
+  const WITH_LINKS: ListingPagination = { ...PAGINATION, links: { path: '/de-de/collections/kok', query: 'sort=price_asc' } };
+
+  it('renders "load more" as <a href> to the next page and a pager', () => {
+    renderGrid(WITH_LINKS);
+    const more = screen.getByRole('link', { name: 'product.loadMore' });
+    expect(more.getAttribute('href')).toBe('/de-de/collections/kok?sort=price_asc&page=2');
+    expect(more.getAttribute('rel')).toBe('next');
+    const nav = screen.getByRole('navigation', { name: 'product.pagination' });
+    expect([...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toContain(
+      '/de-de/collections/kok?sort=price_asc&page=3',
+    );
+    // Page 1: no "previous" link above the grid.
+    expect(document.querySelector('[data-listing-pager="top"]')).toBeNull();
+  });
+
+  it('a plain click loads in place (no navigation); a modified click does not', async () => {
+    getProductsPage.mockResolvedValueOnce(page(range(3, 6), 7, 2, true));
+    renderGrid(WITH_LINKS);
+    const more = screen.getByRole('link', { name: 'product.loadMore' });
+    const ctrl = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+    more.dispatchEvent(ctrl);
+    expect(ctrl.defaultPrevented).toBe(false);
+    expect(getProductsPage).not.toHaveBeenCalled();
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
+    await act(async () => {
+      more.dispatchEvent(plain);
+    });
+    expect(plain.defaultPrevented).toBe(true);
+    await waitFor(() => expect(screen.getByText('Produkt 5')).toBeTruthy());
+    expect(getProductsPage.mock.calls[0]![1]).toMatchObject({ page: 2 });
+    // The next link moves on with the loaded pages.
+    expect(screen.getByRole('link', { name: 'product.loadMore' }).getAttribute('href')).toBe(
+      '/de-de/collections/kok?sort=price_asc&page=3',
+    );
+  });
+
+  it('server page N: loads N + 1 next, prev link above the grid, status counts earlier pages', async () => {
+    getProductsPage.mockResolvedValueOnce(page([6], 7, 3, false));
+    renderGrid({ ...WITH_LINKS, page: 2 });
+    expect(document.querySelector('[data-listing-pager="top"] a')?.getAttribute('href')).toBe(
+      '/de-de/collections/kok?sort=price_asc',
+    );
+    expect(screen.getByText('product.shownOfTotal[shown=6,total=7]')).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('link', { name: 'product.loadMore' }));
+    });
+    await waitFor(() => expect(getProductsPage).toHaveBeenCalled());
+    expect(getProductsPage.mock.calls[0]![1]).toMatchObject({ page: 3 });
+  });
+
+  it('without links (older callers) the control stays a button', () => {
+    renderGrid();
+    expect(screen.getByRole('button', { name: 'product.loadMore' })).toBeTruthy();
+    expect(screen.queryByRole('navigation')).toBeNull();
+  });
+});

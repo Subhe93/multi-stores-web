@@ -154,9 +154,27 @@ describe('collection page in server mode', () => {
       total: 75,
       pageSize: 60,
       hasMore: true,
+      links: { path: '/ar/collections/kok', query: '' },
       request: { locale: 'ar', creator_category: 'kok' },
     });
     expect((listing.products as Array<{ tax_rate_bp?: number }>)[0]!.tax_rate_bp).toBe(2500);
+  });
+});
+
+// M166 A: the same crawlable pagination as /products.
+describe('collection page ?page=N', () => {
+  it('renders page N with prev link and keeps the collection path in the links', async () => {
+    state.total = 130;
+    const html = await renderPage({ page: '2' });
+    expect(api.getProductsPage.mock.calls.at(-1)![1]).toMatchObject({ creator_category: 'kok', page: 2, limit: 60 });
+    expect(html).toMatch(/<a rel="prev" href="\/collections\/kok"/);
+    expect(html).toMatch(/<a href="\/collections\/kok\?page=3" rel="next"/);
+  });
+
+  it('out of range -> 404; page=1 -> 308 to the clean collection URL', async () => {
+    state.total = 130;
+    await expect(renderPage({ page: '9' })).rejects.toThrow('notFound');
+    await expect(renderPage({ page: '1', sort: 'newest' })).rejects.toThrow('redirect:/collections/kok?sort=newest');
   });
 });
 

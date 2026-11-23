@@ -87,3 +87,38 @@ describe('store sitemap.xml with M165 product fields', () => {
     }
   });
 });
+
+// M166 C: the /products listing entry takes the newest product date, else
+// the home date, else no <lastmod> (never the generation time).
+describe('store sitemap.xml /products lastmod', () => {
+  const listingEntry = (xml: string) =>
+    xml.split('<url>').find((chunk) => chunk.includes('<loc>https://shop.example.com/products</loc>'));
+
+  it('uses the newest product lastmod', async () => {
+    const original = { products: sitemapData.products, home: sitemapData.home };
+    sitemapData.products = [
+      { slug: 'a', lastmod: '2026-10-05T10:00:00.000Z' },
+      { slug: 'b', lastmod: '2026-11-02T08:00:00.000Z' },
+      { slug: 'c', lastmod: null as unknown as string },
+    ];
+    try {
+      expect(listingEntry(await sitemapXml())).toContain('<lastmod>2026-11-02T08:00:00.000Z</lastmod>');
+    } finally {
+      Object.assign(sitemapData, original);
+    }
+  });
+
+  it('falls back to the home date, and omits lastmod when neither exists', async () => {
+    const original = { products: sitemapData.products, home: sitemapData.home };
+    sitemapData.products = [];
+    try {
+      expect(listingEntry(await sitemapXml())).toContain('<lastmod>2026-10-01T00:00:00.000Z</lastmod>');
+      (sitemapData as { home: unknown }).home = null;
+      const entry = listingEntry(await sitemapXml());
+      expect(entry).toBeDefined();
+      expect(entry).not.toContain('<lastmod>');
+    } finally {
+      Object.assign(sitemapData, original);
+    }
+  });
+});

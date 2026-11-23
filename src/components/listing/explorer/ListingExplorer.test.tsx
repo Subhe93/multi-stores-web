@@ -190,3 +190,34 @@ describe('ListingExplorer', () => {
     expect(screen.queryByRole('button', { name: 'listing.color' })).toBeNull();
   });
 });
+
+// M166 A: crawlable pagination of the explorer.
+describe('ListingExplorer pagination (M166 A)', () => {
+  const many = (from: number, n: number) => Array.from({ length: n }, (_, k) => row(from + k));
+
+  it('page 1 of 2: "load more" links page 2 and keeps the market prefix', () => {
+    render(<ListingExplorer init={init({ lp: '/de-de', products: many(1, 24), total: 34, hasMore: true })} />);
+    const more = screen.getByRole('link', { name: 'product.loadMore' });
+    expect(more.getAttribute('href')).toBe('/de-de/products?page=2');
+    expect(document.querySelector('[data-listing-pager="top"]')).toBeNull();
+  });
+
+  it('server page 2: prev link above the grid, no next, load more continues at page 3', () => {
+    window.history.replaceState(null, '', '/products?page=2');
+    render(<ListingExplorer init={init({ products: many(25, 10), total: 34, hasMore: false, page: 2 })} />);
+    expect(document.querySelector('[data-listing-pager="top"] a')?.getAttribute('href')).toBe('/products');
+    expect(screen.queryByRole('link', { name: 'product.loadMore' })).toBeNull();
+    expect(screen.getByText('product.shownOfTotal[shown=34,total=34]')).toBeTruthy();
+  });
+
+  it('a filter change drops page from the URL (back to page 1)', async () => {
+    getProductsPage.mockResolvedValue(page([2], 1));
+    window.history.replaceState(null, '', '/products?lang=sv&page=2');
+    render(<ListingExplorer init={init({ products: many(25, 10), total: 34, page: 2 })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'listing.color' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'listing.optionWithCount[label=Black,count=2]' }));
+    expect(window.location.search).toBe('?lang=sv&color=black');
+    await waitFor(() => expect(getProductsPage).toHaveBeenCalledTimes(1));
+    expect(getProductsPage.mock.calls[0]![1]).toMatchObject({ page: 1 });
+  });
+});

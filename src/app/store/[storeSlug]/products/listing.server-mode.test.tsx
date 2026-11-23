@@ -139,7 +139,8 @@ describe('/products in server mode (total above the threshold)', () => {
     ]);
     expect(html).toContain('role="status"');
     expect(html).toContain('product.shownOfTotal[shown=3,total=61]');
-    expect(html).toContain('>product.loadMore</button>');
+    // M166 A: "load more" is a real link to page 2 (filters kept).
+    expect(html).toMatch(/<a href="\/products\?sort=price_asc&amp;page=2" rel="next"[^>]*>product\.loadMore<\/a>/);
     // Unfiltered except the sort: JSON-LD describes the rendered first page.
     expect(ldItems(html)).toEqual(['Mugg', 'Presentkort', 'Poster']);
   });
@@ -179,11 +180,48 @@ describe('/products in server mode (total above the threshold)', () => {
       total: 61,
       pageSize: 60,
       hasMore: true,
+      links: { path: '/products', query: 'sort=price_desc' },
       request: { locale: 'sv', sort: 'price_desc' },
     });
     const products = listing.products as Array<Record<string, unknown>>;
     expect(products.map((p) => p.id)).toEqual(['p1', 'p2', 'p3']);
     expect(products.map((p) => p.tax_rate_bp)).toEqual([2500, undefined, undefined]);
+  });
+});
+
+// M166 A: `?page=N` in server mode and on a legacy (full list) store.
+describe('/products?page=N in server mode', () => {
+  it('asks the API for page N with the server page size and starts the grid there', async () => {
+    state.total = 130;
+    const html = await renderPage({ page: '2', sort: 'price_asc' });
+    expect(api.getProductsPage.mock.calls[1]![1]).toEqual({ locale: 'sv', sort: 'price_asc', page: 2, limit: 60 });
+    const p = gridProps.mock.calls[0]![0];
+    expect(p.pagination).toMatchObject({ page: 2, total: 130, links: { path: '/products', query: 'sort=price_asc' } });
+    // Previous page above the grid, next page as the "load more" link.
+    expect(html).toMatch(/<a rel="prev" href="\/products\?sort=price_asc"/);
+    expect(html).toMatch(/<a href="\/products\?sort=price_asc&amp;page=3" rel="next"/);
+    // Status counts the products of the earlier pages as seen.
+    expect(html).toContain('product.shownOfTotal[shown=63,total=130]');
+  });
+
+  it('the last page has no next link', async () => {
+    state.total = 130;
+    const html = await renderPage({ page: '3' });
+    expect(html).not.toContain('rel="next"');
+    expect(html).toMatch(/<a rel="prev" href="\/products\?page=2"/);
+  });
+
+  it('out of range in server mode and any page > 1 on a legacy store are 404', async () => {
+    state.total = 130;
+    await expect(renderPage({ page: '4' })).rejects.toMatchObject({ digest: expect.stringContaining('404') });
+    state.total = 3;
+    await expect(renderPage({ page: '2' })).rejects.toMatchObject({ digest: expect.stringContaining('404') });
+  });
+
+  it('page 1 renders no pager on a legacy store', async () => {
+    state.total = 3;
+    const html = await renderPage();
+    expect(html).not.toContain('data-listing-pager');
   });
 });
 

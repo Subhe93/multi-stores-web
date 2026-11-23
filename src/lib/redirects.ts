@@ -280,6 +280,21 @@ export async function matchStoreRedirect(
   }
 }
 
+/**
+ * M166 D1: the store's redirect table when it is served whole (map mode),
+ * else null (lookup mode for very large tables, failure, no version). Same
+ * cache as the proxy's lookups. Never throws.
+ */
+export async function storeRedirectMap(slug: string, version: string): Promise<ReadonlyMap<string, RedirectHit> | null> {
+  try {
+    if (!slug || !version) return null;
+    const redirects = await storeRedirects(slug, version);
+    return redirects.mode === 'map' ? redirects.map : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Test hook: drop every cached map and lookup. */
 export function __resetRedirectCaches(): void {
   mapCache.clear();

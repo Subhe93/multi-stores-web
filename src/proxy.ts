@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '@/i18n/config';
 import { isReviewLocale, matchStoreLocalePrefix } from '@/lib/storeLocales';
-import { LOCALE_COUNTRY_HEADER, STORE_NOINDEX_HEADER, STORE_PATH_PREFIX_HEADER, type MarketRoute } from '@/lib/market';
+import {
+  LOCALE_COUNTRY_HEADER,
+  STORE_NOINDEX_HEADER,
+  STORE_PATH_PREFIX_HEADER,
+  STORE_REDIRECTS_VERSION_HEADER,
+  type MarketRoute,
+} from '@/lib/market';
 import {
   activeLocalePaths,
   legacyRedirectAlias,
@@ -120,6 +126,8 @@ const MARKET_REQUEST_HEADERS = [
   // M156: link prefix + path country of a locale-path market.
   STORE_PATH_PREFIX_HEADER,
   LOCALE_COUNTRY_HEADER,
+  // M166 D1: redirects version of the store (link rewrite on pages).
+  STORE_REDIRECTS_VERSION_HEADER,
 ];
 function stripMarketHeaders(h: Headers): Headers {
   for (const name of MARKET_REQUEST_HEADERS) h.delete(name);
@@ -660,6 +668,8 @@ export async function proxy(request: NextRequest) {
     // (so a DRAFT market renders) and the pages are noindex.
     const preview = route.preview === true;
     if (preview) requestHeaders.set('x-market-preview', '1');
+    // M166 D1: pages point owner-typed links at permanent redirect targets.
+    if (route.redirectsVersion) requestHeaders.set(STORE_REDIRECTS_VERSION_HEADER, route.redirectsVersion);
     // Effective indexing verdict (M6.1, `resolveIndexing`): the pages read
     // the request header (meta robots, canonical/hreflang) and crawlers the
     // response header; the pages themselves stay fully functional.
@@ -765,6 +775,8 @@ export async function proxy(request: NextRequest) {
     if (urlLocale) {
       requestHeaders.set('x-locale', urlLocale);
     }
+    // M166 D1: pages point owner-typed links at permanent redirect targets.
+    if (route?.redirectsVersion) requestHeaders.set(STORE_REDIRECTS_VERSION_HEADER, route.redirectsVersion);
     // A locale still in review is reachable for the reviewer, never indexed.
     const reviewLocale = isReviewLocale(urlLocale);
     if (reviewLocale) requestHeaders.set(STORE_NOINDEX_HEADER, '1');

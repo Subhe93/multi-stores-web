@@ -3,7 +3,8 @@
 // "Load more" state of a server-paginated product listing (see
 // lib/listingPaging.ts). The route renders the first page on the server and
 // hands it over as `initial` with its `pagination`; this hook appends the
-// next pages fetched from the browser.
+// next pages fetched from the browser. M166 A: the server page may be
+// `?page=N`; the next one loaded is N + 1.
 //
 // Without `pagination` (a legacy listing) it returns `initial` by reference
 // and never fetches, so the legacy render is untouched.
@@ -38,6 +39,10 @@ export interface ListingPages {
   loading: boolean;
   error: boolean;
   loadMore: () => void;
+  /** M166 A: page the server rendered (`?page=N`, 1 by default). */
+  firstPage: number;
+  /** M166 A: last page shown (grows with "load more"). */
+  lastPage: number;
 }
 
 export function useListingPages({
@@ -62,15 +67,16 @@ export function useListingPages({
 
   // A new request (sort, search, collection, locale) or a new first page
   // yields a new key, which drops the appended pages without an effect.
+  const startPage = pagination?.page && pagination.page > 1 ? pagination.page : 1;
   const key = pagination
-    ? JSON.stringify([pagination.request, pagination.total, initial[0]?.id, initial.length])
+    ? JSON.stringify([pagination.request, pagination.total, startPage, initial[0]?.id, initial.length])
     : '';
   const [state, setState] = useState<PagesState | null>(null);
   const fresh = (k: string): PagesState => ({
     key: k,
     extra: [],
     replaced: null,
-    pagesLoaded: 1,
+    pagesLoaded: startPage,
     total: pagination?.total ?? initial.length,
     hasMore: pagination?.hasMore ?? false,
     loading: false,
@@ -129,7 +135,16 @@ export function useListingPages({
   };
 
   if (!pagination) {
-    return { products: initial, total: initial.length, hasMore: false, loading: false, error: false, loadMore };
+    return {
+      products: initial,
+      total: initial.length,
+      hasMore: false,
+      loading: false,
+      error: false,
+      loadMore,
+      firstPage: 1,
+      lastPage: 1,
+    };
   }
   const products = current.replaced ?? (current.extra.length ? [...initial, ...current.extra] : initial);
   return {
@@ -139,5 +154,7 @@ export function useListingPages({
     loading: current.loading,
     error: current.error,
     loadMore,
+    firstPage: startPage,
+    lastPage: current.pagesLoaded,
   };
 }

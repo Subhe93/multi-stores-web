@@ -146,6 +146,14 @@ export function requestNoindex(h: Headers): boolean {
  * link builder reads it instead of deriving the prefix from the locale.
  */
 export const STORE_PATH_PREFIX_HEADER = 'x-store-path-prefix';
+
+/**
+ * M166 D1: the store's `redirects_version`, forwarded by the proxy on store
+ * page rewrites (only when the store has redirects; stripped from incoming
+ * requests). Pages use it to point owner-typed links straight at the target
+ * of a permanent store redirect.
+ */
+export const STORE_REDIRECTS_VERSION_HEADER = 'x-store-redirects-version';
 /** M156: ISO2 country of the visited language-country path (`/de-at` -> AT). */
 export const LOCALE_COUNTRY_HEADER = 'x-locale-country';
 

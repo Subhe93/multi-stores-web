@@ -8,6 +8,7 @@
 import { buildBreadcrumb } from './jsonld';
 import { COLLECTION_PRODUCTS_SECTION_KEY } from './preloadSections';
 import { storeLocalePath } from './storeUrl';
+import { stripHtmlToText } from './htmlText';
 
 /** The slice of a section a page needs to classify itself. */
 export interface PageSectionLite {
@@ -124,7 +125,7 @@ export interface HomeJsonLdInput {
  */
 export function buildHomeJsonLd(input: HomeJsonLdInput): Record<string, unknown> | null {
   if (isNoindexRobots(input.robots)) return null;
-  const description = input.description?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const description = stripHtmlToText(input.description);
   return {
     '@context': 'https://schema.org',
     '@type': 'WebPage',

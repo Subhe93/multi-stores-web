@@ -32,9 +32,13 @@ import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, st
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import { readListingSettings } from '@/lib/listingFilters/settings';
 import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
-import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
+import { EXPLORER_PAGE_SIZE, loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
+import { isListingPageOutOfRange, listingBaseQuery, listingPageCanonical, parseListingPage } from '@/lib/listingPageParam';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 import { pageLinkPrefix } from '@/lib/localePaths';
+
+/** Query keys of the built-in collection links (server mode pager), in order. */
+const LISTING_LINK_KEYS = ['search', 'sort'] as const;
 
 interface ProductPromotion {
   type?: string;
@@ -90,6 +94,8 @@ interface CollectionPageProps {
     search?: string;
     lang?: string;
     sort?: string;
+    /** M166 A: `?page=N` (N > 1) of the paginated listing. */
+    page?: string;
     [key: string]: string | string[] | undefined;
   }>;
 }
@@ -183,6 +189,15 @@ export default async function CollectionPage({
     permanentRedirect(canonicalRedirectHref(collectionHref({ path: chainSlugs, slug: handle }), query, pathPrefix));
   }
   const collectionBase = collectionHref({ path: chainSlugs, slug: handle });
+  // M166 A: `?page=N`. A non-canonical value (1, 01, 0, junk, repeated)
+  // gets one 308 to the URL without it; other keys and the prefix are kept.
+  const pageParam = parseListingPage(query.page);
+  if ('redirect' in pageParam) {
+    const rest = { ...query };
+    delete rest.page;
+    permanentRedirect(canonicalRedirectHref(collectionBase, rest, pathPrefix));
+  }
+  const page = pageParam.page;
 
   const collectionTranslation = pickTranslation(collection.translations, locale);
   const collectionName = collectionTranslation?.name || handle;
@@ -213,15 +228,26 @@ export default async function CollectionPage({
   const explorerPage = explorerState
     ? await loadExplorerPage<Product>(
         storeSlug,
-        { locale, baseCollection: handle, state: explorerState, card: Boolean(cardSettings) },
+        { locale, baseCollection: handle, state: explorerState, card: Boolean(cardSettings), page },
         marketRef,
       )
     : null;
   const loaded = explorerPage
     ? ({ mode: 'legacy', products: explorerPage.items } as const)
-    : await loadListing<Product>(storeSlug, { queryParams, sort }, marketRef);
+    : await loadListing<Product>(storeSlug, { queryParams, sort, page }, marketRef);
+  // M166 A: a page beyond the last one is a 404 (legacy mode renders the
+  // full list, so it has page 1 only).
+  if (page > 1) {
+    const outOfRange = explorerPage
+      ? isListingPageOutOfRange(page, explorerPage.total, EXPLORER_PAGE_SIZE)
+      : loaded.mode === 'legacy' || isListingPageOutOfRange(page, loaded.pagination.total, loaded.pagination.pageSize);
+    if (outOfRange) notFound();
+  }
   const products: Product[] = loaded.products;
-  const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
+  const pagination =
+    loaded.mode === 'server'
+      ? { ...loaded.pagination, links: { path: `${lp}${collectionBase}`, query: listingBaseQuery(query, LISTING_LINK_KEYS) } }
+      : undefined;
   // Server mode counts every matching product, not just the first page.
   const productCount = pagination ? pagination.total : products.length;
 
@@ -267,6 +293,7 @@ export default async function CollectionPage({
           settings: listingSettings,
           state: explorerState,
           products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard, locale)),
+          ...(page > 1 ? { page } : {}),
           total: explorerPage.total,
           hasMore: explorerPage.hasMore,
           facets: explorerPage.facets,
@@ -299,8 +326,9 @@ export default async function CollectionPage({
   );
   const collectionLd = buildCollectionPage({
     name: collectionName,
-    description: collectionDescription?.replace(/<[^>]*>/g, '') || undefined,
-    url: collectionUrl,
+    description: stripHtmlToText(collectionDescription) || undefined,
+    // M166 A: the page URL (`?page=N`), like its canonical.
+    url: listingPageCanonical(collectionUrl, page),
     // Only what this page actually renders — a list that disagrees with the
     // visible products would be a structured-data violation.
     items: products.map((p) => {
@@ -707,7 +735,7 @@ export async function generateMetadata({
   const { lang } = query;
 
   try {
-    const [tree, store] = await Promise.all([
+    const [tree, store, t] = await Promise.all([
       storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
       storefront.getStore(storeSlug, await getRequestMarket()) as Promise<{
         custom_domain?: string | null;
@@ -718,6 +746,7 @@ export async function generateMetadata({
         theme?: { hero?: { collections?: { image_url?: string } } } | null;
         logo_url?: string | null;
       } | null>,
+      getTranslations(),
     ]);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
     const secondary: string[] = store?.language_config?.secondary_locales || [];
@@ -746,7 +775,20 @@ export async function generateMetadata({
       storeSlug,
     });
 
-    const title = collectionMetaTitle(tr, handle);
+    // M166 A: page N > 1 is its own canonical (not page 1) and carries no
+    // hreflang (another market may hide products, so its page N differs).
+    // Refined views keep their clean canonical (they are noindex anyway).
+    const refined = readListingSettings(store?.theme_customizations) !== null && isRefinedView(parseFilterState(query));
+    const pageParam = parseListingPage(query.page);
+    const page = 'page' in pageParam ? pageParam.page : 1;
+    const paged = page > 1 && !refined;
+    if (paged) {
+      alternates.canonical = listingPageCanonical(alternates.canonical, page);
+      alternates.languages = {};
+    }
+
+    const baseTitle = collectionMetaTitle(tr, handle);
+    const title = paged ? `${baseTitle} - ${t('product.pageN', { n: page })}` : baseTitle;
     const description = collectionMetaDescription(tr);
     // M161 C: the thumbnail, else the collections hero, else the store logo.
     const heroImage = store?.theme?.hero?.collections?.image_url;
@@ -773,8 +815,7 @@ export async function generateMetadata({
       // the index (and out of the sitemap, filtered by the API). A refined
       // view of the filtered listing (filters, search, sort) too, while the
       // canonical stays the clean collection URL.
-      ...(collectionIsNoindex(collection) ||
-      (readListingSettings(store?.theme_customizations) !== null && isRefinedView(parseFilterState(query)))
+      ...(collectionIsNoindex(collection) || refined
         ? { robots: { index: false, follow: true } }
         : {}),
     };

@@ -53,6 +53,20 @@ function toIso(d: string | Date | null | undefined): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/**
+ * M166 C: lastmod of the /products listing: the newest product date, else
+ * the home date, else none (never the generation time, which would move on
+ * every crawl without any content change).
+ */
+function listingLastmod(data: Pick<SitemapData, 'products' | 'home'>): string | null {
+  let newest: string | null = null;
+  for (const p of data.products ?? []) {
+    const iso = toIso(p.lastmod);
+    if (iso && (!newest || iso > newest)) newest = iso;
+  }
+  return newest ?? toIso(data.home?.lastmod);
+}
+
 function lastmodLine(d: string | Date | null | undefined): string[] {
   const iso = toIso(d);
   return iso ? [`    <lastmod>${iso}</lastmod>`] : [];
@@ -175,7 +189,7 @@ function buildLegacySitemap(
   // at them. The listing page is included too — it is the catalogue entry point.
   for (const c of data.collections ?? []) entries.push(urlEntry(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(urlEntry(`/legal/${p.slug}`, p.lastmod));
-  if (withListing) entries.push(urlEntry('/products', data.home?.lastmod ?? new Date()));
+  if (withListing) entries.push(urlEntry('/products', listingLastmod(data)));
 
   return wrapUrlset(entries);
 }
@@ -245,7 +259,7 @@ function buildMarketSitemap(
   }
   for (const c of data.collections ?? []) entries.push(...urlEntries(collectionHref(c), c.lastmod));
   for (const p of data.legal_pages ?? []) entries.push(...urlEntries(`/legal/${p.slug}`, p.lastmod));
-  if (withListing) entries.push(...urlEntries('/products', data.home?.lastmod ?? new Date()));
+  if (withListing) entries.push(...urlEntries('/products', listingLastmod(data)));
 
   return wrapUrlset(entries);
 }

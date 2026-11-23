@@ -8,6 +8,7 @@ import {
   MARKET_SUGGEST_HEADER,
   STORE_NOINDEX_HEADER,
   STORE_PATH_PREFIX_HEADER,
+  STORE_REDIRECTS_VERSION_HEADER,
   parseLocaleCountryHeader,
   parsePathPrefixHeader,
 } from './market';
@@ -86,6 +87,19 @@ export async function getRequestPathPrefix(): Promise<string | undefined> {
 export async function getRequestPathCountry(): Promise<string | null> {
   try {
     return parseLocaleCountryHeader((await headers()).get(LOCALE_COUNTRY_HEADER));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * M166 D1: the store's `redirects_version` forwarded by the proxy, or null
+ * (store without redirects, or a request that did not pass the proxy).
+ */
+export async function getRequestRedirectsVersion(): Promise<string | null> {
+  try {
+    const value = (await headers()).get(STORE_REDIRECTS_VERSION_HEADER)?.trim();
+    return value && value.length <= 128 ? value : null;
   } catch {
     return null;
   }

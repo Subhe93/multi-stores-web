@@ -42,6 +42,7 @@ import { canonicalRedirectHref, routeSlug } from '@/lib/slugRoute';
 import { matchedProductSlug, productRedirectSlug } from '@/lib/productRedirect';
 import { isReviewLocale } from '@/lib/storeLocales';
 import { pageLinkPrefix } from '@/lib/localePaths';
+import { collapseWhitespace, stripHtmlToText } from '@/lib/htmlText';
 
 interface ProductDetailProps {
   params: Promise<{ storeSlug: string; slug: string }>;
@@ -92,7 +93,7 @@ function buildFaqPageFromProduct(product: Pick<ProductRecord, 'faqs'> | null | u
         faq.translations?.find((x) => x.locale === primaryLocale) ||
         faq.translations?.[0];
       const question = t?.question?.trim();
-      const answer = t?.answer?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const answer = stripHtmlToText(t?.answer);
       return question && answer ? { question, answer } : null;
     })
     .filter((x: unknown): x is { question: string; answer: string } => x !== null);
@@ -112,7 +113,7 @@ function productVideosLd(
   shortDescriptionHtml: string | null | undefined,
 ) {
   if (!product.videos?.length) return undefined;
-  const description = shortDescriptionHtml?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || null;
+  const description = stripHtmlToText(shortDescriptionHtml) || null;
   const list = buildVideoObjectsJsonLd({
     videos: product.videos,
     productName: name,
@@ -160,9 +161,10 @@ export async function generateMetadata({
     const firstImage = product.images?.[0]?.url
       ? resolveMediaUrl(product.images[0].url)
       : undefined;
-    // An author-written meta_desc is used as is; the fallback is clipped at
-    // a word boundary (M161 D).
-    const description = tr?.meta_desc || metaDescriptionFallback(tr?.description);
+    // An author-written meta_desc is used as written (whitespace and line
+    // breaks collapsed, never clipped, M166 B); the fallback is clipped at a
+    // word boundary (M161 D).
+    const description = collapseWhitespace(tr?.meta_desc) || metaDescriptionFallback(tr?.description);
     const openGraph = buildStoreOpenGraph({
       title: tr?.meta_title || tr?.title || undefined,
       description,

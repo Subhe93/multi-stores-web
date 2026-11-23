@@ -11,6 +11,7 @@ import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { resolveHero, type StoreHero } from '@/lib/hero';
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import { pageLinkPrefix } from '@/lib/localePaths';
+import { stripHtmlToText } from '@/lib/htmlText';
 
 // /collections — index of the store's collections. The header's "Store
 // collections" menu, the collection page's "All collections" link and
@@ -63,8 +64,9 @@ function pickTranslation(
   );
 }
 
+// Tags stripped, entities decoded, block boundaries kept as spaces (M166 B).
 function stripTags(html: string | null | undefined): string {
-  return (html || '').replace(/<[^>]+>/g, '').trim();
+  return stripHtmlToText(html);
 }
 
 export async function generateMetadata({ params, searchParams }: CollectionsIndexProps) {

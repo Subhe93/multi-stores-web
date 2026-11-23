@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl, LEGAL_SLUGS, type LegalSlug, type StoreLegalPage } from '@/lib/api';
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
@@ -7,7 +7,7 @@ import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { linkPrefix } from '@/lib/localePaths';
-import { routeSlug } from '@/lib/slugRoute';
+import { canonicalRedirectHref, decodeRouteParam, routeSlug } from '@/lib/slugRoute';
 import { nullWhenNotFound } from '@/lib/apiAvailability';
 import { requestFocusedStorefront } from '@/lib/focusedStorefront.server';
 import { isRtl } from '@/i18n/config';
@@ -46,7 +46,7 @@ interface StoreLite {
 
 interface StoreLegalPageProps {
   params: Promise<{ storeSlug: string; slug: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{ lang?: string; [key: string]: string | string[] | undefined }>;
 }
 
 function isKnownSlug(slug: string): slug is LegalSlug {
@@ -153,8 +153,14 @@ export default async function StoreLegalPage({ params, searchParams }: StoreLega
   const { storeSlug, slug: rawSlug } = await params;
   // Decoded once here; the API helper encodes it once (no double encoding).
   const slug = routeSlug(rawSlug);
-  const { lang } = await searchParams;
+  const query = await searchParams;
+  const { lang } = query;
   if (!isKnownSlug(slug)) notFound();
+  // M166 D2: `/legal/Shipping` -> one 308 to `/legal/shipping` (legal slugs
+  // are fixed ASCII, so the lowercase form is the fixed point: no loop).
+  if (decodeRouteParam(rawSlug) !== slug) {
+    permanentRedirect(canonicalRedirectHref(`/legal/${slug}`, query, await getRequestPathPrefix()));
+  }
 
   const { locale, store, page } = await resolve(storeSlug, slug, lang);
   if (!page) notFound();

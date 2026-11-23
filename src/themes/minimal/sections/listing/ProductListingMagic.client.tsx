@@ -28,6 +28,8 @@ import { useMarket } from '@/hooks/useMarket';
 import { useListingPages } from '@/hooks/useListingPages';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
+import { ListingPageLinks } from '@/components/listing/ListingPageLinks';
+import { serverModePager } from '@/lib/listingPaging';
 import { MotionText } from '../../../creative/primitives/Motion';
 import { rise, stagger } from '../../../creative/recipes';
 import type { ListingCollection, ListingProduct, SectionRenderProps } from '../../../types';
@@ -131,6 +133,8 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const firstPageCount = listing.products.length;
   // Server mode counts every matching product, not just the loaded ones.
   const explorer = listing.explorer;
+  // M166 A: crawlable links to the other pages (`?page=N`, server mode).
+  const pager = serverModePager(pagination, pages.firstPage, pages.lastPage);
   const productCount = explorer ? explorer.total : pagination ? pages.total : products.length;
   const { search, sort, category, creator_category } = query;
 
@@ -723,21 +727,29 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           longDescriptionAbove &&
           renderLongDescription(collectionLongDescription, 'mb-12 pb-10 border-b border-gray-100')}
 
+        {/* M166 A: link back to the previous page on `?page=N`. */}
+        {pagination && products.length > 0 && <ListingPageLinks pager={pager} position="top" />}
+
         {/* Products grid */}
         {products.length === 0 ? emptyState : grid}
 
         {/* Server mode: count of loaded products and the "load more" button. */}
         {pagination && products.length > 0 && (
-          <ListingLoadMore
-            shown={products.length}
-            total={pages.total}
-            hasMore={pages.hasMore}
-            loading={pages.loading}
-            error={pages.error}
-            onLoadMore={pages.loadMore}
-            gridRef={gridRef}
-            motion={motion}
-          />
+          <>
+            <ListingLoadMore
+              shown={products.length}
+              total={pages.total}
+              hasMore={pages.hasMore}
+              loading={pages.loading}
+              error={pages.error}
+              onLoadMore={pages.loadMore}
+              gridRef={gridRef}
+              motion={motion}
+              nextHref={pager?.nextHref}
+              offset={(pages.firstPage - 1) * pagination.pageSize}
+            />
+            <ListingPageLinks pager={pager} />
+          </>
         )}
 
         {/* M6.2: long SEO description below the products (default position).

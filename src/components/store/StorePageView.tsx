@@ -46,6 +46,8 @@ interface LegacyPage {
 
 interface V2Page {
   id: string;
+  /** Stored slug (decoded, NFC); the route redirects other letter cases to it (M166 D2). */
+  slug?: string;
   type: string;
   seo: { og_image?: string; canonical?: string; robots?: string; twitter_card?: string };
   snapshot: {

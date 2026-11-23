@@ -3,8 +3,17 @@ import { cache } from 'react';
 import { storefront } from './api';
 import { requestFocusedStorefront } from './focusedStorefront.server';
 import type { MarketRef, MarketRoute } from './market';
-import { getRequestMarket, getRequestNoindex } from './market.server';
-import { localizeStoreUrl } from './storeUrl';
+import { getRequestMarket, getRequestNoindex, getRequestRedirectsVersion } from './market.server';
+import { localizeStoreUrl, marketPublicHostname } from './storeUrl';
+import { headers } from 'next/headers';
+import { storeRedirectMap } from './redirects';
+import { usesLocalePaths, type PathMarket } from './localePaths';
+import {
+  canonicalizeRedirectHtml,
+  canonicalizeRedirectMenus,
+  canonicalizeRedirectSections,
+  type RedirectLinkContext,
+} from './redirectLinkCanonical';
 import {
   buildProductIdIndex,
   buildProductSlugIndex,
@@ -36,6 +45,11 @@ import type { NavMenu, SectionInstance } from '@/themes/types';
 //     performs no read and is returned as is.
 //  2. M164 owner-typed product links (`/products/<slug>`): LIVE market of a
 //     store that is not a focused storefront only (identity otherwise).
+//  3. M166 D1 permanent store redirects: a typed link whose path the proxy
+//     would 301/308 (`/shipping-policy` -> `/legal/shipping`) points at the
+//     target directly. Only when the proxy forwarded the store's
+//     `redirects_version` (stores with redirects) and the table is served
+//     whole (map mode); runs last, one hop, never re-fed.
 //
 // The data is the sitemap-data read (store tag, same cache entry as
 // sitemap.xml), fetched lazily and once per request and market.
@@ -84,6 +98,32 @@ const productLinkData = cache(
     } catch {
       return null;
     }
+  },
+);
+
+// The redirect table of the request (pass 3), once per request.
+const redirectLinkContext = cache(
+  async (storeSlug: string, store: ProductLinkStore | null | undefined): Promise<RedirectLinkContext | null> => {
+    const version = await getRequestRedirectsVersion();
+    if (!version) return null;
+    const map = await storeRedirectMap(storeSlug, version);
+    if (!map || map.size === 0) return null;
+    const market = store?.market ?? null;
+    const pathMarketOf = (m: MarketRoute | null | undefined): PathMarket | null => (m && usesLocalePaths(m) ? m : null);
+    const hosts = new Map<string, PathMarket | null>();
+    const addHost = (host: string | null | undefined, m: MarketRoute | null | undefined) => {
+      const h = host?.split(':')[0]?.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
+      if (h && !hosts.has(h)) hosts.set(h, pathMarketOf(m));
+    };
+    try {
+      const h = await headers();
+      addHost(h.get('x-forwarded-host') ?? h.get('host'), market);
+    } catch {
+      // No request scope: relative links only.
+    }
+    if (store?.custom_domain) addHost(store.custom_domain, (store.markets ?? []).find((m) => m.is_default) ?? market);
+    for (const m of store?.markets ?? []) addHost(marketPublicHostname(m, store?.custom_domain ?? null), m);
+    return { map, pathMarket: pathMarketOf(market), hosts };
   },
 );
 
@@ -161,6 +201,8 @@ export async function productLinkRewriter(
     };
   };
 
+  const redirectCtx = () => redirectLinkContext(storeSlug, store);
+
   const refs = async <T extends SectionInstance[] | null | undefined>(sections: T): Promise<T> => {
     if (!sections || !hasProductRef(sections)) return sections;
     return resolveSectionProductRefs(sections, await refContext()) as T;
@@ -171,18 +213,24 @@ export async function productLinkRewriter(
     async sections(sections) {
       const resolved = await refs(sections);
       const ctx = resolved ? await typedContext(resolved) : null;
-      return ctx && resolved ? (canonicalizeSectionLinks(resolved, ctx) as typeof sections) : resolved;
+      const typed = ctx && resolved ? (canonicalizeSectionLinks(resolved, ctx) as typeof sections) : resolved;
+      const rctx = typed && typed.length ? await redirectCtx() : null;
+      return rctx && typed ? (canonicalizeRedirectSections(typed, rctx) as typeof sections) : typed;
     },
     async menus(menus) {
       const resolved = menus && menusNeedRefs(menus) ? (resolveMenuProductRefs(menus, await refContext()) as typeof menus) : menus;
       const ctx = resolved ? await typedContext(resolved) : null;
-      return ctx && resolved ? (canonicalizeMenus(resolved, ctx) as typeof menus) : resolved;
+      const typed = ctx && resolved ? (canonicalizeMenus(resolved, ctx) as typeof menus) : resolved;
+      const rctx = typed && typed.length ? await redirectCtx() : null;
+      return rctx && typed ? (canonicalizeRedirectMenus(typed, rctx) as typeof menus) : typed;
     },
     async html(html, prefix) {
       const localize = prefix ? (url: string) => localizeStoreUrl(url, prefix, locale) : undefined;
       const resolved = html && hasProductRef(html) ? resolveProductRefsInHtml(html, await refContext(), localize) : html;
       const ctx = resolved ? await typedContext(resolved) : null;
-      return ctx && resolved ? canonicalizeProductHtml(resolved, ctx) : resolved;
+      const typed = ctx && resolved ? canonicalizeProductHtml(resolved, ctx) : resolved;
+      const rctx = typed ? await redirectCtx() : null;
+      return rctx && typed ? canonicalizeRedirectHtml(typed, rctx) : typed;
     },
     async refSlug(id) {
       const data = await refData();

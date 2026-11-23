@@ -26,6 +26,25 @@ describe('proxy store redirects', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  // M166 D1: the store's redirects version reaches the pages (link
+  // rewrite) only when the store has redirects; a client copy is dropped.
+  it('forwards x-store-redirects-version on the rewrite only with a version', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('legacy-v/market-context')) return json({ enabled: false, redirects_version: 'v9' });
+      if (url.includes('legacy-n/market-context')) return json({ enabled: false });
+      if (url.includes('/redirects?v=v9')) return json({ version: 'v9', mode: 'map', items: [] });
+      throw new Error(`unexpected ${url}`);
+    });
+    const withVersion = await proxy(req('legacy-v.localhost:3000', '/kontakt'));
+    expect(withVersion.headers.get('x-middleware-request-x-store-redirects-version')).toBe('v9');
+    const spoofed = new NextRequest('http://legacy-n.localhost:3000/kontakt', {
+      headers: { host: 'legacy-n.localhost:3000', 'x-store-redirects-version': 'evil' },
+    });
+    const without = await proxy(spoofed);
+    expect(without.headers.get('x-middleware-rewrite')).toContain('/store/legacy-n/kontakt');
+    expect(without.headers.get('x-middleware-request-x-store-redirects-version')).toBeNull();
+  });
+
   it('legacy store: only the host lookup, no redirect fetch', async () => {
     fetchMock.mockResolvedValue(json({ enabled: false }));
     const res = await proxy(req('legacy-a.localhost:3000', '/produkt/x?utm=1'));

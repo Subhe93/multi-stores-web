@@ -9,9 +9,10 @@
 import { useRef } from 'react';
 import { StoreProductCard } from '@/components/product/card/StoreProductCard';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
+import { ListingPageLinks } from '@/components/listing/ListingPageLinks';
 import { useListingPages } from '@/hooks/useListingPages';
 import { resolveMediaUrl } from '@/lib/api';
-import type { ListingPagination } from '@/lib/listingPaging';
+import { serverModePager, type ListingPagination } from '@/lib/listingPaging';
 import { productLinkSlug } from '@/lib/productPaths';
 import type { ListingProduct } from '@/themes/types';
 import { stagger, type MotionProp } from '@/themes/creative/recipes';
@@ -61,9 +62,12 @@ export function ListingPagedGrid({
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pages = useListingPages({ storeSlug, initial, pagination, locale });
+  // M166 A: crawlable links to the other pages (`?page=N`).
+  const pager = serverModePager(pagination, pages.firstPage, pages.lastPage);
 
   return (
     <>
+      <ListingPageLinks pager={pager} position="top" />
       <div ref={gridRef} className={gridClassName} {...stagger(motion ? 'scroll' : undefined)}>
         {pages.products.map((product, index) => {
           const translation =
@@ -109,7 +113,10 @@ export function ListingPagedGrid({
         onLoadMore={pages.loadMore}
         gridRef={gridRef}
         motion={motion}
+        nextHref={pager?.nextHref}
+        offset={(pages.firstPage - 1) * pagination.pageSize}
       />
+      <ListingPageLinks pager={pager} />
     </>
   );
 }

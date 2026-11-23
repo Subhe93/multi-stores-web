@@ -33,6 +33,8 @@ export interface ExplorerInit {
   /** Filters of the request URL (server-rendered first page). */
   state: FilterState;
   products: ListingProduct[];
+  /** M166 A: page the server rendered (`?page=N`, undefined = 1). */
+  page?: number;
   total: number;
   hasMore: boolean;
   facets: ListingFacets | null;
@@ -69,18 +71,18 @@ export function explorerPageParams(r: ExplorerRequest) {
 }
 
 /**
- * First page of a route, or null when the API cannot answer it (the route
- * then renders its listing as before).
+ * First page of a route (or the `?page=N` page, M166 A), or null when the
+ * API cannot answer it (the route then renders its listing as before).
  */
 export async function loadExplorerPage<T>(
   slug: string,
-  r: Omit<ExplorerRequest, 'page' | 'limit'>,
+  r: Omit<ExplorerRequest, 'page' | 'limit'> & { page?: number },
   market?: MarketRef,
 ): Promise<{ items: T[]; total: number; hasMore: boolean; facets: ListingFacets | null } | null> {
   try {
     const res = await storefront.getProductsPage(
       slug,
-      explorerPageParams({ ...r, page: 1, limit: EXPLORER_PAGE_SIZE }),
+      explorerPageParams({ ...r, page: r.page && r.page > 1 ? r.page : 1, limit: EXPLORER_PAGE_SIZE }),
       market,
     );
     if (res.legacy) return null;

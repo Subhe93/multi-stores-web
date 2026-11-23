@@ -3,7 +3,13 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/i18n/messages/en.json';
 import sv from '@/i18n/messages/sv.json';
-import { CONSENT_INSET_VAR, CookieBanner, type CookieBannerProps } from './CookieBanner';
+import ar from '@/i18n/messages/ar.json';
+import de from '@/i18n/messages/de.json';
+import fr from '@/i18n/messages/fr.json';
+import tr from '@/i18n/messages/tr.json';
+import ku from '@/i18n/messages/ku.json';
+import { consentText } from '@/lib/consentLog';
+import { CONSENT_INSET_VAR, CookieBanner, consentSentences, type CookieBannerProps } from './CookieBanner';
 
 // First layer (plans/consent-v2/CONTRACT.md §4.2, §9 web-ui).
 
@@ -67,14 +73,16 @@ describe('CookieBanner', () => {
   });
 
   it('picks the body variant from the offered categories', () => {
+    // The body paragraph holds one block per sentence (M166 E): match its text.
+    const byText = (text: string) => screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === text);
     const { unmount } = renderBanner({ offered: { analytics: true, marketing: false } });
-    expect(screen.getByText(en.consent.bodyAnalytics)).toBeInTheDocument();
+    expect(byText(en.consent.bodyAnalytics)).toBeInTheDocument();
     unmount();
     const second = renderBanner({ offered: { analytics: false, marketing: true } });
-    expect(screen.getByText(en.consent.bodyMarketing)).toBeInTheDocument();
+    expect(byText(en.consent.bodyMarketing)).toBeInTheDocument();
     second.unmount();
     renderBanner();
-    expect(screen.getByText(en.consent.bodyAnalyticsMarketing)).toBeInTheDocument();
+    expect(byText(en.consent.bodyAnalyticsMarketing)).toBeInTheDocument();
   });
 
   it('links the cookie page only when it exists; the privacy page always', () => {
@@ -205,5 +213,56 @@ describe('CookieBanner', () => {
     expect(root.style.visibility).toBe('hidden');
     expect(root).toHaveAttribute('aria-hidden', 'true');
     expect(root.hasAttribute('inert')).toBe(true);
+  });
+});
+
+// M166 E: the body is one block per sentence (smaller LCP candidates) while
+// the text, and so the consent text hash, stays exactly the same.
+describe('CookieBanner sentence blocks (M166 E)', () => {
+  const BODY_KEYS = ['bodyAnalyticsMarketing', 'bodyAnalytics', 'bodyMarketing'] as const;
+  const ALL = { en, sv, de, fr, tr, ar, ku } as Record<string, { consent: Record<string, string> }>;
+
+  it('splitting never changes the text, in every locale and variant', () => {
+    for (const [locale, messages] of Object.entries(ALL)) {
+      for (const key of BODY_KEYS) {
+        const text = messages.consent[key]!;
+        const parts = consentSentences(text);
+        expect(parts.join(''), `${locale}.${key}`).toBe(text);
+        expect(parts.length, `${locale}.${key}`).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it('renders one block per sentence with the same textContent as one paragraph', () => {
+    for (const offered of [
+      { analytics: true, marketing: true },
+      { analytics: true, marketing: false },
+      { analytics: false, marketing: true },
+    ]) {
+      const { unmount } = renderBanner({ offered });
+      const key = offered.analytics && offered.marketing ? 'bodyAnalyticsMarketing' : offered.marketing ? 'bodyMarketing' : 'bodyAnalytics';
+      const banner = screen.getByTestId('consent-banner');
+      const p = banner.querySelector('p[data-consent-text]')!;
+      expect(p.textContent).toBe(en.consent[key]);
+      const blocks = p.querySelectorAll(':scope > span.block');
+      expect(blocks.length).toBe(consentSentences(en.consent[key]).length);
+      // Hash input: the body line equals the plain sentence text.
+      expect(consentText(banner).split(/\n/)).toContain(en.consent[key]);
+      unmount();
+    }
+  });
+
+  it('splits Arabic (caseless script) on sentence ends', () => {
+    const text = ar.consent.bodyAnalyticsMarketing;
+    renderBanner({}, ar, 'ar');
+    const p = screen.getByTestId('consent-banner').querySelector('p[data-consent-text]')!;
+    expect(p.textContent).toBe(text);
+    expect(p.querySelectorAll('span.block').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('abbreviations never end a sentence', () => {
+    expect(consentSentences('Zum Beispiel z. B. Analyse. Danach mehr.')).toEqual(['Zum Beispiel z. B. Analyse. ', 'Danach mehr.']);
+    expect(consentSentences('Use e.g. YouTube here. Then go.')).toEqual(['Use e.g. YouTube here. ', 'Then go.']);
+    expect(consentSentences('One sentence only.')).toEqual(['One sentence only.']);
   });
 });

@@ -21,3 +21,11 @@ export function stripHtmlToText(html: string | null | undefined): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/**
+ * Author-written plain text (an SEO description): line breaks and runs of
+ * whitespace become one space, ends trimmed. Never clipped (author intent).
+ */
+export function collapseWhitespace(text: string | null | undefined): string {
+  return (text || '').replace(/\s+/g, ' ').trim();
+}

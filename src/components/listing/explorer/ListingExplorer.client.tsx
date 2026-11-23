@@ -20,6 +20,8 @@ import { useTranslations } from 'next-intl';
 import { ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
 import { StoreProductCard } from '@/components/product/card/StoreProductCard';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
+import { ListingPageLinks } from '@/components/listing/ListingPageLinks';
+import { buildListingPager, listingTotalPages, parseListingPage } from '@/lib/listingPageParam';
 import { useMarket } from '@/hooks/useMarket';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import { toListingCard, type StorefrontProductRow } from '@/lib/listing';
@@ -44,8 +46,11 @@ import { stagger, type MotionProp } from '@/themes/creative/recipes';
 import { ActiveChips, GroupBody, availableGroups, groupCount, useGroupTitle, type GroupContext } from './FilterControls';
 import { FilterDropdown, FilterSheet } from './FilterOverlays';
 
-/** URL keys the explorer owns; every other query key of the page is kept. */
-const OWN_KEYS = ['search', 'collection', 'type', 'color', 'size', 'price_min', 'price_max', 'in_stock', 'sort', 'creator_category'];
+/**
+ * URL keys the explorer owns; every other query key of the page is kept.
+ * `page` (M166 A) is owned too: any filter or sort change goes back to page 1.
+ */
+const OWN_KEYS = ['search', 'collection', 'type', 'color', 'size', 'price_min', 'price_max', 'in_stock', 'sort', 'creator_category', 'page'];
 
 interface Result {
   key: string;
@@ -53,7 +58,10 @@ interface Result {
   total: number;
   hasMore: boolean;
   facets: ListingFacets | null;
+  /** Last page loaded. */
   page: number;
+  /** First page shown (`?page=N` on the server, else 1). */
+  first: number;
 }
 
 interface Preview {
@@ -139,7 +147,8 @@ export function ListingExplorer({
     total: init.total,
     hasMore: init.hasMore,
     facets: init.facets,
-    page: 1,
+    page: init.page ?? 1,
+    first: init.page ?? 1,
   }));
   const [loading, setLoading] = useState<false | 'replace' | 'more'>(false);
   const [skeleton, setSkeleton] = useState(false);
@@ -183,14 +192,14 @@ export function ListingExplorer({
   }, []);
 
   const load = useCallback(
-    (s: FilterState) => {
+    (s: FilterState, startPage = 1) => {
       const id = ++reqId.current;
       setLoading('replace');
       setError(false);
       const skeletonTimer = setTimeout(() => {
         if (reqId.current === id) setSkeleton(true);
       }, 350);
-      fetchPage(s, 1, EXPLORER_PAGE_SIZE)
+      fetchPage(s, startPage, EXPLORER_PAGE_SIZE)
         .then((r) => {
           if (reqId.current !== id) return;
           setResult((prev) => ({
@@ -199,7 +208,8 @@ export function ListingExplorer({
             total: r.total,
             hasMore: r.hasMore,
             facets: r.facets ?? prev.facets,
-            page: 1,
+            page: startPage,
+            first: startPage,
           }));
           scrollToTop();
         })
@@ -256,10 +266,13 @@ export function ListingExplorer({
     const onPop = () => {
       if (timer.current) clearTimeout(timer.current);
       lastWrite.current = null;
-      const s = parseFilterState(new URLSearchParams(window.location.search), { legacyCollection });
+      const params = new URLSearchParams(window.location.search);
+      const s = parseFilterState(params, { legacyCollection });
       setState(s);
       setSearchText(s.search ?? '');
-      load(s);
+      // M166 A: a history entry of `?page=N` shows that page again.
+      const pageParam = parseListingPage(params.get('page') ?? undefined);
+      load(s, 'page' in pageParam ? pageParam.page : 1);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -519,6 +532,13 @@ export function ListingExplorer({
   );
 
   const countText = t('results', { count: result.total });
+  // M166 A: crawlable links to the other pages (`?page=N`) of this state.
+  const pager = buildListingPager(
+    { path: `${init.lp}${init.basePath}`, query: toPageQuery(state) },
+    result.first,
+    result.page,
+    listingTotalPages(result.total, EXPLORER_PAGE_SIZE),
+  );
   const filtersButton = (extra: string) =>
     facets && groups.length > 0 ? (
       <button type="button" className={`lx-pill ${extra}`} onClick={openSheet} aria-haspopup="dialog" data-active={filterCount > 0 || undefined}>
@@ -709,18 +729,24 @@ export function ListingExplorer({
       <p className="lx-count lg:hidden mb-4" aria-hidden="true">
         {countText}
       </p>
+      {!skeleton && products.length > 0 && <ListingPageLinks pager={pager} position="top" />}
       {error && products.length === 0 ? failed : products.length === 0 && !skeleton ? (busy ? grid : empty) : grid}
       {!skeleton && products.length > 0 && (result.hasMore || result.total > EXPLORER_PAGE_SIZE) && (
-        <ListingLoadMore
-          shown={products.length}
-          total={result.total}
-          hasMore={result.hasMore}
-          loading={loading === 'more'}
-          error={error && loading !== 'replace'}
-          onLoadMore={loadMore}
-          gridRef={gridRef}
-          motion={motion}
-        />
+        <>
+          <ListingLoadMore
+            shown={products.length}
+            total={result.total}
+            hasMore={result.hasMore}
+            loading={loading === 'more'}
+            error={error && loading !== 'replace'}
+            onLoadMore={loadMore}
+            gridRef={gridRef}
+            motion={motion}
+            nextHref={pager.nextHref}
+            offset={(result.first - 1) * EXPLORER_PAGE_SIZE}
+          />
+          <ListingPageLinks pager={pager} />
+        </>
       )}
     </>
   );

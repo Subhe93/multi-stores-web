@@ -13,7 +13,11 @@ const state = {
   market: { key: 'eu' } as { key: string; preview?: true } | undefined,
   focused: false,
   sitemapFails: false,
+  /** M166 D1: version forwarded by the proxy (null = store without redirects). */
+  redirectsVersion: null as string | null,
+  redirectMap: null as Map<string, { to: string; status: number }> | null,
 };
+const storeRedirectMap = vi.fn(async () => state.redirectMap);
 
 const getSitemapData = vi.fn(async () => {
   if (state.sitemapFails) throw new Error('api down');
@@ -38,7 +42,13 @@ vi.mock('./api', () => ({ storefront: { getSitemapData: (...a: unknown[]) => get
 vi.mock('./market.server', () => ({
   getRequestMarket: async () => state.market,
   getRequestNoindex: async () => false,
+  getRequestRedirectsVersion: async () => state.redirectsVersion,
 }));
+vi.mock('./redirects', async (orig) => ({
+  ...(await orig<typeof import('./redirects')>()),
+  storeRedirectMap: (...a: unknown[]) => storeRedirectMap(...(a as [])),
+}));
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: 'namez.se' }) }));
 vi.mock('./focusedStorefront.server', () => ({
   requestFocusedStorefront: async () => (state.focused ? { url: 'https://site.example' } : null),
 }));
@@ -63,6 +73,9 @@ beforeEach(() => {
   state.market = { key: 'eu' };
   state.focused = false;
   state.sitemapFails = false;
+  state.redirectsVersion = null;
+  state.redirectMap = null;
+  storeRedirectMap.mockClear();
 });
 
 describe('productLinkRewriter', () => {
@@ -177,5 +190,51 @@ describe('productLinkRewriter', () => {
     const s: SectionInstance = { ...section(''), section_key: 'cover-hero', settings: { detail_url: `product:${SIGN}` } };
     const out = await rw.sections([s]);
     expect(out[0]).toBe(s);
+  });
+});
+
+// M166 D1: third pass, permanent store redirects.
+describe('productLinkRewriter: store redirects (M166 D1)', () => {
+  const footer = (html: string): SectionInstance => ({
+    id: 'f',
+    section_key: 'footer-rich-text',
+    sort_order: 0,
+    settings: { html },
+    translations: [],
+  });
+
+  it('without a forwarded version: identity, no table read', async () => {
+    state.market = undefined;
+    const sections = [footer('<a href="/shipping-policy">Frakt</a>')];
+    const rw = await productLinkRewriter('namez-se', { language_config: { primary_locale: 'sv' } }, 'sv');
+    expect(await rw.sections(sections)).toBe(sections);
+    expect(storeRedirectMap).not.toHaveBeenCalled();
+  });
+
+  it('rewrites sections, menus and html to the permanent target (legacy store)', async () => {
+    state.market = undefined;
+    state.redirectsVersion = 'v7';
+    state.redirectMap = new Map([
+      ['/shipping-policy', { to: '/legal/shipping', status: 301 }],
+      ['/sale', { to: '/collections/rea', status: 302 }],
+    ]);
+    const rw = await productLinkRewriter('namez-se', { language_config: { primary_locale: 'sv' } }, 'sv');
+    const out = await rw.sections([footer('<p><a href="/shipping-policy">Frakt</a> <a href="/sale">Rea</a></p>')]);
+    expect((out[0]!.settings as { html: string }).html).toBe(
+      '<p><a href="/legal/shipping">Frakt</a> <a href="/sale">Rea</a></p>',
+    );
+    const menus = await rw.menus([{ id: 'm', items: [{ id: 'i', url: 'https://namez.se/shipping-policy?x=1' }] }] as never);
+    expect((menus as Array<{ items: Array<{ url: string }> }>)[0]!.items[0]!.url).toBe('https://namez.se/legal/shipping?x=1');
+    expect(await rw.html('<a href="/shipping-policy#top">x</a>')).toBe('<a href="/legal/shipping#top">x</a>');
+    expect(storeRedirectMap).toHaveBeenCalledWith('namez-se', 'v7');
+  });
+
+  it('lookup mode (no map): identity', async () => {
+    state.market = undefined;
+    state.redirectsVersion = 'v7';
+    state.redirectMap = null;
+    const sections = [footer('<a href="/shipping-policy">Frakt</a>')];
+    const rw = await productLinkRewriter('namez-se', null, 'sv');
+    expect(await rw.sections(sections)).toBe(sections);
   });
 });

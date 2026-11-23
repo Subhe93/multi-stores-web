@@ -57,6 +57,33 @@ export const CONSENT_BUTTON_STYLE: CSSProperties = {
 
 const LINK_CLASS = 'underline underline-offset-2 hover:opacity-80';
 
+/**
+ * M166 E: the body text split into sentences, each keeping its trailing
+ * space, so `parts.join('')` is the original text (same textContent, same
+ * consent text hash). A sentence ends at `.`, `!`, `?` or `؟` followed by
+ * whitespace and a capital (or any letter of a caseless script such as
+ * Arabic); an abbreviation (`z. B.`, `e.g.`, `bl.a.`) never ends one.
+ */
+// No lookbehind here: this module ships to the browser and the supported
+// targets include Safari/iOS 15.4, which reject lookbehind at parse time
+// (a SyntaxError would drop the whole consent chunk).
+const SENTENCE_END = /[.!?\u061F]\s+(?=[\p{Lu}\p{Lo}])/gu;
+const ABBREVIATION_END = /(?:^|[\s(])(?:\p{L}{1,2}|\p{L}+(?:\.\p{L}+)+)\.$/u;
+
+export function consentSentences(text: string): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  for (const m of text.matchAll(SENTENCE_END)) {
+    // The punctuation mark is the first character of the match.
+    if (ABBREVIATION_END.test(text.slice(0, m.index! + 1))) continue;
+    const end = m.index! + m[0].length;
+    parts.push(text.slice(start, end));
+    start = end;
+  }
+  parts.push(text.slice(start));
+  return parts.filter((part) => part !== '');
+}
+
 export function CookieBanner({
   offered,
   recordings,
@@ -137,7 +164,18 @@ export function CookieBanner({
           {t('title')}
         </h2>
         <div id={bodyId} className="store-muted space-y-1.5 text-xs leading-relaxed">
-          <p data-consent-text="">{body}</p>
+          {/* M166 E: one block per sentence inside the same paragraph. The
+              largest-contentful-paint candidate is a text block, so a long
+              paragraph made the banner the mobile LCP; per-sentence blocks
+              stay smaller than the page content. textContent (and the
+              consent text hash) is unchanged. */}
+          <p data-consent-text="">
+            {consentSentences(body).map((sentence, i) => (
+              <span key={i} className="block">
+                {sentence}
+              </span>
+            ))}
+          </p>
           {recordings && <p data-consent-text="">{t('recordings')}</p>}
         </div>
         <p className="store-muted flex flex-wrap gap-x-4 gap-y-1 text-xs">

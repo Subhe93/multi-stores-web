@@ -6,6 +6,8 @@
 // LISTING_SERVER_THRESHOLD; at or below it the routes render exactly as
 // before (full list, sorted on the Next server).
 
+import { buildListingPager, listingTotalPages, type ListingLinkBase, type ListingPagerModel } from './listingPageParam';
+
 /**
  * Catalogue size above which a listing is paginated by the API. Above every
  * live catalogue today (largest is 52), divisible by 1 to 6 grid columns and
@@ -39,6 +41,13 @@ export interface ListingPagination {
   /** Products per page (the first page is what the server rendered). */
   pageSize: number;
   hasMore: boolean;
+  /**
+   * M166 A: page the server rendered (`?page=N`, 1 when absent). "Load
+   * more" continues from it.
+   */
+  page?: number;
+  /** M166 A: where the pager links point (set by the routes). */
+  links?: ListingLinkBase;
   /** Filters of the first-page request, reused for the next pages. */
   request: {
     locale: string;
@@ -46,4 +55,17 @@ export interface ListingPagination {
     search?: string;
     sort?: ListingApiSort;
   };
+}
+
+/**
+ * M166 A: pager of a server-mode listing showing pages `first..last`, or
+ * null when the route gave no link base (no pager rendered).
+ */
+export function serverModePager(
+  pagination: ListingPagination | undefined,
+  first: number,
+  last: number,
+): ListingPagerModel | null {
+  if (!pagination?.links) return null;
+  return buildListingPager(pagination.links, first, last, listingTotalPages(pagination.total, pagination.pageSize));
 }

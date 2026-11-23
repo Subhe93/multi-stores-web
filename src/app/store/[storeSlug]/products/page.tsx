@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
@@ -31,6 +32,12 @@ import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
 import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 import { pageLinkPrefix } from '@/lib/localePaths';
+import { canonicalRedirectHref } from '@/lib/slugRoute';
+import { isListingPageOutOfRange, listingBaseQuery, listingPageCanonical, parseListingPage } from '@/lib/listingPageParam';
+import { EXPLORER_PAGE_SIZE } from '@/lib/listingFilters/explorer';
+
+/** Query keys of the built-in listing links (server mode pager), in order. */
+const LISTING_LINK_KEYS = ['search', 'category', 'creator_category', 'sort'] as const;
 
 interface ProductPromotion {
   type?: string;
@@ -70,6 +77,8 @@ interface StoreProductsProps {
     creator_category?: string;
     lang?: string;
     sort?: string;
+    /** M166 A: `?page=N` (N > 1) of the paginated listing. */
+    page?: string;
     // Filtered listing (opt-in): collection, type, color, size, price_*, in_stock.
     [key: string]: string | string[] | undefined;
   }>;
@@ -136,14 +145,27 @@ export async function generateMetadata({
     );
     const heroImage = store?.theme?.hero?.products?.image_url;
 
+    // M166 A: page N > 1 is its own canonical (not page 1) and carries no
+    // hreflang (another market may hide products, so its page N differs).
+    // Refined views keep their clean canonical (they are noindex anyway).
+    const pageParam = parseListingPage(query.page);
+    const page = 'page' in pageParam ? pageParam.page : 1;
+    const paged = page > 1 && !isFiltered;
+    const baseTitle = `${t('common.products')} — ${storeName}`.trim();
+    const title = paged ? `${baseTitle} - ${t('product.pageN', { n: page })}` : baseTitle;
+    if (paged) {
+      alternates.canonical = listingPageCanonical(alternates.canonical, page);
+      alternates.languages = {};
+    }
+
     return {
-      title: `${t('common.products')} — ${storeName}`.trim(),
+      title,
       description,
       alternates,
       robots: isFiltered ? { index: false, follow: true } : undefined,
       // M161 C: og:locale and an image (the listing hero, else the logo).
       openGraph: buildStoreOpenGraph({
-        title: `${t('common.products')} — ${storeName}`.trim(),
+        title,
         description,
         url: alternates.canonical,
         image: heroImage ? resolveMediaUrl(heroImage) : undefined,
@@ -168,6 +190,15 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // else the URL's own locale folder.
   const pathPrefix = await getRequestPathPrefix();
   const lp = pageLinkPrefix(pathPrefix, lang);
+  // M166 A: `?page=N`. A non-canonical value (1, 01, 0, junk, repeated)
+  // gets one 308 to the URL without it; other keys and the prefix are kept.
+  const pageParam = parseListingPage(query.page);
+  if ('redirect' in pageParam) {
+    const rest = { ...query };
+    delete rest.page;
+    permanentRedirect(canonicalRedirectHref('/products', rest, pathPrefix));
+  }
+  const page = pageParam.page;
 
   // The store is read first (cached): without a locale prefix in the URL the
   // catalogue is rendered in the store's primary locale, not in English.
@@ -204,10 +235,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // route makes today's exact request and renders as before.
   const [first, creatorCategories, template] = await Promise.all([
     explorerState
-      ? loadExplorerPage<Product>(storeSlug, { locale, state: explorerState, card: Boolean(cardSettings) }, marketKey).then(
+      ? loadExplorerPage<Product>(storeSlug, { locale, state: explorerState, card: Boolean(cardSettings), page }, marketKey).then(
           (explorerPage) => ({ explorerPage }),
         )
-      : loadListing<Product>(storeSlug, { queryParams, sort }, marketKey).then((loaded) => ({ loaded })),
+      : loadListing<Product>(storeSlug, { queryParams, sort, page }, marketKey).then((loaded) => ({ loaded })),
     storefront.getCreatorCategories(storeSlug) as Promise<CreatorCategory[]>,
     // Published CATALOG_TEMPLATE snapshot; null when the creator hasn't
     // published one (or the endpoint is unavailable) — the built-in markup
@@ -225,9 +256,20 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
       ? first.loaded
       : explorerPage
         ? ({ mode: 'legacy', products: explorerPage.items } as const)
-        : await loadListing<Product>(storeSlug, { queryParams, sort }, marketKey);
+        : await loadListing<Product>(storeSlug, { queryParams, sort, page }, marketKey);
+  // M166 A: a page beyond the last one is a 404 (legacy mode renders the
+  // full list, so it has page 1 only).
+  if (page > 1) {
+    const outOfRange = explorerPage
+      ? isListingPageOutOfRange(page, explorerPage.total, EXPLORER_PAGE_SIZE)
+      : loaded.mode === 'legacy' || isListingPageOutOfRange(page, loaded.pagination.total, loaded.pagination.pageSize);
+    if (outOfRange) notFound();
+  }
   const products: Product[] = loaded.products;
-  const pagination = loaded.mode === 'server' ? loaded.pagination : undefined;
+  const pagination =
+    loaded.mode === 'server'
+      ? { ...loaded.pagination, links: { path: `${lp}/products`, query: listingBaseQuery(query, LISTING_LINK_KEYS) } }
+      : undefined;
   // Server mode counts every matching product, not just the first page.
   const productCount = pagination ? pagination.total : products.length;
   const currency = storeData?.currency;
@@ -275,6 +317,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           settings: listingSettings,
           state: explorerState,
           products: explorerPage.items.map(listingProjector(Boolean(cardSettings), toListingCard, locale)),
+          ...(page > 1 ? { page } : {}),
           total: explorerPage.total,
           hasMore: explorerPage.hasMore,
           facets: explorerPage.facets,
@@ -292,7 +335,8 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     ? null
     : buildCollectionPage({
         name: t('common.products'),
-        url: listingUrl,
+        // M166 A: the page URL (`?page=N`), like its canonical.
+        url: listingPageCanonical(listingUrl, page),
         items: products.map((p) => {
           const tr =
             p.translations?.find((x) => x.locale === locale) ||
