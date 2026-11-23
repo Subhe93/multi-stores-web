@@ -6,6 +6,7 @@ import { publicLocales } from '@/lib/storeLocales';
 import { marketUrlSlots, usesLocalePaths } from '@/lib/localePaths';
 import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
 import { focusedSitemapData, focusedStorefront } from '@/lib/focusedStorefront';
+import { productPathByLocale, slugRecordToTranslations } from '@/lib/productPaths';
 
 interface SitemapPage {
   slug: string;
@@ -238,10 +239,8 @@ function buildMarketSitemap(
   for (const p of data.static_pages) entries.push(...urlEntries(`/${p.slug}`, p.lastmod));
   for (const p of data.landing_pages) entries.push(...urlEntries(`/${p.slug}`, p.lastmod));
   for (const p of data.products) {
-    const pathByLocale: Record<string, string> = {};
-    for (const [loc, slug] of Object.entries(p.slugs ?? {})) {
-      if (slug) pathByLocale[loc] = `/products/${slug}`;
-    }
+    // Same helper as the product page (M161 A): one source of truth.
+    const pathByLocale = productPathByLocale(slugRecordToTranslations(p.slugs));
     entries.push(...urlEntries(`/products/${p.slug}`, p.lastmod, pathByLocale));
   }
   for (const c of data.collections ?? []) entries.push(...urlEntries(collectionHref(c), c.lastmod));

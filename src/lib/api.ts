@@ -5,6 +5,7 @@ import { previewFetchOptions, previewTokenFor, readBrowserPreviewCookie, resolve
 import type { ListingApiSort } from './listingPaging';
 import type { ApiFilterParams, ExplorerSort } from './listingFilters/query';
 import { toListingFacets, type ListingFacets } from './listingFilters/types';
+import type { ProductShippingRates } from './productJsonLd';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const API_ORIGIN = API_URL.replace(/\/api$/, '');
@@ -350,6 +351,18 @@ export const storefront = {
   getProduct: async (slug: string, productSlug: string, locale?: string, market?: MarketRef) => {
     const query = locale ? `?locale=${locale}` : '';
     return api(`/storefront/${slug}/products/${encodeURIComponent(productSlug)}${query}${marketQuery(market, Boolean(query))}`, await productReadOpts(slug));
+  },
+
+  // M161 B6: cheapest delivery rate per destination country (product JSON-LD
+  // `shippingDetails`). Same options as the product read (cached on the store
+  // tag; the owner's DRAFT preview uncached). Countries are upper-case ISO
+  // codes, at most 10 (the API drops the rest).
+  getProductShippingRates: async (slug: string, productSlug: string, countries: string[], market?: MarketRef) => {
+    const query = `?countries=${encodeURIComponent(countries.join(','))}`;
+    return api<ProductShippingRates>(
+      `/storefront/${slug}/products/${encodeURIComponent(productSlug)}/shipping-rates${query}${marketQuery(market, true)}`,
+      await productReadOpts(slug),
+    );
   },
 
   getCategories: async (slug: string) =>

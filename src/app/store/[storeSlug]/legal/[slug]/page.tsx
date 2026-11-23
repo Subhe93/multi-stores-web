@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { storefront, LEGAL_SLUGS, type LegalSlug, type StoreLegalPage } from '@/lib/api';
+import { storefront, resolveMediaUrl, LEGAL_SLUGS, type LegalSlug, type StoreLegalPage } from '@/lib/api';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
@@ -39,6 +40,8 @@ interface StoreLite {
   markets?: MarketRoute[];
   /** Checkout behaviour overrides: absent for stores on the defaults. */
   checkout?: unknown;
+  /** Open Graph image fallback (M161 C). */
+  logo_url?: string | null;
 }
 
 interface StoreLegalPageProps {
@@ -113,8 +116,9 @@ export async function generateMetadata({
   // Canonical = subdomain URL with the primary locale (no prefix). hreflang
   // alternates use path-prefix `/{locale}/...` for secondary locales, which
   // is what Google prefers (not query strings).
+  const pathPrefix = await getRequestPathPrefix();
   const alternates = buildStoreAlternates({
-    pathPrefix: await getRequestPathPrefix(),
+    pathPrefix,
     origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
     locale,
     primaryLocale: store?.language_config?.primary_locale || 'en',
@@ -133,7 +137,15 @@ export async function generateMetadata({
     title: page.title,
     description,
     alternates,
-    openGraph: { title: page.title, description, type: 'website' },
+    // M161 C: og:url, og:locale and the store logo as image.
+    openGraph: buildStoreOpenGraph({
+      title: page.title,
+      description,
+      url: alternates.canonical,
+      fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+      locale,
+      country: requestCountry(store?.market, pathPrefix),
+    }),
   };
 }
 

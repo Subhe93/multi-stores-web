@@ -6,6 +6,7 @@ import { readWithFallback } from '@/lib/apiAvailability';
 import { buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { linkPrefix } from '@/lib/localePaths';
@@ -71,6 +72,8 @@ interface StoreLite {
   custom_domain?: string | null;
   market?: MarketRoute | null;
   markets?: MarketRoute[];
+  /** Open Graph image fallback (M161 C). */
+  logo_url?: string | null;
   /** Checkout behaviour overrides: absent for stores on the defaults. */
   checkout?: unknown;
 }
@@ -163,8 +166,9 @@ export async function buildStorePageMetadata({
   // use path-prefix `/{locale}/...` for secondary locales.
   const origin = buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market);
   const noindex = await getRequestNoindex();
+  const pathPrefix = await getRequestPathPrefix();
   const alternates = buildStoreAlternates({
-    pathPrefix: await getRequestPathPrefix(),
+    pathPrefix,
     origin: origin,
     locale,
     primaryLocale,
@@ -191,22 +195,28 @@ export async function buildStorePageMetadata({
     const description =
       tr?.meta_description?.trim() || sectionsExcerpt(v2.snapshot.sections, locale, primaryLocale);
 
+    // An explicit `path` (the legal URL) beats the page's own SEO canonical.
+    const canonical = (!path && v2.seo?.canonical) || alternates.canonical;
+    // M161 C: og:url = canonical, og:locale, the store logo as image fallback.
+    const openGraph = buildStoreOpenGraph({
+      title: ogTitle,
+      description,
+      url: canonical,
+      image: ogImage,
+      fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+      locale,
+      country: requestCountry(store?.market, pathPrefix),
+    });
     return {
       title: tr?.meta_title || tr?.title,
       description,
-      // An explicit `path` (the legal URL) beats the page's own SEO canonical.
-      alternates: { ...alternates, canonical: (!path && v2.seo?.canonical) || alternates.canonical },
-      openGraph: {
-        title: ogTitle,
-        description,
-        images: ogImage ? [ogImage] : undefined,
-        type: 'website',
-      },
+      alternates: { ...alternates, canonical },
+      openGraph,
       twitter: buildTwitterMeta({
         card: v2.seo?.twitter_card,
         title: ogTitle,
         description,
-        image: ogImage,
+        image: openGraph.images?.[0],
       }),
       // The layout already emits noindex for such requests; skip the page's own robots.
       robots: noindex ? undefined : v2.seo?.robots,
@@ -218,10 +228,20 @@ export async function buildStorePageMetadata({
     legacy!.translations.find((t) => t.locale === locale) ||
     legacy!.translations.find((t) => t.locale === primaryLocale) ||
     legacy!.translations[0];
+  const legacyDescription = htmlExcerpt(tr?.content);
   return {
     title: tr?.title,
-    description: htmlExcerpt(tr?.content),
+    description: legacyDescription,
     alternates,
+    // M161 C: the legacy branch had no Open Graph block.
+    openGraph: buildStoreOpenGraph({
+      title: tr?.title,
+      description: legacyDescription,
+      url: alternates.canonical,
+      fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+      locale,
+      country: requestCountry(store?.market, pathPrefix),
+    }),
   };
 }
 

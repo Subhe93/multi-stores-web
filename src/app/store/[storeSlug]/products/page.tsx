@@ -11,6 +11,8 @@ import { StoreProductCard } from '@/components/product/card/StoreProductCard';
 import { toCardExtras, type CardSourceRow } from '@/lib/productCard/model';
 import { cardQuery, readProductCard } from '@/lib/productCard/settings';
 import { resolveHero, type StoreHero } from '@/lib/hero';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
+import { metaDescriptionFallback } from '@/lib/pageExcerpt';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
@@ -92,10 +94,11 @@ export async function generateMetadata({
         description?: string | null;
         custom_domain?: string | null;
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
-        theme?: { translations?: Record<string, { name?: string; description?: string }> };
+        theme?: { translations?: Record<string, { name?: string; description?: string }>; hero?: StoreHero };
         theme_customizations?: unknown;
         market?: MarketRoute | null;
         markets?: MarketRoute[];
+        logo_url?: string | null;
       } | null>,
       getTranslations(),
     ]);
@@ -104,8 +107,9 @@ export async function generateMetadata({
     const locale = lang || primaryLocale;
     const storeName = store?.theme?.translations?.[locale]?.name || store?.name || '';
 
+    const pathPrefix = await getRequestPathPrefix();
     const alternates = buildStoreAlternates({
-      pathPrefix: await getRequestPathPrefix(),
+      pathPrefix,
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
@@ -125,19 +129,27 @@ export async function generateMetadata({
       (readListingSettings(store?.theme_customizations) !== null &&
         isRefinedView(parseFilterState(query, { legacyCollection: true })));
 
+    // The store description is rich text: plain text, clipped (M161 D).
+    const description = metaDescriptionFallback(
+      store?.theme?.translations?.[locale]?.description || store?.description,
+    );
+    const heroImage = store?.theme?.hero?.products?.image_url;
+
     return {
       title: `${t('common.products')} — ${storeName}`.trim(),
-      description:
-        store?.theme?.translations?.[locale]?.description ||
-        store?.description ||
-        undefined,
+      description,
       alternates,
       robots: isFiltered ? { index: false, follow: true } : undefined,
-      openGraph: {
+      // M161 C: og:locale and an image (the listing hero, else the logo).
+      openGraph: buildStoreOpenGraph({
         title: `${t('common.products')} — ${storeName}`.trim(),
-        type: 'website',
+        description,
         url: alternates.canonical,
-      },
+        image: heroImage ? resolveMediaUrl(heroImage) : undefined,
+        fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+        locale,
+        country: requestCountry(store?.market, pathPrefix),
+      }),
     };
   } catch {
     return {};

@@ -27,6 +27,7 @@ import { promotionsForProduct } from '@/lib/requiresShipping';
 import { canonicalRedirectHref, isNonCanonicalSlugForm, isUsableSlug } from '@/lib/slugRoute';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { collectionIsNoindex, collectionMetaDescription, collectionMetaTitle, stripHtmlToText } from '@/lib/collectionSeo';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import { readListingSettings } from '@/lib/listingFilters/settings';
 import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
 import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
@@ -699,6 +700,8 @@ export async function generateMetadata({
         markets?: MarketRoute[];
         language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
         theme_customizations?: unknown;
+        theme?: { hero?: { collections?: { image_url?: string } } } | null;
+        logo_url?: string | null;
       } | null>,
     ]);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
@@ -713,8 +716,9 @@ export async function generateMetadata({
 
     // Previously title + description only, so a collection inherited the
     // layout's canonical and declared itself a duplicate of the homepage.
+    const pathPrefix = await getRequestPathPrefix();
     const alternates = buildStoreAlternates({
-      pathPrefix: await getRequestPathPrefix(),
+      pathPrefix,
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
@@ -729,21 +733,27 @@ export async function generateMetadata({
 
     const title = collectionMetaTitle(tr, handle);
     const description = collectionMetaDescription(tr);
+    // M161 C: the thumbnail, else the collections hero, else the store logo.
+    const heroImage = store?.theme?.hero?.collections?.image_url;
     const image = collection.thumbnail_url
       ? resolveMediaUrl(collection.thumbnail_url)
-      : undefined;
+      : heroImage
+        ? resolveMediaUrl(heroImage)
+        : undefined;
 
     return {
       title,
       description,
       alternates,
-      openGraph: {
+      openGraph: buildStoreOpenGraph({
         title,
         description,
-        images: image ? [image] : undefined,
-        type: 'website',
         url: alternates.canonical,
-      },
+        image,
+        fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+        locale,
+        country: requestCountry(store?.market, pathPrefix),
+      }),
       // M4.4: a flagged collection with no published product stays out of
       // the index (and out of the sitemap, filtered by the API). A refined
       // view of the filtered listing (filters, search, sort) too, while the

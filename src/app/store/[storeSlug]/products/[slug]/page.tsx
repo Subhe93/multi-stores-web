@@ -5,7 +5,12 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
-import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
+import { productAlternates, productPathByLocale } from '@/lib/productPaths';
+import { buildProductJsonLd, shippingRateCountries, type ProductShippingRates } from '@/lib/productJsonLd';
+import { organizationId, storeBrandName } from '@/lib/storeBrand';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
+import { metaDescriptionFallback } from '@/lib/pageExcerpt';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { focusedProductLayoutSupports, focusedProductSections } from '@/lib/focusedStorefront';
@@ -28,12 +33,11 @@ import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sectio
 import { preloadSectionData } from '@/lib/preloadSections';
 import { readProductCard } from '@/lib/productCard/settings';
 import type { ProductContext, SectionInstance } from '@/themes/types';
-import { productAvailability } from '@/lib/productAvailability';
 import { projectProductForClient } from '@/lib/productPayload';
-import { buildBreadcrumb, buildProduct, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
+import { buildBreadcrumb, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
-import { canonicalRedirectHref, encodeUrlPath, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
+import { canonicalRedirectHref, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
 import { pageLinkPrefix } from '@/lib/localePaths';
 
 interface ProductDetailProps {
@@ -63,16 +67,10 @@ interface StoreRecord {
   /** Seller identity (focused product page: the phone under the price). */
   seller_details?: TraderDetails | null;
   trader_details?: TraderDetails | null;
-}
-
-// Translated product slugs per locale — hreflang alternates point at the
-// translated URL only when a market context exists (D9 / L12).
-function productPathByLocale(product: Pick<ProductRecord, 'translations'>): Record<string, string> {
-  const paths: Record<string, string> = {};
-  for (const tr of product.translations ?? []) {
-    if (tr.locale && tr.slug) paths[tr.locale] = `/products/${tr.slug}`;
-  }
-  return paths;
+  /** Relative upload path; the Open Graph image fallback (M161 C). */
+  logo_url?: string | null;
+  /** `theme.seo.brandName`: optional brand override (M161 B3). */
+  theme?: { seo?: { brandName?: unknown } | null } | null;
 }
 
 /**
@@ -147,50 +145,52 @@ export async function generateMetadata({
       storefront.getStore(storeSlug, marketKey) as Promise<StoreRecord | null>,
     ]);
     const primaryLocale = storeData?.language_config?.primary_locale || 'en';
-    const secondary: string[] = storeData?.language_config?.secondary_locales || [];
     const locale = lang || primaryLocale;
     const tr =
       product.translations?.find((t) => t.locale === locale) ||
       product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
 
-    const storeOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
-    const alternates = buildStoreAlternates({
-      pathPrefix: await getRequestPathPrefix(),
-      origin: storeOrigin,
-      locale,
-      primaryLocale,
-      secondaryLocales: secondary,
-      path: `/products/${matchedProductSlug(product, productSlug)}`,
-      markets: storeData?.markets,
-      market: storeData?.market,
-      noindex: await getRequestNoindex(),
-      storeCustomDomain: storeData?.custom_domain ?? null,
+    const pathPrefix = await getRequestPathPrefix();
+    // Same helper as the page body's JSON-LD and the sitemap (M161 A/B1).
+    const alternates = productAlternates({
       storeSlug,
-      pathByLocale: storeData?.market ? productPathByLocale(product) : null,
+      store: storeData,
+      translations: product.translations,
+      slug: matchedProductSlug(product, productSlug),
+      locale,
+      pathPrefix,
+      noindex: await getRequestNoindex(),
     });
 
     const firstImage = product.images?.[0]?.url
       ? resolveMediaUrl(product.images[0].url)
       : undefined;
+    // An author-written meta_desc is used as is; the fallback is clipped at
+    // a word boundary (M161 D).
+    const description = tr?.meta_desc || metaDescriptionFallback(tr?.description);
+    const openGraph = buildStoreOpenGraph({
+      title: tr?.meta_title || tr?.title || undefined,
+      description,
+      url: alternates.canonical,
+      image: firstImage,
+      fallbackImage: ogFallbackImage(storeData, resolveMediaUrl),
+      locale,
+      country: requestCountry(storeData?.market, pathPrefix),
+    });
 
     return {
       title: tr?.meta_title || tr?.title || 'Product',
-      description: tr?.meta_desc || tr?.description?.replace(/<[^>]+>/g, '').slice(0, 200),
+      description,
       alternates,
       // Owner preview of a DRAFT product: served to the owner only, never
       // indexable (the public answer is a 404).
       ...(product.status === 'DRAFT' ? { robots: { index: false, follow: false } } : {}),
-      openGraph: {
-        title: tr?.meta_title || tr?.title || undefined,
-        description: tr?.meta_desc || undefined,
-        images: firstImage ? [firstImage] : undefined,
-        type: 'website',
-      },
+      openGraph,
       twitter: buildTwitterMeta({
         title: tr?.meta_title || tr?.title || undefined,
-        description: tr?.meta_desc || undefined,
-        image: firstImage,
+        description,
+        image: openGraph.images?.[0],
       }),
     };
   } catch {
@@ -214,6 +214,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   let storeData: StoreRecord | null;
   let storeCurrency = 'EUR';
   let template: { snapshot?: { sections?: SectionInstance[] } } | null = null;
+  // M161 B6: JSON-LD shippingDetails; null (no rates) on any failure.
+  let shippingRates: ProductShippingRates | null = null;
   // Without a locale prefix in the URL the content is rendered in the store's
   // primary locale, not in English — so the store is read first (it is cached).
   let locale = lang || 'en';
@@ -221,11 +223,15 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   try {
     storeData = (await storefront.getStore(storeSlug, marketKey)) as StoreRecord | null;
     locale = lang || storeData?.language_config?.primary_locale || 'en';
-    [product, template] = await Promise.all([
+    const shipCountries = shippingRateCountries(storeData?.market, pathPrefix, storeData?.trader_details?.country);
+    [product, template, shippingRates] = await Promise.all([
       storefront.getProduct(storeSlug, productSlug, locale, marketKey) as Promise<ProductRecord>,
       storefront.getPublishedProductTemplate(storeSlug).catch(() => null) as Promise<{
         snapshot?: { sections?: SectionInstance[] };
       } | null>,
+      shipCountries.length > 0
+        ? storefront.getProductShippingRates(storeSlug, productSlug, shipCountries, marketKey).catch(() => null)
+        : Promise.resolve(null),
     ]);
     storeCurrency = storeData?.currency || 'EUR';
   } catch (err) {
@@ -249,6 +255,38 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     permanentRedirect(canonicalRedirectHref(`/products/${canonicalSlug}`, query, pathPrefix));
   }
 
+  // One canonical for metadata, JSON-LD url / offers.url and the breadcrumb's
+  // last item on every render path (M161 B1).
+  const productCanonical = productAlternates({
+    storeSlug,
+    store: storeData,
+    translations: product.translations,
+    slug: canonicalSlug,
+    locale,
+    pathPrefix,
+    noindex: await getRequestNoindex(),
+  }).canonical;
+  const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
+  const ldImages = (product.images || [])
+    .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
+    .filter((u: string) => !!u);
+  // Product / ProductGroup markup of the rendered translation (M161 B3-B6).
+  const productJsonLd = (tr: ProductRecord['translations'][number] | undefined) =>
+    buildProductJsonLd({
+      product,
+      name: tr?.title || 'Product',
+      descriptionHtml: tr?.description,
+      locale,
+      canonical: productCanonical,
+      images: ldImages,
+      brand: storeBrandName(storeData) || undefined,
+      sellerId: organizationId(ldOrigin),
+      currency: storeCurrency,
+      shipping: shippingRates,
+      videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
+      resolveMedia: resolveMediaUrl,
+    });
+
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
   // the active theme using its sections + this product as the magic context.
   // The default layout below stays as the fallback for stores without one.
@@ -270,29 +308,15 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       product.translations?.find((x) => x.locale === locale) ||
       product.translations?.find((x) => x.locale === primaryLocale) ||
       product.translations?.[0];
-    const focusedBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
     // Same Product / FAQPage markup as the regular page; no breadcrumb (its
     // crumbs lead to pages that redirect to the external site).
-    const focusedProductLd = buildProduct({
-      name: tr?.title || 'Product',
-      description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
-      url: storeLocalePath(focusedBase, locale, primaryLocale, `/products/${canonicalSlug}`, pathPrefix),
-      sku: product.sku || undefined,
-      brand: storeData?.name || undefined,
-      images: (product.images || [])
-        .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
-        .filter((u: string) => !!u),
-      price: Number(product.base_price),
-      priceCurrency: storeCurrency,
-      availability: productAvailability(product),
-      videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
-    });
+    const focusedProductLd = productJsonLd(tr);
     const focusedFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
         {/* Markets app: translated slugs for the country switcher / banner. */}
-        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
+        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product.translations)} />}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(focusedProductLd) }} />
         {focusedFaqLd && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJsonSafe(focusedFaqLd) }} />
@@ -334,25 +358,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       product.translations?.find((t) => t.locale === locale) ||
       product.translations?.find((t) => t.locale === primaryLocale) ||
       product.translations?.[0];
-    const tplStoreBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
-    const tplProductUrl = `${tplStoreBase}${encodeUrlPath(`/products/${canonicalSlug}`)}`;
-    const tplProductLd = buildProduct({
-      name: tr?.title || 'Product',
-      description: tr?.description?.replace(/<[^>]+>/g, '') || undefined,
-      url: tplProductUrl,
-      // The shop is the brand for a creator's own product; sku was already in
-      // the payload and simply never passed through.
-      sku: product.sku || undefined,
-      brand: storeData?.name || undefined,
-      images: (product.images || [])
-        .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
-        .filter((u: string) => !!u),
-      price: Number(product.base_price),
-      priceCurrency: storeCurrency,
-      // Simple products count too (was: always OutOfStock without variants).
-      availability: productAvailability(product),
-      videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
-    });
+    const tplStoreBase = ldOrigin;
+    // The canonical (with the locale / path prefix), not the bare origin
+    // path the template branch used to build (M161 B1).
+    const tplProductLd = productJsonLd(tr);
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     // Client sections get a slim copy (current-locale rows only); JSON-LD
     // above keeps the full product.
@@ -375,17 +384,14 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             ),
           }))
         : [{ name: t('common.products'), url: storeLocalePath(tplStoreBase, locale, primaryLocale, '/products', pathPrefix) }]),
-      {
-        name: tr?.title || 'Product',
-        url: storeLocalePath(tplStoreBase, locale, primaryLocale, `/products/${canonicalSlug}`, pathPrefix),
-      },
+      { name: tr?.title || 'Product', url: productCanonical },
     ]);
     return (
       <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
         {focus && <FocusedBackCapture />}
         {/* Markets app: translated slugs for the country switcher / banner. */}
-        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
+        {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product.translations)} />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: ldJsonSafe(tplProductLd) }}
@@ -445,25 +451,10 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // JSON-LD: Product + BreadcrumbList. Built from data already in scope so it
   // costs nothing extra to render. URLs use the locale path-prefix form (no
   // prefix for primary locale, `/{locale}/...` for others).
-  const storeBase = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
+  const storeBase = ldOrigin;
   const ldPrimary = storeData?.language_config?.primary_locale || 'en';
-  const productUrl = storeLocalePath(storeBase, locale, ldPrimary, `/products/${canonicalSlug}`, pathPrefix);
-  const productImages = (product.images || [])
-    .map((img) => (img.url ? resolveMediaUrl(img.url) : ''))
-    .filter((u: string) => !!u);
-  const productLd = buildProduct({
-    name: translation?.title || 'Product',
-    description: translation?.description?.replace(/<[^>]+>/g, '') || undefined,
-    url: productUrl,
-    sku: product.sku || undefined,
-    brand: storeData?.name || undefined,
-    images: productImages,
-    price: Number(product.base_price),
-    priceCurrency: storeCurrency,
-    // Simple products count too (was: always OutOfStock without variants).
-    availability: productAvailability(product),
-    videos: productVideosLd(product, translation?.title || 'Product', translation?.short_description),
-  });
+  const productUrl = productCanonical;
+  const productLd = productJsonLd(translation);
 
   // Home › ancestors… › primary › product (M6 §2; no "Collections" index
   // crumb, so the trail stays short on mobile). The path comes from the API
@@ -508,7 +499,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       {draftPreview && <ProductPreviewBanner storeSlug={storeSlug} />}
       {focus && <FocusedBackCapture />}
       {/* Markets app: translated slugs for the country switcher / banner. */}
-      {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product)} />}
+      {storeData?.market && <MarketPathsRegistrar pathByLocale={productPathByLocale(product.translations)} />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJsonSafe(productLd) }}

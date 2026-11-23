@@ -46,7 +46,8 @@ import { mergeTokens, tokensToCssVars, tokenFonts, tokenArabicFonts, tokenArabic
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { resolveMenuItems, type ThemeCustomizations, type SectionInstance, type StoreContext } from '@/themes/types';
 import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
-import { stripHtmlToText } from '@/lib/collectionSeo';
+import { metaDescriptionFallback } from '@/lib/pageExcerpt';
+import { organizationId, storeBrandName } from '@/lib/storeBrand';
 import { resolveSocialHref } from '@/themes/minimal/sections/_shared/socialIcons';
 import { StoreTracking } from '@/components/tracking/StoreTracking';
 import { CookieSettingsLink } from '@/components/tracking/CookieSettingsLink';
@@ -153,6 +154,8 @@ interface Store {
     seo?: {
       metaTitle?: string;
       metaDescription?: string;
+      /** Optional brand override for structured data (M161 B3; no dashboard field yet). */
+      brandName?: string;
     };
     translations?: Record<string, StoreTranslation>;
   };
@@ -210,12 +213,12 @@ export async function generateMetadata({
       // store's own origin rather than Next's localhost default.
       metadataBase: new URL(origin),
       title: trans?.metaTitle || storeSeo?.metaTitle || trans?.name || store.name,
-      // The last two fallbacks are rich-text HTML: plain text, meta length.
+      // The last two fallbacks are rich-text HTML: plain text, clipped at a
+      // word boundary (M161 D).
       description:
         trans?.metaDescription ||
         storeSeo?.metaDescription ||
-        stripHtmlToText(trans?.description || store.description).slice(0, 160) ||
-        undefined,
+        metaDescriptionFallback(trans?.description || store.description),
       // The creator uploads a favicon in store settings; it was stored and
       // never rendered, so every storefront showed the framework default.
       // A store without one keeps the single platform icon link it always
@@ -584,10 +587,17 @@ export default async function StoreLayout({
     .filter((u) => /^https?:\/\//i.test(u));
   // Seller of record shown in the footer: Namez AB on MARKETPLACE stores.
   const sellerDetails = sellerDetailsOf(store);
+  // M161 B3: the brand (Store.name without a tagline) is the Organization
+  // name, the localized store name its alternateName; offers and the WebSite
+  // link to it by @id. B2: the logo is served by the API origin, so it is
+  // made absolute (the relative path 404s on the store domain).
+  const orgId = organizationId(storeUrl);
   const organizationLd = buildOrganization({
-    name: storeName,
+    id: orgId,
+    name: storeBrandName(store) || storeName,
+    alternateName: storeName,
     url: storeUrl,
-    logo: store.logo_url || undefined,
+    logo: store.logo_url ? resolveMediaUrl(store.logo_url) : undefined,
     description: typeof storeDescription === 'string' ? storeDescription : undefined,
     sameAs,
     email: contact?.email,
@@ -596,6 +606,7 @@ export default async function StoreLayout({
   const websiteLd = buildWebSite({
     name: storeName,
     url: storeUrl,
+    publisherId: orgId,
     // The product listing redirects to the external site in focused mode:
     // no search action is advertised then.
     searchUrlTemplate: focus ? undefined : `${storeUrl}/products?search={search_term_string}`,

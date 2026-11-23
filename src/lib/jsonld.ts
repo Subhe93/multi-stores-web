@@ -8,6 +8,10 @@ import { stripHtmlToText } from './collectionSeo';
 interface OrganizationInput {
   name: string;
   url: string;
+  /** Stable node id (`<origin>/#organization`, M161 B3); offers link to it. */
+  id?: string;
+  /** Another name of the store (the localized store name), when different. */
+  alternateName?: string;
   logo?: string;
   description?: string;
   sameAs?: string[];
@@ -22,7 +26,9 @@ export function buildOrganization(input: OrganizationInput) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    ...(input.id ? { '@id': input.id } : {}),
     name: input.name,
+    ...(input.alternateName && input.alternateName !== input.name ? { alternateName: input.alternateName } : {}),
     url: input.url,
     ...(input.logo ? { logo: input.logo } : {}),
     ...(description ? { description } : {}),
@@ -45,6 +51,8 @@ interface WebSiteInput {
   url: string;
   /** Optional search URL template (e.g. https://shop.example/?q={search_term_string}). */
   searchUrlTemplate?: string;
+  /** `@id` of the store's Organization node (M161 B3). */
+  publisherId?: string;
 }
 
 export function buildWebSite(input: WebSiteInput) {
@@ -53,6 +61,7 @@ export function buildWebSite(input: WebSiteInput) {
     '@type': 'WebSite',
     name: input.name,
     url: input.url,
+    ...(input.publisherId ? { publisher: { '@id': input.publisherId } } : {}),
     ...(input.searchUrlTemplate
       ? {
           potentialAction: {
@@ -82,6 +91,20 @@ interface ProductInput {
    * product without video keeps exactly the same JSON-LD.
    */
   videos?: object[];
+  /** `@id` of the selling Organization (M161 B3): `offers.seller`. */
+  sellerId?: string;
+  /** OfferShippingDetails list (M161 B6): `offers.shippingDetails`. */
+  shippingDetails?: object[];
+  /**
+   * Replaces the single Offer (M161 B4: an AggregateOffer for a product with
+   * more variants than the ProductGroup cap). `price` is then ignored.
+   */
+  offers?: object;
+}
+
+/** schema.org reference to a node by `@id`. */
+export function ldRef(id: string): { '@id': string } {
+  return { '@id': id };
 }
 
 export function buildProduct(input: ProductInput) {
@@ -92,14 +115,18 @@ export function buildProduct(input: ProductInput) {
     name: input.name,
     ...(input.description ? { description: input.description } : {}),
     ...(input.images.length ? { image: input.images } : {}),
+    // The page URL (the canonical), next to offers.url (M161 B1).
+    url: input.url,
     ...(input.sku ? { sku: input.sku } : {}),
     ...(input.brand ? { brand: { '@type': 'Brand', name: input.brand } } : {}),
-    offers: {
+    offers: input.offers ?? {
       '@type': 'Offer',
       url: input.url,
       price: input.price.toFixed(2),
       priceCurrency: input.priceCurrency,
       availability: `https://schema.org/${availability}`,
+      ...(input.sellerId ? { seller: ldRef(input.sellerId) } : {}),
+      ...(input.shippingDetails?.length ? { shippingDetails: input.shippingDetails } : {}),
     },
     ...(input.aggregateRating
       ? {

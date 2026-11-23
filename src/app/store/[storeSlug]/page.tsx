@@ -18,6 +18,7 @@ import { hover, item, stagger, surface, type MotionProp } from '@/themes/creativ
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { pageLinkPrefix } from '@/lib/localePaths';
@@ -100,6 +101,7 @@ export async function generateMetadata({
         custom_domain?: string | null;
         market?: MarketRoute | null;
         markets?: MarketRoute[];
+        logo_url?: string | null;
       }>,
       storefront.getPublishedHome(storeSlug).catch(() => null) as Promise<PublishedHome | null>,
     ]);
@@ -118,6 +120,7 @@ export async function generateMetadata({
     // use path-prefix form `/{locale}` (no query strings).
     const origin = buildStoreOrigin(storeSlug, store.custom_domain || null, store.market);
     const noindex = await getRequestNoindex();
+    const pathPrefix = await getRequestPathPrefix();
     const alternates = buildStoreAlternates({
       origin: origin,
       locale,
@@ -129,7 +132,7 @@ export async function generateMetadata({
       noindex,
       storeCustomDomain: store.custom_domain ?? null,
       storeSlug,
-      pathPrefix: await getRequestPathPrefix(),
+      pathPrefix,
     });
 
     // Absolutize: API stores og_image as a relative `/uploads/...` path. Without
@@ -139,24 +142,30 @@ export async function generateMetadata({
       ? resolveMediaUrl(published.seo.og_image)
       : undefined;
     const ogTitle = tr?.meta_title || tr?.title || undefined;
+    // A creator-supplied canonical overrides ours; otherwise the page's
+    // own locale URL.
+    const canonical = published.seo?.canonical || alternates.canonical;
+    // M161 C: og:url = canonical, og:locale, the store logo as image fallback.
+    const openGraph = buildStoreOpenGraph({
+      title: ogTitle,
+      description: tr?.meta_description,
+      url: canonical,
+      image: ogImage,
+      fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+      locale,
+      country: requestCountry(store.market, pathPrefix),
+    });
 
     return {
       title: tr?.meta_title || tr?.title,
       description: tr?.meta_description,
-      // A creator-supplied canonical overrides ours; otherwise the page's
-      // own locale URL.
-      alternates: { ...alternates, canonical: published.seo?.canonical || alternates.canonical },
-      openGraph: {
-        title: ogTitle,
-        description: tr?.meta_description,
-        images: ogImage ? [ogImage] : undefined,
-        type: 'website',
-      },
+      alternates: { ...alternates, canonical },
+      openGraph,
       twitter: buildTwitterMeta({
         card: published.seo?.twitter_card,
         title: ogTitle,
         description: tr?.meta_description,
-        image: ogImage,
+        image: openGraph.images?.[0],
       }),
       // A noindex request already gets the layout's noindex meta; the page's
       // own robots (often "index, follow") would add a second, conflicting one.

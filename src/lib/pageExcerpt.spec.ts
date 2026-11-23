@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clipDescription, htmlExcerpt, sectionsExcerpt } from './pageExcerpt';
+import { clipDescription, htmlExcerpt, metaDescriptionFallback, sectionsExcerpt } from './pageExcerpt';
 import type { SectionInstance } from '@/themes/types';
 
 const section = (sort: number, content: Record<string, unknown>, locale = 'sv'): SectionInstance => ({
@@ -43,5 +43,41 @@ describe('page excerpt', () => {
     const out = clipDescription(long);
     expect(out.length).toBeLessThanOrEqual(155);
     expect(out.endsWith('ord…')).toBe(true);
+  });
+
+  it('collapses CR LF and tabs (M161 D)', () => {
+    expect(clipDescription('Rad ett\r\nRad\ttvå  ')).toBe('Rad ett Rad två');
+  });
+
+  it('returns short text as is, without an ellipsis', () => {
+    const exact = 'a'.repeat(155);
+    expect(clipDescription(exact)).toBe(exact);
+    expect(clipDescription('Kort text.')).toBe('Kort text.');
+  });
+
+  it('never cuts mid-word, even when the last space is early', () => {
+    const text = `Kort ${'l'.repeat(140)} ${'m'.repeat(30)}`;
+    const out = clipDescription(text);
+    expect(out).toBe(`Kort ${'l'.repeat(140)}…`);
+    expect(out.length).toBeLessThanOrEqual(155);
+    const early = `Hej ${'z'.repeat(200)}`;
+    expect(clipDescription(early)).toBe('Hej…');
+  });
+
+  it('trims trailing punctuation before the ellipsis', () => {
+    const text = `${'ord '.repeat(37)}slut, ${'x'.repeat(40)}`;
+    const out = clipDescription(text);
+    expect(out.endsWith('slut…')).toBe(true);
+  });
+
+  it('hard-cuts a single word longer than the limit', () => {
+    expect(clipDescription('y'.repeat(300))).toBe(`${'y'.repeat(154)}…`);
+  });
+
+  it('metaDescriptionFallback strips html, decodes entities, clips', () => {
+    expect(metaDescriptionFallback('<p>Tom &amp; Jerry&nbsp;&lt;3</p>\r\n')).toBe('Tom & Jerry <3');
+    expect(metaDescriptionFallback('<p>&nbsp;</p>')).toBeUndefined();
+    expect(metaDescriptionFallback(null)).toBeUndefined();
+    expect(metaDescriptionFallback(`<p>${'ord '.repeat(80)}</p>`)!.length).toBeLessThanOrEqual(155);
   });
 });

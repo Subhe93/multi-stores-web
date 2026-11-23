@@ -4,6 +4,7 @@
 // page), the same text on every such page.
 
 import type { SectionInstance } from '@/themes/types';
+import { stripHtmlToText } from './htmlText';
 
 const MAX = 155;
 
@@ -24,12 +25,31 @@ export function plainText(html: string): string {
     .trim();
 }
 
-/** At most MAX characters, cut at a word boundary with an ellipsis. */
+/**
+ * The one meta-description clipper (M161 D): whitespace (incl. CR LF)
+ * collapsed; text of at most `max` characters is returned as is; longer text
+ * is cut at the last whitespace at or before `max - 1` characters, trailing
+ * punctuation and spaces trimmed, and an ellipsis added. Only a single word
+ * longer than the limit is hard-cut.
+ */
 export function clipDescription(text: string, max = MAX): string {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max - 1);
-  const space = cut.lastIndexOf(' ');
-  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,.;:–-]+$/, '')}…`;
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  const head = clean.slice(0, max);
+  const space = head.lastIndexOf(' ');
+  const cut = space > 0 ? head.slice(0, space) : clean.slice(0, max - 1);
+  const trimmed = cut.replace(/[\s,.;:!?–—-]+$/, '');
+  return `${trimmed || cut}…`;
+}
+
+/**
+ * Auto-generated meta description from rich text (no author-written one):
+ * plain text with entities decoded, clipped by `clipDescription`. Undefined
+ * when nothing is left.
+ */
+export function metaDescriptionFallback(html: string | null | undefined): string | undefined {
+  const text = stripHtmlToText(html);
+  return text ? clipDescription(text) : undefined;
 }
 
 /** Excerpt of a builder page's sections for `locale` (else primary, else first). */

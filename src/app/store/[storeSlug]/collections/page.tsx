@@ -9,6 +9,7 @@ import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib
 import { buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
 import { resolveHero, type StoreHero } from '@/lib/hero';
+import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import { pageLinkPrefix } from '@/lib/localePaths';
 
 // /collections — index of the store's collections. The header's "Store
@@ -40,6 +41,7 @@ interface StoreRecord {
   markets?: MarketRoute[];
   language_config?: { primary_locale?: string; secondary_locales?: string[] } | null;
   theme?: { hero?: StoreHero };
+  logo_url?: string | null;
 }
 
 interface CollectionsIndexProps {
@@ -74,8 +76,9 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
     const locale = lang || primaryLocale;
     const t = await getTranslations({ locale });
     const secondary = store?.language_config?.secondary_locales || [];
+    const pathPrefix = await getRequestPathPrefix();
     const alternates = buildStoreAlternates({
-      pathPrefix: await getRequestPathPrefix(),
+      pathPrefix,
       origin: buildStoreOrigin(storeSlug, store?.custom_domain || null, store?.market),
       locale,
       primaryLocale,
@@ -87,9 +90,20 @@ export async function generateMetadata({ params, searchParams }: CollectionsInde
       storeCustomDomain: store?.custom_domain ?? null,
       storeSlug,
     });
+    const title = `${t('store.store_collections')} | ${store?.name || storeSlug}`;
+    // M161 C: the index had no Open Graph block at all.
+    const heroImage = store?.theme?.hero?.collections?.image_url;
     return {
-      title: `${t('store.store_collections')} | ${store?.name || storeSlug}`,
+      title,
       alternates,
+      openGraph: buildStoreOpenGraph({
+        title,
+        url: alternates.canonical,
+        image: heroImage ? resolveMediaUrl(heroImage) : undefined,
+        fallbackImage: ogFallbackImage(store, resolveMediaUrl),
+        locale,
+        country: requestCountry(store?.market, pathPrefix),
+      }),
     };
   } catch {
     return {};

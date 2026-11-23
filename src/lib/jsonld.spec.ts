@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildOrganization, buildProduct } from './jsonld';
+import { buildOrganization, buildProduct, buildWebSite } from './jsonld';
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from './productVideo';
 
 // Product JSON-LD and product video (contract 6.5): `image` stays image-only
@@ -81,5 +81,57 @@ describe('buildOrganization description', () => {
   it('omits an empty or tag-only description', () => {
     expect(buildOrganization({ name: 'A', url: 'https://a.se', description: '<p>&nbsp;</p>' })).not.toHaveProperty('description');
     expect(buildOrganization({ name: 'A', url: 'https://a.se' })).not.toHaveProperty('description');
+  });
+});
+
+describe('M161 B: ids, url, seller', () => {
+  it('Organization @id, alternateName only when different', () => {
+    const ld = buildOrganization({
+      name: 'Namez',
+      alternateName: 'Namez – Personliga presenter',
+      id: 'https://namez.se/#organization',
+      url: 'https://namez.se',
+    }) as Record<string, unknown>;
+    expect(ld['@id']).toBe('https://namez.se/#organization');
+    expect(ld.alternateName).toBe('Namez – Personliga presenter');
+    expect(buildOrganization({ name: 'A', alternateName: 'A', url: 'https://a.se' })).not.toHaveProperty('alternateName');
+    expect(buildOrganization({ name: 'A', url: 'https://a.se' })).not.toHaveProperty('@id');
+  });
+
+  it('WebSite publisher only with an id', () => {
+    expect(buildWebSite({ name: 'A', url: 'https://a.se', publisherId: 'https://a.se/#organization' })).toMatchObject({
+      publisher: { '@id': 'https://a.se/#organization' },
+    });
+    expect(buildWebSite({ name: 'A', url: 'https://a.se' })).not.toHaveProperty('publisher');
+  });
+
+  it('Product: url added, otherwise unchanged without the new inputs', () => {
+    const ld = buildProduct(base) as Record<string, unknown>;
+    expect(ld.url).toBe(base.url);
+    const { url: _url, ...rest } = ld;
+    void _url;
+    expect(JSON.stringify(rest)).toBe(
+      JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: 'Mug',
+        image: base.images,
+        offers: {
+          '@type': 'Offer',
+          url: base.url,
+          price: '100.00',
+          priceCurrency: 'SEK',
+          availability: 'https://schema.org/InStock',
+        },
+      }),
+    );
+  });
+
+  it('Product: seller and shippingDetails on the Offer', () => {
+    const ld = buildProduct({ ...base, sellerId: 'https://a.se/#organization', shippingDetails: [{ '@type': 'OfferShippingDetails' }] });
+    expect(ld.offers).toMatchObject({
+      seller: { '@id': 'https://a.se/#organization' },
+      shippingDetails: [{ '@type': 'OfferShippingDetails' }],
+    });
   });
 });

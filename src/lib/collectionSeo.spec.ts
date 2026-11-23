@@ -12,7 +12,14 @@ describe('collection SEO', () => {
   it('description prefers meta_desc, else stripped body (unchanged legacy output)', () => {
     expect(collectionMetaDescription({ meta_desc: 'Short', description: '<p>Long</p>' })).toBe('Short');
     expect(collectionMetaDescription({ description: '<p>Long</p>' })).toBe('Long');
-    expect(collectionMetaDescription({ description: 'x'.repeat(200) })).toHaveLength(160);
+    // M161 D: one clipper (155 chars, word boundary, ellipsis only when cut).
+    expect(collectionMetaDescription({ description: 'x'.repeat(200) })).toBe(`${'x'.repeat(154)}…`);
+    const words = 'Studentskyltar som känns personliga och '.repeat(6);
+    const clipped = collectionMetaDescription({ description: `<p>${words}</p>` })!;
+    expect(clipped.length).toBeLessThanOrEqual(155);
+    expect(clipped.endsWith('…')).toBe(true);
+    expect(words).toContain(clipped.slice(0, -1));
+    expect(words.charAt(clipped.length - 1)).toBe(' ');
     expect(collectionMetaDescription({ description: '' })).toBeUndefined();
     expect(collectionMetaDescription(undefined)).toBeUndefined();
   });
@@ -23,7 +30,7 @@ describe('collection SEO', () => {
     );
     expect(collectionMetaDescription({ description: '<p>Short</p>', long_description: '<p>Long</p>' })).toBe('Short');
     expect(collectionMetaDescription({ description: '<p></p>', long_description: '<p>Long</p>' })).toBe('Long');
-    expect(collectionMetaDescription({ long_description: `<p>${'y'.repeat(300)}</p>` })).toHaveLength(160);
+    expect(collectionMetaDescription({ long_description: `<p>${'y'.repeat(300)}</p>` })).toHaveLength(155);
     expect(collectionMetaDescription({ long_description: '<p></p>' })).toBeUndefined();
     expect(collectionMetaDescription({ long_description: '<p>&nbsp;</p>' })).toBeUndefined();
     expect(collectionMetaDescription({ long_description: '<p>Tom &amp; Jerry&#160;&lt;3&#x21;</p>' })).toBe('Tom & Jerry <3!');
