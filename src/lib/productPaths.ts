@@ -1,8 +1,13 @@
-// Product URL paths shared by the product page and the store sitemap (M161 A/B1).
-// Both build `pathByLocale` with the same function from the same data, so the
+// Product URL paths shared by the product page, the store sitemap (M161 A/B1)
+// and every product link of the storefront (M163). The page and the sitemap
+// build `pathByLocale` with the same function from the same data, so the
 // sitemap alternates equal the in-page alternates for every product × market.
+// Product links (sections, listing grids, JSON-LD, creative picks) pick their
+// slug with `productLinkSlug`, which follows the same fallback chain as the
+// canonical, so an internal link is the canonical URL of the page it opens.
 
 import { buildStoreAlternates, buildStoreOrigin } from './storeUrl';
+import { isUsableSlug } from './slugRoute';
 import type { MarketRoute } from './market';
 
 export interface ProductSlugTranslation {
@@ -12,15 +17,57 @@ export interface ProductSlugTranslation {
 
 /**
  * Translated product sub-path per locale (`/products/<slug>`). Rows without a
- * locale or slug are skipped. Locales no market advertises are harmless:
+ * locale or a usable slug (`isUsableSlug`: a degenerate `-` resolves to a 404)
+ * are skipped. Locales no market advertises are harmless:
  * `buildStoreAlternates` only reads the locales of advertised slots.
  */
 export function productPathByLocale(translations: readonly ProductSlugTranslation[] | null | undefined): Record<string, string> {
   const paths: Record<string, string> = {};
   for (const tr of translations ?? []) {
-    if (tr.locale && tr.slug) paths[tr.locale] = `/products/${tr.slug}`;
+    if (tr.locale && isUsableSlug(tr.slug)) paths[tr.locale] = `/products/${tr.slug}`;
   }
   return paths;
+}
+
+/**
+ * Locale whose slug a product link falls back to when the rendered locale has
+ * no usable slug: the market default locale, else the store primary locale.
+ * The same chain as the canonical fallback of `productAlternates`.
+ */
+export function productLinkFallbackLocale(
+  primaryLocale: string | null | undefined,
+  market?: Pick<MarketRoute, 'default_locale'> | null,
+): string {
+  return market?.default_locale || primaryLocale || 'en';
+}
+
+/**
+ * Slug of the canonical product URL for `locale`:
+ *  1. the usable slug of `locale`;
+ *  2. the usable slug of `fallbackLocale` (market default / primary);
+ *  3. the first usable slug in API order (the page is then self-canonical);
+ * null when no row has a usable slug (callers fall back to the product id).
+ */
+export function productLinkSlug(
+  translations: readonly ProductSlugTranslation[] | null | undefined,
+  locale: string,
+  fallbackLocale: string,
+): string | null {
+  const rows = translations ?? [];
+  const own = rows.find((tr) => tr.locale === locale && isUsableSlug(tr.slug));
+  if (own?.slug) return own.slug;
+  const fallback = rows.find((tr) => tr.locale === fallbackLocale && isUsableSlug(tr.slug));
+  if (fallback?.slug) return fallback.slug;
+  const first = rows.find((tr) => isUsableSlug(tr.slug));
+  return first?.slug ?? null;
+}
+
+/** `/products/<slug>` (no locale prefix) of `productLinkSlug`, or `/products/<id>`. */
+export function productLinkPath(
+  translations: readonly ProductSlugTranslation[] | null | undefined,
+  opts: { locale: string; fallbackLocale: string; id: string },
+): string {
+  return `/products/${productLinkSlug(translations, opts.locale, opts.fallbackLocale) || opts.id}`;
 }
 
 /** The sitemap payload's `slugs` record (locale → slug) in the same list form. */

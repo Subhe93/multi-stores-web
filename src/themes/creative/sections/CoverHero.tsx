@@ -26,6 +26,7 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { headingLines, headingOneLine } from '../../minimal/sections/_shared/headingLines';
 import { sectionHref } from '../../minimal/sections/_shared/links';
+import { pickedHref } from '../data/pickedProducts';
 import { COVER_HERO_CSS } from '../css/coverHero.css';
 import { isArabicScript } from '../emphasis';
 import { CxSection } from '../primitives/CxSection';
@@ -88,6 +89,8 @@ export function coverFocus(x: unknown, y: unknown): string {
 
 interface PickedProduct {
   title?: unknown;
+  /** Canonical path of the rendered locale (M163). */
+  url?: unknown;
   price?: unknown;
   currency?: unknown;
   available?: unknown;
@@ -201,7 +204,8 @@ function CoverHero(props: SectionRenderProps) {
         price:
           livePrice === null ? '' : formatPrice(livePrice, str(live?.currency) || props.currency || 'EUR', 'en'),
         soldOut: live?.available === false,
-        href: detailUrl ? sectionHref(detailUrl, { locale, primaryLocale, pathPrefix }) : '',
+        // The live product's canonical path of this locale (M163), else the owner URL.
+        href: detailUrl ? sectionHref(pickedHref(detailUrl, live), { locale, primaryLocale, pathPrefix }) : '',
       }
     : null;
 

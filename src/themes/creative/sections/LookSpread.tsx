@@ -24,6 +24,7 @@ import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { sectionHref } from '../../minimal/sections/_shared/links';
+import { pickedHref } from '../data/pickedProducts';
 import { LOOK_SPREAD_CSS } from '../css/lookSpread.css';
 import { CxSection, EmptyState, MotionMedia, MotionText } from '../primitives';
 import { drift, fade, hover, item, line, rise, stagger, type MotionProp } from '../recipes';
@@ -120,7 +121,10 @@ function readRows(
       mark: onPhoto ? ++mark : 0,
       title,
       note: str(it.note),
-      href: url ? sectionHref(url, { locale: ctx.locale, primaryLocale: ctx.primaryLocale, pathPrefix: ctx.pathPrefix }) : null,
+      // The live product's canonical path of this locale (M163), else the owner URL.
+      href: url
+        ? sectionHref(pickedHref(url, live), { locale: ctx.locale, primaryLocale: ctx.primaryLocale, pathPrefix: ctx.pathPrefix })
+        : null,
       image: str(it.image) || (live ? str(live.image) : ''),
       // Same formatting as the product card (Latin digits in every locale).
       price: hasPrice ? formatPrice(live!.price as number, live!.currency || ctx.currency || 'EUR', 'en') : '',

@@ -18,6 +18,7 @@ import { colorOr } from '../../elementStyles';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
 import { useDisplayPrice } from '@/hooks/useDisplayPrice';
 import { useMarket } from '@/hooks/useMarket';
+import { productLinkFallbackLocale, productLinkSlug } from '@/lib/productPaths';
 import { useProductCardSettings } from '@/hooks/useProductCard';
 import { StoreProductCard } from '@/components/product/card/StoreProductCard';
 import { cardExtrasOf, type CardSourceRow } from '@/lib/productCard/model';
@@ -97,6 +98,8 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
   // market on its preview host needs the preview flag). Undefined without
   // the app, so the request URL is unchanged for other stores.
   const market = useMarket();
+  // Locale a product link falls back to without its own slug (M163).
+  const linkFallbackLocale = productLinkFallbackLocale(primaryLocale, market);
   const marketKey = market?.key;
   const marketPreview = market?.preview === true;
   // Enhanced product card (store opt-in): the list asks for the card fields
@@ -245,11 +248,8 @@ export function CollectionProducts({ settings, content, locale, primaryLocale, s
               p.translations.find((t) => t.locale === locale) ||
               p.translations.find((t) => t.locale === primaryLocale) ||
               p.translations[0];
-            const slugTr =
-              p.translations.find((t) => t.locale === primaryLocale) ||
-              p.translations.find((t) => t.locale === locale) ||
-              p.translations[0];
-            const productPath = slugTr?.slug || p.id;
+            // Slug of the canonical URL for this locale (M163), not the primary one.
+            const productPath = productLinkSlug(p.translations, locale, linkFallbackLocale) || p.id;
             const url = `${localePrefix}/products/${productPath}`;
             // Discount badge — shown only when there's a genuine markdown.
             const discount =

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { buildStoreOrigin, storeLocalePath, buildStoreAlternates } from '@/lib/storeUrl';
+import { productLinkFallbackLocale, productLinkPath, productLinkSlug } from '@/lib/productPaths';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { buildCollectionPage, buildBreadcrumb, ldJsonSafe } from '@/lib/jsonld';
@@ -24,7 +25,6 @@ import { loadListing } from '@/lib/listingLoad';
 import { ListingPagedGrid } from '@/components/listing/ListingPagedGrid';
 import { promotionsForProduct } from '@/lib/requiresShipping';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
-import { isUsableSlug } from '@/lib/slugRoute';
 import { readListingSettings } from '@/lib/listingFilters/settings';
 import { isRefinedView, parseFilterState } from '@/lib/listingFilters/query';
 import { loadExplorerPage, type ExplorerInit } from '@/lib/listingFilters/explorer';
@@ -181,6 +181,8 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     market?: MarketRoute | null;
   };
   const locale = lang || storeData?.language_config?.primary_locale || 'en';
+  // Product links take the canonical slug of this locale (M163).
+  const linkFallbackLocale = productLinkFallbackLocale(storeData?.language_config?.primary_locale, storeData?.market);
   // Product card settings of the store (null = the classic card, classic requests).
   const cardSettings = readProductCard(storeData?.theme_customizations);
   // Filtered listing (opt-in per store). Null = the listing as before.
@@ -264,6 +266,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
           storeSlug,
           locale,
           lp,
+          fallbackLocale: linkFallbackLocale,
           lang,
           basePath: '/products',
           kind: 'catalog',
@@ -296,7 +299,14 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             p.translations?.[0];
           return {
             name: tr?.title || '',
-            url: storeLocalePath(ldOrigin, locale, ldPrimary, `/products/${tr?.slug || ''}`, pathPrefix),
+            // Same path as the rendered card href (M163), never an empty slug.
+            url: storeLocalePath(
+              ldOrigin,
+              locale,
+              ldPrimary,
+              productLinkPath(p.translations, { locale, fallbackLocale: linkFallbackLocale, id: p.id }),
+              pathPrefix,
+            ),
             image: p.images?.[0]?.url ? resolveMediaUrl(p.images[0].url) : undefined,
           };
         }),
@@ -316,6 +326,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale: tplLocale,
+      fallbackLocale: linkFallbackLocale,
       marketRef: marketKey,
       card: cardSettings,
     });
@@ -608,6 +619,7 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
             initial={products.map(listingProjector(Boolean(cardSettings), toListingCard, locale))}
             pagination={pagination}
             locale={locale}
+            fallbackLocale={linkFallbackLocale}
             lp={lp}
             currency={currency}
             gridClassName="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
@@ -621,13 +633,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
                 product.translations.find((tr) => tr.locale === locale) ||
                 product.translations.find((tr) => tr.locale === 'en') ||
                 product.translations[0];
-              // Use any translation with a *usable* slug for the URL. Secondary-locale
-              // translations sometimes have a degenerate slug (empty, or a stray "-"
-              // when slugifying a non-Latin title strips everything) — those would
-              // resolve to a 404. We require at least one letter or digit (any script).
-              const slugTr =
-                product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
-                product.translations.find((tr) => isUsableSlug(tr.slug));
+              // The canonical slug of this locale (M163): only a *usable* slug
+              // (a degenerate "-" would resolve to a 404), else the market
+              // default / primary locale's slug, else any usable one.
+              const linkSlug = productLinkSlug(product.translations, locale, linkFallbackLocale) || product.id;
               // Card badge: the first promotion; a product without shipping
               // never advertises free shipping (same as the listing section).
               const promo = promotionsForProduct(product, product.promotions)[0];
@@ -641,10 +650,10 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
                     ? {
                         card: toCardExtras(product as unknown as CardSourceRow, locale),
                         productId: product.id,
-                        productSlug: slugTr?.slug || product.id,
+                        productSlug: linkSlug,
                       }
                     : {})}
-                  href={`${lp}/products/${slugTr?.slug || product.id}`}
+                  href={`${lp}/products/${linkSlug}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
                   taxRateBp={product.tax_rate_bp}

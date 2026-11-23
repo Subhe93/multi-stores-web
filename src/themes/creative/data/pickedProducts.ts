@@ -3,6 +3,12 @@
 // field holding `/products/<slug>`; the server preloads those products and
 // each section receives `preloaded: PickedPreload`. Pure module: no fetch
 // here (lib/preloadSections.ts and the demo route do the reading).
+//
+// `url` of a picked product is the canonical path of the rendered locale
+// (`productLinkPath`, M163), not the slug the owner typed: a German page
+// links the German slug even when the owner pasted the Swedish one.
+
+import { productLinkPath } from '@/lib/productPaths';
 
 export type PickedProduct = {
   slug: string;
@@ -81,16 +87,21 @@ export function rowHasSlug(row: PickedSourceRow, slug: string): boolean {
   return Array.isArray(row.translations) && row.translations.some((t) => t?.slug === slug);
 }
 
-/** A storefront product as the sections read it; null without a title. */
+/**
+ * A storefront product as the sections read it; null without a title.
+ * `slug` is the owner's slug (the preload key). `fallbackLocale` is the
+ * locale the title and the link slug fall back to: the market default, else
+ * the store primary locale (`productLinkFallbackLocale`).
+ */
 export function toPickedProduct(
   row: PickedSourceRow,
   slug: string,
   locale: string,
-  primaryLocale: string,
+  fallbackLocale: string,
   currency?: string,
 ): PickedProduct | null {
   const trs = Array.isArray(row.translations) ? row.translations : [];
-  const tr = trs.find((t) => t?.locale === locale) || trs.find((t) => t?.locale === primaryLocale) || trs[0];
+  const tr = trs.find((t) => t?.locale === locale) || trs.find((t) => t?.locale === fallbackLocale) || trs[0];
   const title = typeof tr?.title === 'string' ? tr.title.trim() : '';
   if (!title) return null;
   const images = Array.isArray(row.images) ? [...row.images] : [];
@@ -109,11 +120,25 @@ export function toPickedProduct(
   return {
     slug,
     title,
-    url: `/products/${slug}`,
+    // Without any usable translation slug this stays `/products/<owner slug>`.
+    url: productLinkPath(trs, { locale, fallbackLocale, id: slug }),
     ...(image ? { image } : null),
     ...(finite(row.base_price) !== undefined ? { price: finite(row.base_price) } : null),
     ...(compareAt ? { compareAt } : null),
     ...(currency ? { currency } : null),
     ...(available !== undefined ? { available } : null),
   };
+}
+
+/**
+ * Href source of an owner link to a picked product: the live canonical path
+ * (`live.url`) plus the owner's `?query` / `#hash`, else the owner URL as
+ * typed (the product was not preloaded). An owner-typed locale prefix is
+ * dropped on purpose: the caller's `sectionHref` adds the current one.
+ */
+export function pickedHref(ownerUrl: string, live: { url?: unknown } | null | undefined): string {
+  const path = live && typeof live.url === 'string' ? live.url : '';
+  if (!path.startsWith('/products/')) return ownerUrl;
+  const tail = /[?#].*$/.exec(ownerUrl.trim());
+  return tail ? `${path}${tail[0]}` : path;
 }

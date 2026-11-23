@@ -18,12 +18,12 @@ import { hover, item, stagger, surface, type MotionProp } from '@/themes/creativ
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
+import { productLinkFallbackLocale, productLinkSlug } from '@/lib/productPaths';
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { pageLinkPrefix } from '@/lib/localePaths';
 import { redirectFocusedBrowsing } from '@/lib/focusedStorefront.server';
-import { isUsableSlug } from '@/lib/slugRoute';
 
 interface Product {
   id: string;
@@ -218,6 +218,8 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   // else the URL's own locale folder.
   const pathPrefix = await getRequestPathPrefix();
   const lp = pageLinkPrefix(pathPrefix, lang);
+  // Product links take the canonical slug of this locale (M163).
+  const linkFallbackLocale = productLinkFallbackLocale(store.language_config?.primary_locale, store.market);
 
   // Currency from the store, used by sections that render prices (FeaturedProducts).
   const storeCurrency = (store as unknown as { currency?: string }).currency || 'EUR';
@@ -255,6 +257,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, publishedHome.snapshot.sections, {
       locale,
+      fallbackLocale: linkFallbackLocale,
       marketRef: marketKey,
       card: cardSettings,
     });
@@ -493,13 +496,10 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                 product.translations.find((tr) => tr.locale === locale) ||
                 product.translations.find((tr) => tr.locale === 'en') ||
                 product.translations[0];
-              // Use any translation with a *usable* slug for the URL. Secondary-locale
-              // translations sometimes have a degenerate slug (empty, or a stray "-"
-              // when slugifying a non-Latin title strips everything) — those would
-              // resolve to a 404. We require at least one letter or digit (any script).
-              const slugTr =
-                product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
-                product.translations.find((tr) => isUsableSlug(tr.slug));
+              // The canonical slug of this locale (M163): only a *usable* slug
+              // (a degenerate "-" would resolve to a 404), else the market
+              // default / primary locale's slug, else any usable one.
+              const linkSlug = productLinkSlug(product.translations, locale, linkFallbackLocale) || product.id;
 
               return (
                 <StoreProductCard
@@ -510,10 +510,10 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
                     ? {
                         card: toCardExtras(product as unknown as CardSourceRow, locale),
                         productId: product.id,
-                        productSlug: slugTr?.slug || product.id,
+                        productSlug: linkSlug,
                       }
                     : {})}
-                  href={`${lp}/products/${slugTr?.slug || product.id}`}
+                  href={`${lp}/products/${linkSlug}`}
                   title={translation?.title || 'Untitled'}
                   price={Number(product.base_price)}
                   taxRateBp={product.tax_rate_bp}

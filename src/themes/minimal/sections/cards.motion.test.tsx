@@ -284,6 +284,7 @@ describe('"load more" with the motion style', () => {
         initial={[0, 1, 2].map(card)}
         pagination={PAGINATION}
         locale="sv"
+        fallbackLocale="sv"
         lp=""
         currency="SEK"
         gridClassName="grid grid-cols-2"

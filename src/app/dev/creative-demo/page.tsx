@@ -239,6 +239,7 @@ export default async function CreativeDemoPage({ searchParams }: DemoProps) {
         storeSlug: DEMO_SLUG,
         locale,
         lp: '',
+        fallbackLocale: fixture.primaryLocale,
         basePath: '/products',
         kind: 'catalog',
         currency: fixture.currency,

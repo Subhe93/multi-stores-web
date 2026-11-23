@@ -8,6 +8,7 @@ import { buildLandingJsonLd, pageFaqItems } from '@/lib/pageJsonLd';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
 import type { MarketRoute } from '@/lib/market';
+import { productLinkFallbackLocale } from '@/lib/productPaths';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
 import { linkPrefix } from '@/lib/localePaths';
 import { resolveTheme } from '@/themes/registry';
@@ -308,6 +309,8 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, v2.snapshot.sections, {
       locale,
+      // Picked products link the canonical slug of this locale (M163).
+      fallbackLocale: productLinkFallbackLocale(store?.language_config?.primary_locale, store?.market),
       marketRef: await getRequestMarket(),
       // Product rows of the page carry the card fields when the store has card settings.
       card: readProductCard((store as { theme_customizations?: unknown } | null | undefined)?.theme_customizations),

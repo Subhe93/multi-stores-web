@@ -73,6 +73,7 @@ function renderGrid(pagination: ListingPagination = PAGINATION, initial = range(
       initial={initial}
       pagination={pagination}
       locale="sv"
+      fallbackLocale="sv"
       lp=""
       currency="SEK"
       gridClassName="grid grid-cols-2"
@@ -194,6 +195,7 @@ describe('server-paginated grid', () => {
         initial={[6, 5, 4].map(card)}
         pagination={sorted}
         locale="sv"
+        fallbackLocale="sv"
         lp=""
         currency="SEK"
         gridClassName="grid grid-cols-2"
@@ -224,6 +226,7 @@ describe('server-paginated grid', () => {
         initial={[9, 8, 7].map(card)}
         pagination={sorted}
         locale="sv"
+        fallbackLocale="sv"
         lp=""
         currency="SEK"
         gridClassName="grid grid-cols-2"
@@ -242,6 +245,7 @@ describe('server-paginated grid', () => {
         initial={range(0, 5).map(card)}
         pagination={{ ...PAGINATION, total: 70 }}
         locale="sv"
+        fallbackLocale="sv"
         lp="/ar"
         currency="SEK"
         gridClassName="grid"
@@ -255,6 +259,45 @@ describe('server-paginated grid', () => {
     expect(imgs.map((i) => i.getAttribute('loading'))).toEqual([null, null, 'eager', 'eager', 'lazy']);
     expect(imgs.map((i) => i.getAttribute('fetchpriority'))).toEqual(['high', 'high', null, null, null]);
     expect(cardLinks()[0]).toBe('/ar/products/produkt-0');
+  });
+});
+
+describe('product link slug (M163)', () => {
+  // namez.shop /de-de: market default `en`. A product without a German slug
+  // links the market default's slug, not the first row (`sv`).
+  const multi = (id: string, rows: Array<[string, string]>): ListingProduct => ({
+    id,
+    base_price: 10,
+    tax_rate_bp: 2500,
+    translations: rows.map(([locale, slug]) => ({ locale, title: `T ${locale}`, slug })),
+    images: [{ url: `/uploads/${id}.jpg` }],
+  });
+
+  it('links the locale slug, else the fallback locale slug, else the first usable one', () => {
+    render(
+      <ListingPagedGrid
+        storeSlug="namez-se"
+        initial={[
+          multi('a', [['sv', 'studentskylt-med-guldtext'], ['en', 'student-sign-with-gold-text'], ['de', 'abschlussschild-mit-goldschrift']]),
+          multi('b', [['sv', 'tavla-sv'], ['en', 'board-en'], ['de', '-']]),
+          multi('c', [['sv', '3d-bokstav-med-namn'], ['de', '3d-buchstabe-mit-namen']]),
+          multi('d', [['sv', 'bara-svensk']]),
+        ]}
+        pagination={{ ...PAGINATION, total: 4, hasMore: false }}
+        locale="de"
+        fallbackLocale="en"
+        lp="/de-de"
+        currency="EUR"
+        gridClassName="grid"
+        variant="catalog"
+      />,
+    );
+    expect(cardLinks()).toEqual([
+      '/de-de/products/abschlussschild-mit-goldschrift',
+      '/de-de/products/board-en',
+      '/de-de/products/3d-buchstabe-mit-namen',
+      '/de-de/products/bara-svensk',
+    ]);
   });
 });
 

@@ -18,6 +18,9 @@ export interface ExplorerInit {
   locale: string;
   /** Secondary-locale path prefix ('' for the primary locale). */
   lp: string;
+  /** Locale a product link falls back to without its own slug
+   *  (`productLinkFallbackLocale`: market default, else primary; M163). */
+  fallbackLocale: string;
   /** Secondary locale sent as `?lang=` on page URLs (undefined = primary). */
   lang?: string;
   /** '/products' or the collection path (no locale prefix). */

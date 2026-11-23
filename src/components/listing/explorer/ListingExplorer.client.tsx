@@ -24,7 +24,7 @@ import { useMarket } from '@/hooks/useMarket';
 import { resolveMediaUrl, storefront } from '@/lib/api';
 import { toListingCard, type StorefrontProductRow } from '@/lib/listing';
 import { withCardExtras, type CardSourceRow } from '@/lib/productCard/model';
-import { isUsableSlug } from '@/lib/slugRoute';
+import { productLinkSlug } from '@/lib/productPaths';
 import { EXPLORER_PAGE_SIZE, explorerPageParams, type ExplorerInit } from '@/lib/listingFilters/explorer';
 import { localPage } from '@/lib/listingFilters/local';
 import {
@@ -636,16 +636,14 @@ export function ListingExplorer({
           product.translations.find((tr) => tr.locale === locale) ||
           product.translations.find((tr) => tr.locale === 'en') ||
           product.translations[0];
-        const slugTr =
-          product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
-          product.translations.find((tr) => isUsableSlug(tr.slug));
+        const linkSlug = productLinkSlug(product.translations, locale, init.fallbackLocale) || product.id;
         return (
           <StoreProductCard
             key={product.id}
             card={product.card}
             productId={product.id}
-            productSlug={slugTr?.slug || product.id}
-            href={`${init.lp}/products/${slugTr?.slug || product.id}`}
+            productSlug={linkSlug}
+            href={`${init.lp}/products/${linkSlug}`}
             title={translation?.title || 'Untitled'}
             price={Number(product.base_price)}
             taxRateBp={product.tax_rate_bp}

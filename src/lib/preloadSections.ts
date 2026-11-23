@@ -132,7 +132,7 @@ function sectionPickedSlugs(s: SectionInstance): string[] {
 async function preloadPickedProducts(
   storeSlug: string,
   sections: SectionInstance[],
-  opts: { locale: string; marketRef?: MarketRef },
+  opts: { locale: string; fallbackLocale?: string; marketRef?: MarketRef },
 ): Promise<Record<string, PickedPreload>> {
   const wanted = sections.flatMap((s) => {
     if (s.is_hidden) return [];
@@ -148,7 +148,7 @@ async function preloadPickedProducts(
   rows.forEach((r, i) => {
     if (r.status !== 'fulfilled' || !r.value || typeof r.value !== 'object') return;
     const row = r.value as PickedSourceRow & { currency?: unknown };
-    const product = toPickedProduct(row, all[i], opts.locale, opts.locale, typeof row.currency === 'string' ? row.currency : undefined);
+    const product = toPickedProduct(row, all[i], opts.locale, opts.fallbackLocale ?? opts.locale, typeof row.currency === 'string' ? row.currency : undefined);
     if (product) bySlug[all[i]] = product;
   });
   const out: Record<string, PickedPreload> = {};
@@ -170,6 +170,9 @@ export async function preloadSectionData(
   sections: SectionInstance[],
   opts: {
     locale: string;
+    /** Locale a picked product's link slug falls back to without its own
+     *  (`productLinkFallbackLocale`: market default, else primary; M163). */
+    fallbackLocale?: string;
     marketRef?: MarketRef;
     /** The store's card settings (`readProductCard`): the lists then carry the card fields, as the sections ask. */
     card?: ProductCardSettings | null;

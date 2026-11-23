@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { storefront, resolveMediaUrl } from '@/lib/api';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
-import { productAlternates, productPathByLocale } from '@/lib/productPaths';
+import { productAlternates, productLinkFallbackLocale, productPathByLocale } from '@/lib/productPaths';
 import { buildProductJsonLd, shippingRateCountries, type ProductShippingRates } from '@/lib/productJsonLd';
 import { organizationId, storeBrandName } from '@/lib/storeBrand';
 import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
@@ -349,6 +349,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale,
+      // Picked products link the canonical slug of this locale (M163).
+      fallbackLocale: productLinkFallbackLocale(storeData?.language_config?.primary_locale, storeData?.market),
       marketRef: marketKey,
       // Product rows of the template carry the card fields when the store has card settings.
       card: readProductCard((storeData as { theme_customizations?: unknown } | null | undefined)?.theme_customizations),

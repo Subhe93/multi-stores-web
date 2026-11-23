@@ -23,7 +23,8 @@ import { isSvgSrc } from '@/lib/storeMedia';
 import { CollapsibleHtml } from '@/components/common/CollapsibleHtml';
 import { stripHtmlToText } from '@/lib/collectionSeo';
 import { collectionHref, collectionPathInChain } from '@/lib/collectionPath';
-import { isUsableSlug } from '@/lib/slugRoute';
+import { productLinkFallbackLocale, productLinkSlug } from '@/lib/productPaths';
+import { useMarket } from '@/hooks/useMarket';
 import { useListingPages } from '@/hooks/useListingPages';
 import { ListingExplorer } from '@/components/listing/explorer/ListingExplorer.client';
 import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
@@ -49,10 +50,12 @@ const HERO_HEIGHTS: readonly HeroHeight[] = ['sm', 'md', 'lg'];
 const LONG_DESCRIPTION_CLASS =
   'prose prose-zinc max-w-none leading-relaxed wrap-break-word [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:overflow-x-auto';
 
-// Product links use a translation with a *usable* slug (`isUsableSlug`).
-// Secondary-locale translations sometimes have a degenerate slug (empty, or a
-// stray "-" when slugifying a non-Latin title strips everything) — those
-// would resolve to a 404. A letter or digit in any script is required.
+// Product links use a translation with a *usable* slug (`isUsableSlug`, via
+// `productLinkSlug`). Secondary-locale translations sometimes have a degenerate
+// slug (empty, or a stray "-" when slugifying a non-Latin title strips
+// everything) — those would resolve to a 404. A letter or digit in any script
+// is required. Without a slug in the locale the link takes the market default
+// (else primary) locale's slug, like the canonical (M163).
 
 function pickCollectionTranslation(translations: ListingCollection['translations'] | undefined, locale: string) {
   if (!translations?.length) return undefined;
@@ -94,6 +97,7 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
   const gridRef = useRef<HTMLDivElement>(null);
   // Link prefix of the request (M156 locale paths), else `/<locale>`.
   const lp = useStorePathPrefix(locale, primaryLocale);
+  const linkFallbackLocale = productLinkFallbackLocale(primaryLocale, useMarket());
 
   // No listing in context (e.g. builder preview before data loads, or a
   // collection preview on a store with no collections) — show a recognisable
@@ -376,16 +380,14 @@ export function ProductListingMagic({ settings, content, locale, primaryLocale, 
           product.translations.find((tr) => tr.locale === locale) ||
           product.translations.find((tr) => tr.locale === 'en') ||
           product.translations[0];
-        const slugTr =
-          product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
-          product.translations.find((tr) => isUsableSlug(tr.slug));
+        const linkSlug = productLinkSlug(product.translations, locale, linkFallbackLocale) || product.id;
         return (
           <StoreProductCard
             key={product.id}
             card={product.card}
             productId={product.id}
-            productSlug={slugTr?.slug || product.id}
-            href={`${lp}/products/${slugTr?.slug || product.id}`}
+            productSlug={linkSlug}
+            href={`${lp}/products/${linkSlug}`}
             title={translation?.title || 'Untitled'}
             price={Number(product.base_price)}
             taxRateBp={product.tax_rate_bp}

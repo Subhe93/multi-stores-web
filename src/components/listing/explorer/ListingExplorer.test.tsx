@@ -53,6 +53,7 @@ function init(over: Partial<ExplorerInit> = {}): ExplorerInit {
     storeSlug: 'shop',
     locale: 'en',
     lp: '',
+    fallbackLocale: 'en',
     basePath: '/products',
     kind: 'catalog',
     currency: 'SEK',

@@ -12,7 +12,7 @@ import { ListingLoadMore } from '@/components/listing/ListingLoadMore';
 import { useListingPages } from '@/hooks/useListingPages';
 import { resolveMediaUrl } from '@/lib/api';
 import type { ListingPagination } from '@/lib/listingPaging';
-import { isUsableSlug } from '@/lib/slugRoute';
+import { productLinkSlug } from '@/lib/productPaths';
 import type { ListingProduct } from '@/themes/types';
 import { stagger, type MotionProp } from '@/themes/creative/recipes';
 
@@ -33,6 +33,7 @@ export function ListingPagedGrid({
   initial,
   pagination,
   locale,
+  fallbackLocale,
   lp,
   currency,
   gridClassName,
@@ -45,6 +46,9 @@ export function ListingPagedGrid({
   initial: ListingProduct[];
   pagination: ListingPagination;
   locale: string;
+  /** Locale a product link falls back to without its own slug
+   *  (`productLinkFallbackLocale`: market default, else primary; M163). */
+  fallbackLocale: string;
   /** Secondary-locale path prefix ('' for the primary locale). */
   lp: string;
   currency?: string;
@@ -66,16 +70,14 @@ export function ListingPagedGrid({
             product.translations.find((tr) => tr.locale === locale) ||
             product.translations.find((tr) => tr.locale === 'en') ||
             product.translations[0];
-          const slugTr =
-            product.translations.find((tr) => tr.locale === locale && isUsableSlug(tr.slug)) ||
-            product.translations.find((tr) => isUsableSlug(tr.slug));
+          const linkSlug = productLinkSlug(product.translations, locale, fallbackLocale) || product.id;
           return (
             <StoreProductCard
               key={product.id}
               card={product.card}
               productId={product.id}
-              productSlug={slugTr?.slug || product.id}
-              href={`${lp}/products/${slugTr?.slug || product.id}`}
+              productSlug={linkSlug}
+              href={`${lp}/products/${linkSlug}`}
               title={translation?.title || 'Untitled'}
               price={Number(product.base_price)}
               taxRateBp={product.tax_rate_bp}

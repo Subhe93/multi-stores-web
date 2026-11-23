@@ -25,6 +25,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { sectionHref } from '../../minimal/sections/_shared/links';
+import { pickedHref } from '../data/pickedProducts';
 import type { ProductContext, SectionDefinition, SectionRenderProps } from '../../types';
 import { OBJECT_STUDY_CSS } from '../css/objectStudy.css';
 import { isArabicScript } from '../emphasis';
@@ -39,6 +40,8 @@ import { leaderStrokes, percent, placeNotes, type LeaderStroke, type PlacedNote 
 
 interface LiveProduct {
   title: string;
+  /** Canonical path of the rendered locale (M163); absent for the page's own product. */
+  url?: string;
   image?: string;
   price?: number;
   compareAt?: number;
@@ -178,7 +181,8 @@ function ObjectStudy({
   const productUrl = str(settings.product_url);
   // A linked product wins; with no link, a product template shows its own product.
   const live = productUrl ? picked(preloaded, productUrl) : fromPageProduct(product, locale, primaryLocale);
-  const href = productUrl ? sectionHref(productUrl, { locale, primaryLocale, pathPrefix }) : null;
+  // The live product's canonical path of this locale (M163), else the owner URL.
+  const href = productUrl ? sectionHref(pickedHref(productUrl, live), { locale, primaryLocale, pathPrefix }) : null;
 
   // Root-relative uploads go through the media origin (data: and absolute URLs stay as they are).
   const image = resolveMediaUrl(str(settings.image) || str(live?.image));
