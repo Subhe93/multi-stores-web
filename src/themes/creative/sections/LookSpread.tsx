@@ -24,15 +24,15 @@ import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { sectionHref } from '../../minimal/sections/_shared/links';
-import { pickedHref } from '../data/pickedProducts';
+import { picked as sharedPicked, pickedHref } from '../data/pickedProducts';
 import { LOOK_SPREAD_CSS } from '../css/lookSpread.css';
 import { CxSection, EmptyState, MotionMedia, MotionText } from '../primitives';
 import { drift, fade, hover, item, line, rise, stagger, type MotionProp } from '../recipes';
 import { entry, LOOK_SPREAD_MAX_ITEMS } from '../schemas/look-spread.schema';
 
 // ── Live product data (contract of spec 1.1) ────────────────────────────
-// TODO(integrator): replace with the shared reader of data/pickedProducts.ts
-// once it exists; the shapes below are the ones that module exports.
+// Read through the shared reader of data/pickedProducts.ts (M165: typed
+// slugs and product references).
 
 type PickedProduct = {
   slug: string;
@@ -45,23 +45,12 @@ type PickedProduct = {
   available?: boolean;
 };
 
-/** `/products/<slug>` with an optional locale prefix, query or hash; anything else is null. */
-export function productSlugFromUrl(url: unknown): string | null {
-  if (typeof url !== 'string') return null;
-  const path = url.trim().split(/[?#]/)[0];
-  const m = /^\/(?:[a-z]{2}\/)?products\/([A-Za-z0-9][A-Za-z0-9_-]*)\/?$/.exec(path);
-  return m ? m[1] : null;
-}
+// Kept as a re-export for the section tests (shared reader since M165).
+export { productSlugFromUrl } from '../data/pickedProducts';
 
+/** Preloaded product of a pick value (typed url or `product:<id>` reference). */
 function picked(preloaded: unknown, url: unknown): PickedProduct | null {
-  const slug = productSlugFromUrl(url);
-  if (!slug || !preloaded || typeof preloaded !== 'object') return null;
-  const products = (preloaded as { products?: unknown }).products;
-  if (!products || typeof products !== 'object') return null;
-  const hit = (products as Record<string, unknown>)[slug];
-  if (!hit || typeof hit !== 'object') return null;
-  const p = hit as PickedProduct;
-  return typeof p.title === 'string' ? p : null;
+  return sharedPicked(preloaded, url);
 }
 
 // ── Reading the owner's values ──────────────────────────────────────────

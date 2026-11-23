@@ -255,11 +255,14 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   if (publishedHome?.snapshot?.sections?.length) {
     const theme = resolveTheme(store.theme_key);
     const primaryLocale = store.language_config?.primary_locale || 'en';
-    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
-    const homeSections = await (await productLinkRewriter(storeSlug, store, locale)).sections(publishedHome.snapshot.sections);
+    // M165 product references (every store) + M164 owner-typed product links
+    // (market stores only) -> canonical URL of this locale.
+    const productLinks = await productLinkRewriter(storeSlug, store, locale);
+    const homeSections = await productLinks.sections(publishedHome.snapshot.sections);
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, homeSections, {
       locale,
+      refSlug: productLinks.refSlug,
       fallbackLocale: linkFallbackLocale,
       marketRef: marketKey,
       card: cardSettings,

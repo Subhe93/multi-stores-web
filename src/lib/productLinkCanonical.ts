@@ -21,14 +21,33 @@ import { marketPublicHostname, storeHref } from './storeUrl';
 import { normalizeSlugForLookup } from '@multi-stores/core/slug';
 import { PICKED_SECTION_KEYS, productSlugFromUrl } from '@/themes/creative/data/pickedProducts';
 
-/** One product of `GET /storefront/:slug/sitemap-data?market=` (M161). */
+/** One product of `GET /storefront/:slug/sitemap-data?market=` (M161; `id` since M165). */
 export interface SitemapProductEntry {
+  id?: string | null;
   slug?: string | null;
   slugs?: Record<string, string> | null;
 }
 
 /** Lookup slug -> every translation slug of the one product that owns it. */
 export type ProductSlugIndex = Map<string, ProductSlugTranslation[]>;
+
+/** Product id (lowercase) -> its translations (every locale with a slug), M165. */
+export type ProductIdIndex = Map<string, ProductSlugTranslation[]>;
+
+/**
+ * Id index of the sitemap products (M165 link references). Entries without
+ * an id are skipped; without `slugs` (older API) the single `slug` is kept
+ * as a translation without a locale, so the link still resolves.
+ */
+export function buildProductIdIndex(products: readonly SitemapProductEntry[] | null | undefined): ProductIdIndex {
+  const index: ProductIdIndex = new Map();
+  for (const p of products ?? []) {
+    if (typeof p.id !== 'string' || !p.id) continue;
+    const translations = p.slugs && Object.keys(p.slugs).length > 0 ? slugRecordToTranslations(p.slugs) : p.slug ? [{ locale: null, slug: p.slug }] : [];
+    index.set(p.id.toLowerCase(), translations);
+  }
+  return index;
+}
 
 export interface ProductLinkContext {
   /** Locale of the rendered page. */

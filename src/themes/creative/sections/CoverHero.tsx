@@ -26,7 +26,7 @@ import { StoreImage } from '@/components/StoreImage';
 import type { SectionDefinition, SectionRenderProps } from '../../types';
 import { headingLines, headingOneLine } from '../../minimal/sections/_shared/headingLines';
 import { sectionHref } from '../../minimal/sections/_shared/links';
-import { pickedHref } from '../data/pickedProducts';
+import { picked as sharedPicked, pickedHref } from '../data/pickedProducts';
 import { COVER_HERO_CSS } from '../css/coverHero.css';
 import { isArabicScript } from '../emphasis';
 import { CxSection } from '../primitives/CxSection';
@@ -83,9 +83,8 @@ export function coverFocus(x: unknown, y: unknown): string {
 }
 
 // ── Live product of the caption ─────────────────────────────────────────
-// TODO(integrator): replace with the shared reader of data/pickedProducts.ts
-// (BRAND-SECTIONS-SPEC 1.1) once it exists; the shape read here is its
-// PickedPreload ({ products: Record<slug, PickedProduct> }).
+// Read through the shared reader of data/pickedProducts.ts (M165: typed
+// slugs and product references).
 
 interface PickedProduct {
   title?: unknown;
@@ -108,11 +107,9 @@ export function coverProductSlug(url: unknown): string | null {
   }
 }
 
+/** Preloaded product of a pick value (typed url or `product:<id>` reference). */
 function picked(preloaded: unknown, url: unknown): PickedProduct | null {
-  const slug = coverProductSlug(url);
-  if (!slug || !isRecord(preloaded) || !isRecord(preloaded.products)) return null;
-  const hit = preloaded.products[slug];
-  return isRecord(hit) ? hit : null;
+  return sharedPicked(preloaded, url);
 }
 
 // ── Colours ─────────────────────────────────────────────────────────────

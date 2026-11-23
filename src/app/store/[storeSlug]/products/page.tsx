@@ -323,13 +323,14 @@ export default async function StoreProductsPage({ params, searchParams }: StoreP
   // SEO output (JSON-LD) is identical in both branches.
   if (template?.snapshot?.sections && template.snapshot.sections.length > 0) {
     const tplLocale = lang || ldPrimary;
-    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
-    const templateSections = await (await productLinkRewriter(storeSlug, storeData, tplLocale)).sections(
-      template.snapshot.sections,
-    );
+    // M165 product references (every store) + M164 owner-typed product links
+    // (market stores only) -> canonical URL of this locale.
+    const productLinks = await productLinkRewriter(storeSlug, storeData, tplLocale);
+    const templateSections = await productLinks.sections(template.snapshot.sections);
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale: tplLocale,
+      refSlug: productLinks.refSlug,
       fallbackLocale: linkFallbackLocale,
       marketRef: marketKey,
       card: cardSettings,

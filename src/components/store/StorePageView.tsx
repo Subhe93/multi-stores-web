@@ -307,11 +307,14 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
   if (rendersV2(v2)) {
     const theme = resolveTheme(store?.theme_key);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
-    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
-    const pageSections = await (await productLinkRewriter(storeSlug, store, locale)).sections(v2.snapshot.sections);
+    // M165 product references (every store) + M164 owner-typed product links
+    // (market stores only) -> canonical URL of this locale.
+    const productLinks = await productLinkRewriter(storeSlug, store, locale);
+    const pageSections = await productLinks.sections(v2.snapshot.sections);
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, pageSections, {
       locale,
+      refSlug: productLinks.refSlug,
       // Picked products link the canonical slug of this locale (M163).
       fallbackLocale: productLinkFallbackLocale(store?.language_config?.primary_locale, store?.market),
       marketRef: await getRequestMarket(),
@@ -366,8 +369,13 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
     legacy.translations[0];
   if (!translation) notFound();
   // M164: product links of the legacy HTML -> canonical URL (market stores only).
+  // M165: resolved `product:<id>` references get the request prefix (this
+  // HTML is not localized by a renderer afterwards).
   const legacyHtml = translation.content
-    ? await (await productLinkRewriter(storeSlug, store, locale)).html(translation.content)
+    ? await (await productLinkRewriter(storeSlug, store, locale)).html(
+        translation.content,
+        linkPrefix({ locale, primaryLocale: legacyPrimary, pathPrefix }),
+      )
     : translation.content;
 
   return (

@@ -1,6 +1,7 @@
 import type { MarketIndexing, MarketLocalePath } from './market';
 import { linkPrefix, localePathPrefix, marketUrlSlots, usesLocalePaths, type LinkScope, type PathMarket } from './localePaths';
 import { encodeUrlPath } from './slugRoute';
+import { isStoreLinkRef } from '@multi-stores/core/link-ref';
 import { platformHosts } from './platformHosts';
 import { isReviewLocale, publicLocales } from './storeLocales';
 
@@ -133,6 +134,10 @@ export function storeHref(raw: string): string {
  */
 export function localizeStoreUrl(rawUrl: string | undefined, lp: string, locale: string): string {
   if (!rawUrl) return '#';
+  // M165 safety net: a `product:<id>` (or reserved `collection:` / `page:`)
+  // reference the server did not resolve (builder preview, a renderer that
+  // skipped the link rewriter) becomes the product list, never a raw href.
+  if (isStoreLinkRef(rawUrl)) return `${lp}/products`;
   // An absolute platform URL becomes a same-host path first (see storeHref).
   const url = storeHref(rawUrl);
   if (!url.startsWith('/') || url.startsWith('//')) return url;

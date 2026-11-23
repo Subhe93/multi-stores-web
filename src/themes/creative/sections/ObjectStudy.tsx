@@ -25,7 +25,7 @@ import { resolveMediaUrl } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { isSvgSrc } from '@/lib/storeMedia';
 import { sectionHref } from '../../minimal/sections/_shared/links';
-import { pickedHref } from '../data/pickedProducts';
+import { picked as sharedPicked, pickedHref } from '../data/pickedProducts';
 import type { ProductContext, SectionDefinition, SectionRenderProps } from '../../types';
 import { OBJECT_STUDY_CSS } from '../css/objectStudy.css';
 import { isArabicScript } from '../emphasis';
@@ -35,8 +35,8 @@ import { entry, OBJECT_STUDY_MAX_NOTES } from '../schemas/object-study.schema';
 import { leaderStrokes, percent, placeNotes, type LeaderStroke, type PlacedNote } from './objectStudyGeometry';
 
 // ── Live product data (contract of spec 1.1) ────────────────────────────
-// TODO(integrator): replace with the shared reader of data/pickedProducts.ts
-// once it exists; the shape below is the one that module exports.
+// Read through the shared reader of data/pickedProducts.ts (M165: typed
+// slugs and product references).
 
 interface LiveProduct {
   title: string;
@@ -49,23 +49,12 @@ interface LiveProduct {
   available?: boolean;
 }
 
-/** `/products/<slug>` with an optional locale prefix, query or hash; anything else is null. */
-export function productSlugFromUrl(url: unknown): string | null {
-  if (typeof url !== 'string') return null;
-  const path = url.trim().split(/[?#]/)[0];
-  const m = /^\/(?:[a-z]{2}\/)?products\/([A-Za-z0-9][A-Za-z0-9_-]*)\/?$/.exec(path);
-  return m ? m[1] : null;
-}
+// Kept as a re-export for the section tests (shared reader since M165).
+export { productSlugFromUrl } from '../data/pickedProducts';
 
+/** Preloaded product of a pick value (typed url or `product:<id>` reference). */
 function picked(preloaded: unknown, url: unknown): LiveProduct | null {
-  const slug = productSlugFromUrl(url);
-  if (!slug || !preloaded || typeof preloaded !== 'object') return null;
-  const products = (preloaded as { products?: unknown }).products;
-  if (!products || typeof products !== 'object') return null;
-  const hit = (products as Record<string, unknown>)[slug];
-  if (!hit || typeof hit !== 'object') return null;
-  const p = hit as LiveProduct;
-  return typeof p.title === 'string' ? p : null;
+  return sharedPicked(preloaded, url);
 }
 
 /** The product of a product template page, in the same shape. */

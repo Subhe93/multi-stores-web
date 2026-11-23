@@ -353,17 +353,20 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   }
 
   const publishedSections = template?.snapshot?.sections;
-  // M164: owner-typed product links -> canonical URL of this locale (market
-  // stores only; focused storefronts keep their links as typed).
+  // M165 product references (every store, focused ones too) + M164
+  // owner-typed product links (market stores only; focused storefronts keep
+  // typed links as typed) -> canonical URL of this locale.
+  const productLinks = await productLinkRewriter(storeSlug, storeData, locale);
   const templateSections =
     focus && publishedSections
-      ? focusedProductSections(publishedSections)
-      : await (await productLinkRewriter(storeSlug, storeData, locale)).sections(publishedSections);
+      ? await productLinks.refs(focusedProductSections(publishedSections))
+      : await productLinks.sections(publishedSections);
   if (templateSections && templateSections.length > 0) {
     const theme = resolveTheme(storeData?.theme_key);
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale,
+      refSlug: productLinks.refSlug,
       // Picked products link the canonical slug of this locale (M163).
       fallbackLocale: productLinkFallbackLocale(storeData?.language_config?.primary_locale, storeData?.market),
       marketRef: marketKey,

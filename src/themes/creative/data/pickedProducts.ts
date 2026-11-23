@@ -7,8 +7,17 @@
 // `url` of a picked product is the canonical path of the rendered locale
 // (`productLinkPath`, M163), not the slug the owner typed: a German page
 // links the German slug even when the owner pasted the Swedish one.
+//
+// M165: a pick field can also hold a product reference (`product:<id>`,
+// written by the dashboard product picker). Its preload key is the reference
+// itself (`pickKeyFromUrl`), and the preload finds the product by id, so
+// non-ASCII slugs work there too.
 
+import { isStoreLinkRef, parseStoreLinkRef } from '@multi-stores/core/link-ref';
 import { productLinkPath } from '@/lib/productPaths';
+
+/** Rendered href of a product reference the server could not resolve. */
+export const PRODUCT_REF_FALLBACK = '/products';
 
 export type PickedProduct = {
   slug: string;
@@ -26,6 +35,24 @@ export type PickedPreload = { products: Record<string, PickedProduct> };
 export const PICKED_SECTION_KEYS = ['cover-hero', 'look-spread', 'object-study'] as const;
 export const PICKED_MAX_SLUGS = 8;
 
+type PickedSectionKey = (typeof PICKED_SECTION_KEYS)[number];
+
+/**
+ * The pick fields per section: a `settings` key, or the `items[]` key of the
+ * look-spread rows (content first, then settings). Single source for the
+ * preload keys and for the server link resolver, which leaves these fields
+ * as references so the preload can key on them.
+ */
+export const PICKED_FIELDS: Record<PickedSectionKey, { settings?: string; itemsUrl?: string }> = {
+  'cover-hero': { settings: 'detail_url' },
+  'object-study': { settings: 'product_url' },
+  'look-spread': { itemsUrl: 'url' },
+};
+
+export function isPickedSectionKey(key: unknown): key is PickedSectionKey {
+  return typeof key === 'string' && (PICKED_SECTION_KEYS as readonly string[]).includes(key);
+}
+
 /** `/products/<slug>` with an optional locale prefix, query or hash; anything else is null. */
 export function productSlugFromUrl(url: unknown): string | null {
   if (typeof url !== 'string') return null;
@@ -34,29 +61,56 @@ export function productSlugFromUrl(url: unknown): string | null {
   return m ? m[1] : null;
 }
 
-/** Product slugs a section links to (its known url fields), at most eight. */
-export function pickedSlugs(sectionKey: string, settings: unknown, content: unknown): string[] {
+/**
+ * Preload key of a pick value: the slug of a typed `/products/<slug>` url
+ * (`productSlugFromUrl`), or `product:<id>` (lowercase id, tail dropped) for
+ * a product reference; null otherwise.
+ */
+export function pickKeyFromUrl(url: unknown): string | null {
+  const ref = parseStoreLinkRef(url);
+  if (ref) return `product:${ref.id}`;
+  return productSlugFromUrl(url);
+}
+
+/** Product id of a reference preload key, or null for a slug key. */
+export function pickKeyProductId(key: string): string | null {
+  return key.startsWith('product:') ? key.slice('product:'.length) : null;
+}
+
+/** Raw pick values of a section (its known url fields). */
+export function pickedUrls(sectionKey: string, settings: unknown, content: unknown): unknown[] {
+  if (!isPickedSectionKey(sectionKey)) return [];
+  const fields = PICKED_FIELDS[sectionKey];
   const s = (settings && typeof settings === 'object' ? settings : {}) as Record<string, unknown>;
   const c = (content && typeof content === 'object' ? content : {}) as Record<string, unknown>;
   const urls: unknown[] = [];
-  if (sectionKey === 'cover-hero') urls.push(s.detail_url);
-  else if (sectionKey === 'object-study') urls.push(s.product_url);
-  else if (sectionKey === 'look-spread') {
+  if (fields.settings) urls.push(s[fields.settings]);
+  if (fields.itemsUrl) {
     const items = Array.isArray(c.items) ? c.items : Array.isArray(s.items) ? s.items : [];
-    for (const row of items) if (row && typeof row === 'object') urls.push((row as Record<string, unknown>).url);
+    for (const row of items) if (row && typeof row === 'object') urls.push((row as Record<string, unknown>)[fields.itemsUrl]);
   }
+  return urls;
+}
+
+/** Preload keys (typed slugs and product references) a section links to, at most eight. */
+export function pickedKeys(sectionKey: string, settings: unknown, content: unknown): string[] {
   const out: string[] = [];
-  for (const url of urls) {
-    const slug = productSlugFromUrl(url);
-    if (slug && !out.includes(slug)) out.push(slug);
+  for (const url of pickedUrls(sectionKey, settings, content)) {
+    const key = pickKeyFromUrl(url);
+    if (key && !out.includes(key)) out.push(key);
     if (out.length >= PICKED_MAX_SLUGS) break;
   }
   return out;
 }
 
-/** The preloaded product a url points to, or null. */
+/** Typed product slugs only (the pre-M165 reader). */
+export function pickedSlugs(sectionKey: string, settings: unknown, content: unknown): string[] {
+  return pickedKeys(sectionKey, settings, content).filter((k) => !pickKeyProductId(k));
+}
+
+/** The preloaded product a url (typed or reference) points to, or null. */
 export function picked(preloaded: unknown, url: unknown): PickedProduct | null {
-  const slug = productSlugFromUrl(url);
+  const slug = pickKeyFromUrl(url);
   if (!slug || !preloaded || typeof preloaded !== 'object') return null;
   const products = (preloaded as { products?: unknown }).products;
   if (!products || typeof products !== 'object') return null;
@@ -135,10 +189,12 @@ export function toPickedProduct(
  * (`live.url`) plus the owner's `?query` / `#hash`, else the owner URL as
  * typed (the product was not preloaded). An owner-typed locale prefix is
  * dropped on purpose: the caller's `sectionHref` adds the current one.
+ * A reference that was not preloaded (deleted, unpublished, hidden in the
+ * market) links to the product list, never to a raw `product:` href.
  */
 export function pickedHref(ownerUrl: string, live: { url?: unknown } | null | undefined): string {
   const path = live && typeof live.url === 'string' ? live.url : '';
-  if (!path.startsWith('/products/')) return ownerUrl;
+  if (!path.startsWith('/products/')) return isStoreLinkRef(ownerUrl) ? PRODUCT_REF_FALLBACK : ownerUrl;
   const tail = /[?#].*$/.exec(ownerUrl.trim());
   return tail ? `${path}${tail[0]}` : path;
 }

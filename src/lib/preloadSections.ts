@@ -18,8 +18,10 @@ import type { MarketRef } from './market';
 import { cardQuery, type ProductCardSettings } from './productCard/settings';
 import type { SectionInstance } from '@/themes/types';
 import {
+  PICKED_MAX_SLUGS,
   PICKED_SECTION_KEYS,
-  pickedSlugs,
+  pickedKeys,
+  pickKeyProductId,
   toPickedProduct,
   type PickedPreload,
   type PickedProduct,
@@ -113,26 +115,33 @@ function sectionProductsRequest(s: SectionInstance, locale: string): { params: R
   return null;
 }
 
-/** Product slugs a brand section (cover-hero, look-spread, object-study) links to, over all its locales. */
+/**
+ * Preload keys a brand section (cover-hero, look-spread, object-study) links
+ * to, over all its locales: typed slugs and `product:<id>` references (M165),
+ * at most PICKED_MAX_SLUGS together.
+ */
 function sectionPickedSlugs(s: SectionInstance): string[] {
   if (!(PICKED_SECTION_KEYS as readonly string[]).includes(s.section_key)) return [];
-  const out = pickedSlugs(s.section_key, s.settings || {}, {});
+  const out = pickedKeys(s.section_key, s.settings || {}, {});
   for (const tr of s.translations || []) {
-    for (const slug of pickedSlugs(s.section_key, s.settings || {}, tr.content || {})) {
-      if (!out.includes(slug)) out.push(slug);
+    for (const key of pickedKeys(s.section_key, s.settings || {}, tr.content || {})) {
+      if (!out.includes(key)) out.push(key);
     }
   }
-  return out.slice(0, 8);
+  return out.slice(0, PICKED_MAX_SLUGS);
 }
 
 /**
- * Live products of the brand sections: one request per distinct slug, in
- * parallel, failures dropped. Returns `{ [section.id]: PickedPreload }`.
+ * Live products of the brand sections: one request per distinct key, in
+ * parallel, failures dropped. A reference key is fetched by a slug of its
+ * product (`refSlug`, from the id map of the link rewriter); without one the
+ * key is dropped (no card, the link falls back). Returns
+ * `{ [section.id]: PickedPreload }`.
  */
 async function preloadPickedProducts(
   storeSlug: string,
   sections: SectionInstance[],
-  opts: { locale: string; fallbackLocale?: string; marketRef?: MarketRef },
+  opts: { locale: string; fallbackLocale?: string; marketRef?: MarketRef; refSlug?: (id: string) => Promise<string | null> },
 ): Promise<Record<string, PickedPreload>> {
   const wanted = sections.flatMap((s) => {
     if (s.is_hidden) return [];
@@ -141,14 +150,31 @@ async function preloadPickedProducts(
   });
   if (wanted.length === 0) return {};
   const all = [...new Set(wanted.flatMap((w) => w.slugs))];
+  const fetchSlugs = await Promise.all(
+    all.map(async (key) => {
+      const id = pickKeyProductId(key);
+      if (!id) return key;
+      if (!opts.refSlug) return null;
+      try {
+        return await opts.refSlug(id);
+      } catch {
+        return null;
+      }
+    }),
+  );
   const rows = await Promise.allSettled(
-    all.map((slug) => storefront.getProduct(storeSlug, slug, opts.locale, opts.marketRef) as Promise<unknown>),
+    all.map((_key, i) => {
+      const slug = fetchSlugs[i];
+      return slug ? (storefront.getProduct(storeSlug, slug, opts.locale, opts.marketRef) as Promise<unknown>) : Promise.resolve(null);
+    }),
   );
   const bySlug: Record<string, PickedProduct> = {};
   rows.forEach((r, i) => {
     if (r.status !== 'fulfilled' || !r.value || typeof r.value !== 'object') return;
     const row = r.value as PickedSourceRow & { currency?: unknown };
-    const product = toPickedProduct(row, all[i], opts.locale, opts.fallbackLocale ?? opts.locale, typeof row.currency === 'string' ? row.currency : undefined);
+    // The owner slug (or, for a reference, the fetched slug) is the link of
+    // last resort; the preload key stays the map key.
+    const product = toPickedProduct(row, fetchSlugs[i] ?? all[i], opts.locale, opts.fallbackLocale ?? opts.locale, typeof row.currency === 'string' ? row.currency : undefined);
     if (product) bySlug[all[i]] = product;
   });
   const out: Record<string, PickedPreload> = {};
@@ -174,6 +200,8 @@ export async function preloadSectionData(
      *  (`productLinkFallbackLocale`: market default, else primary; M163). */
     fallbackLocale?: string;
     marketRef?: MarketRef;
+    /** Slug of a referenced product (`productLinkRewriter(...).refSlug`, M165). */
+    refSlug?: (id: string) => Promise<string | null>;
     /** The store's card settings (`readProductCard`): the lists then carry the card fields, as the sections ask. */
     card?: ProductCardSettings | null;
   },

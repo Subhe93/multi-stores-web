@@ -39,3 +39,21 @@ describe('sectionHtml', () => {
     expect(sectionHtml(undefined, DE_AT)).toBe('');
   });
 });
+
+// M165 safety net: an unresolved product reference never reaches the browser.
+describe('product references (unresolved)', () => {
+  const REF = 'product:0f8b2c4e-1a2b-4c3d-8e9f-a0b1c2d3e4f5';
+  it('sectionHref maps a reference to the prefixed product list', () => {
+    expect(sectionHref(REF, DE_AT)).toBe('/de-at/products');
+    expect(sectionHref(REF, ROOT)).toBe('/products');
+    expect(sectionHref(`collection:${REF.slice(8)}`, LEGACY_AR)).toBe('/ar/products');
+  });
+  it('sectionHtml maps reference hrefs; external, mailto and tel unchanged', () => {
+    const html = `<a href="${REF}">a</a> <a href='mailto:x@y.se'>m</a> <a href="tel:1">t</a> <a href="https://x.se">e</a>`;
+    expect(sectionHtml(html, DE_AT)).toBe(
+      `<a href="/de-at/products">a</a> <a href='mailto:x@y.se'>m</a> <a href="tel:1">t</a> <a href="https://x.se">e</a>`,
+    );
+    expect(sectionHtml(`<a href="${REF}">a</a>`, ROOT)).toBe('<a href="/products">a</a>');
+    expect(sectionHtml('<a href="product:abc">a</a>', ROOT)).toBe('<a href="product:abc">a</a>');
+  });
+});

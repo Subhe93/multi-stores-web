@@ -70,3 +70,20 @@ describe('store sitemap.xml legal pages', () => {
     expect(xml).not.toContain('Invalid');
   });
 });
+
+// M165: the API now sends `id` and `slugs` on every product, also without a
+// market. The legacy (no-market) XML reads `slug` only, so it is unchanged.
+describe('store sitemap.xml with M165 product fields', () => {
+  it('is byte-identical when products carry id and slugs', async () => {
+    const before = await sitemapXml();
+    const original = sitemapData.products;
+    sitemapData.products = [
+      { id: '0f8b2c4e-1a2b-4c3d-8e9f-a0b1c2d3e4f5', slug: 'tröja', slugs: { sv: 'tröja', ar: 'قميص' }, lastmod: '2026-10-01T00:00:00.000Z' },
+    ] as unknown as typeof original;
+    try {
+      expect(await sitemapXml()).toBe(before);
+    } finally {
+      sitemapData.products = original;
+    }
+  });
+});

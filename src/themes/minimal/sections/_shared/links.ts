@@ -1,3 +1,4 @@
+import { isStoreLinkRef } from '@multi-stores/core/link-ref';
 import { localizeStoreUrl, storeLocalePrefix } from '@/lib/storeUrl';
 import type { LinkScope } from '@/lib/localePaths';
 
@@ -22,12 +23,19 @@ export function sectionHref(raw: unknown, scope: LinkScope): string {
  * `href="/…"` gets the same link prefix as `sectionHref`, so a visitor on
  * `/de-at` (or `/ar`) stays there when following a link in the text.
  * External, protocol-relative, hash-only and mailto/tel links are untouched.
+ * An unresolved `product:<id>` reference (M165 safety net) becomes the
+ * prefixed product list.
  */
 export function sectionHtml(html: string | undefined | null, scope: LinkScope): string {
   if (!html) return '';
   const prefix = storeLocalePrefix(scope);
-  if (!prefix) return html;
-  return html.replace(
+  const out = /\shref\s*=\s*["']\s*(product|collection|page):/i.test(html)
+    ? html.replace(/(\shref\s*=\s*)(["'])([^"']*)\2/gi, (whole, attr: string, quote: string, url: string) =>
+        isStoreLinkRef(url) ? `${attr}${quote}/products${quote}` : whole,
+      )
+    : html;
+  if (!prefix) return out;
+  return out.replace(
     /(\shref\s*=\s*)(["'])(\/(?!\/)[^"']*)\2/gi,
     (_m, attr: string, quote: string, url: string) =>
       `${attr}${quote}${localizeStoreUrl(url, prefix, scope.locale)}${quote}`,

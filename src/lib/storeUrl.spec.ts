@@ -442,3 +442,12 @@ describe('storeLocalePrefix', () => {
     expect(storeLocalePrefix({ locale: 'ar', primaryLocale: 'sv' })).toBe('/ar');
   });
 });
+
+describe('localizeStoreUrl: product references (M165 safety net)', () => {
+  const REF = 'product:0f8b2c4e-1a2b-4c3d-8e9f-a0b1c2d3e4f5';
+  it('an unresolved reference becomes the prefixed product list', () => {
+    expect(localizeStoreUrl(REF, '/de-de', 'de')).toBe('/de-de/products');
+    expect(localizeStoreUrl(`${REF}#x`, '', 'sv')).toBe('/products');
+    expect(localizeStoreUrl('mailto:a@b.se', '/de-de', 'de')).toBe('mailto:a@b.se');
+  });
+});
