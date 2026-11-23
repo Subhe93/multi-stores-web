@@ -15,6 +15,7 @@ import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { MotionText } from '@/themes/creative/primitives/Motion';
 import { hover, item, stagger, surface, type MotionProp } from '@/themes/creative/recipes';
+import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { SectionInstance, ThemeCustomizations } from '@/themes/types';
 import { buildStoreOrigin, buildStoreAlternates } from '@/lib/storeUrl';
@@ -254,8 +255,10 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
   if (publishedHome?.snapshot?.sections?.length) {
     const theme = resolveTheme(store.theme_key);
     const primaryLocale = store.language_config?.primary_locale || 'en';
+    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
+    const homeSections = await (await productLinkRewriter(storeSlug, store, locale)).sections(publishedHome.snapshot.sections);
     // M6.4: collection-products sections render their list from the server.
-    const preloaded = await preloadSectionData(storeSlug, publishedHome.snapshot.sections, {
+    const preloaded = await preloadSectionData(storeSlug, homeSections, {
       locale,
       fallbackLocale: linkFallbackLocale,
       marketRef: marketKey,
@@ -266,7 +269,7 @@ export default async function StoreHomePage({ params, searchParams }: HomeProps)
         {homeLdScript}
         <SectionRenderer
           theme={theme}
-          sections={publishedHome.snapshot.sections}
+          sections={homeSections}
           locale={locale}
           primaryLocale={primaryLocale}
           pathPrefix={pathPrefix}

@@ -227,6 +227,15 @@ const productReadOpts = cache(async (slug: string): Promise<FetchOptions> => {
   return token ? previewFetchOptions(token) : opts;
 });
 
+/**
+ * The owner token the single product read runs with (store preview cookie
+ * or product preview cookie bound to this slug), null for the public.
+ * M164: an owner preview never gets the cross-locale product redirect.
+ */
+export async function getProductPreviewToken(slug: string): Promise<string | null> {
+  return (await productReadOpts(slug)).token ?? null;
+}
+
 // Market → `?market=` suffix (markets app, M1-DESIGN §4.2), `marketQuery`
 // of `src/lib/market.ts`. Appended to the URL so each market has its own
 // cache entry (a preview adds `&preview=1`, its own entry again); the store

@@ -159,3 +159,12 @@ describe('collection page in server mode', () => {
     expect((listing.products as Array<{ tax_rate_bp?: number }>)[0]!.tax_rate_bp).toBe(2500);
   });
 });
+
+// M164: the product-link rewriter is server-only; identity here (covered by its own specs).
+vi.mock('@/lib/productLinkCanonical.server', () => ({
+  productLinkRewriter: async () => ({
+    sections: async (s: unknown) => s,
+    menus: async (m: unknown) => m,
+    html: async (h: unknown) => h,
+  }),
+}));

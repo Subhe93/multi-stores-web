@@ -6,7 +6,8 @@
 // slug with `productLinkSlug`, which follows the same fallback chain as the
 // canonical, so an internal link is the canonical URL of the page it opens.
 
-import { buildStoreAlternates, buildStoreOrigin } from './storeUrl';
+import { buildStoreAlternates, buildStoreOrigin, isIndexableMarket } from './storeUrl';
+import { isReviewLocale } from './storeLocales';
 import { isUsableSlug } from './slugRoute';
 import type { MarketRoute } from './market';
 
@@ -101,13 +102,9 @@ export function productAlternates(opts: {
   const store = opts.store;
   const primaryLocale = store?.language_config?.primary_locale || 'en';
   const pathByLocale = store?.market ? productPathByLocale(opts.translations) : null;
-  // With a market, a locale without its own translated slug falls back to
-  // the market's primary-locale slug, exactly like the sitemap (whose `slug`
-  // is that one), so the fallback never depends on the slug requested.
-  // Without a market the requested (stored) slug stays the path.
-  const fallbackPath =
-    (pathByLocale && (pathByLocale[store?.market?.default_locale || primaryLocale] ?? pathByLocale[primaryLocale])) ||
-    `/products/${opts.slug}`;
+  // The fallback path comes from the same helper as the redirect target
+  // (productCanonicalSlug), so the two can never drift apart.
+  const fallbackPath = `/products/${productFallbackSlug(store, opts.translations, opts.slug)}`;
   return buildStoreAlternates({
     pathPrefix: opts.pathPrefix,
     origin: buildStoreOrigin(opts.storeSlug, store?.custom_domain || null, store?.market),
@@ -122,4 +119,56 @@ export function productAlternates(opts: {
     storeSlug: opts.storeSlug,
     pathByLocale,
   });
+}
+
+/**
+ * Slug of the path `productAlternates` falls back to: with a market, a
+ * locale without its own translated slug falls back to the market's
+ * default-locale slug, then the store primary-locale slug, exactly like the
+ * sitemap (whose `slug` is that one), so the fallback never depends on the
+ * slug requested. Without a market the requested (stored) slug stays.
+ */
+function productFallbackSlug(
+  store: ProductAlternatesStore | null | undefined,
+  translations: readonly ProductSlugTranslation[] | null | undefined,
+  matchedSlug: string,
+): string {
+  if (!store?.market) return matchedSlug;
+  const primaryLocale = store.language_config?.primary_locale || 'en';
+  const usable = (l: string) => translations?.find((tr) => tr.locale === l && isUsableSlug(tr.slug))?.slug;
+  // `find` keeps the first row per locale; productPathByLocale keeps the
+  // last. Locales are unique per product, so both pick the same row.
+  return usable(store.market.default_locale || primaryLocale) ?? usable(primaryLocale) ?? matchedSlug;
+}
+
+/**
+ * Slug of the canonical product URL of a rendered page: the same choice
+ * `productAlternates` makes for `canonical` (M164). `matchedSlug` is the
+ * stored slug the request matched. Without a market it is always
+ * `matchedSlug` (self-canonical), so such stores never redirect across
+ * locales.
+ */
+export function productCanonicalSlug(opts: {
+  store: ProductAlternatesStore | null | undefined;
+  translations: readonly ProductSlugTranslation[] | null | undefined;
+  matchedSlug: string;
+  locale: string;
+  noindex?: boolean;
+}): string {
+  const store = opts.store;
+  const fallback = productFallbackSlug(store, opts.translations, opts.matchedSlug);
+  if (!store?.market) return fallback;
+  const primaryLocale = store.language_config?.primary_locale || 'en';
+  const allLocales = [primaryLocale, ...(store.language_config?.secondary_locales || [])];
+  const selfLocale = allLocales.includes(opts.locale) ? opts.locale : primaryLocale;
+  const own = opts.translations?.find((tr) => tr.locale === selfLocale && isUsableSlug(tr.slug))?.slug;
+  // Mirrors buildStoreAlternates: the preview / noindex / review branch and
+  // the markets branch read pathByLocale[selfLocale]; the single-origin
+  // branch (no indexable market) uses the fallback path only.
+  const selfBranch =
+    store.market.preview === true ||
+    opts.noindex === true ||
+    isReviewLocale(opts.locale) ||
+    (store.markets ?? []).some((m) => isIndexableMarket(m, store.custom_domain ?? null));
+  return (selfBranch && own) || fallback;
 }

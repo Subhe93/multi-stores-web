@@ -54,3 +54,12 @@ describe('store home product list', () => {
     expect(getProducts).toHaveBeenCalledWith('namez-se', { featured: 'true', locale: 'ar' }, 'se');
   });
 });
+
+// M164: the product-link rewriter is server-only; identity here (covered by its own specs).
+vi.mock('@/lib/productLinkCanonical.server', () => ({
+  productLinkRewriter: async () => ({
+    sections: async (s: unknown) => s,
+    menus: async (m: unknown) => m,
+    html: async (h: unknown) => h,
+  }),
+}));

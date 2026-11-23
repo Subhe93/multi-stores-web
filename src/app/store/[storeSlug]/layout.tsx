@@ -60,6 +60,7 @@ import { StoreCustomCss } from '@/components/StoreCustomCss';
 import { clientMessages, creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
 import { CreativeBoot } from '@/themes/creative/boot.client';
 import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
+import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 
 // ---------- Type definitions ----------
 
@@ -450,6 +451,17 @@ export default async function StoreLayout({
   // If URL had a locale prefix use it; otherwise fall back to the store's primary locale
   const currentLang = urlLocale || primaryLocale;
 
+  // M164: owner-typed product links of the chrome and the menus point at the
+  // canonical product URL of this locale (market stores only; identity and
+  // no extra read for every other store).
+  const productLinks = await productLinkRewriter(storeSlug, store, currentLang);
+  const [linkedHeaderSections, linkedFooterSections, linkedMenus] = await Promise.all([
+    productLinks.sections(publishedHeader?.snapshot?.sections),
+    productLinks.sections(publishedFooter?.snapshot?.sections),
+    productLinks.menus(storeMenus),
+  ]);
+  storeMenus = linkedMenus;
+
   // Combine every font the user has selected so the browser actually loads them.
   // Theme fonts come first so they're always loaded; legacy per-element fonts
   // are appended so existing stores keep their custom typography.
@@ -739,8 +751,8 @@ export default async function StoreLayout({
               ...(sellerDetails ? { traderDetails: sellerDetails } : {}),
             };
 
-            const headerSections = publishedHeader?.snapshot?.sections;
-            const footerSections = publishedFooter?.snapshot?.sections;
+            const headerSections = linkedHeaderSections;
+            const footerSections = linkedFooterSections;
             // Country/language picker in the strip under a published header,
             // on the breakpoints where the header shows no control of its own
             // (a `header-bar` can be hidden per breakpoint).

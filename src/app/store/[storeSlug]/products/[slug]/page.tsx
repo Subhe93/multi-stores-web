@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { storefront, resolveMediaUrl } from '@/lib/api';
+import { storefront, resolveMediaUrl, getProductPreviewToken } from '@/lib/api';
 import { isDefinitiveNotFound, StoreUnavailableError } from '@/lib/apiAvailability';
 import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { productAlternates, productLinkFallbackLocale, productPathByLocale } from '@/lib/productPaths';
@@ -30,6 +30,7 @@ import { surface, type MotionProp } from '@/themes/creative/recipes';
 import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/ProductBlocksWarmup';
 import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
 import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
+import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 import { preloadSectionData } from '@/lib/preloadSections';
 import { readProductCard } from '@/lib/productCard/settings';
 import type { ProductContext, SectionInstance } from '@/themes/types';
@@ -37,7 +38,9 @@ import { projectProductForClient } from '@/lib/productPayload';
 import { buildBreadcrumb, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/lib/jsonld';
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
-import { canonicalRedirectHref, isNonCanonicalSlugForm, routeSlug, slugsEqual } from '@/lib/slugRoute';
+import { canonicalRedirectHref, routeSlug } from '@/lib/slugRoute';
+import { matchedProductSlug, productRedirectSlug } from '@/lib/productRedirect';
+import { isReviewLocale } from '@/lib/storeLocales';
 import { pageLinkPrefix } from '@/lib/localePaths';
 
 interface ProductDetailProps {
@@ -71,15 +74,6 @@ interface StoreRecord {
   logo_url?: string | null;
   /** `theme.seo.brandName`: optional brand override (M161 B3). */
   theme?: { seo?: { brandName?: unknown } | null } | null;
-}
-
-/**
- * Stored slug of the translation the request matched (any locale), or the
- * normalized request slug when none matches (payload filtered by locale).
- * Canonical / JSON-LD URLs use it, so they never echo a mis-cased request.
- */
-function matchedProductSlug(product: Pick<ProductRecord, 'translations'>, requested: string): string {
-  return product.translations?.find((tr) => tr.slug && slugsEqual(tr.slug, requested))?.slug ?? requested;
 }
 
 /**
@@ -245,14 +239,33 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // on top, add-to-cart disabled by the client components via `status`.
   const draftPreview = product.status === 'DRAFT';
 
-  // Same product requested in another letter case or Unicode form: one
-  // permanent hop to the stored slug (WordPress canonical redirect). The
-  // stored slug is the fixed point, so this cannot loop.
-  // Only when a stored translation slug matched (never towards a guessed form).
+  // Focused storefront (src/lib/focusedStorefront.ts): null for every other store.
+  const focus = await requestFocusedStorefront(storeData?.checkout);
+  const requestNoindex = await getRequestNoindex();
+
+  // Permanent hop to the canonical slug (M164): the same product requested
+  // in another letter case / Unicode form (WordPress canonical redirect), or
+  // on a market store with another locale's slug, goes to exactly the slug
+  // of the canonical (productAlternates), query string and path prefix kept.
+  // The target is a fixed point, so this cannot loop. Owner previews, market
+  // previews, review locales and focused stores keep the case rule only.
+  // Only when a stored translation slug matched (never towards a guess).
   const canonicalSlug = matchedProductSlug(product, productSlug);
-  const storedMatch = product.translations?.some((tr) => tr.slug === canonicalSlug);
-  if (storedMatch && isNonCanonicalSlugForm(rawSlug, canonicalSlug)) {
-    permanentRedirect(canonicalRedirectHref(`/products/${canonicalSlug}`, query, pathPrefix));
+  const previewing =
+    draftPreview ||
+    marketKey?.preview === true ||
+    isReviewLocale(locale) ||
+    Boolean(await getProductPreviewToken(storeSlug));
+  const redirectSlug = productRedirectSlug({
+    rawSlug,
+    translations: product.translations,
+    store: storeData,
+    locale,
+    allowLocaleRedirect: !previewing && !focus,
+    noindex: requestNoindex,
+  });
+  if (redirectSlug) {
+    permanentRedirect(canonicalRedirectHref(`/products/${redirectSlug}`, query, pathPrefix));
   }
 
   // One canonical for metadata, JSON-LD url / offers.url and the breadcrumb's
@@ -264,7 +277,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     slug: canonicalSlug,
     locale,
     pathPrefix,
-    noindex: await getRequestNoindex(),
+    noindex: requestNoindex,
   }).canonical;
   const ldOrigin = buildStoreOrigin(storeSlug, storeData?.custom_domain || null, storeData?.market);
   const ldImages = (product.images || [])
@@ -290,11 +303,9 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
   // the active theme using its sections + this product as the magic context.
   // The default layout below stays as the fallback for stores without one.
-  // Focused storefront (src/lib/focusedStorefront.ts): the page keeps its
-  // content but loses every path into a listing: no breadcrumb (visible or
-  // JSON-LD) and no product listing sections of the template. Null for every
-  // other store.
-  const focus = await requestFocusedStorefront(storeData?.checkout);
+  // Focused storefront (`focus` above): the page keeps its content but loses
+  // every path into a listing: no breadcrumb (visible or JSON-LD) and no
+  // product listing sections of the template.
 
   // Focused storefront: the product page is step 1 of a purchase that began
   // on the external site. It is presented by FocusedProductLayout (same
@@ -342,8 +353,12 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   }
 
   const publishedSections = template?.snapshot?.sections;
+  // M164: owner-typed product links -> canonical URL of this locale (market
+  // stores only; focused storefronts keep their links as typed).
   const templateSections =
-    focus && publishedSections ? focusedProductSections(publishedSections) : publishedSections;
+    focus && publishedSections
+      ? focusedProductSections(publishedSections)
+      : await (await productLinkRewriter(storeSlug, storeData, locale)).sections(publishedSections);
   if (templateSections && templateSections.length > 0) {
     const theme = resolveTheme(storeData?.theme_key);
     // M6.4: collection-products sections render their list from the server.

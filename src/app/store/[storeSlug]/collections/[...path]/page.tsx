@@ -19,6 +19,7 @@ import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { stagger, surface, type MotionProp } from '@/themes/creative/recipes';
+import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 import { preloadSectionData } from '@/lib/preloadSections';
 import type { ListingContext, SectionInstance } from '@/themes/types';
 import { listingProjector, toListingCard, toListingProduct } from '@/lib/listing';
@@ -334,9 +335,12 @@ export default async function CollectionPage({
   // through the active theme using its sections + this listing as the magic
   // context. The default layout below stays as the fallback for stores
   // without one. SEO output (JSON-LD) is identical in both branches.
-  const templateSections = template?.snapshot?.sections;
-  if (templateSections && templateSections.length > 0) {
+  if (template?.snapshot?.sections && template.snapshot.sections.length > 0) {
     const tplLocale = lang || ldPrimary;
+    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
+    const templateSections = await (await productLinkRewriter(storeSlug, storeData, tplLocale)).sections(
+      template.snapshot.sections,
+    );
     // M6.4: collection-products sections render their list from the server.
     const preloaded = await preloadSectionData(storeSlug, templateSections, {
       locale: tplLocale,

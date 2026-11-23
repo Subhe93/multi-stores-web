@@ -14,6 +14,7 @@ import { linkPrefix } from '@/lib/localePaths';
 import { resolveTheme } from '@/themes/registry';
 import { SectionRenderer } from '@/themes/SectionRenderer';
 import { storeMotionOf } from '@/themes/creative/creativeAttrs';
+import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 import { preloadSectionData } from '@/lib/preloadSections';
 import { readProductCard } from '@/lib/productCard/settings';
 import type { SectionInstance } from '@/themes/types';
@@ -306,8 +307,10 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
   if (rendersV2(v2)) {
     const theme = resolveTheme(store?.theme_key);
     const primaryLocale = store?.language_config?.primary_locale || 'en';
+    // M164: owner-typed product links -> canonical URL of this locale (market stores only).
+    const pageSections = await (await productLinkRewriter(storeSlug, store, locale)).sections(v2.snapshot.sections);
     // M6.4: collection-products sections render their list from the server.
-    const preloaded = await preloadSectionData(storeSlug, v2.snapshot.sections, {
+    const preloaded = await preloadSectionData(storeSlug, pageSections, {
       locale,
       // Picked products link the canonical slug of this locale (M163).
       fallbackLocale: productLinkFallbackLocale(store?.language_config?.primary_locale, store?.market),
@@ -338,7 +341,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
         />
         <SectionRenderer
           theme={theme}
-          sections={v2.snapshot.sections}
+          sections={pageSections}
           locale={locale}
           primaryLocale={primaryLocale}
           pathPrefix={pathPrefix}
@@ -362,6 +365,10 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
     legacy.translations.find((t) => t.locale === 'en') ||
     legacy.translations[0];
   if (!translation) notFound();
+  // M164: product links of the legacy HTML -> canonical URL (market stores only).
+  const legacyHtml = translation.content
+    ? await (await productLinkRewriter(storeSlug, store, locale)).html(translation.content)
+    : translation.content;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl" dir={isRtl(locale) ? 'rtl' : 'ltr'}>
@@ -378,7 +385,7 @@ export async function StorePageView({ storeSlug, pageSlug, lang, data, path }: S
         <div
           className="prose prose-gray max-w-none"
           // `{{trader.*}}` placeholders → the store's trader details (SPEC §7).
-          dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(translation.content, sellerDetailsOf(store)) }}
+          dangerouslySetInnerHTML={{ __html: substituteTraderPlaceholders(legacyHtml ?? '', sellerDetailsOf(store)) }}
         />
       ) : (
         <p className="text-gray-500">{t('store.noContentYet')}</p>
