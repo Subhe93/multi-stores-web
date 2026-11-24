@@ -16,6 +16,7 @@ import {
   type StoreTracking as StoreTrackingIds,
 } from '@/lib/consent';
 import { logConsent } from '@/lib/consentLog';
+import { openBannerGate, resetBannerGate } from './bannerGate';
 import { reloadPage } from './pageReload';
 import { StoreTracking } from './StoreTracking';
 
@@ -98,12 +99,16 @@ beforeEach(() => {
   gtag = vi.fn();
   window.clarity = clarity as unknown as typeof window.clarity;
   window.gtag = gtag;
+  // Most tests start after the visitor's first interaction; the deferral
+  // itself is covered in 'StoreTracking: banner deferral'.
+  openBannerGate();
 });
 afterEach(() => {
   delete window.clarity;
   delete window.gtag;
   delete window.fbq;
   delete window.ttq;
+  resetBannerGate();
   resetAll();
   window.history.replaceState(null, '', '/');
 });
@@ -512,7 +517,72 @@ describe('StoreTracking: bundle', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/tracking/StoreTracking.tsx'), 'utf8');
     expect(src).not.toMatch(/^import \{[^}]*CookieBanner[^}]*\} from '\.\/CookieBanner';/m);
     expect(src).not.toMatch(/^import \{[^}]*CookieSettingsDialog[^}]*\} from '\.\/CookieSettingsDialog';/m);
-    expect(src).toContain("lazy(() => import('./CookieBanner')");
+    expect(src).toContain("import('./CookieBanner')");
+    expect(src).toContain('lazy(() => loadCookieBanner()');
     expect(src).toContain("import('./CookieSettingsDialog')");
+  });
+});
+
+describe('StoreTracking: banner deferral (LCP)', () => {
+  beforeEach(() => resetBannerGate());
+
+  it('renders no banner during load; the first tap shows it', async () => {
+    renderTracking();
+    await act(async () => {});
+    expect(banner()).toBeNull();
+    expect(trackerIds()).toEqual([]);
+    act(() => {
+      fireEvent.pointerDown(window);
+    });
+    expect(await screen.findByTestId('consent-banner')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['keydown', () => fireEvent.keyDown(window, { key: 'Tab' })],
+    ['wheel', () => fireEvent.wheel(window)],
+    ['touchstart', () => fireEvent.touchStart(window)],
+  ])('%s shows the banner', async (_name, fire) => {
+    renderTracking();
+    await act(async () => {});
+    expect(banner()).toBeNull();
+    act(() => {
+      fire();
+    });
+    expect(await screen.findByTestId('consent-banner')).toBeInTheDocument();
+  });
+
+  it('a scroll alone (slider autoplay, scroll restore) does not show it', async () => {
+    renderTracking();
+    await act(async () => {});
+    act(() => {
+      fireEvent.scroll(window);
+      fireEvent.scroll(document);
+    });
+    await act(async () => {});
+    expect(banner()).toBeNull();
+  });
+
+  it('opening the cookie settings opens the gate, so the banner is there after closing', async () => {
+    renderTracking();
+    await act(async () => {});
+    act(() => openConsentSettings());
+    await screen.findByRole('dialog');
+    expect(banner()).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('no launcher while the banner waits for the first interaction', async () => {
+    renderTracking();
+    await act(async () => {});
+    expect(screen.queryByTestId('consent-launcher')).toBeNull();
+  });
+
+  it('a stored decision never shows the banner, also after an interaction', async () => {
+    seed({ analytics: true, marketing: false });
+    renderTracking();
+    act(() => {
+      fireEvent.pointerDown(window);
+    });
+    await act(async () => {});
+    expect(banner()).toBeNull();
   });
 });

@@ -27,11 +27,14 @@ import { CookieSettingsLauncher } from './CookieSettingsLauncher';
 // is opened. Only the decision + vendor-loading logic is in every page's
 // bundle. Nothing renders on the server here (see `hydrated`), so lazy never
 // suspends during SSR.
-const CookieBanner = lazy(() => import('./CookieBanner').then((m) => ({ default: m.CookieBanner })));
+const CookieBanner = lazy(() => loadCookieBanner().then((m) => ({ default: m.CookieBanner })));
 const CookieSettingsDialog = lazy(() =>
   import('./CookieSettingsDialog').then((m) => ({ default: m.CookieSettingsDialog })),
 );
 import { TrackingScripts } from './TrackingScripts';
+import { bannerGateOpen, openBannerGate, subscribeBannerGate } from './bannerGate';
+
+const loadCookieBanner = () => import('./CookieBanner');
 
 // The storefront consent manager (plans/consent-v2/CONTRACT.md §7.1),
 // mounted by the store layout for EVERY store:
@@ -110,7 +113,37 @@ export function StoreTracking({ storeSlug, tracking, cookiePolicyHref = null, pr
   const allowM = decision?.marketing === true;
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const openDialog = useCallback(() => setDialogOpen(true), []);
+  // Opening the settings is an interaction: the banner may show after it.
+  const openDialog = useCallback(() => {
+    openBannerGate();
+    setDialogOpen(true);
+  }, []);
+
+  // The first-layer banner waits for the visitor's first interaction
+  // (bannerGate.ts) so it never paints during page load (LCP / Speed Index).
+  // Its chunk is fetched once the page is idle, so it appears at once then.
+  const bannerWanted = hasGated && decision === null;
+  const gateOpen = useSyncExternalStore(subscribeBannerGate, bannerGateOpen, () => false);
+  useEffect(() => {
+    if (!bannerWanted || gateOpen) return;
+    const fetchChunk = () => void loadCookieBanner().catch(() => {});
+    let cancel: (() => void) | undefined;
+    const warm = () => {
+      if (typeof window.requestIdleCallback === 'function') {
+        const id = window.requestIdleCallback(fetchChunk, { timeout: 4000 });
+        cancel = () => window.cancelIdleCallback(id);
+      } else {
+        const id = window.setTimeout(fetchChunk, 2000);
+        cancel = () => window.clearTimeout(id);
+      }
+    };
+    if (document.readyState === 'complete') warm();
+    else window.addEventListener('load', warm, { once: true });
+    return () => {
+      window.removeEventListener('load', warm);
+      cancel?.();
+    };
+  }, [bannerWanted, gateOpen]);
 
   // Re-open entry points (D4): the footer link / openConsentSettings(),
   // any `#cookie-settings` link (captured before Next's <Link>), and a URL
@@ -230,10 +263,10 @@ export function StoreTracking({ storeSlug, tracking, cookiePolicyHref = null, pr
   // The banner stays mounted (hidden + inert) while the dialog is open, so
   // closing the dialog returns focus to its Settings button and the bottom
   // inset it publishes does not jump.
-  const showBanner = hasGated && decision === null;
+  const showBanner = bannerWanted && gateOpen;
   const onCheckout = segments[0] === '(checkout)';
   const showLauncher =
-    !showBanner && !dialogOpen && !onCheckout && ((hasGated && decision !== null) || parsed.external);
+    !bannerWanted && !dialogOpen && !onCheckout && ((hasGated && decision !== null) || parsed.external);
 
   return (
     <>
