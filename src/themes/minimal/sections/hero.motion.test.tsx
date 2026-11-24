@@ -244,6 +244,16 @@ describe('hero-slider', () => {
     expect(count(render('intro'), /data-cx-intro="scale"/g)).toBe(1);
     expect(render('scroll')).not.toContain('cx-mask');
   });
+
+  it('only the first slide image is high priority; later slides are lazy (no competing preload)', () => {
+    const imgs = render().match(/<img\b[^>]*>/g) || [];
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0]).toMatch(/fetchPriority="high"/i);
+    expect(imgs[0]).not.toContain('loading="lazy"');
+    expect(imgs[1]).toContain('loading="lazy"');
+    expect(imgs[1]).toMatch(/fetchPriority="low"/i);
+    expect(imgs[1]).not.toContain('loading="eager"');
+  });
 });
 
 describe('hero emblem', () => {

@@ -118,17 +118,19 @@ export function HeroSlider({ settings, content, locale, primaryLocale, pathPrefi
     // change keeps the slider's own native transition.
     const m = i === 0 ? motion : undefined;
     const slideImage = resolvedImage ? (
-      // First slide is the LCP candidate: preload it. The next slide loads
-      // eagerly too (it can sit outside the lazy threshold until autoplay
-      // reaches it); the rest lazy-load.
+      // First slide is the LCP candidate: preload it. Every other slide is
+      // lazy: an eager <img> makes React emit its own <link rel=preload>, so
+      // slide 2 competed with the LCP image on slow mobile networks. Slide 2
+      // sits one viewport away, well inside the browser's lazy threshold, so
+      // it still loads right after layout (low priority), before autoplay.
       <StoreImage
         src={resolvedImage}
         alt={slide.heading || ''}
         fill
         sizes="100vw"
         preload={i === 0}
-        fetchPriority={i === 0 ? 'high' : undefined}
-        loading={i === 0 ? undefined : i === 1 ? 'eager' : 'lazy'}
+        fetchPriority={i === 0 ? 'high' : i === 1 ? 'low' : undefined}
+        loading={i === 0 ? undefined : 'lazy'}
         unoptimized={isSvgSrc(resolvedImage)}
         className="object-cover"
         style={{ zIndex: 0 }}
