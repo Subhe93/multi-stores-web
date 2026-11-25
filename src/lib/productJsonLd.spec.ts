@@ -579,6 +579,57 @@ describe('M170 C: buildProductJsonLd offers', () => {
   });
 });
 
+// M172: a personalised product of a store with the exception on arrives as
+// one policy of category "none" for the covered countries.
+describe('M172: personalised product is not returnable', () => {
+  const NOT_PERMITTED = 'https://schema.org/MerchantReturnNotPermitted';
+  const shipping = (countries: string[]): ProductShippingRates => ({
+    requires_shipping: true,
+    currency: 'SEK',
+    rates: [{ country: 'SE', cost: 49, min_days: 1, max_days: 3 }],
+    handling_days: { min: 1, max: 2 },
+    return_policies: [{ countries, category: 'none' }],
+  });
+
+  it('emits MerchantReturnNotPermitted with applicableCountry and nothing else', () => {
+    const many = returnPolicyLd(shipping(['AT', 'SE', 'NO'])) as Record<string, unknown>;
+    expect(many).toEqual({
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: ['AT', 'SE', 'NO'],
+      returnPolicyCategory: NOT_PERMITTED,
+    });
+    expect(Object.keys(many)).toEqual(['@type', 'applicableCountry', 'returnPolicyCategory']);
+    for (const key of ['merchantReturnDays', 'returnMethod', 'returnFees', 'returnShippingFeesAmount']) {
+      expect(many).not.toHaveProperty(key);
+    }
+    expect((returnPolicyLd(shipping(['SE'])) as Record<string, unknown>).applicableCountry).toBe('SE');
+  });
+
+  it('rides on the single Offer and on every variant Offer; shipping details stay', () => {
+    const policy = { '@type': 'MerchantReturnPolicy', applicableCountry: 'SE', returnPolicyCategory: NOT_PERMITTED };
+    const single = buildProductJsonLd(input({ base_price: 249 }, { shipping: shipping(['SE']) }));
+    const offer = single.offers as Record<string, unknown>;
+    expect(offer.hasMerchantReturnPolicy).toEqual(policy);
+    expect(offer.shippingDetails).toBeDefined();
+
+    const group = buildProductJsonLd(
+      input(
+        {
+          base_price: 249,
+          variants: [
+            variant('3f6c1c1e-0b7e-4a57-9a53-2f1a8f1d2c11', 249, { Text: 'A' }),
+            variant('7b0e6a55-41c2-4e0b-8c8e-0d7a1f3b9a22', 299, { Text: 'B' }),
+          ],
+        },
+        { shipping: shipping(['SE']) },
+      ),
+    );
+    const variants = (group as unknown as { hasVariant: { offers: Record<string, unknown> }[] }).hasVariant;
+    expect(variants).toHaveLength(2);
+    for (const v of variants) expect(v.offers.hasMerchantReturnPolicy).toEqual(policy);
+  });
+});
+
 describe('shippingRateCountries', () => {
   it('slot country, else market countries, else home country', async () => {
     const { NAMEZ_EU, NAMEZ_SE } = await import('./localePaths.fixtures');
