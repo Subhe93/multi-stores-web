@@ -8,6 +8,7 @@ import { useMarket } from '@/hooks/useMarket';
 import { usePersonalizationFields } from '@/components/product/usePersonalizationFields';
 import type { PersonalizationProduct } from '@/lib/personalization/form';
 import { readPrefill } from '@/lib/personalization/prefill';
+import { withoutVariantLinkParam } from '@/lib/variantParam';
 import { splitFieldTree, type PFieldDef, type POptionConfig } from '@multi-stores/core/personalization';
 import type { VariantCardsConfig } from './VariantCards';
 import {
@@ -102,8 +103,10 @@ export function usePersonalizationApp(input: PersonalizationAppInput) {
     if (!appOn || typeof window === 'undefined' || !window.location.search) return;
     const top = splitFieldTree((product?.custom_fields ?? []) as unknown as PFieldDef[]).top;
     const optionValues = activeOptionValues(variants);
+    // M170 B: `?variant=<uuid>` is the variant link, not a prefill value,
+    // even when the store has an alias with that name.
     const prefill = readPrefill(
-      window.location.search,
+      withoutVariantLinkParam(window.location.search),
       appSettings.url_prefill,
       top.map((d) => ({ id: d.id, name: d.name, type: String(d.type), priced: d.pricing !== null && typeof d.pricing === 'object' })),
       Object.entries(optionValues).map(([name, values]) => ({ name, values })),

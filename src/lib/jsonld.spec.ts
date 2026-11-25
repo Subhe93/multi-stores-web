@@ -135,3 +135,52 @@ describe('M161 B: ids, url, seller', () => {
     });
   });
 });
+
+describe('M170 C: buildProduct returnPolicy', () => {
+  const policy = {
+    '@type': 'MerchantReturnPolicy',
+    applicableCountry: 'SE',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+    merchantReturnDays: 14,
+  };
+
+  it('without it (absent, undefined or an empty list) the output is unchanged', () => {
+    const plain = JSON.stringify(buildProduct(base));
+    expect(JSON.stringify(buildProduct({ ...base, returnPolicy: undefined }))).toBe(plain);
+    expect(JSON.stringify(buildProduct({ ...base, returnPolicy: [] }))).toBe(plain);
+    expect(plain).not.toContain('hasMerchantReturnPolicy');
+  });
+
+  it('one policy: hasMerchantReturnPolicy is the last key of the Offer, after shippingDetails', () => {
+    const ld = buildProduct({
+      ...base,
+      sellerId: 'https://a.se/#organization',
+      shippingDetails: [{ '@type': 'OfferShippingDetails' }],
+      returnPolicy: policy,
+    });
+    const offers = ld.offers as Record<string, unknown>;
+    expect(offers.hasMerchantReturnPolicy).toEqual(policy);
+    expect(Object.keys(offers)).toEqual([
+      '@type',
+      'url',
+      'price',
+      'priceCurrency',
+      'availability',
+      'seller',
+      'shippingDetails',
+      'hasMerchantReturnPolicy',
+    ]);
+  });
+
+  it('several policies stay a list', () => {
+    const list = [policy, { ...policy, applicableCountry: 'NO' }];
+    const ld = buildProduct({ ...base, returnPolicy: list });
+    expect((ld.offers as Record<string, unknown>).hasMerchantReturnPolicy).toEqual(list);
+  });
+
+  it('a custom offers object (AggregateOffer) never gets one', () => {
+    const offers = { '@type': 'AggregateOffer', lowPrice: '1.00' };
+    const ld = buildProduct({ ...base, offers, returnPolicy: policy });
+    expect(ld.offers).toEqual(offers);
+  });
+});

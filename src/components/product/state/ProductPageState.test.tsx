@@ -387,3 +387,69 @@ describe('ProductPageState gallery media (product video)', () => {
     expect(result.current.galleryMedia.map((m) => m.id)).toEqual(['i1', 'i2']);
   });
 });
+
+describe('ProductPageState image alt per locale (M170 A)', () => {
+  function wrapperIn(product: ProductData, locale: string) {
+    return function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <ProductPageStateProvider product={product} locale={locale} primaryLocale="sv" currency="SEK">
+          {children}
+        </ProductPageStateProvider>
+      );
+    };
+  }
+  const alts = (product: ProductData, locale: string) =>
+    renderHook(() => useProductPageState(), { wrapper: wrapperIn(product, locale) }).result.current.galleryImages.map(
+      (i) => i.alt,
+    );
+
+  const product = makeProduct({
+    translations: [
+      { locale: 'sv', title: 'Mugg', slug: 'mugg' },
+      { locale: 'de', title: 'Becher', slug: 'becher' },
+    ],
+    images: [
+      { id: 'i1', url: IMG('base-1'), alt_text: 'Röd mugg', alt_translations: { de: 'Roter Becher' } },
+      { id: 'i2', url: IMG('base-2'), alt_text: 'Blå mugg' },
+      { id: 'i3', url: IMG('base-3') },
+    ],
+  });
+
+  it('uses the alt of the page locale, then the default alt, then the title', () => {
+    expect(alts(product, 'de')).toEqual(['Roter Becher', 'Blå mugg', 'Becher']);
+  });
+
+  it('a regional locale falls back to the base-language alt', () => {
+    // No de-AT translation row: the title falls back to the first row.
+    expect(alts(product, 'de-AT')).toEqual(['Roter Becher', 'Blå mugg', 'Mugg']);
+  });
+
+  it('the primary locale uses the default alt', () => {
+    expect(alts(product, 'sv')).toEqual(['Röd mugg', 'Blå mugg', 'Mugg']);
+  });
+
+  it('a product without alt maps keeps the alts it had (alt_text, else the title)', () => {
+    const plain = makeProduct({
+      images: [{ id: 'i1', url: IMG('base-1'), alt_text: 'Stored' }, { id: 'i2', url: IMG('base-2') }],
+    });
+    expect(alts(plain, 'en')).toEqual(['Stored', 'Mug']);
+    expect(alts(plain, 'de')).toEqual(['Stored', 'Mug']);
+  });
+
+  it('a value image uses the M159 label of the page locale; without labels the canonical value', () => {
+    const labelled = makeProduct({
+      translations: [
+        { locale: 'en', title: 'Mug', slug: 'mug' },
+        { locale: 'de', title: 'Becher', slug: 'becher', variant_option_labels: { values: { Color: { Blue: 'Blau' } } } },
+      ],
+    });
+    const pick = (locale: string) => {
+      const { result } = renderHook(() => useProductPageState(), { wrapper: wrapperIn(labelled, locale) });
+      act(() => result.current.setOptionSelections({ Color: 'Blue' }));
+      return result.current.galleryImages[0];
+    };
+    expect(pick('de')).toMatchObject({ url: IMG('blue-value'), alt: 'Becher — Blau' });
+    expect(pick('de-AT')).toMatchObject({ url: IMG('blue-value'), alt: 'Mug — Blau' });
+    expect(pick('en')).toMatchObject({ url: IMG('blue-value'), alt: 'Mug — Blue' });
+  });
+});

@@ -12,6 +12,7 @@
 
 import type { CSSProperties } from 'react';
 import { resolveMediaUrl } from '@/lib/api';
+import { storedImageAlt } from '@/lib/imageAlt';
 import {
   attrLabel,
   attrSwatchColor,
@@ -121,7 +122,8 @@ function toDynamicImage(product: ProductContext, img: ProductContext['images'][n
   const url = resolveMediaUrl(img?.url);
   if (!url) return null;
   const title = pickProductTranslation(product, locale)?.title || '';
-  return { url, alt: (img?.alt_text || '').trim() || title };
+  // M170 A: locale alt -> base-language alt -> default alt -> title.
+  return { url, alt: (storedImageAlt(img, locale) || '').trim() || title };
 }
 
 /**

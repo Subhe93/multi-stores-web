@@ -268,7 +268,13 @@ export interface ProductContext {
     short_description?: string | null;
     slug?: string;
   }>;
-  images: Array<{ url: string; alt_text?: string | null; sort_order?: number }>;
+  images: Array<{
+    url: string;
+    alt_text?: string | null;
+    /** M170 A: alt text per locale; the API omits the key when the image has none. */
+    alt_translations?: Record<string, string> | null;
+    sort_order?: number;
+  }>;
   variants?: Array<{
     id: string;
     price: number;

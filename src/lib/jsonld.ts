@@ -95,6 +95,8 @@ interface ProductInput {
   sellerId?: string;
   /** OfferShippingDetails list (M161 B6): `offers.shippingDetails`. */
   shippingDetails?: object[];
+  /** MerchantReturnPolicy (one or several, M170 C): `offers.hasMerchantReturnPolicy`. */
+  returnPolicy?: object | object[];
   /**
    * Replaces the single Offer (M161 B4: an AggregateOffer for a product with
    * more variants than the ProductGroup cap). `price` is then ignored.
@@ -127,6 +129,9 @@ export function buildProduct(input: ProductInput) {
       availability: `https://schema.org/${availability}`,
       ...(input.sellerId ? { seller: ldRef(input.sellerId) } : {}),
       ...(input.shippingDetails?.length ? { shippingDetails: input.shippingDetails } : {}),
+      ...(input.returnPolicy && (!Array.isArray(input.returnPolicy) || input.returnPolicy.length)
+        ? { hasMerchantReturnPolicy: input.returnPolicy }
+        : {}),
     },
     ...(input.aggregateRating
       ? {

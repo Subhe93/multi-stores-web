@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pickFieldTranslation } from '@multi-stores/core/personalization';
 import { collectionDisplayName, resolvePrimaryCollectionPath } from './collectionPath';
+import { resolveImageAlt } from './imageAlt';
 import { pickTranslationRows, projectProductForClient } from './productPayload';
 
 const rows = (...locales: string[]) =>
@@ -180,5 +181,64 @@ describe('projectProductForClient', () => {
     expect(out.creator_categories).toHaveLength(1);
     expect(out.primary_collection_path[0]).not.toHaveProperty('created_at');
     expect(out.primary_collection_path[0]!.translations[0]).toEqual({ locale: 'sv', name: 'root-sv' });
+  });
+});
+
+describe('projectProductForClient image alt translations (M170 A)', () => {
+  const plain = { id: 'i1', url: '/a.webp', alt_text: 'Standard', sort_order: 0, is_featured: true };
+  const localized = {
+    id: 'i2',
+    url: '/b.webp',
+    alt_text: null,
+    alt_translations: { de: 'Pferd', 'de-AT': 'Pferd AT', en: 'Horse', fr: 'Cheval' },
+    sort_order: 1,
+  };
+  const product = { id: 'p1', images: [plain, localized] };
+
+  it('keeps only the page locale and its base language', () => {
+    const at = projectProductForClient(product, 'de-AT', 'sv');
+    expect(at.images[1]).toEqual({ ...localized, alt_translations: { de: 'Pferd', 'de-AT': 'Pferd AT' } });
+    const en = projectProductForClient(product, 'en', 'sv');
+    expect(en.images[1]).toEqual({ ...localized, alt_translations: { en: 'Horse' } });
+  });
+
+  it('removes the key when the page locale has no alt', () => {
+    const sv = projectProductForClient(product, 'sv', 'sv');
+    const rest: Record<string, unknown> = { ...localized };
+    delete rest.alt_translations;
+    expect(sv.images[1]).toEqual(rest);
+    expect('alt_translations' in sv.images[1]).toBe(false);
+    expect(JSON.stringify(sv)).not.toContain('alt_translations');
+  });
+
+  it('images without the key pass through untouched (same object)', () => {
+    for (const locale of ['sv', 'de', 'de-AT']) {
+      const out = projectProductForClient(product, locale, 'sv');
+      expect(out.images[0]).toBe(plain);
+    }
+    const none = { id: 'p2', images: [plain] };
+    expect(JSON.stringify(projectProductForClient(none, 'de', 'sv'))).toBe(JSON.stringify(none));
+  });
+
+  it('a null map is dropped; the input is not mutated', () => {
+    const withNull = { id: 'p3', images: [{ url: '/c.webp', alt_translations: null }] };
+    const snapshot = JSON.stringify(product);
+    expect(projectProductForClient(withNull, 'de', 'sv').images[0]).toEqual({ url: '/c.webp' });
+    projectProductForClient(product, 'de', 'sv');
+    expect(JSON.stringify(product)).toBe(snapshot);
+  });
+
+  it('the projected image resolves to the same alt as the full one', () => {
+    for (const locale of ['sv', 'de', 'de-AT', 'de-DE', 'en', 'fr', 'tr']) {
+      const out = projectProductForClient(product, locale, 'sv');
+      out.images.forEach((img, i) => {
+        expect(resolveImageAlt(img, locale, 'Title')).toBe(resolveImageAlt(product.images[i], locale, 'Title'));
+      });
+    }
+  });
+
+  it('a product without images is unchanged', () => {
+    expect(projectProductForClient({ id: 'p4' }, 'de', 'sv')).toEqual({ id: 'p4' });
+    expect(projectProductForClient({ id: 'p5', images: null }, 'de', 'sv')).toEqual({ id: 'p5', images: null });
   });
 });

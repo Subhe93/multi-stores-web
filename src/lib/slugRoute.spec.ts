@@ -124,6 +124,16 @@ describe('canonicalRedirectHref', () => {
     expect(canonicalRedirectHref('/products/new', {}, '')).toBe('/products/new');
   });
 
+  it('M170 B: the M164 hop keeps ?variant= next to the other parameters', () => {
+    const id = '3f6c1c1e-0b7e-4a57-9a53-2f1a8f1d2c11';
+    expect(canonicalRedirectHref('/products/x', { lang: 'de', variant: id, utm_source: 'g' }, '/de-de')).toBe(
+      `/de-de/products/x?variant=${id}&utm_source=g`,
+    );
+    // Without a path prefix (default market) the lang prefix is restored.
+    expect(canonicalRedirectHref('/products/x', { lang: 'sv', variant: id })).toBe(`/sv/products/x?variant=${id}`);
+    expect(canonicalRedirectHref('/products/x', { variant: id })).toBe(`/products/x?variant=${id}`);
+  });
+
   it('has no prefix or query when none was given', () => {
     expect(canonicalRedirectHref('/products/shirt', {})).toBe('/products/shirt');
     expect(canonicalRedirectHref('/products/shirt', { tag: ['a', 'b'], x: undefined })).toBe(

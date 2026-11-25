@@ -1,7 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { labelsForLocale } from '@/lib/variantOptionLabels';
+import { labelsForLocale, optionValueLabel } from '@/lib/variantOptionLabels';
+import { resolveImageAlt } from '@/lib/imageAlt';
+import { VARIANT_QUERY_PARAM, writeVariantParam } from '@/lib/variantParam';
 import { useTranslations } from 'next-intl';
 import { usePersonalizationApp } from '@/components/product/personalization/usePersonalizationApp';
 import { pieceOneOptionKeys, pieceOneRepeater } from '@/components/product/personalization/model';
@@ -60,6 +62,18 @@ export interface ProductPageStateProviderProps {
   /** Store primary locale; the fallback when `locale` has no translation. */
   primaryLocale?: string;
   currency?: string;
+  /**
+   * M170 B: the variant `?variant=<id>` names (validated by the route with
+   * `variantFromQuery`). It is selected on the first render, so the server
+   * HTML shows its price, stock and image. Undefined = today's start.
+   */
+  initialVariantId?: string;
+  /**
+   * M170 B: keep `?variant=` of the address bar in step with the selection
+   * (`history.replaceState`). Only the product route turns it on; the
+   * quick-add dialog and the builder preview never write the URL.
+   */
+  syncVariantUrl?: boolean;
   children?: ReactNode;
 }
 
@@ -68,6 +82,8 @@ function useProductPageStateValue({
   locale = 'en',
   primaryLocale = 'en',
   currency = 'EUR',
+  initialVariantId,
+  syncVariantUrl = false,
 }: Omit<ProductPageStateProviderProps, 'children'>) {
   const t = useTranslations();
   const apiError = useApiError();
@@ -90,18 +106,30 @@ function useProductPageStateValue({
   );
 
   // ── State ─────────────────────────────────────────────
-  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    variants.length === 1 ? variants[0].id : undefined,
+  // M170 B: the variant named by `?variant=`, else the only variant. The
+  // server and the first client render start from the same value.
+  const initialVariant = useMemo(
+    () =>
+      (initialVariantId ? variants.find((v) => v.id === initialVariantId) : undefined) ??
+      (variants.length === 1 ? variants[0] : undefined),
+    [initialVariantId, variants],
   );
+  // True when `?variant=` chose the start (it then wins over a URL prefill).
+  const startsFromVariantUrl = Boolean(initialVariantId) && initialVariant?.id === initialVariantId;
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(initialVariant?.id);
   const [quantity, setQuantity] = useState(1);
   // Partial option picks (e.g. color chosen, size pending) — drives the
   // gallery via value-level images before a full variant is resolved. The
   // selector is controlled by this state (M5 D11): a URL prefill or the
   // designer's review-step picker updates it without remounting anything.
-  // A single variant is auto-selected, so its options start picked.
+  // A single variant is auto-selected, so its options start picked; so are
+  // the options of the variant `?variant=` names.
   const [optionSelections, setOptionSelections] = useState<Record<string, string>>(() =>
-    variants.length === 1 ? { ...(variants[0].options || {}) } : {},
+    initialVariant ? { ...(initialVariant.options || {}) } : {},
   );
+  // M170 B: the selection the address bar is in step with. The URL is only
+  // written when the selection moves away from it (see the effect below).
+  const urlVariantRef = useRef<string | undefined>(initialVariant?.id);
 
   const selectedVariantForApp = variants.find((v) => v.id === selectedVariantId) ?? null;
   const taxRateBp = product.tax_rate_bp ?? null;
@@ -123,11 +151,34 @@ function useProductPageStateValue({
     taxRateBp,
     optionLabels,
     onPrefillOptions: (picks, variantId) => {
+      // `?variant=` wins over the option picks of a URL prefill (`?color=`);
+      // the prefilled field values still apply.
+      if (startsFromVariantUrl) return;
+      // The prefill runs in a mount effect: its selection is part of the
+      // page load, so it must not rewrite the landing URL.
+      urlVariantRef.current = variantId;
       setOptionSelections(picks);
       setSelectedVariantId(variantId);
     },
   });
   const { appSettings, market, storeSlug, advanced, cardsConfig } = app;
+
+  // M170 B: `?variant=` follows the selection. A complete selection writes
+  // the variant id, an incomplete one removes the parameter. The page load
+  // (mount and URL prefill) never touches the URL, so an invalid value stays
+  // until the shopper picks something. Off for a single-variant product
+  // (always selected) and when the store uses `variant` as a URL prefill
+  // alias (owner-defined name): that alias keeps the parameter.
+  const variantAliasReserved = Object.prototype.hasOwnProperty.call(appSettings?.url_prefill ?? {}, VARIANT_QUERY_PARAM);
+  const variantUrlSync = syncVariantUrl && variants.length > 1 && !variantAliasReserved;
+  const seenVariantRef = useRef<string | undefined>(selectedVariantId);
+  useEffect(() => {
+    if (seenVariantRef.current === selectedVariantId) return;
+    seenVariantRef.current = selectedVariantId;
+    if (urlVariantRef.current === selectedVariantId) return;
+    urlVariantRef.current = selectedVariantId;
+    if (variantUrlSync) writeVariantParam(selectedVariantId);
+  }, [selectedVariantId, variantUrlSync]);
   // Multi-piece products: the product option the repeater's colour palettes
   // read from is piece 1's colour and renders inside the piece-1 box.
   const pieceRepeater = advanced ? pieceOneRepeater(advanced.defs, advanced.result.visibleIds, advanced.ctx, 'after_variants') : null;
@@ -186,7 +237,9 @@ function useProductPageStateValue({
         prioritized.push({
           id: `option-${cfg.name}-${picked}`,
           url: resolveMediaUrl(valueImage),
-          alt: `${alt} — ${picked}`,
+          // M170 A: the value part is the M159 label of the page locale (the
+          // canonical value when the store has no labels, as before).
+          alt: `${alt} — ${optionValueLabel(optionLabels, cfg.name, picked)}`,
         });
       }
     }
@@ -194,7 +247,8 @@ function useProductPageStateValue({
     const baseImages = (product.images || []).map((img, i) => ({
       id: img.id || `img-${i}`,
       url: resolveMediaUrl(img.url),
-      alt: img.alt || img.alt_text || alt,
+      // M170 A: locale alt -> base-language alt -> default alt -> title.
+      alt: resolveImageAlt(img, locale, alt),
     }));
 
     // Dedupe by URL, first occurrence wins (prioritized images stay on top).
@@ -210,7 +264,7 @@ function useProductPageStateValue({
     // `base`: the product-level list before the dedupe, so a video stays
     // after the image the merchant put it after (buildGalleryMedia).
     return { images, leadingCount, base: baseImages };
-  }, [product.images, product.variant_option_config, selectedVariant, optionSelections, translation]);
+  }, [product.images, product.variant_option_config, selectedVariant, optionSelections, translation, locale, optionLabels]);
   const galleryImages = gallery.images;
 
   // Product videos. A featured video (position 0, CONTRACT-AUTOPLAY A1) may

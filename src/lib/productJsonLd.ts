@@ -2,8 +2,12 @@
 // the three render paths (focused, template, default).
 //  - no / one active variant: a Product with one Offer (the previous shape
 //    plus url, seller and shippingDetails);
+//  - every Offer (single or per variant) also carries the store's own handling
+//    time and return policy when the owner configured them (M170 C); nothing
+//    is emitted otherwise;
 //  - 2..100 active variants: a ProductGroup with one Product per variant
-//    (its own price, sku, availability and image, else the gallery's first);
+//    (its own price, sku, availability and image, else the gallery's first;
+//    its offer url preselects it: `<canonical>?variant=<id>`, M170 B);
 //  - more than 100: a Product with an AggregateOffer (bounded payload).
 // Pure: no fetching, no React.
 
@@ -13,6 +17,7 @@ import { labelsForLocale, optionNameLabel, optionValueLabel, type LabelRow } fro
 import { productAvailability } from './productAvailability';
 import { requestCountry } from './storeOpenGraph';
 import type { PathMarket } from './localePaths';
+import { variantUrl } from './variantParam';
 
 /**
  * Destination countries of the shipping-rates read (M161 B6): the country of
@@ -51,6 +56,21 @@ export interface ProductShippingRates {
   requires_shipping: boolean;
   currency: string;
   rates: ProductShippingRate[];
+  /** M170 C: business days before hand-over; only when the store set it. */
+  handling_days?: { min: number; max: number } | null;
+  /** M170 C: return policies covering the requested countries. */
+  return_policies?: ProductReturnPolicy[] | null;
+}
+
+/** One store return policy, narrowed to the page's countries (M170 C). */
+export interface ProductReturnPolicy {
+  countries: string[];
+  category: 'finite' | 'unlimited' | 'none';
+  days?: number;
+  methods?: ('mail' | 'store' | 'kiosk')[];
+  fees?: 'free' | 'customer' | 'fixed';
+  /** In the response currency. */
+  fee_amount?: number;
 }
 
 export interface LdVariant {
@@ -114,9 +134,22 @@ export function optionProperty(key: string, localizedName?: string | null): Mapp
   return null;
 }
 
+/**
+ * The store's handling time as a QuantitativeValue (M170 C), or undefined
+ * when it is not configured or not a valid range (never repaired).
+ */
+function handlingTimeLd(shipping: ProductShippingRates): object | undefined {
+  const h = shipping.handling_days;
+  if (!h || typeof h !== 'object') return undefined;
+  const { min, max } = h;
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max < min) return undefined;
+  return { '@type': 'QuantitativeValue', minValue: min, maxValue: max, unitCode: 'DAY' };
+}
+
 /** OfferShippingDetails list; empty for a product that does not ship. */
 export function shippingDetailsLd(shipping: ProductShippingRates | null | undefined): object[] {
   if (!shipping || shipping.requires_shipping === false || !Array.isArray(shipping.rates)) return [];
+  const handlingTime = handlingTimeLd(shipping);
   const out: object[] = [];
   for (const r of shipping.rates) {
     if (!r || typeof r.country !== 'string' || !Number.isFinite(Number(r.cost))) continue;
@@ -130,15 +163,93 @@ export function shippingDetailsLd(shipping: ProductShippingRates | null | undefi
       '@type': 'OfferShippingDetails',
       shippingRate: { '@type': 'MonetaryAmount', value: Number(r.cost), currency: shipping.currency },
       shippingDestination: { '@type': 'DefinedRegion', addressCountry: r.country },
-      // Only a total delivery estimate exists: it goes into transitTime and
-      // handlingTime is left out (not invented).
+      // The shipping method's delivery estimate goes into transitTime.
+      // handlingTime is the store's own setting (M170 C) and is left out
+      // when the owner has not configured it (never invented).
       deliveryTime: {
         '@type': 'ShippingDeliveryTime',
+        ...(handlingTime ? { handlingTime } : {}),
         transitTime: { '@type': 'QuantitativeValue', minValue: min, maxValue: max, unitCode: 'DAY' },
       },
     });
   }
   return out;
+}
+
+const RETURN_CATEGORY: Record<ProductReturnPolicy['category'], string> = {
+  finite: 'MerchantReturnFiniteReturnWindow',
+  unlimited: 'MerchantReturnUnlimitedWindow',
+  none: 'MerchantReturnNotPermitted',
+};
+const RETURN_METHOD: Record<NonNullable<ProductReturnPolicy['methods']>[number], string> = {
+  mail: 'ReturnByMail',
+  store: 'ReturnInStore',
+  kiosk: 'ReturnAtKiosk',
+};
+const RETURN_FEES: Record<NonNullable<ProductReturnPolicy['fees']>, string> = {
+  free: 'FreeReturn',
+  customer: 'ReturnFeesCustomerResponsibility',
+  fixed: 'ReturnShippingFees',
+};
+const schemaUrl = (name: string) => `https://schema.org/${name}`;
+const own = (map: object, key: unknown): key is string => typeof key === 'string' && Object.hasOwn(map, key);
+/** A one-item list is emitted as its single value. */
+const oneOrMany = <T,>(list: T[]): T | T[] => (list.length === 1 ? list[0] : list);
+
+/** One MerchantReturnPolicy, or null for an entry that is not well-formed. */
+function returnPolicyEntryLd(p: ProductReturnPolicy, currency: string): object | null {
+  if (!p || typeof p !== 'object' || !own(RETURN_CATEGORY, p.category)) return null;
+  if (!Array.isArray(p.countries)) return null;
+  const countries = p.countries.filter((c) => typeof c === 'string' && /^[A-Z]{2}$/.test(c));
+  // Google reads at most 50 countries; a broken or oversized list is skipped.
+  if (countries.length === 0 || countries.length !== p.countries.length || countries.length > 50) return null;
+
+  const finite = p.category === 'finite';
+  if (finite ? !(Number.isInteger(p.days) && (p.days as number) > 0) : p.days != null) return null;
+
+  const out: Record<string, unknown> = {
+    '@type': 'MerchantReturnPolicy',
+    applicableCountry: oneOrMany(countries),
+    returnPolicyCategory: schemaUrl(RETURN_CATEGORY[p.category]),
+    ...(finite ? { merchantReturnDays: p.days } : {}),
+  };
+  // "No returns" states neither a method nor fees.
+  if (p.category === 'none') return p.methods?.length || p.fees != null || p.fee_amount != null ? null : out;
+
+  if (p.methods != null) {
+    if (!Array.isArray(p.methods) || !p.methods.every((m) => own(RETURN_METHOD, m))) return null;
+    if (p.methods.length) out.returnMethod = oneOrMany(p.methods.map((m) => schemaUrl(RETURN_METHOD[m])));
+  }
+  if (p.fees != null) {
+    if (!own(RETURN_FEES, p.fees)) return null;
+    out.returnFees = schemaUrl(RETURN_FEES[p.fees]);
+  }
+  if (p.fees === 'fixed') {
+    // Google wants the amount only with ReturnShippingFees and non-zero.
+    const amount = p.fee_amount;
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || !currency) return null;
+    out.returnShippingFeesAmount = { '@type': 'MonetaryAmount', value: amount, currency };
+  } else if (p.fee_amount != null) {
+    return null;
+  }
+  return out;
+}
+
+/**
+ * `hasMerchantReturnPolicy` of an Offer (M170 C): one MerchantReturnPolicy
+ * per store policy that covers the page's countries (an object for one, a
+ * list for several). Undefined when the store configured none, none covers
+ * the page, or the product does not ship. A malformed entry is skipped, never
+ * repaired: no policy value is ever invented here.
+ */
+export function returnPolicyLd(shipping: ProductShippingRates | null | undefined): object | object[] | undefined {
+  if (!shipping || shipping.requires_shipping === false || !Array.isArray(shipping.return_policies)) return undefined;
+  const out: object[] = [];
+  for (const p of shipping.return_policies) {
+    const entry = returnPolicyEntryLd(p, shipping.currency);
+    if (entry) out.push(entry);
+  }
+  return out.length ? oneOrMany(out) : undefined;
 }
 
 const availabilityUrl = (stock: number | null | undefined) =>
@@ -153,6 +264,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
   const description = stripHtmlToText(input.descriptionHtml) || undefined;
   const sku = product.sku?.trim() || undefined;
   const shippingDetails = shippingDetailsLd(input.shipping);
+  const returnPolicy = returnPolicyLd(input.shipping);
   const variants = activeVariants(product);
 
   // Simple product, or a single variant: one Offer as before.
@@ -170,6 +282,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
       videos: input.videos,
       sellerId: input.sellerId,
       shippingDetails,
+      returnPolicy,
     });
   }
 
@@ -243,12 +356,15 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
       ...(extra.length ? { additionalProperty: extra } : {}),
       offers: {
         '@type': 'Offer',
-        url: canonical,
+        // M170 B: one distinct URL per variant (Google's single-page variant
+        // model); the group's `url` stays the canonical.
+        url: variantUrl(canonical, v.id),
         price: Number(v.price).toFixed(2),
         priceCurrency: input.currency,
         availability: availabilityUrl(v.stock),
         ...(input.sellerId ? { seller: ldRef(input.sellerId) } : {}),
         ...(shippingDetails.length ? { shippingDetails } : {}),
+        ...(returnPolicy ? { hasMerchantReturnPolicy: returnPolicy } : {}),
       },
     };
   });

@@ -74,7 +74,15 @@ export interface ProductData {
     /** M159: display labels of the variant options in this locale (null = none). */
     variant_option_labels?: unknown;
   }[];
-  images: { id?: string; url: string; alt?: string; alt_text?: string; sort_order?: number }[];
+  images: {
+    id?: string;
+    url: string;
+    alt?: string;
+    alt_text?: string;
+    /** M170 A: alt text per locale; the API omits the key when the image has none. */
+    alt_translations?: Record<string, string> | null;
+    sort_order?: number;
+  }[];
   /** Gallery videos; the API omits the key when the product has none. */
   videos?: StorefrontProductVideo[];
   /** Customer stories (product-stories block); the API omits the key when the product has none. */
@@ -244,6 +252,10 @@ interface ProductDetailClientProps {
    * the store switch on the built-in product route. Absent = today's page.
    */
   motion?: MotionProp;
+  /** M170 B: the variant `?variant=` names (see `ProductPageStateProvider`). */
+  initialVariantId?: string;
+  /** M170 B: keep `?variant=` in step with the selection (product route only). */
+  syncVariantUrl?: boolean;
 }
 
 /**
@@ -326,6 +338,8 @@ export function ProductDetailClient(props: ProductDetailClientProps) {
         locale={props.locale ?? 'en'}
         primaryLocale={props.primaryLocale ?? 'en'}
         currency={props.currency ?? 'EUR'}
+        initialVariantId={props.initialVariantId}
+        syncVariantUrl={props.syncVariantUrl}
       >
         <ProductMotionScope motion={props.motion}>
           <ProductDetailBody {...props} />

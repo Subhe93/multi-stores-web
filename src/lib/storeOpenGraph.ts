@@ -72,27 +72,51 @@ export interface StoreOpenGraphInput {
   image?: string | null;
   /** Used when `image` is missing (the store logo, absolute). */
   fallbackImage?: string | null;
+  /**
+   * M170 A: alt text of the route's own `image` (`og:image:alt`). Ignored
+   * when the fallback image is used (a product alt never describes the logo).
+   */
+  imageAlt?: string | null;
   locale?: string | null;
   country?: string | null;
 }
 
-export interface StoreOpenGraph {
+/** An image with its alt text (`og:image` + `og:image:alt`). */
+export interface StoreOpenGraphImage {
+  url: string;
+  alt: string;
+}
+
+export interface StoreOpenGraph<Image = string> {
   type: 'website';
   title?: string;
   description?: string;
   url?: string;
-  images?: string[];
+  images?: Image[];
   locale?: string;
 }
 
-export function buildStoreOpenGraph(input: StoreOpenGraphInput): StoreOpenGraph {
+/** URL of an `images` entry (a bare URL, or the object form with an alt). */
+export function ogImageUrl(entry: string | StoreOpenGraphImage | null | undefined): string | undefined {
+  if (!entry) return undefined;
+  return typeof entry === 'string' ? entry : entry.url;
+}
+
+// Routes that pass an `imageAlt` may get the object form; every other route
+// keeps the plain `string[]` type (and output) it always had.
+export function buildStoreOpenGraph(
+  input: StoreOpenGraphInput & { imageAlt: string | null | undefined },
+): StoreOpenGraph<string | StoreOpenGraphImage>;
+export function buildStoreOpenGraph(input: StoreOpenGraphInput): StoreOpenGraph;
+export function buildStoreOpenGraph(input: StoreOpenGraphInput): StoreOpenGraph<string | StoreOpenGraphImage> {
   const image = input.image || input.fallbackImage || undefined;
+  const alt = input.image ? (input.imageAlt || '').trim() : '';
   const locale = ogLocale(input.locale, input.country);
   return {
     ...(input.title ? { title: input.title } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.url ? { url: input.url } : {}),
-    ...(image ? { images: [image] } : {}),
+    ...(image ? { images: [alt ? { url: image, alt } : image] } : {}),
     ...(locale ? { locale } : {}),
     type: 'website',
   };

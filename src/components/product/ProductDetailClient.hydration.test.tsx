@@ -217,3 +217,65 @@ describe('add-to-cart magic section: button before hydration', () => {
     expect(addItem).toHaveBeenCalledTimes(1);
   });
 });
+
+// Variant URLs (M170 B): `?variant=<id>` preselects the variant in the server
+// HTML; the client starts from the same selection (no hydration mismatch) and
+// the page load does not rewrite the address bar.
+describe('monolith product page: preselected variant (?variant=)', () => {
+  const RED = '3f6c1c1e-0b7e-4a57-9a53-2f1a8f1d2c11';
+  const BLUE = '9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d';
+  const product = makeProduct({
+    images: [{ id: 'i1', url: 'https://cdn.test/base.jpg' }],
+    variants: [
+      { id: RED, sku: 'MUG-RED', price: 120, stock: 5, options: { Color: 'Red' }, images: [{ url: 'https://cdn.test/red.jpg' }] },
+      { id: BLUE, sku: 'MUG-BLUE', price: 110, stock: 0, options: { Color: 'Blue' }, images: [{ url: 'https://cdn.test/blue.jpg' }] },
+    ],
+  });
+  const page = (initialVariantId?: string) => (
+    <ProductDetailClient
+      product={product}
+      locale="en"
+      primaryLocale="en"
+      currency="EUR"
+      options={{ trustBadges: [], showShipping: false, showTabs: false }}
+      syncVariantUrl
+      {...(initialVariantId ? { initialVariantId } : null)}
+    />
+  );
+  const imageSources = (el: HTMLElement) => Array.from(el.querySelectorAll('img')).map((i) => i.getAttribute('src'));
+
+  it('server HTML: the image and the buyable state of the preselected variant', () => {
+    const el = serverDom(page(RED));
+    expect(imageSources(el)[0]).toBe('https://cdn.test/red.jpg');
+    expect(addButtons(el)).toHaveLength(1);
+    // Without the parameter the product gallery leads, as before.
+    expect(imageSources(serverDom(page()))[0]).toBe('https://cdn.test/base.jpg');
+  });
+
+  it('server HTML: a sold-out preselected variant is rendered as sold out', () => {
+    const el = serverDom(page(BLUE));
+    expect(imageSources(el)[0]).toBe('https://cdn.test/blue.jpg');
+    // Blocked for good (grey, no hydration spinner), unlike the buyable one.
+    const [soldOut] = addButtons(el);
+    expect(soldOut.disabled).toBe(true);
+    expect(soldOut.className).toContain('bg-gray-100');
+    expect(soldOut.className).not.toContain('cursor-progress');
+    const [buyable] = addButtons(serverDom(page(RED)));
+    expect(buyable.className).not.toContain('bg-gray-100');
+    expect(buyable.className).toContain('cursor-progress');
+  });
+
+  it('hydrates without a mismatch and does not write the URL on load', async () => {
+    // jsdom has no scrollIntoView (the gallery keeps the active thumb in view).
+    const proto = Element.prototype as { scrollIntoView?: () => void };
+    const hadScrollIntoView = 'scrollIntoView' in proto;
+    if (!hadScrollIntoView) proto.scrollIntoView = () => undefined;
+    const replaceState = vi.spyOn(window.history, 'replaceState');
+    const el = await hydrate(page(RED));
+    expect(imageSources(el)[0]).toBe('https://cdn.test/red.jpg');
+    addButtons(el).forEach(expectReady);
+    expect(replaceState).not.toHaveBeenCalled();
+    replaceState.mockRestore();
+    if (!hadScrollIntoView) delete proto.scrollIntoView;
+  });
+});

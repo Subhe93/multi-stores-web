@@ -10,9 +10,13 @@
 //   (locale → primary → en → first) resolves to the same row as before;
 // - row foreign keys / ids and SEO-only columns are dropped;
 // - variants lose columns the client never reads;
+// - an image's `alt_translations` (M170 A) keeps the request locale and its
+//   base language only (the keys the alt fallback chain can read);
 // - `creator_categories` keeps only its first node (the breadcrumb fallback).
 //
 // JSON-LD and metadata keep using the full product on the server.
+
+import { pickAltTranslations } from './imageAlt';
 
 type Row = Record<string, unknown>;
 
@@ -81,6 +85,18 @@ function mapArr(v: unknown, fn: (x: unknown) => unknown): unknown {
   return Array.isArray(v) ? v.map(fn) : v;
 }
 
+/**
+ * M170 A: an image whose `alt_translations` holds only the page locale (and
+ * its base language); the key is removed when nothing is left. An image
+ * without the key is returned as it is.
+ */
+function slimImage(img: unknown, locale: string): unknown {
+  if (!isObj(img) || !('alt_translations' in img)) return img;
+  const { alt_translations, ...rest } = img;
+  const kept = pickAltTranslations(alt_translations, locale);
+  return kept ? { ...rest, alt_translations: kept } : rest;
+}
+
 function slimNode(node: unknown, locale: string, primaryLocale: string): unknown {
   if (!isObj(node)) return node;
   const out = withRows(omit(node, DROP_NODE_KEYS), locale, primaryLocale);
@@ -130,5 +146,6 @@ export function projectProductForClient<T extends object>(product: T, locale: st
     );
   }
   if ('variants' in p) p.variants = mapArr(p.variants, (v) => (isObj(v) ? omit(v, DROP_VARIANT_KEYS) : v));
+  if ('images' in p) p.images = mapArr(p.images, (img) => slimImage(img, locale));
   return p as T;
 }

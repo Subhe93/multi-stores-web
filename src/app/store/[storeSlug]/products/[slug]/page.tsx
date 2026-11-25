@@ -9,7 +9,8 @@ import { buildStoreOrigin, storeLocalePath } from '@/lib/storeUrl';
 import { productAlternates, productLinkFallbackLocale, productPathByLocale } from '@/lib/productPaths';
 import { buildProductJsonLd, shippingRateCountries, type ProductShippingRates } from '@/lib/productJsonLd';
 import { organizationId, storeBrandName } from '@/lib/storeBrand';
-import { buildStoreOpenGraph, ogFallbackImage, requestCountry } from '@/lib/storeOpenGraph';
+import { buildStoreOpenGraph, ogFallbackImage, ogImageUrl, requestCountry } from '@/lib/storeOpenGraph';
+import { storedImageAlt } from '@/lib/imageAlt';
 import { metaDescriptionFallback } from '@/lib/pageExcerpt';
 import type { MarketRoute } from '@/lib/market';
 import { getRequestMarket, getRequestNoindex, getRequestPathPrefix } from '@/lib/market.server';
@@ -39,6 +40,7 @@ import { buildBreadcrumb, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/l
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { canonicalRedirectHref, routeSlug } from '@/lib/slugRoute';
+import { variantFromQuery } from '@/lib/variantParam';
 import { matchedProductSlug, productRedirectSlug } from '@/lib/productRedirect';
 import { isReviewLocale } from '@/lib/storeLocales';
 import { pageLinkPrefix } from '@/lib/localePaths';
@@ -171,6 +173,9 @@ export async function generateMetadata({
       url: alternates.canonical,
       image: firstImage,
       fallbackImage: ogFallbackImage(storeData, resolveMediaUrl),
+      // M170 A: `og:image:alt` only from a stored alt (locale or default); a
+      // product without alt text keeps the tags it had.
+      imageAlt: storedImageAlt(product.images?.[0], locale),
       locale,
       country: requestCountry(storeData?.market, pathPrefix),
     });
@@ -186,7 +191,7 @@ export async function generateMetadata({
       twitter: buildTwitterMeta({
         title: tr?.meta_title || tr?.title || undefined,
         description,
-        image: openGraph.images?.[0],
+        image: ogImageUrl(openGraph.images?.[0]),
       }),
     };
   } catch {
@@ -270,6 +275,16 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     permanentRedirect(canonicalRedirectHref(`/products/${redirectSlug}`, query, pathPrefix));
   }
 
+  // Variant URLs (M170 B): `?variant=<id>` preselects that variant in the
+  // server HTML (price, image, availability). Read after the M164 hop, which
+  // keeps the parameter. An unknown or invalid value is ignored: the base
+  // page renders with status 200 and the canonical below never carries the
+  // query, so a variant URL is not a separate indexable page.
+  const initialVariantId = variantFromQuery(query.variant, product.variants);
+  // Spread only when set, so a page opened without the parameter serializes
+  // no extra prop.
+  const variantProps = initialVariantId ? { initialVariantId } : null;
+
   // One canonical for metadata, JSON-LD url / offers.url and the breadcrumb's
   // last item on every render path (M161 B1).
   const productCanonical = productAlternates({
@@ -342,6 +357,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             locale={locale}
             primaryLocale={primaryLocale}
             currency={storeCurrency}
+            syncVariantUrl
+            {...variantProps}
           >
             <FocusedProductLayout
               storeSlug={storeSlug}
@@ -446,6 +463,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
             locale={locale}
             primaryLocale={primaryLocale}
             currency={storeCurrency}
+            syncVariantUrl
+            {...variantProps}
           >
             <SectionRenderer
               theme={theme}
@@ -580,6 +599,8 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         primaryLocale={ldPrimary}
         currency={storeCurrency}
         langPrefix={lp}
+        syncVariantUrl
+        {...variantProps}
         {...(motion ? { motion } : null)}
       />
     </div>
