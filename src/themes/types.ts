@@ -287,6 +287,8 @@ export interface ProductContext {
   // Marketplace vendor - only present when the store enabled "show vendor
   // name"; null/absent everywhere else, so sections must treat it as optional.
   vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
+  /** M171: approved reviews of the product; only with the store app `reviews` on. */
+  reviews?: import('@/lib/reviews').ProductReviewsData;
   // Catch-all so themes can read fields we haven't typed yet without ts-errors.
   [extra: string]: unknown;
 }

@@ -14,6 +14,7 @@
 import { Heart, Share2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { PriceTaxSuffix } from '@/components/product/PriceTaxSuffix';
+import { ProductRatingLine, hasRatingLine } from '@/components/product/reviews/ProductRatingLine';
 import { formatPrice } from '@/lib/format';
 import type { SectionRenderProps } from '../../../types';
 import { B1Placeholder, isBlockPreview, useBlockState } from './blocks/b1Shared';
@@ -74,6 +75,8 @@ export function ProductDetailsMagic(props: SectionRenderProps) {
         >
           {title}
         </h1>
+        {/* M171: stars + count, only with approved reviews. */}
+        {hasRatingLine(product.reviews) && <ProductRatingLine reviews={product.reviews} />}
         {product.vendor?.company_name && (
           <p className="text-sm" style={{ color: 'var(--theme-colors-muted)' }}>
             {t('soldBy', { name: product.vendor.company_name })}

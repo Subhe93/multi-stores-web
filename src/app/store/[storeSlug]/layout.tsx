@@ -58,6 +58,7 @@ import {
 import { sanitizeCustomCss } from '@/lib/customCss';
 import { StoreCustomCss } from '@/components/StoreCustomCss';
 import { clientMessages, creativeAttrs, readCreative } from '@/themes/creative/creativeAttrs';
+import { reviewsClientMessages } from '@/lib/reviewsMessages';
 import { CreativeBoot } from '@/themes/creative/boot.client';
 import { StoreMotionAssets } from '@/themes/creative/primitives/StoreMotionAssets';
 import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
@@ -290,7 +291,7 @@ export default async function StoreLayout({
     const gateTokens = mergeTokens(resolveTheme(store.theme_key).tokens, store.theme_customizations);
     const gateName = store.theme?.translations?.[gateLocale]?.name || store.name || storeSlug;
     return (
-      <NextIntlClientProvider locale={gateLocale} messages={clientMessages(await getMessages())}>
+      <NextIntlClientProvider locale={gateLocale} messages={reviewsClientMessages(clientMessages(await getMessages()), false)}>
         <StoreGatePage
           kind={gated.gate}
           storeSlug={storeSlug}
@@ -634,7 +635,7 @@ export default async function StoreLayout({
     (messages as { creative?: { loadingPage?: string } }).creative?.loadingPage || '';
 
   return (
-    <NextIntlClientProvider locale={currentLang} messages={clientMessages(messages)}>
+    <NextIntlClientProvider locale={currentLang} messages={reviewsClientMessages(clientMessages(messages), Boolean(storeApps.reviews))}>
       <StoreProviders locale={currentLang} storeSlug={storeSlug} storeId={store.id} storeCurrency={store.currency} storeTax={normalizeStoreTax(store.tax)} storeApps={storeApps} market={store.market ?? null} markets={store.markets ?? null} storeCustomDomain={store.custom_domain ?? null} preferredCountry={store.market ? requestRegionCountry(pathCountry, cookieStore.get(REGION_COOKIE)?.value) : null} pathPrefix={pathPrefix} buyerType={buyerType} primaryLocale={primaryLocale} checkout={checkoutSettings} productCard={readProductCard(store.theme_customizations)}>
         {inlineFonts ? (
           <style dangerouslySetInnerHTML={{ __html: inlineFonts.css }} />

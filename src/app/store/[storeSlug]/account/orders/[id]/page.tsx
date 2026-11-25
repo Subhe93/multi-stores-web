@@ -22,6 +22,8 @@ import { useStorePrimaryLocale } from '@/hooks/useStorePrimaryLocale';
 import { orderRequiresShipping, orderStatusLabelKey, orderTrackerIndex, orderTrackerSteps } from '@/lib/requiresShipping';
 import { ArrowLeft, Check } from 'lucide-react';
 import { formatLocale } from '@/lib/storeLocales';
+import { useStoreApp } from '@/hooks/useStoreApps';
+import { reviewsApi, type ReviewStatus } from '@/lib/reviewsApi';
 
 // ── Types matching backend Prisma response ──────────────────────────────────
 
@@ -209,6 +211,32 @@ export default function StoreOrderDetailPage() {
       .finally(() => setLoading(false));
   }, [orderId, token]);
 
+  // M171 (store app `reviews`): which products of this order the customer
+  // may review, keyed by product id (null = not written yet). No request
+  // and no extra markup while the app is off; a failed read (order not
+  // eligible, network) simply shows no review links.
+  const reviewsOn = useStoreApp('reviews') !== null;
+  const storeSlug = typeof params.storeSlug === 'string' ? params.storeSlug : '';
+  const [reviewable, setReviewable] = useState<Record<string, ReviewStatus | null> | null>(null);
+  useEffect(() => {
+    if (!reviewsOn || !token || !orderId || !storeSlug) return;
+    let cancelled = false;
+    reviewsApi
+      .orderItems(storeSlug, orderId, token)
+      .then((res) => {
+        if (cancelled || !res?.eligible || !Array.isArray(res.items)) return;
+        const map: Record<string, ReviewStatus | null> = {};
+        for (const row of res.items) map[row.product_id] = row.review_status ?? null;
+        setReviewable(map);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewsOn, storeSlug, orderId, token]);
+  // One link per product: the first line of each product carries it.
+  const reviewLinkShown = new Set<string>();
+
   if (loading) {
     return (
       <div className="store-surface store-bd rounded-2xl border p-8">
@@ -340,6 +368,16 @@ export default function StoreOrderDetailPage() {
             const fieldValues = item.custom_field_values || [];
             const bundleTr = item.bundle_offer?.translations?.find((tr) => tr.locale === locale)
               || item.bundle_offer?.translations?.[0];
+            // M171: the storefront product id of the line (a custom product
+            // is reviewed as itself, not as its base product).
+            const reviewProductId = item.custom_product?.id || item.product?.id || '';
+            const canReview =
+              reviewable !== null &&
+              reviewProductId !== '' &&
+              Object.hasOwn(reviewable, reviewProductId) &&
+              !reviewLinkShown.has(reviewProductId);
+            if (canReview) reviewLinkShown.add(reviewProductId);
+            const reviewStatus = canReview ? reviewable[reviewProductId] : null;
 
             return (
               <div key={item.id} className="py-3 space-y-1">
@@ -383,6 +421,24 @@ export default function StoreOrderDetailPage() {
                     primaryLocale={primaryLocale}
                     className="ms-15 ps-3 border-s-2 border-gray-100 space-y-1"
                   />
+                )}
+
+                {/* M171: write / edit the review of this product. */}
+                {canReview && (
+                  <p className="ms-15 flex flex-wrap items-center gap-2 text-xs" data-order-review-link="">
+                    <Link
+                      href={lp(`/reviews/write?product=${encodeURIComponent(reviewProductId)}`)}
+                      className="font-medium underline underline-offset-2 hover:opacity-80"
+                      style={{ color: 'var(--theme-colors-link, var(--theme-colors-price, var(--store-primary, #2563eb)))' }}
+                    >
+                      {reviewStatus ? t('account.editReview') : t('account.writeReview')}
+                    </Link>
+                    {reviewStatus && (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600">
+                        {t(`reviews.status.${reviewStatus}`)}
+                      </span>
+                    )}
+                  </p>
                 )}
 
                 {/* Design notes */}

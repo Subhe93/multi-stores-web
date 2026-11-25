@@ -30,7 +30,7 @@ import { storeMotionOf } from '@/themes/creative/creativeAttrs';
 import { surface, type MotionProp } from '@/themes/creative/recipes';
 import { ProductBlocksWarmup } from '@/themes/minimal/sections/product/blocks/ProductBlocksWarmup';
 import { ProductPageMagicWarmup } from '@/themes/minimal/sections/product/ProductPageMagicWarmup';
-import { usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
+import { rendersProductPageSection, usesProductBlocks, usesProductPageMagic } from '@/themes/minimal/sections/product/blocks/productBlockKeys';
 import { productLinkRewriter } from '@/lib/productLinkCanonical.server';
 import { preloadSectionData } from '@/lib/preloadSections';
 import { readProductCard } from '@/lib/productCard/settings';
@@ -40,6 +40,18 @@ import { buildBreadcrumb, buildFaqPage, buildTwitterMeta, ldJsonSafe } from '@/l
 import { buildVideoObjectsJsonLd, type StorefrontProductVideo } from '@/lib/productVideo';
 import { collectionDisplayName, collectionHref, collectionPathInChain, resolvePrimaryCollectionPath } from '@/lib/collectionPath';
 import { canonicalRedirectHref, routeSlug } from '@/lib/slugRoute';
+import { isAppEnabled, type StorefrontApps } from '@/lib/storeApps';
+import { normalizeCheckoutSettings } from '@/lib/checkoutSettings';
+import {
+  loadProductReviews,
+  reviewsBaseQuery,
+  reviewsPageFromQuery,
+  toReviewsData,
+  withReviews,
+  type ProductReviewsPage,
+  type ReviewsSlot,
+} from '@/lib/reviews';
+import { ProductReviews } from '@/components/product/reviews/ProductReviews';
 import { variantFromQuery } from '@/lib/variantParam';
 import { matchedProductSlug, productRedirectSlug } from '@/lib/productRedirect';
 import { isReviewLocale } from '@/lib/storeLocales';
@@ -77,6 +89,8 @@ interface StoreRecord {
   logo_url?: string | null;
   /** `theme.seo.brandName`: optional brand override (M161 B3). */
   theme?: { seo?: { brandName?: unknown } | null } | null;
+  /** Enabled store apps; a key is present only while its app is on. */
+  apps?: StorefrontApps | null;
 }
 
 /**
@@ -217,6 +231,9 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
   let template: { snapshot?: { sections?: SectionInstance[] } } | null = null;
   // M161 B6: JSON-LD shippingDetails; null (no rates) on any failure.
   let shippingRates: ProductShippingRates | null = null;
+  // M171 (store app `reviews`): approved reviews of the rendered page; null
+  // with the app off (no read at all) and on any failure (the block hides).
+  let reviews: ProductReviewsPage | null = null;
   // Without a locale prefix in the URL the content is rendered in the store's
   // primary locale, not in English — so the store is read first (it is cached).
   let locale = lang || 'en';
@@ -225,13 +242,23 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     storeData = (await storefront.getStore(storeSlug, marketKey)) as StoreRecord | null;
     locale = lang || storeData?.language_config?.primary_locale || 'en';
     const shipCountries = shippingRateCountries(storeData?.market, pathPrefix, storeData?.trader_details?.country);
-    [product, template, shippingRates] = await Promise.all([
+    // App off: no read, no prop, no markup (HTML and JSON-LD stay identical).
+    const reviewsOn = isAppEnabled(storeData, 'reviews');
+    [product, template, shippingRates, reviews] = await Promise.all([
       storefront.getProduct(storeSlug, productSlug, locale, marketKey) as Promise<ProductRecord>,
       storefront.getPublishedProductTemplate(storeSlug).catch(() => null) as Promise<{
         snapshot?: { sections?: SectionInstance[] };
       } | null>,
       shipCountries.length > 0
         ? storefront.getProductShippingRates(storeSlug, productSlug, shipCountries, marketKey).catch(() => null)
+        : Promise.resolve(null),
+      // One store-tagged read per product and page number; reviews are
+      // shared by every market and locale of the product (no market key).
+      reviewsOn
+        ? loadProductReviews(
+            (page) => storefront.getProductReviews(storeSlug, productSlug, page),
+            reviewsPageFromQuery(query.reviews_page),
+          )
         : Promise.resolve(null),
     ]);
     storeCurrency = storeData?.currency || 'EUR';
@@ -315,7 +342,32 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       shipping: shippingRates,
       videos: productVideosLd(product, tr?.title || 'Product', tr?.short_description),
       resolveMedia: resolveMediaUrl,
+      // M171: the same value the reviews block renders (no block, no markup).
+      ...(reviews ? { reviews } : null),
     });
+
+  // M171: the client product with its reviews. `reviews` is the one value
+  // behind the block, the stars line and the JSON-LD above. Without it the
+  // product object is returned untouched (no extra key in the payload).
+  // Page links are built from the public path of this request (the locale
+  // prefix is in `lp`; `lang` is the proxy's internal form of it).
+  const withProductReviews = <T extends object>(clientProduct: T, slot: ReviewsSlot): T =>
+    reviews
+      ? withReviews(
+          clientProduct,
+          toReviewsData(reviews, {
+            slot,
+            basePath: `${lp}/products/${rawSlug}`,
+            baseQuery: reviewsBaseQuery(query),
+            // Stores without customer accounts have no sign-in: their buyers
+            // use the review link the owner sends.
+            writeHref: normalizeCheckoutSettings(storeData?.checkout).no_customer_accounts
+              ? null
+              : `${lp}/reviews/write?product=${encodeURIComponent(product.id)}`,
+            storeName: storeBrandName(storeData) || null,
+          }),
+        )
+      : clientProduct;
 
   // If the creator has published a PRODUCT_TEMPLATE, render the page through
   // the active theme using its sections + this product as the magic context.
@@ -353,7 +405,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
         <FocusedBackCapture />
         <DesignerSessionProvider designer={product.designer} productId={product.id} locale={locale}>
           <ProductPageStateProvider
-            product={projectProductForClient(product, locale, primaryLocale) as unknown as ProductData}
+            product={withProductReviews(projectProductForClient(product, locale, primaryLocale), 'inline') as unknown as ProductData}
             locale={locale}
             primaryLocale={primaryLocale}
             currency={storeCurrency}
@@ -404,7 +456,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
     const tplFaqLd = buildFaqPageFromProduct(product, locale, primaryLocale);
     // Client sections get a slim copy (current-locale rows only); JSON-LD
     // above keeps the full product.
-    const clientProduct = projectProductForClient(product, locale, primaryLocale);
+    // M171: the monolith `product-page` section shows the reviews block
+    // itself; on every other template it is appended after the sections.
+    const reviewsSlot: ReviewsSlot = rendersProductPageSection(templateSections) ? 'inline' : 'append';
+    const clientProduct = withProductReviews(projectProductForClient(product, locale, primaryLocale), reviewsSlot);
+    const appendedReviews = reviewsSlot === 'append' ? (clientProduct as { reviews?: ProductData['reviews'] }).reviews : undefined;
     // Same trail as the visible breadcrumb of the product-page section:
     // Home › ancestors… › primary › product (Home › Products › product
     // without a primary collection).
@@ -478,6 +534,11 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
               currency={storeCurrency}
               preloaded={preloaded}
             />
+            {appendedReviews && (
+              <div className="pb-10">
+                <ProductReviews reviews={appendedReviews} locale={locale} />
+              </div>
+            )}
           </ProductPageStateProvider>
         </DesignerSessionProvider>
       </div>
@@ -594,7 +655,7 @@ export default async function StoreProductDetailPage({ params, searchParams }: P
       )}
 
       <ProductDetailClient
-        product={projectProductForClient(product, locale, ldPrimary)}
+        product={withProductReviews(projectProductForClient(product, locale, ldPrimary), 'inline')}
         locale={locale}
         primaryLocale={ldPrimary}
         currency={storeCurrency}

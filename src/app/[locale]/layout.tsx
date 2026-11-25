@@ -8,6 +8,7 @@ import { buildOrganization, buildWebSite, ldJsonSafe } from '@/lib/jsonld';
 import { getPlatformName } from '@/lib/platform';
 import { COMPANY, CONTACT_EMAIL, HEX } from '@/lib/brand';
 import { MotionShim } from '@/components/marketing/providers/MotionShim';
+import { reviewsClientMessages } from '@/lib/reviewsMessages';
 
 // Brand typography for every platform page (landing, company, legal, auth).
 // Manrope has no Arabic glyphs, so Alexandria (a geometric Arabic face whose
@@ -58,7 +59,9 @@ export default async function LocaleLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJsonSafe(websiteLd) }}
       />
-      <NextIntlClientProvider messages={messages}>
+      {/* Platform pages never render a review component: the texts of the
+          reviews store app stay out of their HTML payload. */}
+      <NextIntlClientProvider messages={reviewsClientMessages(messages, false)}>
         <StoreProviders locale={locale}>
           {children}
         </StoreProviders>

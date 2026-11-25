@@ -13,6 +13,9 @@ import { CustomFieldsForm } from '@/components/product/CustomFieldsForm';
 import { PersonalizationForm } from '@/components/product/personalization/PersonalizationForm';
 import { visibleFieldsAt } from '@/components/product/personalization/model';
 import { ProductPageStateProvider, useProductPageState, type ProductTabId } from '@/components/product/state/ProductPageState';
+import type { ProductReviewsData } from '@/lib/reviews';
+import { ProductReviews } from '@/components/product/reviews/ProductReviews';
+import { ProductRatingLine, hasRatingLine } from '@/components/product/reviews/ProductRatingLine';
 import { formatPrice } from '@/lib/format';
 import { promotionsForProduct } from '@/lib/requiresShipping';
 import { computeBundlePricing } from '@/lib/bundle';
@@ -89,6 +92,8 @@ export interface ProductData {
   stories?: StorefrontProductStory[];
   // Marketplace vendor - only present when the store shows vendor names.
   vendor?: { id?: string; company_name: string; logo_url?: string | null } | null;
+  /** M171: approved reviews (store app `reviews`); the route omits the key otherwise. */
+  reviews?: ProductReviewsData;
   variants?: {
     id: string;
     sku?: string;
@@ -552,6 +557,10 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
           <h1 className="-order-2 text-3xl lg:text-4xl font-bold text-gray-900 leading-tight md:order-0">
             {translation?.title}
           </h1>
+          {/* M171: stars + count, only with approved reviews. */}
+          {hasRatingLine(product.reviews) && (
+            <ProductRatingLine reviews={product.reviews} className="-order-2 -mt-3 md:order-0" />
+          )}
           {product.vendor?.company_name && (
             <p className="-order-2 -mt-3 text-sm text-gray-500 md:order-0">
               {t('product.soldBy', { name: product.vendor.company_name })}
@@ -1156,6 +1165,12 @@ function ProductDetailBody({ product, locale = 'en', primaryLocale = 'en', curre
             )}
           </div>
         </div>
+      )}
+
+      {/* M171: reviews block. `append` = the product route renders it after
+          the template's sections instead (never twice on a page). */}
+      {product.reviews && product.reviews.slot === 'inline' && (
+        <ProductReviews reviews={product.reviews} locale={locale} />
       )}
 
       {/* Floating toast: added to cart, with a way to the cart (M5 D5) */}

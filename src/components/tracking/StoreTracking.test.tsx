@@ -483,16 +483,80 @@ describe('StoreTracking: Microsoft Clarity routes', () => {
     [['auth', 'login']],
     [['(checkout)', 'checkout', 'confirmation']],
     [['(checkout)', 'checkout', 'kustom', 'confirmation']],
+    [['reviews', 'write']],
   ])('never loads on %j', async (segments) => {
     // A fresh document on the excluded route: no Clarity has run in it.
     delete window.clarity;
     nav.segments = segments;
     seed({ analytics: true, marketing: false });
     renderTracking();
-    await waitFor(() => expect(trackerIds().length).toBeGreaterThan(0));
+    // The review page mounts no tag at all (see the credential-route tests).
+    if (segments[0] !== 'reviews') await waitFor(() => expect(trackerIds().length).toBeGreaterThan(0));
+    else await act(async () => {});
     expect(clarityTags()).toHaveLength(0);
     expect(window.clarity).toBeUndefined();
     expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it('the review write page (link token in the URL): no vendor tag at all, also with every consent given', async () => {
+    delete window.clarity;
+    delete window.gtag;
+    nav.segments = ['reviews', 'write'];
+    seed({ analytics: true, marketing: true });
+    renderTracking();
+    await act(async () => {});
+    expect(trackerIds()).toEqual([]);
+    expect(window.clarity).toBeUndefined();
+    expect(getActiveTrackers()).toMatchObject({ ga4: false, meta: false, tiktok: false, clarity: false });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it('the review write page of a store without consent gating mounts no ungated tag either', async () => {
+    delete window.clarity;
+    delete window.gtag;
+    nav.segments = ['reviews', 'write'];
+    renderTracking({ tracking: { ...FULL, clarity_project_id: null, consent_required: false } });
+    await act(async () => {});
+    expect(trackerIds()).toEqual([]);
+  });
+
+  it('the tags come back on the next route after the review page', async () => {
+    delete window.clarity;
+    nav.segments = ['reviews', 'write'];
+    seed({ analytics: true, marketing: true });
+    const view = renderTracking();
+    await act(async () => {});
+    expect(trackerIds()).toEqual([]);
+    nav.segments = ['products', 'mug'];
+    view.rerender(tree());
+    await waitFor(() => expect(clarityTags()).toHaveLength(1));
+    expect(trackerIds()).toEqual(['ms-ga4-src', 'ms-ga4-init', 'ms-meta-pixel', 'ms-tiktok-pixel', 'ms-clarity']);
+  });
+
+  it('a link to the review write page is a full page load while Clarity runs', async () => {
+    seed({ analytics: true, marketing: false });
+    renderTracking();
+    await waitFor(() => expect(clarityTags()).toHaveLength(1));
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...original, href: original.href, origin: original.origin, hash: '', assign },
+    });
+    try {
+      for (const href of ['/store/namez/reviews/write?product=abc', '/de-de/reviews/write?product=abc']) {
+        const a = document.createElement('a');
+        a.href = href;
+        document.body.appendChild(a);
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+        a.dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(assign).toHaveBeenLastCalledWith(expect.stringContaining(href));
+        a.remove();
+      }
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original });
+    }
   });
 
   it('loads on the checkout itself (masked by the checkout layout)', async () => {

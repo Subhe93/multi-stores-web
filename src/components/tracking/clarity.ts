@@ -10,8 +10,10 @@
 //   denied plus the deprecated `consent(false)` (erases _clck/_clsk), and
 //   the page reloads, because Clarity would otherwise keep collecting in
 //   cookieless mode (consent v2 §7.1).
-// - Never on account / auth pages or on the order confirmation (its URL can
-//   carry payment ids such as `payment_intent_client_secret`).
+// - Never on account / auth pages, on the order confirmation (its URL can
+//   carry payment ids such as `payment_intent_client_secret`) or on the
+//   review pages (`reviews/write` arrives with a review-link token in its
+//   URL and shows the review form of the buyer).
 import type { TrackerVendor } from '@/lib/consent';
 import { clearVendorCookies, type CookieGroup } from './consentCookies';
 import { reloadPage } from './pageReload';
@@ -25,7 +27,21 @@ declare global {
 }
 
 /** Store-layout child segments where Clarity never loads. */
-const EXCLUDED_SEGMENTS = new Set(['account', 'auth']);
+const EXCLUDED_SEGMENTS = new Set(['account', 'auth', 'reviews']);
+
+/**
+ * Store-layout child segments whose URL can carry a write credential that
+ * is only removed from the address bar after hydration (`reviews/write`
+ * with `#token=`). The vendor tags (GA4, Meta, TikTok) read `location.href`
+ * when they start, so they are not mounted there at all.
+ */
+const CREDENTIAL_SEGMENTS = new Set(['reviews']);
+
+/** Whether the vendor tags may mount under these store-layout child segments. */
+export function vendorTagsAllowedFor(segments: readonly string[]): boolean {
+  const [first] = segments;
+  return !(first && CREDENTIAL_SEGMENTS.has(first));
+}
 
 /**
  * Whether Clarity may load under these store-layout child segments
@@ -147,7 +163,7 @@ export function revokeConsentCategories({ analytics, marketing, gated }: RevokeO
 
 /**
  * Whether a URL path is one of the routes Clarity never records (account,
- * auth, order confirmations). Path based (store prefix, locale prefix or a
+ * auth, review pages, order confirmations). Path based (store prefix, locale prefix or a
  * custom domain in front), for links and redirects before they navigate; a
  * false positive only costs a full page load.
  */

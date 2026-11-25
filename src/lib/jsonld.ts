@@ -84,7 +84,12 @@ interface ProductInput {
   price: number;
   priceCurrency: string;
   availability?: 'InStock' | 'OutOfStock' | 'PreOrder';
-  aggregateRating?: { ratingValue: number; reviewCount: number };
+  /**
+   * M171: `aggregateRating` + `review` of the product's approved reviews
+   * (`reviewsLd` in lib/reviews). Both keys are added only when given, so a
+   * product without reviews keeps exactly the same JSON-LD.
+   */
+  reviewMarkup?: { aggregateRating: object; review: object[] };
   /**
    * Product video: VideoObject entries (see buildVideoObjectsJsonLd in
    * lib/productVideo). `subjectOf` is added only for a non-empty list, so a
@@ -133,14 +138,8 @@ export function buildProduct(input: ProductInput) {
         ? { hasMerchantReturnPolicy: input.returnPolicy }
         : {}),
     },
-    ...(input.aggregateRating
-      ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: input.aggregateRating.ratingValue,
-            reviewCount: input.aggregateRating.reviewCount,
-          },
-        }
+    ...(input.reviewMarkup
+      ? { aggregateRating: input.reviewMarkup.aggregateRating, review: input.reviewMarkup.review }
       : {}),
     ...(input.videos?.length ? { subjectOf: input.videos } : {}),
   };

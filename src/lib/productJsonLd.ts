@@ -18,6 +18,7 @@ import { productAvailability } from './productAvailability';
 import { requestCountry } from './storeOpenGraph';
 import type { PathMarket } from './localePaths';
 import { variantUrl } from './variantParam';
+import { reviewsLd, type ProductReviewsPage } from './reviews';
 
 /**
  * Destination countries of the shipping-rates read (M161 B6): the country of
@@ -112,6 +113,12 @@ export interface ProductJsonLdInput {
   videos?: object[];
   /** Makes media URLs absolute (resolveMediaUrl). */
   resolveMedia: (url: string) => string;
+  /**
+   * M171: the approved reviews rendered on the page (store app `reviews`).
+   * Adds `aggregateRating` + `review` to the Product, or to the ProductGroup
+   * (never to its `hasVariant` items). Absent / null / no review = no key.
+   */
+  reviews?: Pick<ProductReviewsPage, 'summary' | 'items'> | null;
 }
 
 // Option name synonyms (keys and localized names, lower-cased) of the
@@ -266,6 +273,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
   const shippingDetails = shippingDetailsLd(input.shipping);
   const returnPolicy = returnPolicyLd(input.shipping);
   const variants = activeVariants(product);
+  const reviewMarkup = reviewsLd(input.reviews) ?? undefined;
 
   // Simple product, or a single variant: one Offer as before.
   if (variants.length < 2) {
@@ -283,6 +291,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
       sellerId: input.sellerId,
       shippingDetails,
       returnPolicy,
+      reviewMarkup,
     });
   }
 
@@ -307,6 +316,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
         priceCurrency: input.currency,
         availability: `https://schema.org/${productAvailability({ variants })}`,
       },
+      reviewMarkup,
     });
   }
 
@@ -382,5 +392,8 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
     ...(variesBy.size ? { variesBy: [...variesBy].map((p) => `https://schema.org/${p}`) } : {}),
     hasVariant,
     ...(input.videos?.length ? { subjectOf: input.videos } : {}),
+    // M171: on the group (representative of all variants), after every
+    // existing key so their order is untouched.
+    ...(reviewMarkup ? { aggregateRating: reviewMarkup.aggregateRating, review: reviewMarkup.review } : {}),
   };
 }

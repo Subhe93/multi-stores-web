@@ -55,3 +55,14 @@ export function usesProductBlocks(sections: ReadonlyArray<SectionLike>): boolean
 export function usesProductPageMagic(sections: ReadonlyArray<SectionLike>): boolean {
   return renderedKeys(sections).has('product-page');
 }
+
+/**
+ * M171: whether the template itself renders the product body
+ * (ProductDetailClient through a reached monolith `product-page` section).
+ * That component shows the reviews block inline; on every other template
+ * the product route appends the block after the sections, so it is on the
+ * page exactly once. Same reached-keys rule as the renderer.
+ */
+export function rendersProductPageSection(sections: ReadonlyArray<SectionLike>): boolean {
+  return usesProductPageMagic(sections);
+}

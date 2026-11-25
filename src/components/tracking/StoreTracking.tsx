@@ -17,7 +17,13 @@ import {
   type TrackerVendor,
 } from '@/lib/consent';
 import { ClarityScript } from './ClarityScript';
-import { clarityAllowedFor, clarityRanInDocument, isClarityExcludedPath, revokeConsentCategories } from './clarity';
+import {
+  clarityAllowedFor,
+  clarityRanInDocument,
+  isClarityExcludedPath,
+  revokeConsentCategories,
+  vendorTagsAllowedFor,
+} from './clarity';
 import { reloadPage } from './pageReload';
 import type { ConsentDialogAction, ConsentDialogChoice } from './CookieSettingsDialog';
 import { CookieSettingsLauncher } from './CookieSettingsLauncher';
@@ -254,9 +260,13 @@ export function StoreTracking({ storeSlug, tracking, cookiePolicyHref = null, pr
   };
 
   const ungated = vendors.ungated;
-  const ga4On = (allowA && vendors.analytics.includes('ga4')) || ungated.includes('ga4');
-  const metaOn = (allowM && vendors.marketing.includes('meta')) || ungated.includes('meta');
-  const tiktokOn = (allowM && vendors.marketing.includes('tiktok')) || ungated.includes('tiktok');
+  // No vendor tag on a route whose URL can hold a credential (the review
+  // link token of `reviews/write`): a tag that starts there would read the
+  // address before the page has removed the token from it.
+  const tagsAllowed = vendorTagsAllowedFor(segments);
+  const ga4On = tagsAllowed && ((allowA && vendors.analytics.includes('ga4')) || ungated.includes('ga4'));
+  const metaOn = tagsAllowed && ((allowM && vendors.marketing.includes('meta')) || ungated.includes('meta'));
+  const tiktokOn = tagsAllowed && ((allowM && vendors.marketing.includes('tiktok')) || ungated.includes('tiktok'));
   const adSignals = allowM || !consentRequired;
   const clarityOn = allowA && Boolean(clarityId) && routeAllowed;
 

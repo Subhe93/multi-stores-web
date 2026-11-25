@@ -13,6 +13,7 @@ import {
   resolvePrimaryCollectionPath,
 } from '@/lib/collectionPath';
 import { useFocusedStorefront } from '@/hooks/useFocusedStorefront';
+import { ProductRatingLine, hasRatingLine } from '@/components/product/reviews/ProductRatingLine';
 import type { SectionRenderProps } from '../../../../types';
 import { B1Placeholder, B1Scope, b1LangPrefix, isBlockPreview, useBlockState } from './b1Shared';
 
@@ -59,6 +60,8 @@ export function ProductTitleBlock(props: SectionRenderProps) {
       <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
         {translation?.title}
       </h1>
+      {/* M171: stars + count, only with approved reviews. */}
+      {hasRatingLine(product.reviews) && <ProductRatingLine reviews={product.reviews} className="-mt-3" />}
       {showVendor && product.vendor?.company_name && (
         <p className="-mt-3 text-sm text-gray-500">
           {t('product.soldBy', { name: product.vendor.company_name })}

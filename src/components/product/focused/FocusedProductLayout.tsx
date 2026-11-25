@@ -48,6 +48,8 @@ import { AttributeValue } from '@/themes/minimal/sections/product/blocks/Product
 import type { ProductContext, SectionRenderProps } from '@/themes/types';
 import { surface, type MotionProp } from '@/themes/creative/recipes';
 import { ProductMotionScope } from '@/components/product/productMotion';
+import { ProductReviews } from '@/components/product/reviews/ProductReviews';
+import { ProductRatingLine, hasRatingLine } from '@/components/product/reviews/ProductRatingLine';
 
 interface FocusedProductLayoutProps {
   storeSlug: string;
@@ -168,6 +170,8 @@ function FocusedProductBody({ storeSlug, sellerPhone, motion }: FocusedProductLa
           >
             {translation?.title}
           </h1>
+          {/* M171: stars + count, only with approved reviews. */}
+          {hasRatingLine(product.reviews) && <ProductRatingLine reviews={product.reviews} className="-mt-1" />}
           {product.vendor?.company_name && (
             <p className="-mt-1 text-sm" style={{ color: MUTED }}>
               {t('product.soldBy', { name: product.vendor.company_name })}
@@ -385,6 +389,11 @@ function FocusedProductBody({ storeSlug, sellerPhone, motion }: FocusedProductLa
           )}
         </div>
       </div>
+
+      {/* M171: reviews block (store app `reviews`; absent otherwise). */}
+      {product.reviews && product.reviews.slot === 'inline' && (
+        <ProductReviews reviews={product.reviews} locale={locale} />
+      )}
 
       <ProductToasts state={state} langPrefix={b1LangPrefix(locale, primaryLocale, pathPrefix)} />
     </div>

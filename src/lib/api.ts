@@ -374,6 +374,17 @@ export const storefront = {
     );
   },
 
+  // M171 (store app `reviews`): approved reviews of a product, 10 per page,
+  // plus the rating summary. A list read: cached on the store tag like every
+  // other one (never the DRAFT-preview options of the product read). Page 1
+  // carries no parameter, so there is one cache entry per product and page.
+  // Called only for a store with the app on (the API answers 403 otherwise).
+  getProductReviews: async (slug: string, productSlug: string, page = 1) =>
+    api<unknown>(
+      `/storefront/${slug}/products/${encodeURIComponent(productSlug)}/reviews${page > 1 ? `?page=${page}` : ''}`,
+      await storefrontOpts(slug),
+    ),
+
   getCategories: async (slug: string) =>
     api(`/storefront/${slug}/categories`, await storefrontOpts(slug)),
 
