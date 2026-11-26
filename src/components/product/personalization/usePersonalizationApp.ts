@@ -13,6 +13,7 @@ import { splitFieldTree, type PFieldDef, type POptionConfig } from '@multi-store
 import type { VariantCardsConfig } from './VariantCards';
 import {
   activeOptionValues,
+  prefillFieldValue,
   readPersonalizationSettings,
   readProductPersonalization,
   type ContextVariant,
@@ -111,7 +112,13 @@ export function usePersonalizationApp(input: PersonalizationAppInput) {
       top.map((d) => ({ id: d.id, name: d.name, type: String(d.type), priced: d.pricing !== null && typeof d.pricing === 'object' })),
       Object.entries(optionValues).map(([name, values]) => ({ name, values })),
     );
-    if (advanced) for (const [id, v] of Object.entries(prefill.fields)) fields.onChange(id, v);
+    // M173: a prefilled text gets the field's live transform (capitalize), so
+    // the input shows the text the evaluator stores, as when it is typed.
+    if (advanced) {
+      for (const [id, v] of Object.entries(prefill.fields)) {
+        fields.onChange(id, prefillFieldValue(top.find((d) => d.id === id), v));
+      }
+    }
     const picks = prefill.options;
     if (Object.keys(picks).length > 0 && onPrefillOptions) {
       const names = Object.keys(optionValues);

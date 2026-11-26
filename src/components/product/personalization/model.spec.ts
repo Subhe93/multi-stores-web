@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileAllowedChars, lineKey, truncateChars, type PFieldDef, type POptionConfig } from '@multi-stores/core/personalization';
+import { compileAllowedChars, lineKey, normalizeText, truncateChars, type PFieldDef, type POptionConfig } from '@multi-stores/core/personalization';
 import { filterAllowedChars } from '@/lib/personalization/form';
 import { addGuestLine } from '@/lib/guestCart';
 import {
@@ -39,6 +39,8 @@ import {
   splitDisplay,
   summaryMessages,
   textLimits,
+  liveTextTransform,
+  prefillFieldValue,
   visibleFieldsAt,
   withChildValue,
 } from './model';
@@ -252,6 +254,50 @@ describe('text limits (TextField)', () => {
   it('own counter, max and uppercase for name_1', () => {
     const l = textLimits(name1, [name1, name2], {});
     expect(l).toMatchObject({ max: 11, counter: 'own', uppercase: true, insertChar: null, targetLength: null });
+    expect(l.transform).toBe('uppercase');
+  });
+
+  it('transform: capitalize (M173) is its own mode, never the CSS uppercase', () => {
+    const cap = { ...name1, ui: { transform: 'capitalize' } } as typeof name1;
+    expect(textLimits(cap, [cap], {})).toMatchObject({ uppercase: false, transform: 'capitalize' });
+    for (const transform of [undefined, 'none', 'title']) {
+      const def = { ...name1, ui: { transform } } as unknown as typeof name1;
+      expect(textLimits(def, [def], {})).toMatchObject({ uppercase: false, transform: 'none' });
+    }
+  });
+
+  it('liveTextTransform: capitalize rewrites the value, uppercase and none leave it', () => {
+    expect(liveTextTransform('aNNA', 'capitalize')).toBe('Anna');
+    expect(liveTextTransform('ANNA', 'capitalize')).toBe('Anna');
+    expect(liveTextTransform('1ÅSA öL', 'capitalize')).toBe('1åsa öl');
+    expect(liveTextTransform('ßTRAẞE', 'capitalize')).toBe('ßtraße');
+    expect(liveTextTransform('aNNA', 'uppercase')).toBe('aNNA');
+    expect(liveTextTransform('aNNA', 'none')).toBe('aNNA');
+    // Same text as the server normalisation, at the same length.
+    for (const typed of ['aNNA', ' eVA', 'ANNA-MARIA', '🔥ANNA', 'ßETA', 'DİL']) {
+      const live = liveTextTransform(typed, 'capitalize');
+      expect(live).toHaveLength(typed.length);
+      expect(normalizeText(live, 'capitalize')).toBe(normalizeText(typed, 'capitalize'));
+      expect(live.trim()).toBe(normalizeText(typed, 'capitalize'));
+    }
+  });
+
+  it('prefillFieldValue: a prefilled text gets the capitalize transform only', () => {
+    const cap = { ...name1, ui: { transform: 'capitalize' } } as unknown as typeof name1;
+    expect(prefillFieldValue(cap, 'ANNA')).toBe('Anna');
+    expect(prefillFieldValue(cap, 'aNNA')).toBe('Anna');
+    expect(prefillFieldValue({ ...cap, type: 'TEXTAREA' } as unknown as typeof name1, 'ANNA')).toBe('Anna');
+    // Uppercase (CSS + server) and no transform keep the URL text as it is.
+    expect(prefillFieldValue({ ...name1, ui: { transform: 'uppercase' } } as unknown as typeof name1, 'aNNA')).toBe('aNNA');
+    expect(prefillFieldValue({ ...name1, ui: {} } as unknown as typeof name1, 'aNNA')).toBe('aNNA');
+    // Not a text field (option keys are case sensitive), or an unknown id.
+    expect(prefillFieldValue({ ...cap, type: 'SELECT' } as unknown as typeof name1, 'RED')).toBe('RED');
+    expect(prefillFieldValue(undefined, 'ANNA')).toBe('ANNA');
+  });
+
+  it('linked length with capitalize on the target', () => {
+    const a = { ...name1, ui: { transform: 'capitalize', counter: true } } as typeof name1;
+    expect(textLimits(name2, [a, name2], { n1: 'kRISTOFER' })).toMatchObject({ max: 9, targetLength: 9 });
   });
 
   it('name_2: max = length of name_1, linked counter, ❤ button', () => {

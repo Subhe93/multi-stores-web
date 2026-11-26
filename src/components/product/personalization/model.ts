@@ -9,6 +9,7 @@
  */
 import {
   buildPersonalizationGroups,
+  capitalizeFirst,
   charCount,
   compileAllowedChars,
   evaluatePersonalization,
@@ -368,6 +369,36 @@ export function pruneHidden(
 // Text limits (TextField)
 // ---------------------------------------------------------------------------
 
+export type TextTransform = 'none' | 'uppercase' | 'capitalize';
+
+function readTransform(raw: unknown): TextTransform {
+  return raw === 'uppercase' || raw === 'capitalize' ? raw : 'none';
+}
+
+/**
+ * Transform applied to the VALUE of a text input on every edit (M173).
+ * - 'capitalize': first letter upper case, the rest lower case, with the same
+ *   shared function the server uses (`capitalizeFirst`), so the field, the
+ *   summary and the stored value are the same text. It never changes the
+ *   length, so the caret offset stays valid.
+ * - 'uppercase' / 'none': unchanged. Uppercase is shown with CSS and stored
+ *   uppercased by the server (it can change the length: "ß" -> "SS").
+ */
+export function liveTextTransform(value: string, transform: TextTransform): string {
+  return transform === 'capitalize' ? capitalizeFirst(value) : value;
+}
+
+/**
+ * Value of a field as it enters the form state from a non-typing writer (URL
+ * prefill, M173): a TEXT / TEXTAREA value gets the field's live transform, so
+ * a capitalize field shows the text that is stored ("ANNA" -> "Anna"). Other
+ * types and other transforms are returned unchanged.
+ */
+export function prefillFieldValue(def: PFieldDef | undefined, value: string): string {
+  if (!def || (def.type !== 'TEXT' && def.type !== 'TEXTAREA')) return value;
+  return liveTextTransform(value, readTransform(readUi(def.ui).transform));
+}
+
 export interface TextLimits {
   /** Effective max in code points (C14); null = none. */
   max: number | null;
@@ -376,6 +407,8 @@ export interface TextLimits {
   counter: 'none' | 'own' | 'linked';
   insertChar: string | null;
   uppercase: boolean;
+  /** `ui.transform` of the field ('none' when absent or unknown). */
+  transform: TextTransform;
   allowed: RegExp | null;
   allowedBody: string | null;
 }
@@ -429,6 +462,7 @@ export function textLimits(
     counter,
     insertChar,
     uppercase: ui.transform === 'uppercase',
+    transform: readTransform(ui.transform),
     allowed: allowedBody ? cachedAllowedChars(allowedBody) : null,
     allowedBody,
   };

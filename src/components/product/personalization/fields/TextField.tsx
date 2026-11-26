@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { fieldMessage, insertAtCaret, readValidationRules, truncateChars, type PFieldDef } from '@multi-stores/core/personalization';
 import { filterAllowedChars } from '@/lib/personalization/form';
-import { displayLength, textLimits, type FieldText } from '../model';
+import { displayLength, liveTextTransform, textLimits, type FieldText } from '../model';
 import { FieldShell } from './FieldShell';
 
 interface TextFieldProps {
@@ -32,7 +32,11 @@ interface TextFieldProps {
  *   the length of the linked field (A L596-601);
  * - counter "x / max" or "x / length of the linked field" (A L491-503);
  * - `insert_char` button inserting at the caret while below the max (A L671-690);
- * - uppercase transform shown with CSS (the server stores it uppercased).
+ * - uppercase transform shown with CSS (the server stores it uppercased);
+ * - capitalize transform (M173) applied to the value itself on every edit
+ *   (not while an IME composition is open), with the caret kept in place: the
+ *   field shows exactly the text that is stored. A value that arrives
+ *   without typing (URL prefill) is normalised the same way.
  */
 export function TextField({
   def,
@@ -51,7 +55,12 @@ export function TextField({
   const t = useTranslations('personalization');
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const pendingCaret = useRef<number | null>(null);
+  // True while an IME composition feeds raw text into the value.
+  const composingRef = useRef(false);
   const [filtered, setFiltered] = useState(false);
+  // Bumped to re-run the caret effect when the transformed value equals the
+  // previous one (React then resets the DOM value without a new `current`).
+  const [caretTick, setCaretTick] = useState(0);
   const limits = useMemo(() => textLimits(def, siblings, siblingValues), [def, siblings, siblingValues]);
   const current = typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
   const count = displayLength(current);
@@ -78,17 +87,42 @@ export function TextField({
     pendingCaret.current = null;
     inputRef.current.focus();
     inputRef.current.setSelectionRange(caret, caret);
-  }, [current]);
+  }, [current, caretTick]);
+
+  // A value written by something other than typing (URL prefill, a restored
+  // or default value) gets the live transform once it lands here, so a
+  // capitalize field never shows a text different from the stored one (M173).
+  // No-op for uppercase / no transform; skipped during an IME composition.
+  const liveValue = liveTextTransform(current, limits.transform);
+  useEffect(() => {
+    if (composingRef.current || liveValue === current) return;
+    onChange(liveValue);
+    // `onChange` identity changes every render of the parent; the value pair
+    // is the only trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveValue, current]);
 
   const allowedMessage =
     fieldMessage(def, 'CUSTOM_FIELD_INVALID_CHARS', { locale, primaryLocale }, groupIndex) || t('allowedChars');
 
   const handleInput = (raw: string, composing: boolean) => {
     // IME composition: keep the raw text, filter once it ends.
+    composingRef.current = composing;
     if (composing) return onChange(raw);
     const kept = filterAllowedChars(raw, limits.allowed);
     if (kept !== raw.normalize('NFC')) setFiltered(true);
-    onChange(limits.max !== null ? truncateChars(kept, limits.max) : kept);
+    const cut = limits.max !== null ? truncateChars(kept, limits.max) : kept;
+    const next = liveTextTransform(cut, limits.transform);
+    // The transform only changes letter case (same length): put the caret
+    // back where the visitor was typing instead of at the end.
+    if (next !== raw && next.length === raw.length && limits.transform === 'capitalize') {
+      const caret = inputRef.current?.selectionStart;
+      if (typeof caret === 'number') {
+        pendingCaret.current = caret;
+        setCaretTick((n) => n + 1);
+      }
+    }
+    onChange(next);
   };
 
   const insert = () => {
@@ -98,7 +132,7 @@ export function TextField({
     const next = insertAtCaret(current, caret, limits.insertChar, limits.max);
     if (!next) return;
     pendingCaret.current = next.caret;
-    onChange(next.value);
+    onChange(liveTextTransform(next.value, limits.transform));
   };
 
   const counterMax = limits.counter === 'linked' ? (limits.targetLength ?? limits.max) : limits.max;
